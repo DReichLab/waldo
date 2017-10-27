@@ -4,10 +4,12 @@ from django.http import HttpResponse
 from django.http import HttpResponseRedirect
 
 from sequencing_run.ssh_command import ssh_command
-from sequencing_run.models import SequencingRun
+from sequencing_run.models import SequencingRun, SequencingScreeningAnalysisRun
 from sequencing_run.screening_analysis import start_screening_analysis
 
 from .forms import ScreeningAnalysisForm
+
+import threading
 
 # Create your views here.
 def index(request):
@@ -34,6 +36,9 @@ def updateSequencingRunList(request):
 	return HttpResponse(result)
 
 def screeningForm(request):
+	# always retreive the list of active screening runs
+	run_list = SequencingScreeningAnalysisRun.objects.all().order_by('pk').reverse()
+	
 	# if this is a POST request we need to process the form data
 	if request.method == 'POST':
 		# create a form instance and populate it with data from the request:
@@ -44,11 +49,16 @@ def screeningForm(request):
 			# process the data in form.cleaned_data as required
 			# ...
 			#print(form.cleaned_data['illumina_directory'])
-			start_screening_analysis(
-				form.cleaned_data['illumina_directory'],
-				form.cleaned_data['name'],
-				form.cleaned_data['sequencing_date'],
-				form.cleaned_data['top_samples_to_demultiplex'])
+			orchestra_thread = threading.Thread(
+				target=start_screening_analysis,
+				args=(
+					form.cleaned_data['illumina_directory'],
+					form.cleaned_data['name'],
+					form.cleaned_data['sequencing_date'],
+					form.cleaned_data['top_samples_to_demultiplex'],
+				)
+			)
+			orchestra_thread.start()
 			# redirect to a new URL:
 			return HttpResponseRedirect('/sequencing_run/start/')
 
@@ -57,7 +67,7 @@ def screeningForm(request):
 		updateSequencingRunList(request) # argument is not used
 		form = ScreeningAnalysisForm()
 
-	return render(request, 'sequencing_run/screening.html', {'form': form})
+	return render(request, 'sequencing_run/screening.html', {'form': form, 'screening_run_list': run_list})
 
 def startScreeningAnalysis(request):
 	print('Request to start')

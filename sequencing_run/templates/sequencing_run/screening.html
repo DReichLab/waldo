@@ -3,4 +3,35 @@
 	<h1>Reich Lab Ancient DNA Screening</h1>
 	{{ form.as_p }}
 	<input type="submit" value="Start screening analysis" />
+	
+	<hr>
+	
+	{% load tz %}
+	{% localtime on %}
+	<h2>Screening Analysis Runs</h2>
+	<table>
+		<tr>
+			<th>ID</th>
+			<th>Name</th>
+			<th>Analysis Start</th>
+			<th>Analysis Stop</th>
+			<th>Processing State</th>
+			<th>Sequencing Date</th>
+			<th>SLURM Job #</th>
+			<th>Num Top Samples to Demultiplex</th>
+		</tr>
+		{% for run in screening_run_list %}
+			<tr>
+				<td>{{run.pk}}</td>
+				<td>{{run.name}}</td>
+				<td>{{run.start}}</td>
+				<td>{{run.stop}}</td>
+				<td>{{run.processing_state}}</td>
+				<td>{{run.sequencing_date}}</td>
+				<td>{{run.slurm_job_number}}</td>
+				<td>{{run.top_samples_to_demultiplex}}</td>
+			</tr>
+		{% endfor %}
+	</table>
+	{% endlocaltime %}
 </form> 

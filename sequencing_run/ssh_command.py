@@ -1,6 +1,7 @@
 #!/usr/bin/python
 
 import subprocess
+import sys
 
 def ssh_command(host, command, output_std=False, output_error=False):
 	ssh_result = subprocess.Popen(["ssh", "%s" % host, command],
