@@ -28,7 +28,6 @@ class SequencingScreeningAnalysisRun(models.Model):
 	
 	name = models.CharField("sequencing run name", max_length=100)
 	start = models.DateTimeField("sequencing run processing run start time")
-	stop = models.DateTimeField("sequencing run processing run stop time", null=True)
 	processing_state = models.IntegerField(default=0, choices=ANALYSIS_RUN_STATES)
 	
 	sequencing_run = models.ForeignKey(SequencingRun, on_delete=models.CASCADE)

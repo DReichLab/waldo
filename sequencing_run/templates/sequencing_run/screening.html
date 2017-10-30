@@ -13,9 +13,8 @@
 		<tr>
 			<th>ID</th>
 			<th>Illumina Directory</th>
-			<th>Name</th>
+			<th>Sequencing Run Name</th>
 			<th>Analysis Start</th>
-			<th>Analysis Stop</th>
 			<th>Processing State</th>
 			<th>Sequencing Date</th>
 			<th>SLURM Job #</th>
@@ -26,8 +25,7 @@
 				<td>{{run.pk}}</td>
 				<td>{{run.sequencing_run}}</td>
 				<td>{{run.name}}</td>
-				<td>{{run.start|date:'Y-m-d H:i'}}</td>
-				<td>{{run.stop|date:'Y-m-d H:i'}}</td>
+				<td>{{run.start|date:'Y-m-d H:i e'}}</td>
 				<td>{{run.get_processing_state_display}}</td>
 				<td>{{run.sequencing_date}}</td>
 				<td>{{run.slurm_job_number}}</td>
