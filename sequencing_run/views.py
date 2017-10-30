@@ -52,7 +52,7 @@ def screeningForm(request):
 			orchestra_thread = threading.Thread(
 				target=start_screening_analysis,
 				args=(
-					form.cleaned_data['illumina_directory'],
+					str(form.cleaned_data['illumina_directory']),
 					form.cleaned_data['name'],
 					form.cleaned_data['sequencing_date'],
 					form.cleaned_data['top_samples_to_demultiplex'],
