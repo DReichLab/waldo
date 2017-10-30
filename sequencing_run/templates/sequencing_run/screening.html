@@ -12,6 +12,7 @@
 	<table>
 		<tr>
 			<th>ID</th>
+			<th>Illumina Directory</th>
 			<th>Name</th>
 			<th>Analysis Start</th>
 			<th>Analysis Stop</th>
@@ -23,9 +24,10 @@
 		{% for run in screening_run_list %}
 			<tr>
 				<td>{{run.pk}}</td>
+				<td>{{run.sequencing_run}}</td>
 				<td>{{run.name}}</td>
-				<td>{{run.start}}</td>
-				<td>{{run.stop}}</td>
+				<td>{{run.start|date:'Y-m-d H:i'}}</td>
+				<td>{{run.stop|date:'Y-m-d H:i'}}</td>
 				<td>{{run.get_processing_state_display}}</td>
 				<td>{{run.sequencing_date}}</td>
 				<td>{{run.slurm_job_number}}</td>
