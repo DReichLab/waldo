@@ -32,8 +32,7 @@ def start_screening_analysis(source_illumina_dir, sequencing_run_name, sequencin
 	# generate SLURM script
 	run_entry.processing_state = SequencingScreeningAnalysisRun.PREPARING_RUN_SCRIPT
 	run_entry.save()
-	# TODO replace test with template
-	replace_parameters('test.sh', scratch_illumina_directory, sequencing_run_name, date_string, number_top_samples_to_demultiplex)
+	replace_parameters('template.sh', scratch_illumina_directory, sequencing_run_name, date_string, number_top_samples_to_demultiplex)
 	# start job
 	run_entry.processing_state = SequencingScreeningAnalysisRun.RUNNING_SCREENING_ANALYSIS
 	run_entry.save();
