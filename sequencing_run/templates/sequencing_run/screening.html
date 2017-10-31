@@ -4,7 +4,8 @@
 	{% csrf_token %}
 	<h1>Reich Lab Ancient DNA Screening</h1>
 	{{ form.as_p }}
-	<input type="submit" value="Start screening analysis" />
+	<input type="submit" name="start_analysis" value="Start screening analysis" />
+	<input type="submit" name="get_report" value="Get report (finished only)" />
 	
 	<hr>
 	
@@ -36,4 +37,11 @@
 		{% endfor %}
 	</table>
 	{% endlocaltime %}
+	
+	<hr>
+	<h2>SLURM Jobs</h2>
+	{% for job in slurm_jobs %}
+		{{ job }}
+	{% endfor %}
+	
 </form> 

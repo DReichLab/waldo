@@ -22,23 +22,23 @@ def start_screening_analysis(source_illumina_dir, sequencing_run_name, sequencin
 	run_entry.save()
 		
 	# copy illumina directory
-	#copy_illumina_directory(source_illumina_dir, destination_directory)
 	run_entry.processing_state = SequencingScreeningAnalysisRun.COPYING_SEQUENCING_DATA
 	run_entry.save()
+	copy_illumina_directory(source_illumina_dir, scratch_illumina_directory)
 	# generate json input file
-	replace_parameters('template.json', scratch_illumina_directory, sequencing_run_name, date_string, number_top_samples_to_demultiplex)
 	run_entry.processing_state = SequencingScreeningAnalysisRun.PREPARING_JSON_INPUTS
 	run_entry.save()
+	replace_parameters('template.json', scratch_illumina_directory, sequencing_run_name, date_string, number_top_samples_to_demultiplex)
 	# generate SLURM script
-	# TODO replace test with template
-	replace_parameters('test.sh', scratch_illumina_directory, sequencing_run_name, date_string, number_top_samples_to_demultiplex)
 	run_entry.processing_state = SequencingScreeningAnalysisRun.PREPARING_RUN_SCRIPT
 	run_entry.save()
-	# make directory
-	
+	# TODO replace test with template
+	replace_parameters('test.sh', scratch_illumina_directory, sequencing_run_name, date_string, number_top_samples_to_demultiplex)
 	# start job
-	start_result = start_cromwell(date_string, sequencing_run_name)
 	run_entry.processing_state = SequencingScreeningAnalysisRun.RUNNING_SCREENING_ANALYSIS
+	run_entry.save();
+	
+	start_result = start_cromwell(date_string, sequencing_run_name)
 	# retrieve SLURM job number from output
 	for line in start_result.stdout.readlines():
 		line = line.decode('utf-8')
@@ -46,13 +46,14 @@ def start_screening_analysis(source_illumina_dir, sequencing_run_name, sequencin
 		m = re.match('Submitted batch job[\s]+(\d+)', line)
 		if m is not None:
 			run_entry.slurm_job_number = int(m.group(1))
-			
 	run_entry.save()
 	
 # Sequencing data is stored on the HMS Genetics filesystem.
 # This needs to be copied to the research computing O2 cluster
 # before analysis can begin
 def copy_illumina_directory(source_illumina_dir, scratch_illumina_directory):
+	print(source_illumina_dir)
+	print(scratch_illumina_directory)
 	host = "mym11@transfer.rc.hms.harvard.edu"
 	command = "rsync -a /files/Genetics/reichseq/reich/reichseq/reich/" + source_illumina_dir + " " + scratch_illumina_directory
 	ssh_result = ssh_command(host, command, True, True)
@@ -79,3 +80,62 @@ def start_cromwell(date_string, run_name):
 	command = "sbatch /home/mym11/pipeline/run/" + date_string + "_" + run_name + ".sh"
 	ssh_result = ssh_command(host, command, False, True) # stdout printing is False to preserve SLURM job number output
 	return ssh_result
+
+# acquire list of SLURM jobs that are running tied to a known sequencing run
+def query_job_status():
+	host = "mym11@login.rc.hms.harvard.edu"
+	command = 'squeue -u mym11 -o "%.18i %.9P %.45j %.8u %.8T %.10M %.9l %.6D %.3C %R"'
+	ssh_result = ssh_command(host, command)
+	
+	stdout_result = ssh_result.stdout.readlines()
+	slurm_jobs_text = []
+	slurm_running_jobs = []
+	for line in stdout_result:
+		decoded = line.decode('utf-8').strip()
+		slurm_jobs_text.append(decoded) # for printing
+	stderr_result = ssh_result.stderr.readlines()
+	for line in stderr_result:
+		decoded = line.decode('utf-8').strip()
+		slurm_jobs_text.append(decoded) # for printing
+		
+	# iterate over running sequencing analysis runs
+	# if the slurm job is not present
+	expectedRunningJobs = SequencingScreeningAnalysisRun.objects.filter(processing_state=SequencingScreeningAnalysisRun.RUNNING_SCREENING_ANALYSIS)
+	for expectedRunningJob in expectedRunningJobs:
+		# query for sacct info and check for COMPLETED state
+		#sacct -j 5790362 -o "JobID,State"
+		jobID = str(expectedRunningJob.slurm_job_number)
+		print ('checking SLURM job state for job ' + jobID)
+		sacct_command = 'sacct -j ' + jobID + ' -o "JobID,State"'
+		sacct_result = ssh_command(host, sacct_command)
+		sacct_stdout = sacct_result.stdout.readlines()
+		for line in sacct_stdout:			
+			fields = line.decode('utf-8').split()
+			#print('debugging: ', fields)
+			if fields[0] == jobID:
+				state = fields[1]
+				if state == 'COMPLETED':
+					expectedRunningJob.processing_state = SequencingScreeningAnalysisRun.FINISHED
+					expectedRunningJob.save()
+				if state == 'CANCELLED' or state == 'FAILED' or state == 'TIMEOUT' or state == 'NODE_FAIL':
+					expectedRunningJob.processing_state = SequencingScreeningAnalysisRun.FAILED
+					expectedRunningJob.save()
+				
+		sacct_stderr = sacct_result.stderr.readlines()
+		
+	return slurm_jobs_text
+
+def get_final_report(sequencing_date_string, sequencing_run_name):
+	host = "mym11@login.rc.hms.harvard.edu"
+	command = 'cat ' + "/n/scratch2/mym11/automated_pipeline/" + sequencing_date_string + '_' + sequencing_run_name + '/' + sequencing_date_string + '_' + sequencing_run_name + '.report'
+	print('get_final_report ' + command)
+	ssh_result = ssh_command(host, command, False, True)
+	
+	# retrieve stdout from cat and return this as an array of lines
+	report_output = ''
+	stdout_result = ssh_result.stdout.readlines()
+	for line in stdout_result:
+		decoded = line.decode('utf-8').strip()
+		report_output = report_output + decoded + '\n'
+		
+	return report_output
