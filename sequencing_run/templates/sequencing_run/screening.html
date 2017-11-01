@@ -40,8 +40,14 @@
 	
 	<hr>
 	<h2>SLURM Jobs</h2>
+	<table>
 	{% for job in slurm_jobs %}
-		{{ job }}
+		<tr>
+		<td>
+			{{ job }}
+		</td>
+		</tr>
 	{% endfor %}
+	</table>
 	
 </form> 
