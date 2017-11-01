@@ -74,6 +74,7 @@ def replace_parameters(source_filename, scratch_illumina_directory, run_name, da
 	ssh_result = ssh_command(host, command, True, True)
 	return ssh_result
 
+# The Broad Cromwell workflow tool runs the analysis
 def start_cromwell(date_string, run_name):
 	host = "mym11@login.rc.hms.harvard.edu"
 	command = "sbatch /home/mym11/pipeline/run/" + date_string + "_" + run_name + ".sh"
@@ -124,6 +125,7 @@ def query_job_status():
 		
 	return slurm_jobs_text
 
+# When analysis is finished, retrieve the final report file
 def get_final_report(sequencing_date_string, sequencing_run_name):
 	host = "mym11@login.rc.hms.harvard.edu"
 	command = 'cat ' + "/n/scratch2/mym11/automated_pipeline/" + sequencing_date_string + '_' + sequencing_run_name + '/' + sequencing_date_string + '_' + sequencing_run_name + '.report'
@@ -138,3 +140,9 @@ def get_final_report(sequencing_date_string, sequencing_run_name):
 		report_output = report_output + decoded + '\n'
 		
 	return report_output
+
+def index_barcode_keys_used(sequencing_date_string, sequencing_run_name):
+	host = "mym11@login.rc.hms.harvard.edu"
+	queryForKeys = 'SELECT CONCAT(p5_index_id, "_", p7_index_id, "_", p5_barcode_id, "_", p7_barcode_id), library_id FROM sequenced_library WHERE sequencing_id="' + sequencing_run_name + '";';
+	command = 'mysql devadna -e ' + queryForKeys + ' > /home/mym11/pipeline/run/' + sequencing_date_string + '_' + sequencing_run_name + '.index_barcode_keys'
+	ssh_command(host, command, True, True)
