@@ -9,7 +9,10 @@ def start_screening_analysis(source_illumina_dir, sequencing_run_name, sequencin
 	date_string = sequencing_date.strftime('%Y%m%d')
 	destination_directory = date_string + '_' + sequencing_run_name
 	
-	scratch_illumina_directory = "/n/scratch2/mym11/automated_pipeline/" + destination_directory
+	# the source_illumina_dir is the directory name only, not the full path
+	# we need the scratch directory to include the full path including the illumina directory name for bcl2fastq in the analysis pipeline to find it
+	scratch_illumina_parent_path = "/n/scratch2/mym11/automated_pipeline/" + destination_directory
+	scratch_illumina_directory_path = scratch_illumina_parent_path + "/" + source_illumina_dir
 	
 	run_entry = SequencingScreeningAnalysisRun(
 		name = sequencing_run_name, 
@@ -24,15 +27,15 @@ def start_screening_analysis(source_illumina_dir, sequencing_run_name, sequencin
 	# copy illumina directory
 	run_entry.processing_state = SequencingScreeningAnalysisRun.COPYING_SEQUENCING_DATA
 	run_entry.save()
-	copy_illumina_directory(source_illumina_dir, scratch_illumina_directory)
+	copy_illumina_directory(source_illumina_dir, scratch_illumina_parent_path)
 	# generate json input file
 	run_entry.processing_state = SequencingScreeningAnalysisRun.PREPARING_JSON_INPUTS
 	run_entry.save()
-	replace_parameters('template.json', scratch_illumina_directory, sequencing_run_name, date_string, number_top_samples_to_demultiplex)
+	replace_parameters('template.json', scratch_illumina_directory_path, sequencing_run_name, date_string, number_top_samples_to_demultiplex)
 	# generate SLURM script
 	run_entry.processing_state = SequencingScreeningAnalysisRun.PREPARING_RUN_SCRIPT
 	run_entry.save()
-	replace_parameters('template.sh', scratch_illumina_directory, sequencing_run_name, date_string, number_top_samples_to_demultiplex)
+	replace_parameters('template.sh', scratch_illumina_directory_path, sequencing_run_name, date_string, number_top_samples_to_demultiplex)
 	# start job
 	run_entry.processing_state = SequencingScreeningAnalysisRun.RUNNING_SCREENING_ANALYSIS
 	run_entry.save();
