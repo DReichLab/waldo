@@ -17,7 +17,7 @@ class SequencingScreeningAnalysisRun(models.Model):
 	FAILED = -1
 	
 	ANALYSIS_RUN_STATES = (
-		(STARTED, 'not started'),
+		(STARTED, 'started'),
 		(COPYING_SEQUENCING_DATA, 'copying sequencing data to Orchestra/O2'),
 		(PREPARING_JSON_INPUTS, 'preparing json inputs'),
 		(PREPARING_RUN_SCRIPT, 'preparing run script'),
