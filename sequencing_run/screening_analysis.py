@@ -28,6 +28,8 @@ def start_screening_analysis(source_illumina_dir, sequencing_run_name, sequencin
 	run_entry.processing_state = SequencingScreeningAnalysisRun.COPYING_SEQUENCING_DATA
 	run_entry.save()
 	copy_illumina_directory(source_illumina_dir, scratch_illumina_parent_path)
+	# index-barcode key file
+	index_barcode_keys_used(date_string, sequencing_run_name)
 	# generate json input file
 	run_entry.processing_state = SequencingScreeningAnalysisRun.PREPARING_JSON_INPUTS
 	run_entry.save()
@@ -120,7 +122,7 @@ def query_job_status():
 				if state == 'COMPLETED':
 					expectedRunningJob.processing_state = SequencingScreeningAnalysisRun.FINISHED
 					expectedRunningJob.save()
-				if state == 'CANCELLED' or state == 'FAILED' or state == 'TIMEOUT' or state == 'NODE_FAIL':
+				if 'CANCELLED' in state or state == 'FAILED' or state == 'TIMEOUT' or state == 'NODE_FAIL':
 					expectedRunningJob.processing_state = SequencingScreeningAnalysisRun.FAILED
 					expectedRunningJob.save()
 				
@@ -147,5 +149,5 @@ def get_final_report(sequencing_date_string, sequencing_run_name):
 def index_barcode_keys_used(sequencing_date_string, sequencing_run_name):
 	host = "mym11@login.rc.hms.harvard.edu"
 	queryForKeys = 'SELECT CONCAT(p5_index_id, "_", p7_index_id, "_", p5_barcode_id, "_", p7_barcode_id), library_id FROM sequenced_library WHERE sequencing_id="' + sequencing_run_name + '";';
-	command = 'mysql devadna -e ' + queryForKeys + ' > /home/mym11/pipeline/run/' + sequencing_date_string + '_' + sequencing_run_name + '.index_barcode_keys'
+	command = "mysql devadna -e '" + queryForKeys + "' > /home/mym11/pipeline/run/" + sequencing_date_string + '_' + sequencing_run_name + '.index_barcode_keys'
 	ssh_command(host, command, True, True)
