@@ -45,7 +45,6 @@ def start_screening_analysis(source_illumina_dir, sequencing_run_name, sequencin
 	start_result = start_cromwell(date_string, sequencing_run_name)
 	# retrieve SLURM job number from output
 	for line in start_result.stdout.readlines():
-		line = line.decode('utf-8')
 		print(line)
 		m = re.match('Submitted batch job[\s]+(\d+)', line)
 		if m is not None:
@@ -96,11 +95,11 @@ def query_job_status():
 	slurm_jobs_text = []
 	slurm_running_jobs = []
 	for line in stdout_result:
-		decoded = line.decode('utf-8').strip()
+		decoded = line.strip()
 		slurm_jobs_text.append(decoded) # for printing
 	stderr_result = ssh_result.stderr.readlines()
 	for line in stderr_result:
-		decoded = line.decode('utf-8').strip()
+		decoded = line.strip()
 		slurm_jobs_text.append(decoded) # for printing
 		
 	# iterate over running sequencing analysis runs
@@ -115,7 +114,7 @@ def query_job_status():
 		sacct_result = ssh_command(host, sacct_command)
 		sacct_stdout = sacct_result.stdout.readlines()
 		for line in sacct_stdout:			
-			fields = line.decode('utf-8').split()
+			fields = line.split()
 			#print('debugging: ', fields)
 			if fields[0] == jobID:
 				state = fields[1]
@@ -135,14 +134,13 @@ def get_final_report(sequencing_date_string, sequencing_run_name):
 	host = "mym11@login.rc.hms.harvard.edu"
 	command = 'cat ' + "/n/scratch2/mym11/automated_pipeline/" + sequencing_date_string + '_' + sequencing_run_name + '/' + sequencing_date_string + '_' + sequencing_run_name + '.report'
 	print('get_final_report ' + command)
-	ssh_result = ssh_command(host, command, False, True)
+	ssh_result = ssh_command(host, command, False, False)
+	print('get_final_report fetched')
 	
 	# retrieve stdout from cat and return this as an array of lines
-	report_output = ''
-	stdout_result = ssh_result.stdout.readlines()
-	for line in stdout_result:
-		decoded = line.decode('utf-8').strip()
-		report_output = report_output + decoded + '\n'
+	delimiter = ''
+	lines = ssh_result.stdout.readlines()
+	report_output = delimiter.join(lines)
 		
 	return report_output
 

@@ -31,7 +31,7 @@ def updateSequencingRunList(request):
 	# this is a list of directories with sequencing data
 	# write these to the database so the user can select which directory to use
 	for directory in result:
-		s, created = SequencingRun.objects.get_or_create(illumina_directory = directory.decode('utf-8').strip() )
+		s, created = SequencingRun.objects.get_or_create(illumina_directory = directory.strip() )
 	
 	return HttpResponse(result)
 
