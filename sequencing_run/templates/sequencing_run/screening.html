@@ -5,8 +5,6 @@
 	<h1>Reich Lab Ancient DNA Screening</h1>
 	{{ form.as_p }}
 	<input type="submit" name="start_analysis" value="Start screening analysis" />
-	<input type="submit" name="get_report" value="Get report (finished only)" />
-</form>
 	
 	<hr>
 	
@@ -46,7 +44,7 @@
 				<td>{{run.top_samples_to_demultiplex}}</td>
 				{% if run.processing_state == 5 %}
 				<td>
-				<button onclick="load_sequencing_run_parameters('{{ run.name }}', '{{ run.sequencing_run }}', '{{ run.sequencing_date|date:'Y-m-d' }}', '{{ run.top_samples_to_demultiplex }}')">Get report</button>
+				<button onclick="load_sequencing_run_parameters('{{ run.name }}', '{{ run.sequencing_run }}', '{{ run.sequencing_date|date:'Y-m-d' }}', '{{ run.top_samples_to_demultiplex }}')", name="get_report">Get report</button>
 				</td>
 				{% endif %}
 			</tr>
@@ -65,3 +63,4 @@
 		</tr>
 	{% endfor %}
 	</table>
+</form>
