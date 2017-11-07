@@ -6,12 +6,23 @@
 	{{ form.as_p }}
 	<input type="submit" name="start_analysis" value="Start screening analysis" />
 	<input type="submit" name="get_report" value="Get report (finished only)" />
+</form>
 	
 	<hr>
 	
 	{% load tz %}
 	{% localtime on %}
 	<h2>Screening Analysis Runs</h2>
+	
+	<script>
+	function load_sequencing_run_parameters(name, sequencing_run, sequencing_date, top_samples_to_demultiplex){
+		document.getElementById("id_name").value = name
+		document.getElementById("id_illumina_directory").value = sequencing_run
+		document.getElementById("id_sequencing_date").value = sequencing_date
+		document.getElementById("id_top_samples_to_demultiplex").value = top_samples_to_demultiplex
+	}
+	</script>
+	
 	<table>
 		<tr>
 			<th>ID</th>
@@ -30,9 +41,14 @@
 				<td>{{run.name}}</td>
 				<td>{{run.start|date:'Y-m-d H:i e'}}</td>
 				<td>{{run.get_processing_state_display}}</td>
-				<td>{{run.sequencing_date}}</td>
+				<td>{{run.sequencing_date|date:'Y-m-d'}}</td>
 				<td>{{run.slurm_job_number}}</td>
 				<td>{{run.top_samples_to_demultiplex}}</td>
+				{% if run.processing_state == 5 %}
+				<td>
+				<button onclick="load_sequencing_run_parameters('{{ run.name }}', '{{ run.sequencing_run }}', '{{ run.sequencing_date|date:'Y-m-d' }}', '{{ run.top_samples_to_demultiplex }}')">Get report</button>
+				</td>
+				{% endif %}
 			</tr>
 		{% endfor %}
 	</table>
@@ -49,5 +65,3 @@
 		</tr>
 	{% endfor %}
 	</table>
-	
-</form> 
