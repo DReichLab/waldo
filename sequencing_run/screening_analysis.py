@@ -147,5 +147,5 @@ def get_final_report(sequencing_date_string, sequencing_run_name):
 def index_barcode_keys_used(sequencing_date_string, sequencing_run_name):
 	host = "mym11@login.rc.hms.harvard.edu"
 	queryForKeys = 'SELECT CONCAT(p5_index_id, "_", p7_index_id, "_", p5_barcode_id, "_", p7_barcode_id), library_id FROM sequenced_library WHERE sequencing_id="' + sequencing_run_name + '";';
-	command = "mysql devadna -e '" + queryForKeys + "' > /home/mym11/pipeline/run/" + sequencing_date_string + '_' + sequencing_run_name + '.index_barcode_keys'
+	command = "mysql devadna -N -e '" + queryForKeys + "' > /home/mym11/pipeline/run/" + sequencing_date_string + '_' + sequencing_run_name + '.index_barcode_keys'
 	ssh_command(host, command, True, True)
