@@ -1,7 +1,7 @@
 from ssh_command import ssh_command
 from barcode_map import barcode_to_label, barcode_to_full_barcode_set
 
-def barcodes_used(sequencing_run_name):
+def barcodes_used(sequencing_date_string, sequencing_run_name):
 	host = "mym11@login.rc.hms.harvard.edu"
 	queryForBarcodes = 'SELECT p5_barcode FROM sequenced_library WHERE sequencing_id="%s" AND length(p5_barcode) > 0 UNION SELECT p7_barcode FROM sequenced_library WHERE sequencing_id="%s" AND length(p7_barcode) > 0;' % (sequencing_run_name, sequencing_run_name)
 	command = "mysql devadna -N -e '%s'" % (queryForBarcodes)
@@ -25,5 +25,12 @@ def barcodes_used(sequencing_run_name):
 			if fullBarcodeSet not in barcodeMapForRun:
 				barcodeMapForRun[barcode] = barcode
 	
-	for barcode in barcodeMapForRun:
-		print("%s\t%s" % (barcode, barcodeMapForRun[barcode]) )
+	barcodeLines = map(lambda barcode: "%s\t%s" % (barcode, barcodeMapForRun[barcode]), barcodeMapForRun)
+	barcodeFileTextOutput = '\n'.join(barcodeLines)
+	
+	saveFileCommand = "echo '%s' > /home/mym11/pipeline/run/%s_%s.barcodes" % (barcodeFileTextOutput, sequencing_date_string, sequencing_run_name)
+	print (saveFileCommand)
+	ssh_command(host, saveFileCommand, False, True)
+#	print (output)
+#	for barcode in barcodeMapForRun:
+		#print("%s\t%s" % (barcode, barcodeMapForRun[barcode]) )
