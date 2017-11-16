@@ -25,7 +25,7 @@ SECRET_KEY = '&+8k1eb78qcr!1u^1b#u6_nu%r66-*om&f208u+ve1%hdzak&)'
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['screening.reichdna.hms.harvard.edu']
+ALLOWED_HOSTS = ['localhost', 'screening.reichdna.hms.harvard.edu', 'testing.reichdna.hms.harvard.edu']
 
 
 # Application definition
