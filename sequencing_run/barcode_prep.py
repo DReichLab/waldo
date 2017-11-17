@@ -1,4 +1,4 @@
-from ssh_command import ssh_command
+from sequencing_run.ssh_command import ssh_command
 
 # Find the set of barcodes used for a sequencing run 
 # Save a file in the run directory as input for the software pipeline
@@ -6,6 +6,16 @@ def barcodes_used(sequencing_date_string, sequencing_run_name):
 	queryForBarcodes = 'SELECT p5_barcode FROM sequenced_library WHERE sequencing_id="%s" AND length(p5_barcode) > 0 UNION SELECT p7_barcode FROM sequenced_library WHERE sequencing_id="%s" AND length(p7_barcode) > 0;' % (sequencing_run_name, sequencing_run_name)
 	
 	return _barcodes_used(sequencing_date_string, sequencing_run_name, queryForBarcodes, 'barcodes')
+
+def i5_used(sequencing_date_string, sequencing_run_name):
+	queryForBarcodes = 'SELECT p5_index FROM sequenced_library WHERE sequencing_id="%s" AND length(p5_index) > 0;' % (sequencing_run_name)
+	
+	return _barcodes_used(sequencing_date_string, sequencing_run_name, queryForBarcodes, 'i5')
+
+def i7_used(sequencing_date_string, sequencing_run_name):
+	queryForBarcodes = 'SELECT p7_index FROM sequenced_library WHERE sequencing_id="%s" AND length(p7_index) > 0;' % (sequencing_run_name)
+	
+	return _barcodes_used(sequencing_date_string, sequencing_run_name, queryForBarcodes, 'i7')
 	
 def _barcodes_used(sequencing_date_string, sequencing_run_name, query, extension):
 	host = "mym11@login.rc.hms.harvard.edu"

@@ -1,5 +1,6 @@
 from sequencing_run.ssh_command import ssh_command
 from sequencing_run.models import SequencingRun, SequencingScreeningAnalysisRun
+from sequencing_run.barcode_prep import barcodes_used, i5_used, i7_used
 import os
 import re
 
@@ -30,6 +31,10 @@ def start_screening_analysis(source_illumina_dir, sequencing_run_name, sequencin
 	copy_illumina_directory(source_illumina_dir, scratch_illumina_parent_path)
 	# index-barcode key file
 	index_barcode_keys_used(date_string, sequencing_run_name)
+	# barcode and index files for run
+	barcodes_used(date_string, sequencing_run_name)
+	i5_used(date_string, sequencing_run_name)
+	i7_used(date_string, sequencing_run_name)
 	# generate json input file
 	run_entry.processing_state = SequencingScreeningAnalysisRun.PREPARING_JSON_INPUTS
 	run_entry.save()
@@ -146,6 +151,6 @@ def get_final_report(sequencing_date_string, sequencing_run_name):
 
 def index_barcode_keys_used(sequencing_date_string, sequencing_run_name):
 	host = "mym11@login.rc.hms.harvard.edu"
-	queryForKeys = 'SELECT CONCAT(p5_index_id, "_", p7_index_id, "_", p5_barcode_id, "_", p7_barcode_id), library_id FROM sequenced_library WHERE sequencing_id="' + sequencing_run_name + '";';
+	queryForKeys = 'SELECT CONCAT(p5_index, "_", p7_index, "_", p5_barcode, "_", p7_barcode), library_id FROM sequenced_library WHERE sequencing_id="%s";' % (sequencing_run_name) ;
 	command = "mysql devadna -N -e '" + queryForKeys + "' > /home/mym11/pipeline/run/" + sequencing_date_string + '_' + sequencing_run_name + '.index_barcode_keys'
 	ssh_command(host, command, True, True)
