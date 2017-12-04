@@ -71,6 +71,13 @@ def screeningForm(request):
 				response = HttpResponse(report, content_type='text/txt')
 				response['Content-Disposition'] = 'attachment; filename="' + filename + '"'
 				return response
+			elif 'get_kmer' in request.POST:
+				date_string = form.cleaned_data['sequencing_date'].strftime("%Y%m%d")
+				filename = date_string + '_' + form.cleaned_data['name'] + '.kmer.txt'
+				report = get_final_report(date_string, form.cleaned_data['name'])
+				response = HttpResponse(report, content_type='text/txt')
+				response['Content-Disposition'] = 'attachment; filename="' + filename + '"'
+				return response
 
     # if a GET (or any other method) we'll create a blank form
 	else:
