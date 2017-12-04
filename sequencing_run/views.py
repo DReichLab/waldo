@@ -5,7 +5,7 @@ from django.http import HttpResponseRedirect
 
 from sequencing_run.ssh_command import ssh_command
 from sequencing_run.models import SequencingRun, SequencingScreeningAnalysisRun
-from sequencing_run.screening_analysis import start_screening_analysis, query_job_status, get_final_report
+from sequencing_run.screening_analysis import start_screening_analysis, query_job_status, get_kmer_analysis, get_final_report
 
 from .forms import ScreeningAnalysisForm
 
