@@ -149,6 +149,20 @@ def get_final_report(sequencing_date_string, sequencing_run_name):
 		
 	return report_output
 
+def get_kmer_analysis(sequencing_date_string, sequencing_run_name):
+	host = "mym11@login.rc.hms.harvard.edu"
+	command = 'cat ' + "/n/scratch2/mym11/automated_pipeline/" + sequencing_date_string + '_' + sequencing_run_name + '/' + sequencing_date_string + '_' + sequencing_run_name + '.kmer'
+	print('get_kmer_analysis ' + command)
+	ssh_result = ssh_command(host, command, False, False)
+	print('get_kmer_analysis fetched')
+	
+	# retrieve stdout from cat and return this as an array of lines
+	delimiter = ''
+	lines = ssh_result.stdout.readlines()
+	report_output = delimiter.join(lines)
+		
+	return report_output
+
 def index_barcode_keys_used(sequencing_date_string, sequencing_run_name):
 	host = "mym11@login.rc.hms.harvard.edu"
 	queryForKeys = 'SELECT CONCAT(p5_index, "_", p7_index, "_", p5_barcode, "_", p7_barcode), library_id FROM sequenced_library WHERE sequencing_id="%s";' % (sequencing_run_name) ;
