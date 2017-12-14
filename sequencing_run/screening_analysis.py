@@ -134,13 +134,13 @@ def query_job_status():
 		
 	return slurm_jobs_text
 
-# When analysis is finished, retrieve the final report file
-def get_final_report(sequencing_date_string, sequencing_run_name):
+# get a report file from the completed analysis
+def get_report_file(sequencing_date_string, sequencing_run_name, extension):
 	host = "mym11@login.rc.hms.harvard.edu"
-	command = 'cat ' + "/n/scratch2/mym11/automated_pipeline/" + sequencing_date_string + '_' + sequencing_run_name + '/' + sequencing_date_string + '_' + sequencing_run_name + '.report'
-	print('get_final_report ' + command)
+	command = 'cat ' + "/n/scratch2/mym11/automated_pipeline/" + sequencing_date_string + '_' + sequencing_run_name + '/' + sequencing_date_string + '_' + sequencing_run_name + extension
+	print('get_report_file ' + command)
 	ssh_result = ssh_command(host, command, False, False)
-	print('get_final_report fetched')
+	print('get_report_file fetched')
 	
 	# retrieve stdout from cat and return this as an array of lines
 	delimiter = ''
@@ -149,19 +149,11 @@ def get_final_report(sequencing_date_string, sequencing_run_name):
 		
 	return report_output
 
+def get_final_report(sequencing_date_string, sequencing_run_name):
+	return get_report_file(sequencing_date_string, sequencing_run_name, '.report')
+
 def get_kmer_analysis(sequencing_date_string, sequencing_run_name):
-	host = "mym11@login.rc.hms.harvard.edu"
-	command = 'cat ' + "/n/scratch2/mym11/automated_pipeline/" + sequencing_date_string + '_' + sequencing_run_name + '/' + sequencing_date_string + '_' + sequencing_run_name + '.kmer'
-	print('get_kmer_analysis ' + command)
-	ssh_result = ssh_command(host, command, False, False)
-	print('get_kmer_analysis fetched')
-	
-	# retrieve stdout from cat and return this as an array of lines
-	delimiter = ''
-	lines = ssh_result.stdout.readlines()
-	report_output = delimiter.join(lines)
-		
-	return report_output
+	return get_report_file(sequencing_date_string, sequencing_run_name, '.kmer')
 
 def index_barcode_keys_used(sequencing_date_string, sequencing_run_name):
 	host = "mym11@login.rc.hms.harvard.edu"
