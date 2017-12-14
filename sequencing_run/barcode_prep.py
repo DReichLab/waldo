@@ -52,6 +52,6 @@ def _barcodes_used(sequencing_date_string, sequencing_run_name, query, extension
 # put a file in the run directory with the requested contents
 def save_file_with_contents(contents, sequencing_date_string, sequencing_run_name, extension, host):
 	
-	saveFileCommand = "echo '%s' > /home/mym11/pipeline/run/%s_%s.%s" % (contents, sequencing_date_string, sequencing_run_name, extension)
+	saveFileCommand = "echo '%s' > /n/groups/reich/matt/pipeline/run/%s_%s.%s" % (contents, sequencing_date_string, sequencing_run_name, extension)
 	#print (saveFileCommand)
 	ssh_command(host, saveFileCommand, False, True)

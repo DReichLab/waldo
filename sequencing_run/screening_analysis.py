@@ -38,11 +38,11 @@ def start_screening_analysis(source_illumina_dir, sequencing_run_name, sequencin
 	# generate json input file
 	run_entry.processing_state = SequencingScreeningAnalysisRun.PREPARING_JSON_INPUTS
 	run_entry.save()
-	replace_parameters('template.json', scratch_illumina_directory_path, sequencing_run_name, date_string, number_top_samples_to_demultiplex)
+	replace_parameters('screening_template.json', scratch_illumina_directory_path, sequencing_run_name, date_string, number_top_samples_to_demultiplex)
 	# generate SLURM script
 	run_entry.processing_state = SequencingScreeningAnalysisRun.PREPARING_RUN_SCRIPT
 	run_entry.save()
-	replace_parameters('template.sh', scratch_illumina_directory_path, sequencing_run_name, date_string, number_top_samples_to_demultiplex)
+	replace_parameters('screening_template.sh', scratch_illumina_directory_path, sequencing_run_name, date_string, number_top_samples_to_demultiplex)
 	# start job
 	run_entry.processing_state = SequencingScreeningAnalysisRun.RUNNING_SCREENING_ANALYSIS
 	run_entry.save();
@@ -78,15 +78,15 @@ def replace_parameters(source_filename, scratch_illumina_directory, run_name, da
 		+ "s/INPUT_DIRECTORY/" + escaped_scratch_illumina_directory + "/;" \
 		+ "s/INPUT_NUM_SAMPLES/" + str(num_samples) + "/" \
 		+ "'" \
-		+ " /home/mym11/pipeline/run/" + source_filename \
-		+ " > /home/mym11/pipeline/run/" + date_string + "_" + run_name + extension
+		+ " /n/groups/reich/matt/pipeline/run/" + source_filename \
+		+ " > /n/groups/reich/matt/pipeline/run/" + date_string + "_" + run_name + extension
 	ssh_result = ssh_command(host, command, True, True)
 	return ssh_result
 
 # The Broad Cromwell workflow tool runs the analysis
 def start_cromwell(date_string, run_name):
 	host = "mym11@login.rc.hms.harvard.edu"
-	command = "sbatch /home/mym11/pipeline/run/" + date_string + "_" + run_name + ".sh"
+	command = "sbatch /n/groups/reich/matt/pipeline/run/" + date_string + "_" + run_name + ".sh"
 	ssh_result = ssh_command(host, command, False, True) # stdout printing is False to preserve SLURM job number output
 	return ssh_result
 
@@ -137,7 +137,7 @@ def query_job_status():
 # get a report file from the completed analysis
 def get_report_file(sequencing_date_string, sequencing_run_name, extension):
 	host = "mym11@login.rc.hms.harvard.edu"
-	command = 'cat ' + "/n/scratch2/mym11/automated_pipeline/" + sequencing_date_string + '_' + sequencing_run_name + '/' + sequencing_date_string + '_' + sequencing_run_name + extension
+	command = 'cat ' + "/n/groups/reich/matt/pipeline/results/" + sequencing_date_string + '_' + sequencing_run_name + '/' + sequencing_date_string + '_' + sequencing_run_name + extension
 	print('get_report_file ' + command)
 	ssh_result = ssh_command(host, command, False, False)
 	print('get_report_file fetched')
@@ -158,5 +158,5 @@ def get_kmer_analysis(sequencing_date_string, sequencing_run_name):
 def index_barcode_keys_used(sequencing_date_string, sequencing_run_name):
 	host = "mym11@login.rc.hms.harvard.edu"
 	queryForKeys = 'SELECT CONCAT(p5_index, "_", p7_index, "_", p5_barcode, "_", p7_barcode), library_id FROM sequenced_library WHERE sequencing_id="%s";' % (sequencing_run_name) ;
-	command = "mysql devadna -N -e '" + queryForKeys + "' > /home/mym11/pipeline/run/" + sequencing_date_string + '_' + sequencing_run_name + '.index_barcode_keys'
+	command = "mysql devadna -N -e '" + queryForKeys + "' > /n/groups/reich/matt/pipeline/run/" + sequencing_date_string + '_' + sequencing_run_name + '.index_barcode_keys'
 	ssh_command(host, command, True, True)
