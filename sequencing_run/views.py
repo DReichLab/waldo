@@ -6,6 +6,7 @@ from django.http import HttpResponseRedirect
 from sequencing_run.ssh_command import ssh_command
 from sequencing_run.models import SequencingRun, SequencingScreeningAnalysisRun
 from sequencing_run.screening_analysis import start_screening_analysis, query_job_status, get_kmer_analysis, get_final_report
+from sequencing_run.report_field_descriptions import report_field_descriptions
 
 from .forms import ScreeningAnalysisForm
 
@@ -20,6 +21,9 @@ def index(request):
 	result = ssh.stdout.readlines()
 	return HttpResponse(result)
 	#return HttpResponse("Hello, world.")
+	
+def helpPage(request):
+	return render(request, 'sequencing_run/help.html', {'report_fields': report_field_descriptions(request)})
 
 # Look at the Genetics file server to retrieve sequencing runs list
 def updateSequencingRunList(request):

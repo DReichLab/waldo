@@ -1,0 +1,16 @@
+{% load static %}
+<link rel="stylesheet" type="text/css" href="{% static 'sequencing_run/style.css' %}" />
+<h1>Screening Report Field Descriptions</h1>
+<table>
+	<tr>
+		<th>Report field</th>
+		<th>Description</th>
+	</tr>
+	{% for field in report_fields %}
+		<tr>
+			<td>{{field.0}}</td>
+			<td>{{field.1}}</td>
+		</tr>
+	{% endfor %}
+</table>
+ 

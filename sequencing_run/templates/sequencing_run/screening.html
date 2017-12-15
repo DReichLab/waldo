@@ -31,6 +31,7 @@
 			<th>Sequencing Date</th>
 			<th>SLURM Job #</th>
 			<th>Num Top Samples to Demultiplex</th>
+			<th><a href="report_help">Report Help</a></th>
 		</tr>
 		{% for run in screening_run_list %}
 			<tr>
@@ -44,10 +45,10 @@
 				<td>{{run.top_samples_to_demultiplex}}</td>
 				{% if run.processing_state == 5 %}
 				<td>
-				<button onclick="load_sequencing_run_parameters('{{ run.name }}', '{{ run.sequencing_run }}', '{{ run.sequencing_date|date:'Y-m-d' }}', '{{ run.top_samples_to_demultiplex }}')", name="get_kmer">Get kmer analysis</button>
+				<button onclick="load_sequencing_run_parameters('{{ run.name }}', '{{ run.sequencing_run }}', '{{ run.sequencing_date|date:'Y-m-d' }}', '{{ run.top_samples_to_demultiplex }}')", name="get_report">Get report</button>
 				</td>
 				<td>
-				<button onclick="load_sequencing_run_parameters('{{ run.name }}', '{{ run.sequencing_run }}', '{{ run.sequencing_date|date:'Y-m-d' }}', '{{ run.top_samples_to_demultiplex }}')", name="get_report">Get report</button>
+				<button onclick="load_sequencing_run_parameters('{{ run.name }}', '{{ run.sequencing_run }}', '{{ run.sequencing_date|date:'Y-m-d' }}', '{{ run.top_samples_to_demultiplex }}')", name="get_kmer">Get kmer analysis</button>
 				</td>
 				{% endif %}
 			</tr>
