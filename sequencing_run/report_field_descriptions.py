@@ -2,8 +2,9 @@
 
 def report_field_descriptions(request):
 	report_fields = [
-		("Index-Barcode Key", "The i5 index, i7 index, p5 barcode, and p7 barcode sequences are separated by _ characters: i5_i7_p5_p7"),
-		("library_id", "The sample, extract and library identifiers as matched with the sample sheet using the index-barcode key"),
+		("Index-Barcode Key", "The i5 index, i7 index, p5 barcode, and p7 barcode sequences are separated by _ characters: i5_i7_p5_p7. This is the key used to demultiplex, and it treats all barcodes in a Q barcode set as equivalent."),
+		("sample_sheet_key", "This is the match in the sample sheet found to correspond to the demultiplexing key. This will differ from the Index-Barcode Key when a single component barcode is in the sample sheet instead of the four component barcodes."),
+		("library_id", "The sample, extract and library identifiers as matched with the sample sheet using the sample_sheet_key"),
 		("raw", "Number of paired reads matching index and barcodes with maximum 1 mismatch per index/barcode"),
 		("merged", "Number of paired reads successfully merging with minimum overlap (currently 15 bases, some mismatch allowed). Only merged reads are aligned and used for further processing. Reads will fail to merge if < 30 base pairs. Maximum length is (76 * 2 - 15 (min overlap) - 2 * [barcode length]). For 7bp barcodes, max length is 123 base pairs."),
 		("endogenous_pre", "The fraction of endogenous reads before deduplication. Equal to (autosome_pre + X_pre + Y_pre + MT_pre) / merged"),
