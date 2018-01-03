@@ -1,25 +1,35 @@
 from sequencing_run.ssh_command import ssh_command
 
-# Find the set of barcodes used for a sequencing run 
+# Find the set of barcodes used for a sequencing run
+# Query the database for:
+# 1. p5 barcodes in sample sheet
+# 2. p7 barcodes in sample sheet
+# 3. standard Reich Lab Q barcodes from barcode table (expected to be static)
 # Save a file in the run directory as input for the software pipeline
-def barcodes_used(sequencing_date_string, sequencing_run_name):
-	queryForBarcodes = 'SELECT p5_barcode FROM sequenced_library WHERE sequencing_id="%s" AND length(p5_barcode) > 0 UNION SELECT p7_barcode FROM sequenced_library WHERE sequencing_id="%s" AND length(p7_barcode) > 0;' % (sequencing_run_name, sequencing_run_name)
+def barcodes_set(sequencing_date_string, sequencing_run_name):
+	queryForBarcodes = 'SELECT p5_barcode FROM sequenced_library WHERE sequencing_id="{0}" AND length(p5_barcode) > 0 UNION SELECT p7_barcode FROM sequenced_library WHERE sequencing_id="{0}" AND length(p7_barcode) > 0 UNION SELECT * FROM barcode WHERE barcode_id LIKE "Q%";'.format(sequencing_run_name)
 	
-	return _barcodes_used(sequencing_date_string, sequencing_run_name, queryForBarcodes, 'barcodes')
+	return _barcodes_set(sequencing_date_string, sequencing_run_name, queryForBarcodes, 'barcodes')
 
-def i5_used(sequencing_date_string, sequencing_run_name):
-	queryForBarcodes = 'SELECT p5_index FROM sequenced_library WHERE sequencing_id="%s" AND length(p5_index) > 0;' % (sequencing_run_name)
-	
-	return _barcodes_used(sequencing_date_string, sequencing_run_name, queryForBarcodes, 'i5')
 
-def i7_used(sequencing_date_string, sequencing_run_name):
-	queryForBarcodes = 'SELECT p7_index FROM sequenced_library WHERE sequencing_id="%s" AND length(p7_index) > 0;' % (sequencing_run_name)
+# i5 indices from sample sheet plus standard Reich Lab i5 indices (1-48)
+# eliminate '..' entries by requiring length > 3
+def i5_set(sequencing_date_string, sequencing_run_name):
+	queryForBarcodes = 'SELECT p5_index FROM sequenced_library WHERE sequencing_id="{}" AND length(p5_index) > 3 UNION SELECT sequence FROM p5_index WHERE p5_index_key BETWEEN 1 AND 48;'.format(sequencing_run_name)
 	
-	return _barcodes_used(sequencing_date_string, sequencing_run_name, queryForBarcodes, 'i7')
+	return _barcodes_set(sequencing_date_string, sequencing_run_name, queryForBarcodes, 'i5')
+
+# i7 indices from sample sheet plus standard Reich Lab i7 indices (1-96)
+# eliminate '..' entries by requiring length > 3
+def i7_set(sequencing_date_string, sequencing_run_name):
+	queryForBarcodes = 'SELECT p7_index FROM sequenced_library WHERE sequencing_id="{}" AND length(p7_index) > 3 UNION SELECT sequence FROM p7_index WHERE p7_index_key BETWEEN 1 AND 96;'.format(sequencing_run_name)
 	
-def _barcodes_used(sequencing_date_string, sequencing_run_name, query, extension):
+	return _barcodes_set(sequencing_date_string, sequencing_run_name, queryForBarcodes, 'i7')
+
+# run a database query with the 
+def _barcodes_set(sequencing_date_string, sequencing_run_name, query, extension):
 	host = "mym11@login.rc.hms.harvard.edu"
-	command = "mysql devadna -N -e '%s'" % (query)
+	command = "mysql devadna -N -e '{}'".format(query)
 	ssh_result = ssh_command(host, command, False, True)
 	
 	barcodeSets = []

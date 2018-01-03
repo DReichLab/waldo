@@ -1,6 +1,6 @@
 from sequencing_run.ssh_command import ssh_command
 from sequencing_run.models import SequencingRun, SequencingScreeningAnalysisRun
-from sequencing_run.barcode_prep import barcodes_used, i5_used, i7_used
+from sequencing_run.barcode_prep import barcodes_set, i5_set, i7_set
 import os
 import re
 
@@ -32,9 +32,9 @@ def start_screening_analysis(source_illumina_dir, sequencing_run_name, sequencin
 	# index-barcode key file
 	index_barcode_keys_used(date_string, sequencing_run_name)
 	# barcode and index files for run
-	barcodes_used(date_string, sequencing_run_name)
-	i5_used(date_string, sequencing_run_name)
-	i7_used(date_string, sequencing_run_name)
+	barcodes_set(date_string, sequencing_run_name)
+	i5_set(date_string, sequencing_run_name)
+	i7_set(date_string, sequencing_run_name)
 	# generate json input file
 	run_entry.processing_state = SequencingScreeningAnalysisRun.PREPARING_JSON_INPUTS
 	run_entry.save()
