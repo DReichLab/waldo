@@ -7,7 +7,7 @@ from sequencing_run.ssh_command import ssh_command
 # 3. standard Reich Lab Q barcodes from barcode table (expected to be static)
 # Save a file in the run directory as input for the software pipeline
 def barcodes_set(sequencing_date_string, sequencing_run_name):
-	queryForBarcodes = 'SELECT p5_barcode FROM sequenced_library WHERE sequencing_id="{0}" AND length(p5_barcode) > 0 UNION SELECT p7_barcode FROM sequenced_library WHERE sequencing_id="{0}" AND length(p7_barcode) > 0 UNION SELECT * FROM barcode WHERE barcode_id LIKE "Q%";'.format(sequencing_run_name)
+	queryForBarcodes = 'SELECT p5_barcode FROM sequenced_library WHERE sequencing_id="{0}" AND length(p5_barcode) > 0 UNION SELECT p7_barcode FROM sequenced_library WHERE sequencing_id="{0}" AND length(p7_barcode) > 0 UNION SELECT barcode FROM barcode WHERE barcode_id LIKE "Q%";'.format(sequencing_run_name)
 	
 	return _barcodes_set(sequencing_date_string, sequencing_run_name, queryForBarcodes, 'barcodes')
 
