@@ -7,7 +7,7 @@ def report_field_descriptions(request):
 		("library_id", "The sample, extract and library identifiers as matched with the sample sheet using the sample_sheet_key"),
 		("raw", "Number of paired reads matching index and barcodes with maximum 1 mismatch per index/barcode"),
 		("merged", "Number of paired reads successfully merging with minimum overlap (currently 15 bases, some mismatch allowed). Only merged reads are aligned and used for further processing. Reads will fail to merge if < 30 base pairs. Maximum length is (76 * 2 - 15 (min overlap) - 2 * [barcode length]). For 7bp barcodes, max length is 123 base pairs."),
-		("endogenous_pre", "The fraction of endogenous reads before deduplication. Equal to (autosome_pre + X_pre + Y_pre + MT_pre) / merged"),
+		("endogenous_pre", "The fraction of endogenous reads before deduplication. Equal to (autosome_pre + X_pre + Y_pre + MT_pre) / merged. This may be lower than earlier report versions, which counted all aligned reads, including those for decoys or unlocalized or unplaced contigs."),
 		("autosome_pre", "Number of reads aligning to hs37d5 chromosomes 1-22 before deduplication"),
 		("autosome_pre-coverage", "Sum of autosome read lengths normalized by autosome lengths before deduplication"),
 		("autosome_post", "Number of reads aligning to hs37d5 chromosomes 1-22 after deduplication"),
