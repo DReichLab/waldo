@@ -1,10 +1,10 @@
-from django.conf.urls import url
+from django.urls import path, re_path
 
 from . import views
 
 urlpatterns = [
-	url(r'^updateRuns', views.updateSequencingRunList, name='Update sequencing runs'),
-	url(r'^start', views.startScreeningAnalysis, name='Start Analysis'),
-	url(r'^report_help', views.helpPage),
-	url(r'^$', views.screeningForm, name='Screening analysis'),
+	path('updateRuns', views.updateSequencingRunList, name='Update sequencing runs'),
+	path('start', views.startScreeningAnalysis, name='Start Analysis'),
+	path('report_help', views.helpPage),
+	re_path(r'^$', views.screeningForm, name='Screening analysis'),
 ]
