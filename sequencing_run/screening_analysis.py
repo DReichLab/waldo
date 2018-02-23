@@ -157,6 +157,6 @@ def get_kmer_analysis(sequencing_date_string, sequencing_run_name):
 
 def index_barcode_keys_used(sequencing_date_string, sequencing_run_name):
 	host = "mym11@login.rc.hms.harvard.edu"
-	queryForKeys = 'SELECT CONCAT(p5_index, "_", p7_index, "_", p5_barcode, "_", p7_barcode), library_id, plate_id FROM sequenced_library WHERE sequencing_id="%s";' % (sequencing_run_name) ;
+	queryForKeys = 'SELECT CONCAT(p5_index, "_", p7_index, "_", p5_barcode, "_", p7_barcode), library_id, plate_id, experiment FROM sequenced_library WHERE sequencing_id="%s";' % (sequencing_run_name) ;
 	command = "mysql devadna -N -e '" + queryForKeys + "' > /n/groups/reich/matt/pipeline/run/" + sequencing_date_string + '_' + sequencing_run_name + '.index_barcode_keys'
 	ssh_command(host, command, True, True)
