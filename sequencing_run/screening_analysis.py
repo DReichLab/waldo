@@ -3,8 +3,12 @@ from sequencing_run.models import SequencingRun, SequencingScreeningAnalysisRun
 from sequencing_run.barcode_prep import barcodes_set, i5_set, i7_set
 import os
 import re
+import sequencing_run.config
 
 from django.utils import timezone
+
+run_files_directory = "/n/groups/reich/matt/pipeline/run"
+command_host = "mym11@o2.hms.harvard.edu"
 
 def start_screening_analysis(source_illumina_dir, sequencing_run_name, sequencing_date, number_top_samples_to_demultiplex):
 	date_string = sequencing_date.strftime('%Y%m%d')
@@ -38,11 +42,11 @@ def start_screening_analysis(source_illumina_dir, sequencing_run_name, sequencin
 	# generate json input file
 	run_entry.processing_state = SequencingScreeningAnalysisRun.PREPARING_JSON_INPUTS
 	run_entry.save()
-	replace_parameters('screening_template.json', scratch_illumina_directory_path, sequencing_run_name, date_string, number_top_samples_to_demultiplex)
+	replace_parameters('demultiplex_template.json', scratch_illumina_directory_path, sequencing_run_name, date_string, number_top_samples_to_demultiplex)
 	# generate SLURM script
 	run_entry.processing_state = SequencingScreeningAnalysisRun.PREPARING_RUN_SCRIPT
 	run_entry.save()
-	replace_parameters('screening_template.sh', scratch_illumina_directory_path, sequencing_run_name, date_string, number_top_samples_to_demultiplex)
+	replace_parameters('demultiplex_template.sh', scratch_illumina_directory_path, sequencing_run_name, date_string, number_top_samples_to_demultiplex)
 	# start job
 	run_entry.processing_state = SequencingScreeningAnalysisRun.RUNNING_SCREENING_ANALYSIS
 	run_entry.save();
@@ -71,28 +75,28 @@ def copy_illumina_directory(source_illumina_dir, scratch_illumina_directory):
 def replace_parameters(source_filename, scratch_illumina_directory, run_name, date_string, num_samples):
 	escaped_scratch_illumina_directory = scratch_illumina_directory.replace('/','\\/')
 	extension = os.path.splitext(source_filename)[1]
-	host = "mym11@login.rc.hms.harvard.edu"	
+	host = command_host	
 	command = "sed '" \
 		+ "s/INPUT_LABEL/" + run_name + "/;" \
 		+ "s/INPUT_DATE/" + date_string + "/;" \
 		+ "s/INPUT_DIRECTORY/" + escaped_scratch_illumina_directory + "/;" \
 		+ "s/INPUT_NUM_SAMPLES/" + str(num_samples) + "/" \
 		+ "'" \
-		+ " /n/groups/reich/matt/pipeline/run/" + source_filename \
-		+ " > /n/groups/reich/matt/pipeline/run/" + date_string + "_" + run_name + extension
+		+ " {}/{}".format(run_files_directory, source_filename) \
+		+ " > {}/{}_{}{}".format(run_files_directory, date_string, run_name, extension)
 	ssh_result = ssh_command(host, command, True, True)
 	return ssh_result
 
 # The Broad Cromwell workflow tool runs the analysis
 def start_cromwell(date_string, run_name):
-	host = "mym11@login.rc.hms.harvard.edu"
-	command = "sbatch /n/groups/reich/matt/pipeline/run/" + date_string + "_" + run_name + ".sh"
+	host = command_host
+	command = "sbatch {}/{}_{}.sh".format(run_files_directory, date_string, run_name)
 	ssh_result = ssh_command(host, command, False, True) # stdout printing is False to preserve SLURM job number output
 	return ssh_result
 
 # acquire list of SLURM jobs that are running tied to a known sequencing run
 def query_job_status():
-	host = "mym11@login.rc.hms.harvard.edu"
+	host = command_host
 	command = 'squeue -u mym11 -o "%.18i %.9P %.45j %.8u %.8T %.10M %.9l %.6D %.3C %R"'
 	ssh_result = ssh_command(host, command)
 	
@@ -136,7 +140,7 @@ def query_job_status():
 
 # get a report file from the completed analysis
 def get_report_file(sequencing_date_string, sequencing_run_name, extension):
-	host = "mym11@login.rc.hms.harvard.edu"
+	host = command_host
 	command = 'cat ' + "/n/groups/reich/matt/pipeline/results/" + sequencing_date_string + '_' + sequencing_run_name + '/' + sequencing_date_string + '_' + sequencing_run_name + extension
 	print('get_report_file ' + command)
 	ssh_result = ssh_command(host, command, False, False)
@@ -156,7 +160,7 @@ def get_kmer_analysis(sequencing_date_string, sequencing_run_name):
 	return get_report_file(sequencing_date_string, sequencing_run_name, '.kmer')
 
 def index_barcode_keys_used(sequencing_date_string, sequencing_run_name):
-	host = "mym11@login.rc.hms.harvard.edu"
+	host = command_host
 	queryForKeys = 'SELECT CONCAT(p5_index, "_", p7_index, "_", p5_barcode, "_", p7_barcode), library_id, plate_id, experiment FROM sequenced_library WHERE sequencing_id="%s";' % (sequencing_run_name) ;
 	command = "mysql devadna -N -e '" + queryForKeys + "' > /n/groups/reich/matt/pipeline/run/" + sequencing_date_string + '_' + sequencing_run_name + '.index_barcode_keys'
 	ssh_command(host, command, True, True)
