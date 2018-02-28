@@ -20,13 +20,13 @@ def readSampleSheet(sample_sheet_filename):
 		libraryID_index = headers.index('Sample_Name')
 		i5_index = headers.index('Index2')
 		i7_index = headers.index('Index')
-		p5_index = headers.index('P5_barcode')
-		p7_index = headers.index('P7_barcode')
+		p5_barcode = headers.index('P5_barcode')
+		p7_barcode = headers.index('P7_barcode')
 		plateID_index = headers.index('Capture_Name')
 		
 		for line in f:
 			fields = line.split('\t')
-			key = '{}_{}_{}_{}'.format(fields[i5_index], fields[i7_index], fields[p5_index], fields[p7_index])
+			key = '{}_{}_{}_{}'.format(fields[i5_index], fields[i7_index], fields[p5_barcode], fields[p7_barcode])
 			libraryIDs[key] = fields[libraryID_index]
 			plateIDs[key] = fields[plateID_index]
 	
