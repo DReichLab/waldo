@@ -3,7 +3,6 @@ from sequencing_run.models import SequencingRun, SequencingScreeningAnalysisRun
 from sequencing_run.barcode_prep import barcodes_set, i5_set, i7_set
 import os
 import re
-import sequencing_run.config
 
 from django.utils import timezone
 
