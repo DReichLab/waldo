@@ -1,4 +1,5 @@
 from sequencing_run.ssh_command import ssh_command
+from django.conf import settings
 
 # Find the set of barcodes used for a sequencing run
 # Query the database for:
@@ -28,7 +29,7 @@ def i7_set(sequencing_date_string, sequencing_run_name):
 
 # run a database query with the 
 def _barcodes_set(sequencing_date_string, sequencing_run_name, query, extension):
-	host = "mym11@login.rc.hms.harvard.edu"
+	host = settings.COMMAND_HOST
 	command = "mysql devadna -N -e '{}'".format(query)
 	ssh_result = ssh_command(host, command, False, True)
 	
@@ -53,7 +54,7 @@ def _barcodes_set(sequencing_date_string, sequencing_run_name, query, extension)
 			barcodeSetForRun.add(barcode)
 	
 	# print the barcode twice because the format is [barcode label]
-	barcodeLines = map(lambda barcode: "%s\t%s" % (barcode, barcode), barcodeSetForRun)
+	barcodeLines = map(lambda barcode: "{0}\t{0}".format(barcode), barcodeSetForRun)
 	barcodeFileTextOutput = '\n'.join(barcodeLines)
 	save_file_with_contents(barcodeFileTextOutput, sequencing_date_string, sequencing_run_name, extension, host)
 	#print (barcodeSetForRun)
@@ -62,6 +63,6 @@ def _barcodes_set(sequencing_date_string, sequencing_run_name, query, extension)
 # put a file in the run directory with the requested contents
 def save_file_with_contents(contents, sequencing_date_string, sequencing_run_name, extension, host):
 	
-	saveFileCommand = "echo '%s' > /n/groups/reich/matt/pipeline/run/%s_%s.%s" % (contents, sequencing_date_string, sequencing_run_name, extension)
+	saveFileCommand = "echo '{}' > {}/{}_{}.{}".format(contents, settings.RUN_FILES_DIRECTORY, sequencing_date_string, sequencing_run_name, extension)
 	#print (saveFileCommand)
 	ssh_command(host, saveFileCommand, False, True)

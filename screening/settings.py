@@ -102,3 +102,15 @@ USE_TZ = True
 
 STATIC_ROOT = os.path.join(BASE_DIR, 'static')
 STATIC_URL = '/static/'
+
+# O2 specific settings
+COMMAND_HOST = "mym11@o2.hms.harvard.edu"
+TRANSFER_HOST = "mym11@transfer.rc.hms.harvard.edu"
+FILES_SERVER_DIRECTORY = "/files/Genetics/reichseq/reich/reichseq/reich"
+RUN_FILES_DIRECTORY = "/n/groups/reich/matt/pipeline/run"
+RESULTS_PARENT_DIRECTORY = "/n/groups/reich/matt/pipeline/results/"
+SCRATCH_PARENT_DIRECTORY = "/n/scratch2/mym11/automated_pipeline"
+
+DEMULTIPLEXED_PARENT_DIRECTORY = "/n/groups/reich/matt/pipeline/demultiplex"
+NUCLEAR_SUBDIRECTORY = "nuclear_aligned_filtered"
+MT_SUBDIRECTORY = "rsrs_aligned_filtered"

@@ -3,6 +3,8 @@ from django.shortcuts import render
 from django.http import HttpResponse
 from django.http import HttpResponseRedirect
 
+from django.conf import settings
+
 from sequencing_run.ssh_command import ssh_command
 from sequencing_run.models import SequencingRun, SequencingScreeningAnalysisRun
 from sequencing_run.screening_analysis import start_screening_analysis, query_job_status, get_kmer_analysis, get_final_report
@@ -14,7 +16,7 @@ import threading
 
 # Create your views here.
 def index(request):
-	HOST="mym11@transfer.rc.hms.harvard.edu"
+	HOST=settings.TRANSFER_HOST
 	COMMAND="uname -a | tee ~/testout"
 
 	ssh = ssh_command(HOST, COMMAND)
@@ -27,8 +29,8 @@ def helpPage(request):
 
 # Look at the Genetics file server to retrieve sequencing runs list
 def updateSequencingRunList(request):
-	host = "mym11@transfer.rc.hms.harvard.edu"
-	command = "ls /files/Genetics/reichseq/reich/reichseq/reich"
+	host = HOST=settings.TRANSFER_HOST
+	command = "ls {}".format(settings.FILES_SERVER_DIRECTORY)
 
 	ssh_result = ssh_command(host, command)
 	result = ssh_result.stdout.readlines()

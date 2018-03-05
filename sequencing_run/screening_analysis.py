@@ -5,9 +5,7 @@ import os
 import re
 
 from django.utils import timezone
-
-run_files_directory = "/n/groups/reich/matt/pipeline/run"
-command_host = "mym11@o2.hms.harvard.edu"
+from django.conf import settings
 
 def start_screening_analysis(source_illumina_dir, sequencing_run_name, sequencing_date, number_top_samples_to_demultiplex):
 	date_string = sequencing_date.strftime('%Y%m%d')
@@ -15,7 +13,7 @@ def start_screening_analysis(source_illumina_dir, sequencing_run_name, sequencin
 	
 	# the source_illumina_dir is the directory name only, not the full path
 	# we need the scratch directory to include the full path including the illumina directory name for bcl2fastq in the analysis pipeline to find it
-	scratch_illumina_parent_path = "/n/scratch2/mym11/automated_pipeline/" + destination_directory
+	scratch_illumina_parent_path = settings.SCRATCH_PARENT_DIRECTORY + "/" + destination_directory
 	scratch_illumina_directory_path = scratch_illumina_parent_path + "/" + source_illumina_dir
 	
 	run_entry = SequencingScreeningAnalysisRun(
@@ -65,8 +63,8 @@ def start_screening_analysis(source_illumina_dir, sequencing_run_name, sequencin
 def copy_illumina_directory(source_illumina_dir, scratch_illumina_directory):
 	print(source_illumina_dir)
 	print(scratch_illumina_directory)
-	host = "mym11@transfer.rc.hms.harvard.edu"
-	command = "rsync -a /files/Genetics/reichseq/reich/reichseq/reich/" + source_illumina_dir + " " + scratch_illumina_directory
+	host = settings.TRANSFER_HOST
+	command = "rsync -a {}/{} {}".format(settings.FILES_SERVER_DIRECTORY, source_illumina_dir, scratch_illumina_directory)
 	ssh_result = ssh_command(host, command, True, True)
 	return ssh_result
 
@@ -74,28 +72,28 @@ def copy_illumina_directory(source_illumina_dir, scratch_illumina_directory):
 def replace_parameters(source_filename, scratch_illumina_directory, run_name, date_string, num_samples):
 	escaped_scratch_illumina_directory = scratch_illumina_directory.replace('/','\\/')
 	extension = os.path.splitext(source_filename)[1]
-	host = command_host	
+	host = settings.COMMAND_HOST	
 	command = "sed '" \
 		+ "s/INPUT_LABEL/" + run_name + "/;" \
 		+ "s/INPUT_DATE/" + date_string + "/;" \
 		+ "s/INPUT_DIRECTORY/" + escaped_scratch_illumina_directory + "/;" \
 		+ "s/INPUT_NUM_SAMPLES/" + str(num_samples) + "/" \
 		+ "'" \
-		+ " {}/{}".format(run_files_directory, source_filename) \
-		+ " > {}/{}_{}{}".format(run_files_directory, date_string, run_name, extension)
+		+ " {}/{}".format(settings.RUN_FILES_DIRECTORY, source_filename) \
+		+ " > {}/{}_{}{}".format(settings.RUN_FILES_DIRECTORY, date_string, run_name, extension)
 	ssh_result = ssh_command(host, command, True, True)
 	return ssh_result
 
 # The Broad Cromwell workflow tool runs the analysis
 def start_cromwell(date_string, run_name):
-	host = command_host
-	command = "sbatch {}/{}_{}.sh".format(run_files_directory, date_string, run_name)
+	host = settings.COMMAND_HOST
+	command = "sbatch {}/{}_{}.sh".format(settings.RUN_FILES_DIRECTORY, date_string, run_name)
 	ssh_result = ssh_command(host, command, False, True) # stdout printing is False to preserve SLURM job number output
 	return ssh_result
 
 # acquire list of SLURM jobs that are running tied to a known sequencing run
 def query_job_status():
-	host = command_host
+	host = settings.COMMAND_HOST
 	command = 'squeue -u mym11 -o "%.18i %.9P %.45j %.8u %.8T %.10M %.9l %.6D %.3C %R"'
 	ssh_result = ssh_command(host, command)
 	
@@ -139,8 +137,8 @@ def query_job_status():
 
 # get a report file from the completed analysis
 def get_report_file(sequencing_date_string, sequencing_run_name, extension):
-	host = command_host
-	command = 'cat ' + "/n/groups/reich/matt/pipeline/results/" + sequencing_date_string + '_' + sequencing_run_name + '/' + sequencing_date_string + '_' + sequencing_run_name + extension
+	host = settings.COMMAND_HOST
+	command = 'cat ' + settings.RESULTS_PARENT_DIRECTORY + sequencing_date_string + '_' + sequencing_run_name + '/' + sequencing_date_string + '_' + sequencing_run_name + extension
 	print('get_report_file ' + command)
 	ssh_result = ssh_command(host, command, False, False)
 	print('get_report_file fetched')
@@ -159,7 +157,7 @@ def get_kmer_analysis(sequencing_date_string, sequencing_run_name):
 	return get_report_file(sequencing_date_string, sequencing_run_name, '.kmer')
 
 def index_barcode_keys_used(sequencing_date_string, sequencing_run_name):
-	host = command_host
+	host = settings.COMMAND_HOST
 	queryForKeys = 'SELECT CONCAT(p5_index, "_", p7_index, "_", p5_barcode, "_", p7_barcode), library_id, plate_id, experiment FROM sequenced_library WHERE sequencing_id="%s";' % (sequencing_run_name) ;
-	command = "mysql devadna -N -e '" + queryForKeys + "' > /n/groups/reich/matt/pipeline/run/" + sequencing_date_string + '_' + sequencing_run_name + '.index_barcode_keys'
+	command = "mysql devadna -N -e '" + queryForKeys + "' > " + settings.RUN_FILES_DIRECTORY + "/" + sequencing_date_string + '_' + sequencing_run_name + '.index_barcode_keys'
 	ssh_command(host, command, True, True)
