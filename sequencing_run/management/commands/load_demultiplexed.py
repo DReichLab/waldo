@@ -40,10 +40,10 @@ class Command(BaseCommand):
 		for filename in result:
 			filename = filename.strip() # remove trailing newlines
 			# only process bam files
-			print(filename)
+			#print(filename)
 			if pathlib.Path(filename).suffix == '.bam':
 				bam_filename = pathlib.Path(filename).name
-				print(bam_filename)
+				#print(bam_filename)
 				# filename contains index-barcode key
 				key = pathlib.Path(bam_filename).stem
 				i5, i7, p5, p7 = index_barcode_key_to_fields(key)
