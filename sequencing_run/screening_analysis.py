@@ -80,14 +80,14 @@ def replace_parameters(source_filename, scratch_illumina_directory, run_name, da
 		+ "s/INPUT_NUM_SAMPLES/" + str(num_samples) + "/" \
 		+ "'" \
 		+ " {}/{}".format(settings.RUN_FILES_DIRECTORY, source_filename) \
-		+ " > {}/{}_{}{}".format(settings.RUN_FILES_DIRECTORY, date_string, run_name, extension)
+		+ " > {0}/{1}_{2}/{1}_{2}{3}".format(settings.RUN_FILES_DIRECTORY, date_string, run_name, extension)
 	ssh_result = ssh_command(host, command, True, True)
 	return ssh_result
 
 # The Broad Cromwell workflow tool runs the analysis
 def start_cromwell(date_string, run_name):
 	host = settings.COMMAND_HOST
-	command = "sbatch {}/{}_{}.sh".format(settings.RUN_FILES_DIRECTORY, date_string, run_name)
+	command = "sbatch {0}/{1}_{2}/{1}_{2}.sh".format(settings.RUN_FILES_DIRECTORY, date_string, run_name)
 	ssh_result = ssh_command(host, command, False, True) # stdout printing is False to preserve SLURM job number output
 	return ssh_result
 
@@ -159,5 +159,5 @@ def get_kmer_analysis(sequencing_date_string, sequencing_run_name):
 def index_barcode_keys_used(sequencing_date_string, sequencing_run_name):
 	host = settings.COMMAND_HOST
 	queryForKeys = 'SELECT CONCAT(p5_index, "_", p7_index, "_", p5_barcode, "_", p7_barcode), library_id, plate_id, experiment FROM sequenced_library WHERE sequencing_id="%s";' % (sequencing_run_name) ;
-	command = "mysql devadna -N -e '" + queryForKeys + "' > " + settings.RUN_FILES_DIRECTORY + "/" + sequencing_date_string + '_' + sequencing_run_name + '.index_barcode_keys'
+	command = "mysql devadna -N -e '{0}' > {1}/{2}_{3}/{2}_{3}.index_barcode_keys".format(queryForKeys, settings.RUN_FILES_DIRECTORY, sequencing_date_string, sequencing_run_name)
 	ssh_command(host, command, True, True)

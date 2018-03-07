@@ -63,6 +63,6 @@ def _barcodes_set(sequencing_date_string, sequencing_run_name, query, extension)
 # put a file in the run directory with the requested contents
 def save_file_with_contents(contents, sequencing_date_string, sequencing_run_name, extension, host):
 	
-	saveFileCommand = "echo '{}' > {}/{}_{}.{}".format(contents, settings.RUN_FILES_DIRECTORY, sequencing_date_string, sequencing_run_name, extension)
+	saveFileCommand = "echo '{0}' > {1}/{2}_{3}/{2}_{3}.{4}".format(contents, settings.RUN_FILES_DIRECTORY, sequencing_date_string, sequencing_run_name, extension)
 	#print (saveFileCommand)
 	ssh_command(host, saveFileCommand, False, True)
