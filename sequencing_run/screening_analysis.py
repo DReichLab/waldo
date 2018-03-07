@@ -30,6 +30,8 @@ def start_screening_analysis(source_illumina_dir, sequencing_run_name, sequencin
 	run_entry.processing_state = SequencingScreeningAnalysisRun.COPYING_SEQUENCING_DATA
 	run_entry.save()
 	copy_illumina_directory(source_illumina_dir, scratch_illumina_parent_path)
+	# make new directory for run files
+	make_run_directory(date_string, sequencing_run_name)
 	# index-barcode key file
 	index_barcode_keys_used(date_string, sequencing_run_name)
 	# barcode and index files for run
@@ -57,6 +59,12 @@ def start_screening_analysis(source_illumina_dir, sequencing_run_name, sequencin
 			run_entry.slurm_job_number = int(m.group(1))
 	run_entry.save()
 	
+# make new run directory
+def make_run_directory(date_string, sequencing_run_name):
+	command = "mkdir -p {}/{}_{}".format(settings.RUN_FILES_DIRECTORY, date_string, sequencing_run_name)
+	ssh_result = ssh_command(settings.COMMAND_HOST, command, True, True)
+	return ssh_result
+	
 # Sequencing data is stored on the HMS Genetics filesystem.
 # This needs to be copied to the research computing O2 cluster
 # before analysis can begin
@@ -72,10 +80,10 @@ def copy_illumina_directory(source_illumina_dir, scratch_illumina_directory):
 def replace_parameters(source_filename, scratch_illumina_directory, run_name, date_string, num_samples):
 	escaped_scratch_illumina_directory = scratch_illumina_directory.replace('/','\\/')
 	extension = os.path.splitext(source_filename)[1]
-	host = settings.COMMAND_HOST	
+	host = settings.COMMAND_HOST
 	command = "sed '" \
-		+ "s/INPUT_LABEL/" + run_name + "/;" \
-		+ "s/INPUT_DATE/" + date_string + "/;" \
+		+ "s/INPUT_LABEL/" + run_name + "/g;" \
+		+ "s/INPUT_DATE/" + date_string + "/g;" \
 		+ "s/INPUT_DIRECTORY/" + escaped_scratch_illumina_directory + "/;" \
 		+ "s/INPUT_NUM_SAMPLES/" + str(num_samples) + "/" \
 		+ "'" \
