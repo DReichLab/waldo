@@ -26,6 +26,7 @@ class Command(BaseCommand):
 		self.load_demultiplexed_bams_into_database(date_string, name, flowcell_obj, settings.NUCLEAR_SUBDIRECTORY, 'hg19')
 		#mt
 		self.load_demultiplexed_bams_into_database(date_string, name, flowcell_obj, settings.MT_SUBDIRECTORY, 'rsrs')
+		
 
 	def load_demultiplexed_bams_into_database(self, date_string, name, flowcell, subdirectory, reference):
 		# read the list bam files
@@ -45,6 +46,7 @@ class Command(BaseCommand):
 				bam_path = "{}/{}_{}/{}/{}".format(settings.DEMULTIPLEXED_PARENT_DIRECTORY, date_string, name, subdirectory, bam_filename)
 				sequenced, created = DemultiplexedSequencing.objects.get_or_create(flowcell = flowcell, i5_index = i5, i7_index = i7, p5_barcode = p5, p7_barcode = p7, reference = reference, path = bam_path)
 			
+	# Find the read group from a demultiplexed flowcell, using the contents of the Illumina fastq headers
 	def get_flowcell_id(self, date_string, name):
 		command = "cat {}/{}_{}/read_groups".format(settings.DEMULTIPLEXED_PARENT_DIRECTORY, date_string, name)
 		ssh_result = ssh_command(settings.COMMAND_HOST, command, None, self.stderr)

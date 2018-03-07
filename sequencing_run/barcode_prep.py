@@ -54,7 +54,7 @@ def _barcodes_set(sequencing_date_string, sequencing_run_name, query, extension)
 			barcodeSetForRun.add(barcode)
 	
 	# print the barcode twice because the format is [barcode label]
-	barcodeLines = map(lambda barcode: "{0}\t{0}".format(barcode), barcodeSetForRun)
+	barcodeLines = ["{0}\t{0}".format(barcode) for barcode in barcodeSetForRun]
 	barcodeFileTextOutput = '\n'.join(barcodeLines)
 	save_file_with_contents(barcodeFileTextOutput, sequencing_date_string, sequencing_run_name, extension, host)
 	#print (barcodeSetForRun)
