@@ -38,19 +38,21 @@ def start_screening_analysis(source_illumina_dir, sequencing_run_name, sequencin
 	barcodes_set(date_string, sequencing_run_name)
 	i5_set(date_string, sequencing_run_name)
 	i7_set(date_string, sequencing_run_name)
+	
+	demultiplex_command_label = 'demultiplex'
 	# generate json input file
 	run_entry.processing_state = SequencingScreeningAnalysisRun.PREPARING_JSON_INPUTS
 	run_entry.save()
-	replace_parameters('demultiplex_template.json', scratch_illumina_directory_path, sequencing_run_name, date_string, number_top_samples_to_demultiplex)
+	replace_parameters('demultiplex_template.json', scratch_illumina_directory_path, sequencing_run_name, date_string, number_top_samples_to_demultiplex, demultiplex_command_label)
 	# generate SLURM script
 	run_entry.processing_state = SequencingScreeningAnalysisRun.PREPARING_RUN_SCRIPT
 	run_entry.save()
-	replace_parameters('demultiplex_template.sh', scratch_illumina_directory_path, sequencing_run_name, date_string, number_top_samples_to_demultiplex)
-	# start job
+	replace_parameters('demultiplex_template.sh', scratch_illumina_directory_path, sequencing_run_name, date_string, number_top_samples_to_demultiplex, demultiplex_command_label)
+	# start demultiplexing job
 	run_entry.processing_state = SequencingScreeningAnalysisRun.RUNNING_SCREENING_ANALYSIS
 	run_entry.save();
 	
-	start_result = start_cromwell(date_string, sequencing_run_name)
+	start_result = start_cromwell(date_string, sequencing_run_name, demultiplex_command_label)
 	# retrieve SLURM job number from output
 	for line in start_result.stdout.readlines():
 		print(line)
@@ -58,6 +60,11 @@ def start_screening_analysis(source_illumina_dir, sequencing_run_name, sequencin
 		if m is not None:
 			run_entry.slurm_job_number = int(m.group(1))
 	run_entry.save()
+	
+	# get analysis job ready, starting when demultiplexing job finishes
+	analysis_command_label = 'analysis'
+	replace_parameters('analysis_template.json', scratch_illumina_directory_path, sequencing_run_name, date_string, number_top_samples_to_demultiplex, analysis_command_label)
+	replace_parameters('analysis_template.sh', scratch_illumina_directory_path, sequencing_run_name, date_string, number_top_samples_to_demultiplex, analysis_command_label)
 	
 # make new run directory
 def make_run_directory(date_string, sequencing_run_name):
@@ -77,7 +84,7 @@ def copy_illumina_directory(source_illumina_dir, scratch_illumina_directory):
 	return ssh_result
 
 #values passed to construct the command string are sanitized by form validation
-def replace_parameters(source_filename, scratch_illumina_directory, run_name, date_string, num_samples):
+def replace_parameters(source_filename, scratch_illumina_directory, run_name, date_string, num_samples, command_label):
 	escaped_scratch_illumina_directory = scratch_illumina_directory.replace('/','\\/')
 	extension = os.path.splitext(source_filename)[1]
 	host = settings.COMMAND_HOST
@@ -88,14 +95,14 @@ def replace_parameters(source_filename, scratch_illumina_directory, run_name, da
 		+ "s/INPUT_NUM_SAMPLES/" + str(num_samples) + "/" \
 		+ "'" \
 		+ " {}/{}".format(settings.RUN_FILES_DIRECTORY, source_filename) \
-		+ " > {0}/{1}_{2}/{1}_{2}{3}".format(settings.RUN_FILES_DIRECTORY, date_string, run_name, extension)
+		+ " > {0}/{1}_{2}/{1}_{2}_{4}{3}".format(settings.RUN_FILES_DIRECTORY, date_string, run_name, extension, command_label)
 	ssh_result = ssh_command(host, command, True, True)
 	return ssh_result
 
 # The Broad Cromwell workflow tool runs the analysis
-def start_cromwell(date_string, run_name):
+def start_cromwell(date_string, run_name, command_label):
 	host = settings.COMMAND_HOST
-	command = "sbatch {0}/{1}_{2}/{1}_{2}.sh".format(settings.RUN_FILES_DIRECTORY, date_string, run_name)
+	command = "sbatch {0}/{1}_{2}/{1}_{2}_{3}.sh".format(settings.RUN_FILES_DIRECTORY, date_string, run_name, command_label)
 	ssh_result = ssh_command(host, command, False, True) # stdout printing is False to preserve SLURM job number output
 	return ssh_result
 
