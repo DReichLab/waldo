@@ -19,8 +19,8 @@ class Command(BaseCommand):
 		date = datetime.datetime.strptime(date_string, "%Y%m%d").date()
 		
 		flowcell_id = self.get_flowcell_id(date_string, name)
-		flowcell_obj, created = Flowcell.objects.get_or_create(flowcell=flowcell_id, sequencing_date=date, name=name)
 		#print(flowcell_id)
+		flowcell_obj, created = Flowcell.objects.get_or_create(flowcell=flowcell_id, sequencing_date=date, name=name)
 		#print(flowcell_obj)
 		#nuclear
 		self.load_demultiplexed_bams_into_database(date_string, name, flowcell_obj, settings.NUCLEAR_SUBDIRECTORY, 'hg19')
@@ -50,11 +50,20 @@ class Command(BaseCommand):
 	def get_flowcell_id(self, date_string, name):
 		# if we are running on the web host, try to read the file directly
 		read_groups_file_path = "{}/{}_{}/read_groups".format(settings.DEMULTIPLEXED_PARENT_DIRECTORY, date_string, name)
+		# try with removing the leading /n of directory in case we are on orchestra and not O2
+		try:
+			if read_groups_file_path.startswith('/n/'):
+				shortened_read_groups_file_path = read_groups_file_path[2:]
+				with open(shortened_read_groups_file_path) as f:
+					return self.read_flowcell_id_from_file_contents(f)
+		except FileNotFoundError:
+			pass
+		# now try with nonshortened
 		try:
 			with open(read_groups_file_path) as f:
 				return self.read_flowcell_id_from_file_contents(f)
-		# it looks like we are not on an orchestra/O2 web host, so ssh onto an O2 server to retrieve file
 		except FileNotFoundError:
+			# it looks like we are not on an orchestra/O2 web host, so ssh onto an O2 server to retrieve file
 			command = "cat {}".format(read_groups_file_path)
 			ssh_result = ssh_command(settings.COMMAND_HOST, command, None, self.stderr)
 			result = ssh_result.stdout.readlines()
