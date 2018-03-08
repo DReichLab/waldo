@@ -48,12 +48,24 @@ class Command(BaseCommand):
 			
 	# Find the read group from a demultiplexed flowcell, using the contents of the Illumina fastq headers
 	def get_flowcell_id(self, date_string, name):
-		command = "cat {}/{}_{}/read_groups".format(settings.DEMULTIPLEXED_PARENT_DIRECTORY, date_string, name)
-		ssh_result = ssh_command(settings.COMMAND_HOST, command, None, self.stderr)
-		result = ssh_result.stdout.readlines()
-		flowcell_id = None
+		# if we are running on the web host, try to read the file directly
+		read_groups_file_path = "{}/{}_{}/read_groups".format(settings.DEMULTIPLEXED_PARENT_DIRECTORY, date_string, name)
+		try:
+			with open(read_groups_file_path) as f:
+				return read_flowcell_id_from_file_contents(f)
+		# it looks like we are not on an orchestra/O2 web host, so ssh onto an O2 server to retrieve file
+		except FileNotFound:
+			command = "cat {}".format(read_groups_file_path)
+			ssh_result = ssh_command(settings.COMMAND_HOST, command, None, self.stderr)
+			result = ssh_result.stdout.readlines()
+			return read_flowcell_id_from_file_contents(result)
+		return None
+	
+	# Retrieve the read group from a list of lines
+	def read_flowcell_id_from_file_contents(result):
 		# example line:
 		# PM:NS500217     PU:HWCHLBGX3.488.1
+		flowcell_id = None
 		for line in result:
 			fields = line.split()
 			platform_unit = fields[1]
