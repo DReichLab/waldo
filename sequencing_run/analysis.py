@@ -1,5 +1,5 @@
 from sequencing_run.ssh_command import ssh_command
-from sequencing_run.models import SequencingRun, SequencingAnalysisRun
+from sequencing_run.models import SequencingRun, SequencingAnalysisRun, Flowcell
 from sequencing_run.barcode_prep import barcodes_set, i5_set, i7_set
 import os
 import re
@@ -7,9 +7,7 @@ import re
 from django.utils import timezone
 from django.conf import settings
 
-analysis_command_label = 'analysis'
-
-def start_analysis(source_illumina_dir, sequencing_run_name, sequencing_date, number_top_samples_to_demultiplex, flowcell_text_ids):
+def start_analysis(source_illumina_dir, sequencing_run_name, sequencing_date, number_top_samples_to_demultiplex, flowcell_objects):
 	date_string = sequencing_date.strftime('%Y%m%d')
 	destination_directory = date_string + '_' + sequencing_run_name
 	
@@ -33,7 +31,10 @@ def start_analysis(source_illumina_dir, sequencing_run_name, sequencing_date, nu
 	run_entry.save()
 	copy_illumina_directory(source_illumina_dir, scratch_illumina_parent_path)
 	# make new directory for run files
+	print('making run directory')
 	make_run_directory(date_string, sequencing_run_name)
+
+	print('building input files')
 	# index-barcode key file
 	index_barcode_keys_used(date_string, sequencing_run_name)
 	# barcode and index files for run
@@ -41,29 +42,36 @@ def start_analysis(source_illumina_dir, sequencing_run_name, sequencing_date, nu
 	i5_set(date_string, sequencing_run_name)
 	i7_set(date_string, sequencing_run_name)
 	
+	ANALYSIS_COMMAND_LABEL = 'analysis'
+	DEMULTIPLEX_COMMAND_LABEL = 'demultiplex'
+
+	print('building input files with replacement')
 	# generate json input file
 	run_entry.processing_state = SequencingAnalysisRun.PREPARING_JSON_INPUTS
 	run_entry.save()
-	replace_parameters('demultiplex_template.json', demultiplex_command_label, sequencing_run_name, date_string, scratch_illumina_directory_path, run_entry.id, number_top_samples_to_demultiplex)
+	replace_parameters('demultiplex_template.json', DEMULTIPLEX_COMMAND_LABEL, sequencing_run_name, date_string, scratch_illumina_directory_path, run_entry.id, number_top_samples_to_demultiplex)
 	# generate SLURM script
 	run_entry.processing_state = SequencingAnalysisRun.PREPARING_RUN_SCRIPT
 	run_entry.save()
-	replace_parameters('demultiplex_template.sh', demultiplex_command_label, sequencing_run_name, date_string, scratch_illumina_directory_path, run_entry.id, number_top_samples_to_demultiplex)
+	replace_parameters('demultiplex_template.sh', DEMULTIPLEX_COMMAND_LABEL, sequencing_run_name, date_string, scratch_illumina_directory_path, run_entry.id, number_top_samples_to_demultiplex)
 	# start demultiplexing job
 	run_entry.processing_state = SequencingAnalysisRun.RUNNING_ANALYSIS
 	run_entry.save();
 	
 	# get analysis job ready
 	# this will be triggered by 'load_demultiplexed' command after at end of demultiplexing job
-	replace_parameters('analysis_template.json', analysis_command_label, replacement_dictionary)
-	replace_parameters('analysis_template.sh', analysis_command_label, replacement_dictionary)
-	for flowcell_text_id in flowcell_text_ids:
-		flowcell = Flowcell.objects.get(flowcell_text_id=flowcell_text_id)
+	replace_parameters('analysis_template.json', ANALYSIS_COMMAND_LABEL, sequencing_run_name, date_string, scratch_illumina_directory_path, run_entry.id)
+	replace_parameters('analysis_template.sh', ANALYSIS_COMMAND_LABEL, sequencing_run_name, date_string, scratch_illumina_directory_path, run_entry.id)
+
+	print('save flowcell info for later')
+	print(flowcell_objects)
+	for flowcell in flowcell_objects:
 		run_entry.prior_flowcells_for_analysis.add(flowcell)
 	run_entry.save()
 	
+	print('starting cromwell')
 	# start demultiplexing and aligning job
-	start_result = start_cromwell(date_string, sequencing_run_name, demultiplex_command_label)
+	start_result = start_cromwell(date_string, sequencing_run_name, DEMULTIPLEX_COMMAND_LABEL)
 	# retrieve SLURM job number from output
 	for line in start_result.stdout.readlines():
 		print(line)
