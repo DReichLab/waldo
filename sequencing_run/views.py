@@ -103,8 +103,8 @@ def analysis_form(request):
 		slurm_jobs = query_job_status()
 		form = AnalysisForm()
 
-	return render(request, 'sequencing_run/screening.html', {'form': form, 'screening_run_list': run_list, 'slurm_jobs': slurm_jobs})
+	return render(request, 'sequencing_run/analysis.html', {'form': form, 'analysis_run_list': run_list, 'slurm_jobs': slurm_jobs})
 
-def start_analysis(request):
+def start_analysis_view(request):
 	print('Request to start')
 	return HttpResponse('Requested to start processing. Return to <a href="/sequencing_run/">status page</a>')
