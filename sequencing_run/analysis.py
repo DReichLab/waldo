@@ -41,23 +41,14 @@ def start_analysis(source_illumina_dir, sequencing_run_name, sequencing_date, nu
 	i5_set(date_string, sequencing_run_name)
 	i7_set(date_string, sequencing_run_name)
 	
-	escaped_scratch_illumina_directory = scratch_illumina_directory.replace('/','\\/')
-	replacement_dictionary = {
-		"INPUT_LABEL": sequencing_run_name,
-		"INPUT_DATE": date_string,
-		"INPUT_DIRECTORY": escaped_scratch_illumina_directory,
-		"INPUT_NUM_SAMPLES": str(number_top_samples_to_demultiplex),
-		"INPUT_DJANGO_ANALYSIS_RUN": str(run_entry.id)
-	}
-	
 	# generate json input file
 	run_entry.processing_state = SequencingAnalysisRun.PREPARING_JSON_INPUTS
 	run_entry.save()
-	replace_parameters('demultiplex_template.json', demultiplex_command_label, replacement_dictionary)
+	replace_parameters('demultiplex_template.json', demultiplex_command_label, sequencing_run_name, date_string, scratch_illumina_directory_path, run_entry.id, number_top_samples_to_demultiplex)
 	# generate SLURM script
 	run_entry.processing_state = SequencingAnalysisRun.PREPARING_RUN_SCRIPT
 	run_entry.save()
-	replace_parameters('demultiplex_template.sh', demultiplex_command_label, replacement_dictionary)
+	replace_parameters('demultiplex_template.sh', demultiplex_command_label, sequencing_run_name, date_string, scratch_illumina_directory_path, run_entry.id, number_top_samples_to_demultiplex)
 	# start demultiplexing job
 	run_entry.processing_state = SequencingAnalysisRun.RUNNING_ANALYSIS
 	run_entry.save();
@@ -100,14 +91,23 @@ def copy_illumina_directory(source_illumina_dir, scratch_illumina_directory):
 	return ssh_result
 
 #values passed to construct the command string are sanitized by form validation
-def replace_parameters(source_filename, command_label, replacement_dictionary):
+def replace_parameters(source_filename, command_label, sequencing_run_name, date_string, scratch_illumina_directory, run_entry_id, number_top_samples_to_demultiplex=150):
+	escaped_scratch_illumina_directory = scratch_illumina_directory.replace('/','\\/')
+	replacement_dictionary = {
+		"INPUT_LABEL": sequencing_run_name,
+		"INPUT_DATE": date_string,
+		"INPUT_DIRECTORY": escaped_scratch_illumina_directory,
+		"INPUT_NUM_SAMPLES": str(number_top_samples_to_demultiplex),
+		"INPUT_DJANGO_ANALYSIS_RUN": str(run_entry_id)
+	}
+	
 	extension = os.path.splitext(source_filename)[1]
 	host = settings.COMMAND_HOST
 	command = "sed '" \
 		+ ''.join(["s/{}/{}/g;".format(key, replacement_dictionary[key]) for key in replacement_dictionary]) \
 		+ "'" \
 		+ " {}/{}".format(settings.RUN_FILES_DIRECTORY, source_filename) \
-		+ " > {0}/{1}_{2}/{1}_{2}_{4}{3}".format(settings.RUN_FILES_DIRECTORY, date_string, run_name, extension, command_label)
+		+ " > {0}/{1}_{2}/{1}_{2}_{4}{3}".format(settings.RUN_FILES_DIRECTORY, date_string, sequencing_run_name, extension, command_label)
 	ssh_result = ssh_command(host, command, True, True)
 	return ssh_result
 
