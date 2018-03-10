@@ -7,7 +7,7 @@ from sequencing_run.sample_sheet import index_barcode_key_to_fields
 from sequencing_run.models import DemultiplexedSequencing, Flowcell, SequencingAnalysisRun
 
 from sequencing_run.assemble_libraries import prepare_to_assemble_libraries
-from sequencing_run.analysis import start_cromwell, analysis_command_label
+from sequencing_run.analysis import start_cromwell, ANALYSIS_COMMAND_LABEL
 
 class Command(BaseCommand):
 	help = 'load demultiplexed index-barcode bams from a sequencing run into database'

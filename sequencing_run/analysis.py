@@ -7,6 +7,10 @@ import re
 from django.utils import timezone
 from django.conf import settings
 
+ANALYSIS_COMMAND_LABEL = 'analysis'
+DEMULTIPLEX_COMMAND_LABEL = 'demultiplex'
+
+
 def start_analysis(source_illumina_dir, sequencing_run_name, sequencing_date, number_top_samples_to_demultiplex, flowcell_objects):
 	date_string = sequencing_date.strftime('%Y%m%d')
 	destination_directory = date_string + '_' + sequencing_run_name
@@ -42,9 +46,6 @@ def start_analysis(source_illumina_dir, sequencing_run_name, sequencing_date, nu
 	i5_set(date_string, sequencing_run_name)
 	i7_set(date_string, sequencing_run_name)
 	
-	ANALYSIS_COMMAND_LABEL = 'analysis'
-	DEMULTIPLEX_COMMAND_LABEL = 'demultiplex'
-
 	print('building input files with replacement')
 	# generate json input file
 	run_entry.processing_state = SequencingAnalysisRun.PREPARING_JSON_INPUTS
