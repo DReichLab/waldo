@@ -18,7 +18,7 @@ mt_references = ['rsrs']
 # For the argument flowcells, build files with each line containing a list of bam files to assemble for one index-barcode key
 def prepare_to_assemble_libraries(sequencing_date_string, sequencing_run_name, flowcells_text_ids):
 	# query bam files produced from the argument flowcells
-	q_list = [Q( ('flowcell__flowcell__exact', flowcells_text_id) ) for flowcells_text_id in flowcells_text_ids]
+	q_list = [Q( ('flowcell__flowcell_text_id__exact', flowcells_text_id) ) for flowcells_text_id in flowcells_text_ids]
 	# query for any bam sequenced from one of the argument flowcells
 	sublibraries = DemultiplexedSequencing.objects.filter(functools.reduce(operator.or_, q_list) )
 	

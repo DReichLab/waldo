@@ -6,11 +6,11 @@ from django.http import HttpResponseRedirect
 from django.conf import settings
 
 from sequencing_run.ssh_command import ssh_command
-from sequencing_run.models import SequencingRun, SequencingScreeningAnalysisRun
-from sequencing_run.screening_analysis import start_screening_analysis, query_job_status, get_kmer_analysis, get_final_report
+from sequencing_run.models import SequencingRun, SequencingAnalysisRun
+from sequencing_run.analysis import start_analysis, query_job_status, get_kmer_analysis, get_final_report
 from sequencing_run.report_field_descriptions import report_field_descriptions
 
-from .forms import ScreeningAnalysisForm
+from .forms import AnalysisForm
 
 import threading
 
@@ -24,11 +24,11 @@ def index(request):
 	return HttpResponse(result)
 	#return HttpResponse("Hello, world.")
 	
-def helpPage(request):
+def help_page(request):
 	return render(request, 'sequencing_run/help.html', {'report_fields': report_field_descriptions(request)})
 
 # Look at the Genetics file server to retrieve sequencing runs list
-def updateSequencingRunList(request):
+def update_sequencing_run_list(request):
 	host = HOST=settings.TRANSFER_HOST
 	command = "ls {}".format(settings.FILES_SERVER_DIRECTORY)
 
@@ -41,16 +41,21 @@ def updateSequencingRunList(request):
 	
 	return HttpResponse(result)
 
-def screeningForm(request):
+def add_to_set_non_none(the_set, item):
+	if item != None:
+		the_set.add(item)
+	return the_set
+
+def analysis_form(request):
 	# always retreive the list of active screening runs
-	run_list = SequencingScreeningAnalysisRun.objects.all().order_by('pk').reverse()[:20]
+	run_list = SequencingAnalysisRun.objects.all().order_by('pk').reverse()[:20]
 	
 	slurm_jobs = []
 	
 	# if this is a POST request we need to process the form data
 	if request.method == 'POST':
 		# create a form instance and populate it with data from the request:
-		form = ScreeningAnalysisForm(request.POST)
+		form = AnalysisForm(request.POST)
 		# check whether it's valid:
 		if form.is_valid():
 			print('Valid form')
@@ -58,8 +63,15 @@ def screeningForm(request):
 				# process the data in form.cleaned_data as required
 				# ...
 				#print(form.cleaned_data['illumina_directory'])
+				flowcell_set = set()
+				add_to_set_non_none(flowcell_set, form.cleaned_data['flowcell1'])
+				add_to_set_non_none(flowcell_set, form.cleaned_data['flowcell2'])
+				add_to_set_non_none(flowcell_set, form.cleaned_data['flowcell3'])
+				add_to_set_non_none(flowcell_set, form.cleaned_data['flowcell4'])
+				flowcells = list(flowcell_set)
+				#print(flowcells)
 				orchestra_thread = threading.Thread(
-					target=start_screening_analysis,
+					target=start_analysis,
 					args=(
 						str(form.cleaned_data['illumina_directory']),
 						form.cleaned_data['name'],
@@ -87,12 +99,12 @@ def screeningForm(request):
 
     # if a GET (or any other method) we'll create a blank form
 	else:
-		updateSequencingRunList(request) # argument is not used
+		update_sequencing_run_list(request) # argument is not used
 		slurm_jobs = query_job_status()
-		form = ScreeningAnalysisForm()
+		form = AnalysisForm()
 
 	return render(request, 'sequencing_run/screening.html', {'form': form, 'screening_run_list': run_list, 'slurm_jobs': slurm_jobs})
 
-def startScreeningAnalysis(request):
+def start_analysis(request):
 	print('Request to start')
 	return HttpResponse('Requested to start processing. Return to <a href="/sequencing_run/">status page</a>')

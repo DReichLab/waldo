@@ -7,13 +7,22 @@ class SequencingRun(models.Model):
 	def __str__(self):
 		return self.illumina_directory
 
-class SequencingScreeningAnalysisRun(models.Model):
+class Flowcell(models.Model):
+	flowcell_text_id = models.CharField("flowcell", max_length=20, unique=True)
+	sequencing_date = models.DateField()
+	name = models.CharField(max_length=100)
+	
+	def __str__(self):
+		return '{} {} {}'.format(self.sequencing_date, self.name, self.flowcell)
+
+class SequencingAnalysisRun(models.Model):
 	STARTED = 0
-	COPYING_SEQUENCING_DATA = 1
-	PREPARING_JSON_INPUTS = 2
-	PREPARING_RUN_SCRIPT = 3
-	RUNNING_SCREENING_ANALYSIS = 4
-	FINISHED = 5
+	COPYING_SEQUENCING_DATA = 100
+	PREPARING_JSON_INPUTS = 200
+	PREPARING_RUN_SCRIPT = 300
+	DEMULTIPLEXING = 400
+	RUNNING_ANALYSIS = 500
+	FINISHED = 1000
 	FAILED = -1
 	
 	ANALYSIS_RUN_STATES = (
@@ -21,7 +30,8 @@ class SequencingScreeningAnalysisRun(models.Model):
 		(COPYING_SEQUENCING_DATA, 'copying sequencing data to Orchestra/O2'),
 		(PREPARING_JSON_INPUTS, 'preparing json inputs'),
 		(PREPARING_RUN_SCRIPT, 'preparing run script'),
-		(RUNNING_SCREENING_ANALYSIS, 'running screening analysis'),
+		(DEMULTIPLEXING, 'demultiplexing and aligning'),
+		(RUNNING_ANALYSIS, 'running analysis'),
 		(FINISHED, 'finished'),
 		(FAILED, 'failed')
 	)
@@ -34,11 +44,8 @@ class SequencingScreeningAnalysisRun(models.Model):
 	sequencing_date = models.DateField()
 	slurm_job_number = models.IntegerField(null=True)
 	top_samples_to_demultiplex = models.IntegerField()
-	
-class Flowcell(models.Model):
-	flowcell = models.CharField("flowcell", max_length=20, unique=True)
-	sequencing_date = models.DateField()
-	name = models.CharField(max_length=100)
+	triggering_flowcell = models.ForeignKey(Flowcell, on_delete=models.SET_NULL, null=True, related_name='triggered_analysis')
+	prior_flowcells_for_analysis = models.ManyToManyField(Flowcell)
 	
 # a library may comprise multiple demultiplexed bams from different sequencing runs
 class AnalyzedLibrary(models.Model):
@@ -51,9 +58,6 @@ class AnalyzedLibrary(models.Model):
 	report_path = models.CharField(max_length=300, blank=True)
 	capture_name = models.CharField(max_length=50)
 	analysis_time = models.DateTimeField("completed analysis time")
-	
-	class Meta:
-		unique_together = (("sample", "extract", "library", "experiment", "udg"),)
 
 # a demultiplexed bam with no associated sample/library/extract information
 class DemultiplexedSequencing(models.Model):

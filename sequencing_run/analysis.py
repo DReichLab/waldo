@@ -1,5 +1,5 @@
 from sequencing_run.ssh_command import ssh_command
-from sequencing_run.models import SequencingRun, SequencingScreeningAnalysisRun
+from sequencing_run.models import SequencingRun, SequencingAnalysisRun
 from sequencing_run.barcode_prep import barcodes_set, i5_set, i7_set
 import os
 import re
@@ -7,7 +7,9 @@ import re
 from django.utils import timezone
 from django.conf import settings
 
-def start_screening_analysis(source_illumina_dir, sequencing_run_name, sequencing_date, number_top_samples_to_demultiplex):
+analysis_command_label = 'analysis'
+
+def start_analysis(source_illumina_dir, sequencing_run_name, sequencing_date, number_top_samples_to_demultiplex, flowcell_text_ids):
 	date_string = sequencing_date.strftime('%Y%m%d')
 	destination_directory = date_string + '_' + sequencing_run_name
 	
@@ -16,10 +18,10 @@ def start_screening_analysis(source_illumina_dir, sequencing_run_name, sequencin
 	scratch_illumina_parent_path = settings.SCRATCH_PARENT_DIRECTORY + "/" + destination_directory
 	scratch_illumina_directory_path = scratch_illumina_parent_path + "/" + source_illumina_dir
 	
-	run_entry = SequencingScreeningAnalysisRun(
+	run_entry = SequencingAnalysisRun(
 		name = sequencing_run_name, 
 		start = timezone.now(),
-		processing_state = SequencingScreeningAnalysisRun.STARTED,
+		processing_state = SequencingAnalysisRun.STARTED,
 		sequencing_run = SequencingRun.objects.get(illumina_directory=source_illumina_dir),
 		sequencing_date = sequencing_date,
 		top_samples_to_demultiplex = number_top_samples_to_demultiplex
@@ -27,7 +29,7 @@ def start_screening_analysis(source_illumina_dir, sequencing_run_name, sequencin
 	run_entry.save()
 		
 	# copy illumina directory
-	run_entry.processing_state = SequencingScreeningAnalysisRun.COPYING_SEQUENCING_DATA
+	run_entry.processing_state = SequencingAnalysisRun.COPYING_SEQUENCING_DATA
 	run_entry.save()
 	copy_illumina_directory(source_illumina_dir, scratch_illumina_parent_path)
 	# make new directory for run files
@@ -39,19 +41,37 @@ def start_screening_analysis(source_illumina_dir, sequencing_run_name, sequencin
 	i5_set(date_string, sequencing_run_name)
 	i7_set(date_string, sequencing_run_name)
 	
-	demultiplex_command_label = 'demultiplex'
+	escaped_scratch_illumina_directory = scratch_illumina_directory.replace('/','\\/')
+	replacement_dictionary = {
+		"INPUT_LABEL": sequencing_run_name,
+		"INPUT_DATE": date_string,
+		"INPUT_DIRECTORY": escaped_scratch_illumina_directory,
+		"INPUT_NUM_SAMPLES": str(number_top_samples_to_demultiplex),
+		"INPUT_DJANGO_ANALYSIS_RUN": str(run_entry.id)
+	}
+	
 	# generate json input file
-	run_entry.processing_state = SequencingScreeningAnalysisRun.PREPARING_JSON_INPUTS
+	run_entry.processing_state = SequencingAnalysisRun.PREPARING_JSON_INPUTS
 	run_entry.save()
-	replace_parameters('demultiplex_template.json', scratch_illumina_directory_path, sequencing_run_name, date_string, number_top_samples_to_demultiplex, demultiplex_command_label)
+	replace_parameters('demultiplex_template.json', demultiplex_command_label, replacement_dictionary)
 	# generate SLURM script
-	run_entry.processing_state = SequencingScreeningAnalysisRun.PREPARING_RUN_SCRIPT
+	run_entry.processing_state = SequencingAnalysisRun.PREPARING_RUN_SCRIPT
 	run_entry.save()
-	replace_parameters('demultiplex_template.sh', scratch_illumina_directory_path, sequencing_run_name, date_string, number_top_samples_to_demultiplex, demultiplex_command_label)
+	replace_parameters('demultiplex_template.sh', demultiplex_command_label, replacement_dictionary)
 	# start demultiplexing job
-	run_entry.processing_state = SequencingScreeningAnalysisRun.RUNNING_SCREENING_ANALYSIS
+	run_entry.processing_state = SequencingAnalysisRun.RUNNING_ANALYSIS
 	run_entry.save();
 	
+	# get analysis job ready
+	# this will be triggered by 'load_demultiplexed' command after at end of demultiplexing job
+	replace_parameters('analysis_template.json', analysis_command_label, replacement_dictionary)
+	replace_parameters('analysis_template.sh', analysis_command_label, replacement_dictionary)
+	for flowcell_text_id in flowcell_text_ids:
+		flowcell = Flowcell.objects.get(flowcell_text_id=flowcell_text_id)
+		run_entry.prior_flowcells_for_analysis.add(flowcell)
+	run_entry.save()
+	
+	# start demultiplexing and aligning job
 	start_result = start_cromwell(date_string, sequencing_run_name, demultiplex_command_label)
 	# retrieve SLURM job number from output
 	for line in start_result.stdout.readlines():
@@ -61,10 +81,6 @@ def start_screening_analysis(source_illumina_dir, sequencing_run_name, sequencin
 			run_entry.slurm_job_number = int(m.group(1))
 	run_entry.save()
 	
-	# get analysis job ready, starting when demultiplexing job finishes
-	analysis_command_label = 'analysis'
-	replace_parameters('analysis_template.json', scratch_illumina_directory_path, sequencing_run_name, date_string, number_top_samples_to_demultiplex, analysis_command_label)
-	replace_parameters('analysis_template.sh', scratch_illumina_directory_path, sequencing_run_name, date_string, number_top_samples_to_demultiplex, analysis_command_label)
 	
 # make new run directory
 def make_run_directory(date_string, sequencing_run_name):
@@ -84,15 +100,11 @@ def copy_illumina_directory(source_illumina_dir, scratch_illumina_directory):
 	return ssh_result
 
 #values passed to construct the command string are sanitized by form validation
-def replace_parameters(source_filename, scratch_illumina_directory, run_name, date_string, num_samples, command_label):
-	escaped_scratch_illumina_directory = scratch_illumina_directory.replace('/','\\/')
+def replace_parameters(source_filename, command_label, replacement_dictionary):
 	extension = os.path.splitext(source_filename)[1]
 	host = settings.COMMAND_HOST
 	command = "sed '" \
-		+ "s/INPUT_LABEL/" + run_name + "/g;" \
-		+ "s/INPUT_DATE/" + date_string + "/g;" \
-		+ "s/INPUT_DIRECTORY/" + escaped_scratch_illumina_directory + "/;" \
-		+ "s/INPUT_NUM_SAMPLES/" + str(num_samples) + "/" \
+		+ ''.join(["s/{}/{}/g;".format(key, replacement_dictionary[key]) for key in replacement_dictionary]) \
 		+ "'" \
 		+ " {}/{}".format(settings.RUN_FILES_DIRECTORY, source_filename) \
 		+ " > {0}/{1}_{2}/{1}_{2}_{4}{3}".format(settings.RUN_FILES_DIRECTORY, date_string, run_name, extension, command_label)
@@ -125,7 +137,7 @@ def query_job_status():
 		
 	# iterate over running sequencing analysis runs
 	# if the slurm job is not present
-	expectedRunningJobs = SequencingScreeningAnalysisRun.objects.filter(processing_state=SequencingScreeningAnalysisRun.RUNNING_SCREENING_ANALYSIS)
+	expectedRunningJobs = SequencingAnalysisRun.objects.filter(processing_state=SequencingAnalysisRun.RUNNING_SCREENING_ANALYSIS)
 	for expectedRunningJob in expectedRunningJobs:
 		# query for sacct info and check for COMPLETED state
 		#sacct -j 5790362 -o "JobID,State"
@@ -140,10 +152,10 @@ def query_job_status():
 			if fields[0] == jobID:
 				state = fields[1]
 				if state == 'COMPLETED':
-					expectedRunningJob.processing_state = SequencingScreeningAnalysisRun.FINISHED
+					expectedRunningJob.processing_state = SequencingAnalysisRun.FINISHED
 					expectedRunningJob.save()
 				if 'CANCELLED' in state or state == 'FAILED' or state == 'TIMEOUT' or state == 'NODE_FAIL':
-					expectedRunningJob.processing_state = SequencingScreeningAnalysisRun.FAILED
+					expectedRunningJob.processing_state = SequencingAnalysisRun.FAILED
 					expectedRunningJob.save()
 				
 		sacct_stderr = sacct_result.stderr.readlines()
