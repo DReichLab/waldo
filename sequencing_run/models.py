@@ -13,7 +13,7 @@ class Flowcell(models.Model):
 	name = models.CharField(max_length=100)
 	
 	def __str__(self):
-		return '{} {} {}'.format(self.sequencing_date, self.name, self.flowcell)
+		return '{} {} {}'.format(self.sequencing_date, self.name, self.flowcell_text_id)
 
 class SequencingAnalysisRun(models.Model):
 	STARTED = 0
