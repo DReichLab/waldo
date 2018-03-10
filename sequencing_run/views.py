@@ -69,7 +69,7 @@ def analysis_form(request):
 				add_to_set_non_none(flowcell_set, form.cleaned_data['flowcell3'])
 				add_to_set_non_none(flowcell_set, form.cleaned_data['flowcell4'])
 				flowcells = list(flowcell_set)
-				#print(flowcells)
+				print(flowcells)
 				orchestra_thread = threading.Thread(
 					target=start_analysis,
 					args=(
@@ -77,6 +77,7 @@ def analysis_form(request):
 						form.cleaned_data['name'],
 						form.cleaned_data['sequencing_date'],
 						form.cleaned_data['top_samples_to_demultiplex'],
+						flowcells,
 					)
 				)
 				orchestra_thread.start()
