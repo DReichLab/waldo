@@ -79,7 +79,7 @@ class Command(BaseCommand):
 				key = pathlib.Path(bam_filename).stem
 				i5, i7, p5, p7 = index_barcode_key_to_fields(key)
 				bam_path = "{}/{}_{}/{}/{}".format(settings.DEMULTIPLEXED_PARENT_DIRECTORY, date_string, name, subdirectory, bam_filename)
-				sequenced, created = DemultiplexedSequencing.objects.get_or_create(flowcell_text_id = flowcell, i5_index = i5, i7_index = i7, p5_barcode = p5, p7_barcode = p7, reference = reference, path = bam_path)
+				sequenced, created = DemultiplexedSequencing.objects.get_or_create(flowcell = flowcell, i5_index = i5, i7_index = i7, p5_barcode = p5, p7_barcode = p7, reference = reference, path = bam_path)
 			
 	# Find the flowcell text id from a demultiplexed flowcell, using the contents of the Illumina fastq headers
 	def get_flowcell_text_id(self, date_string, name):
