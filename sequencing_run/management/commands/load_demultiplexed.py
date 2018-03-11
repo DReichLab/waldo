@@ -35,7 +35,7 @@ class Command(BaseCommand):
 			if options['analysis_run']:
 				analysis_run_id = options['analysis_run'][0]
 				analysis_run = SequencingAnalysisRun.objects.get(id=analysis_run_id)
-				analysis_run.triggering_flowcell = flowcell_obj.id
+				analysis_run.triggering_flowcell = flowcell_obj
 				analysis_run.save()
 				#print(analysis_run_id)
 		except SequencingAnalysisRun.DoesNotExist:
@@ -52,7 +52,14 @@ class Command(BaseCommand):
 			flowcell_text_ids = [flowcell_object.flowcell_text_id for flowcell_object in analysis_run.prior_flowcells_for_analysis.all()]
 			flowcell_text_ids.append(flowcell_text_id)
 			prepare_to_assemble_libraries(date_string, name, flowcell_text_ids)
-			start_cromwell(date_string, name, analysis_command_label)
+			start_result = start_cromwell(date_string, name, ANALYSIS_COMMAND_LABEL)
+			# retrieve SLURM job number from output
+			for line in start_result.stdout.readlines():
+				print(line)
+				m = re.match('Submitted batch job[\s]+(\d+)', line)
+				if m is not None:
+					analysis_run.slurm_job_number = int(m.group(1))
+			analysis_run.save()
 		
 
 	def load_demultiplexed_bams_into_database(self, date_string, name, flowcell, subdirectory, reference):
