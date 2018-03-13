@@ -22,6 +22,7 @@ class SequencingAnalysisRun(models.Model):
 	PREPARING_RUN_SCRIPT = 300
 	DEMULTIPLEXING = 400
 	RUNNING_ANALYSIS = 500
+	RUNNING_ANALYSIS_PRELIMINARY_REPORT_DONE = 600
 	FINISHED = 1000
 	FAILED = -1
 	
@@ -32,6 +33,7 @@ class SequencingAnalysisRun(models.Model):
 		(PREPARING_RUN_SCRIPT, 'preparing run script'),
 		(DEMULTIPLEXING, 'demultiplexing and aligning'),
 		(RUNNING_ANALYSIS, 'running analysis'),
+		(RUNNING_ANALYSIS_PRELIMINARY_REPORT_DONE, 'running analysis, preliminary report ready'),
 		(FINISHED, 'finished'),
 		(FAILED, 'failed')
 	)
