@@ -43,7 +43,7 @@
 				<td>{{run.sequencing_date|date:'Y-m-d'}}</td>
 				<td>{{run.slurm_job_number}}</td>
 				<td>{{run.top_samples_to_demultiplex}}</td>
-				{% if run.processing_state == 5 %}
+				{% if run.processing_state >= processing_state_report_threshold %}
 				<td>
 				<button onclick="load_sequencing_run_parameters('{{ run.name }}', '{{ run.sequencing_run }}', '{{ run.sequencing_date|date:'Y-m-d' }}', '{{ run.top_samples_to_demultiplex }}')", name="get_report">Get report</button>
 				</td>
