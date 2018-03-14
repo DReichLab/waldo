@@ -7,7 +7,7 @@
 # assembled bam files
 from django.db.models import Q
 from django.conf import settings
-from sequencing_run.models import DemultiplexedSequencing
+from sequencing_run.models import DemultiplexedSequencing, Flowcell
 import functools
 import operator
 from sequencing_run.barcode_prep import save_file_with_contents
@@ -43,6 +43,7 @@ def prepare_to_assemble_libraries(sequencing_date_string, sequencing_run_name, f
 		
 	output_bam_list(nuclear_bams_by_index_barcode_key, sequencing_date_string, sequencing_run_name, 'nuclear')
 	output_bam_list(mt_bams_by_index_barcode_key, sequencing_date_string, sequencing_run_name, 'mt')
+	output_demultiplex_statistics(sequencing_date_string, sequencing_run_name, flowcells_text_ids)
 		
 # generate file with list of bams for library on each line and save it in run directory
 def output_bam_list(bams_by_index_barcode_key, sequencing_date_string, sequencing_run_name, reference_type):
@@ -55,3 +56,12 @@ def output_bam_list(bams_by_index_barcode_key, sequencing_date_string, sequencin
 	save_file_with_contents(output_text, sequencing_date_string, sequencing_run_name, '{}.bamlist'.format(reference_type), settings.COMMAND_HOST)
 	#print(output_text)
 	
+# generate a file that contains the demultiplex statistics for the flowcells
+def output_demultiplex_statistics(sequencing_date_string, sequencing_run_name, flowcells_text_ids):
+	#print(flowcells_text_ids)
+	q_list = [Q( ('flowcell_text_id__exact', flowcells_text_id) ) for flowcells_text_id in flowcells_text_ids]
+	flowcells = Flowcell.objects.filter(functools.reduce(operator.or_, q_list))
+	file_list = ["{0}/{1}_{2}/{1}_{2}.demultiplex_statistics".format(settings.DEMULTIPLEXED_PARENT_DIRECTORY, flowcell.sequencing_date, flowcell.name) for flowcell in flowcells]
+	output_text = '\n'.join(file_list)
+	save_file_with_contents(output_text, sequencing_date_string, sequencing_run_name, 'demultiplex_statistics_list', settings.COMMAND_HOST)
+	#print(output_text)
