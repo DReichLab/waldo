@@ -172,9 +172,9 @@ def query_job_status():
 	return slurm_jobs_text
 
 # get a report file from the completed analysis
-def get_report_file(sequencing_date_string, sequencing_run_name, extension):
+def get_report_file(sequencing_date_string, sequencing_run_name, extension, parent_directory):
 	host = settings.COMMAND_HOST
-	command = 'cat ' + settings.RESULTS_PARENT_DIRECTORY + sequencing_date_string + '_' + sequencing_run_name + '/' + sequencing_date_string + '_' + sequencing_run_name + extension
+	command = 'cat {0}/{1}_{2}/{1}_{2}{3}'.format(parent_directory, sequencing_date_string, sequencing_run_name, extension)
 	print('get_report_file ' + command)
 	ssh_result = ssh_command(host, command, False, False)
 	print('get_report_file fetched')
@@ -187,10 +187,10 @@ def get_report_file(sequencing_date_string, sequencing_run_name, extension):
 	return report_output
 
 def get_final_report(sequencing_date_string, sequencing_run_name):
-	return get_report_file(sequencing_date_string, sequencing_run_name, '.report')
+	return get_report_file(sequencing_date_string, sequencing_run_name, '.report', settings.RESULTS_PARENT_DIRECTORY)
 
 def get_kmer_analysis(sequencing_date_string, sequencing_run_name):
-	return get_report_file(sequencing_date_string, sequencing_run_name, '.kmer')
+	return get_report_file(sequencing_date_string, sequencing_run_name, '.kmer', settings.DEMULTIPLEXED_PARENT_DIRECTORY)
 
 def index_barcode_keys_used(sequencing_date_string, sequencing_run_name):
 	host = settings.COMMAND_HOST
