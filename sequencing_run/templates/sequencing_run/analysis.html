@@ -47,6 +47,8 @@
 				<td>
 				<button onclick="load_sequencing_run_parameters('{{ run.name }}', '{{ run.sequencing_run }}', '{{ run.sequencing_date|date:'Y-m-d' }}', '{{ run.top_samples_to_demultiplex }}')", name="get_report">Get report</button>
 				</td>
+				{% endif %}
+				{% if run.processing_state >= processing_state_demultiplex_threshold %}
 				<td>
 				<button onclick="load_sequencing_run_parameters('{{ run.name }}', '{{ run.sequencing_run }}', '{{ run.sequencing_date|date:'Y-m-d' }}', '{{ run.top_samples_to_demultiplex }}')", name="get_kmer">Get kmer analysis</button>
 				</td>
