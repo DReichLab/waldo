@@ -61,7 +61,7 @@ def output_demultiplex_statistics(sequencing_date_string, sequencing_run_name, f
 	#print(flowcells_text_ids)
 	q_list = [Q( ('flowcell_text_id__exact', flowcells_text_id) ) for flowcells_text_id in flowcells_text_ids]
 	flowcells = Flowcell.objects.filter(functools.reduce(operator.or_, q_list))
-	file_list = ["{0}/{1}_{2}/{1}_{2}.demultiplex_statistics".format(settings.DEMULTIPLEXED_PARENT_DIRECTORY, flowcell.sequencing_date, flowcell.name) for flowcell in flowcells]
+	file_list = ["{0}/{1}_{2}/{1}_{2}.demultiplex_statistics".format(settings.DEMULTIPLEXED_PARENT_DIRECTORY, flowcell.sequencing_date.strftime("%Y%m%d"), flowcell.name) for flowcell in flowcells]
 	output_text = '\n'.join(file_list)
 	save_file_with_contents(output_text, sequencing_date_string, sequencing_run_name, 'demultiplex_statistics_list', settings.COMMAND_HOST)
 	#print(output_text)
