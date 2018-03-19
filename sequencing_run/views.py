@@ -9,8 +9,9 @@ from sequencing_run.ssh_command import ssh_command
 from sequencing_run.models import SequencingRun, SequencingAnalysisRun
 from sequencing_run.analysis import start_analysis, query_job_status, get_kmer_analysis, get_final_report
 from sequencing_run.report_field_descriptions import report_field_descriptions
+from .report_match_samples import readSampleSheet, relabelSampleLines
 
-from .forms import AnalysisForm
+from .forms import AnalysisForm, ReportWithSampleSheetForm
 
 import threading
 
@@ -109,3 +110,29 @@ def analysis_form(request):
 def start_analysis_view(request):
 	print('Request to start')
 	return HttpResponse('Requested to start processing. Return to <a href="/sequencing_run/">status page</a>')
+
+def report_with_sample_sheet_form(request):
+	# if this is a POST request we need to process the form data
+	if request.method == 'POST':
+		# create a form instance and populate it with data from the request:
+		form = ReportWithSampleSheetForm(request.POST, request.FILES)
+		# check whether it's valid:
+		if form.is_valid():
+			print('Valid report with sample sheet form')
+			#if 'start_analysis' in request.POST:
+			report_file = request.FILES['report_file']
+			sample_sheet_file = request.FILES['sample_sheet_file']
+			
+			print(report_file.name)
+			print(sample_sheet_file.name)
+			#libraryIDs, plateIDs = readSampleSheet(sample_sheet_file)
+			#sampleLines = relabelSampleLines(report_file, libraryIDs, plateIDs)
+			#report = '\n'.join(sampleLines)
+			#response = HttpResponse(report, content_type='text/txt')
+			#response['Content-Disposition'] = 'attachment; filename="' + report_file.name + '"'
+			#return response
+	# if a GET (or any other method) we'll create a blank form
+	else:
+		form = ReportWithSampleSheetForm()
+	
+	return render(request, 'sequencing_run/report_with_sample_sheet.html', {'form': form})

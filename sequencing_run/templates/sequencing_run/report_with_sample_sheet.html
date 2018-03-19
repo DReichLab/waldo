@@ -1,0 +1,15 @@
+{% load static %}
+<link rel="stylesheet" type="text/css" href="{% static 'sequencing_run/style.css' %}" />
+<form action="" method="post" enctype="multipart/form-data">
+	{% csrf_token %}
+	<h1>Reich Lab Ancient DNA</h1>
+	<h2>Analysis Report Rewriting</h2>
+	
+	Use this form to rewrite a report using a sample sheet in tab-delimited format, matching the indices and barcodes in the sample sheet with those in the report.
+	
+	This is intended to be used when there are revisions to the contents of Zhao's database. 
+	
+	{{ form.as_p }}
+	
+	<input type="submit" name="rewrite_report" value="Rewrite report" />
+</form>

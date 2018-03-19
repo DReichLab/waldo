@@ -4,7 +4,6 @@
 # 2. sample sheet mapping index-barcodes to library IDs (sample, extract, library) and plate IDs (capture names)
 # Output: 
 # 1. screening report with results remapped to library IDs and capture names
-from __future__ import print_function
 import sys
 
 # create dictionaries from sample sheet that map index-barcodes to library IDs (S1.E1.L1) and plate IDs(Sugarplum)

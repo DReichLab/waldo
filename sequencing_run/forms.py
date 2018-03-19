@@ -19,3 +19,7 @@ class AnalysisForm(forms.Form):
 	flowcell4 = forms.ModelChoiceField(queryset=Flowcell.objects.all().order_by('-sequencing_date'), label='Past flowcell to analyze with', empty_label='', to_field_name='flowcell_text_id', required=False)
 
 	#flowcells = forms.ModelMultipleChoiceField(queryset=Flowcell.objects.all().order_by('-sequencing_date'), required=False)
+
+class ReportWithSampleSheetForm(forms.Form):
+	report_file = forms.FileField()
+	sample_sheet_file = forms.FileField()
