@@ -192,6 +192,9 @@ def get_final_report(sequencing_date_string, sequencing_run_name):
 def get_kmer_analysis(sequencing_date_string, sequencing_run_name):
 	return get_report_file(sequencing_date_string, sequencing_run_name, '.kmer', settings.DEMULTIPLEXED_PARENT_DIRECTORY)
 
+def get_demultiplex_report(sequencing_date_string, sequencing_run_name):
+	return get_report_file(sequencing_date_string, sequencing_run_name, '.demultiplex_report', settings.DEMULTIPLEXED_PARENT_DIRECTORY)
+
 def index_barcode_keys_used(sequencing_date_string, sequencing_run_name):
 	host = settings.COMMAND_HOST
 	queryForKeys = 'SELECT CONCAT(p5_index, "_", p7_index, "_", p5_barcode, "_", p7_barcode), library_id, plate_id, experiment FROM sequenced_library WHERE sequencing_id="%s";' % (sequencing_run_name) ;

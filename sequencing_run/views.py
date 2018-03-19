@@ -7,7 +7,7 @@ from django.conf import settings
 
 from sequencing_run.ssh_command import ssh_command
 from sequencing_run.models import SequencingRun, SequencingAnalysisRun
-from sequencing_run.analysis import start_analysis, query_job_status, get_kmer_analysis, get_final_report
+from sequencing_run.analysis import start_analysis, query_job_status, get_kmer_analysis, get_final_report, get_demultiplex_report
 from sequencing_run.report_field_descriptions import report_field_descriptions
 from .report_match_samples import readSampleSheet, relabelSampleLines
 
@@ -95,6 +95,13 @@ def analysis_form(request):
 				date_string = form.cleaned_data['sequencing_date'].strftime("%Y%m%d")
 				filename = date_string + '_' + form.cleaned_data['name'] + '.kmer.txt'
 				report = get_kmer_analysis(date_string, form.cleaned_data['name'])
+				response = HttpResponse(report, content_type='text/txt')
+				response['Content-Disposition'] = 'attachment; filename="' + filename + '"'
+				return response
+			elif 'get_demultiplex_report' in request.POST:
+				date_string = form.cleaned_data['sequencing_date'].strftime("%Y%m%d")
+				filename = date_string + '_' + form.cleaned_data['name'] + '.demultiplex_report.txt'
+				report = get_demultiplex_report(date_string, form.cleaned_data['name'])
 				response = HttpResponse(report, content_type='text/txt')
 				response['Content-Disposition'] = 'attachment; filename="' + filename + '"'
 				return response
