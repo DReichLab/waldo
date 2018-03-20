@@ -17,5 +17,6 @@ class Command(BaseCommand):
 		
 		analysis_run = SequencingAnalysisRun.objects.get(name=name, sequencing_date=date)
 		if analysis_run != None:
-			analysis_run.processing_state = SequencingAnalysisRun.RUNNING_ANALYSIS_PRELIMINARY_REPORT_DONE
+			# state should only move forward
+			analysis_run.processing_state = max( SequencingAnalysisRun.RUNNING_ANALYSIS_PRELIMINARY_REPORT_DONE, analysis_run.processing_state)
 			analysis_run.save()
