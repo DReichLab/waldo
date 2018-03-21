@@ -56,7 +56,7 @@ def start_analysis(source_illumina_dir, sequencing_run_name, sequencing_date, nu
 	run_entry.save()
 	replace_parameters('demultiplex_template.sh', DEMULTIPLEX_COMMAND_LABEL, sequencing_run_name, date_string, scratch_illumina_directory_path, run_entry.id, number_top_samples_to_demultiplex)
 	# start demultiplexing job
-	run_entry.processing_state = SequencingAnalysisRun.RUNNING_ANALYSIS
+	run_entry.processing_state = SequencingAnalysisRun.DEMULTIPLEXING
 	run_entry.save();
 	
 	# get analysis job ready
