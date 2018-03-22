@@ -8,27 +8,31 @@ import sys
 
 # create dictionaries from sample sheet that map index-barcodes to library IDs (S1.E1.L1) and plate IDs(Sugarplum)
 # lookup is based on column headers
-def readSampleSheet(sample_sheet_filename):
+def readSampleSheet(sample_sheet_filename):	
+	with open(sample_sheet_filename) as f:
+		sample_sheet_contents_array = f.readlines()
+		return readSampleSheet_array(sample_sheet_contents_array)
+
+def readSampleSheet_array(sample_sheet_contents_array):
 	libraryIDs = {}
 	plateIDs = {}
 	
-	with open(sample_sheet_filename) as f:
-		line = f.readline()
-		headers = line.split('\t')
-		
-		libraryID_index = headers.index('Sample_Name')
-		i5_index = headers.index('Index2')
-		i7_index = headers.index('Index')
-		p5_barcode = headers.index('P5_barcode')
-		p7_barcode = headers.index('P7_barcode')
-		plateID_index = headers.index('Capture_Name')
-		
-		for line in f:
-			fields = line.split('\t')
-			key = '{}_{}_{}_{}'.format(fields[i5_index], fields[i7_index], fields[p5_barcode], fields[p7_barcode])
-			libraryIDs[key] = fields[libraryID_index]
-			plateIDs[key] = fields[plateID_index]
+	header_line = sample_sheet_contents_array[0]
+	headers = header_line.split('\t')
+	libraryID_index = headers.index('Sample_Name')
+	i5_index = headers.index('Index2')
+	i7_index = headers.index('Index')
+	p5_barcode = headers.index('P5_barcode')
+	p7_barcode = headers.index('P7_barcode')
+	plateID_index = headers.index('Capture_Name')
 	
+	data_lines = sample_sheet_contents_array[1:]
+	for line in data_lines:
+		fields = line.split('\t')
+		key = '{}_{}_{}_{}'.format(fields[i5_index], fields[i7_index], fields[p5_barcode], fields[p7_barcode])
+		libraryIDs[key] = fields[libraryID_index]
+		plateIDs[key] = fields[plateID_index]
+		
 	return libraryIDs, plateIDs
 
 # retrieve information from a dictionary using an index-barcode key_index and its subsets
@@ -59,28 +63,34 @@ def getInfo(sampleID, keyMapping):
 # return an array of report lines, with libraryID and plateID fields adjusted according to the arguments,
 # which are derived from a sample sheet
 def relabelSampleLines(report_filename, libraryIDs, plateIDs):
-	sampleLines = []
 	with open(report_filename) as f:
-		line = f.readline().rstrip('\n')
-		sampleLines.append(line) # number of reads
-		line = f.readline().rstrip('\n')
-		sampleLines.append(line) # header
-		headers = line.split('\t')
-		key_index = headers.index('Index-Barcode Key')
-		sample_sheet_key_index = headers.index('sample_sheet_key')
-		libraryID_index = headers.index('library_id')
-		plateID_index = headers.index('plate_id')
+		sample_lines_input = f.readlines()
+		return relabelSampleLines_array(sample_lines_input, libraryIDs, plateIDs)
 		
-		for line in f:
-			fields = line.rstrip('\n').split('\t')
-			key = fields[key_index]
-			sampleSheetID1, fields[libraryID_index] = getInfo(key, libraryIDs)
-			sampleSheetID2, fields[plateID_index] = getInfo(key, plateIDs)
-			if sampleSheetID1 != sampleSheetID2:
-				raise ValueError('sample sheet ID mismatch {} != {}'.format(sampleSheetID1, sampleSheetID2))
-			fields[sample_sheet_key_index] = sampleSheetID1
-			sampleLine = '\t'.join(fields)
-			sampleLines.append(sampleLine)
+	
+def relabelSampleLines_array(sample_lines_input, libraryIDs, plateIDs):
+	sampleLines = []
+	
+	line = sample_lines_input[0].rstrip('\n')
+	sampleLines.append(line) # number of reads
+	line = sample_lines_input[1].rstrip('\n')
+	sampleLines.append(line) # header
+	headers = line.split('\t')
+	key_index = headers.index('Index-Barcode Key')
+	sample_sheet_key_index = headers.index('sample_sheet_key')
+	libraryID_index = headers.index('library_id')
+	plateID_index = headers.index('plate_id')
+	
+	for line in sample_lines_input[2:]:
+		fields = line.rstrip('\n').split('\t')
+		key = fields[key_index]
+		sampleSheetID1, fields[libraryID_index] = getInfo(key, libraryIDs)
+		sampleSheetID2, fields[plateID_index] = getInfo(key, plateIDs)
+		if sampleSheetID1 != sampleSheetID2:
+			raise ValueError('sample sheet ID mismatch {} != {}'.format(sampleSheetID1, sampleSheetID2))
+		fields[sample_sheet_key_index] = sampleSheetID1
+		sampleLine = '\t'.join(fields)
+		sampleLines.append(sampleLine)
 	return sampleLines
 			
 if __name__ == "__main__":
