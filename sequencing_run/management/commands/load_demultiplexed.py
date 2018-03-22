@@ -60,6 +60,7 @@ class Command(BaseCommand):
 				m = re.match('Submitted batch job[\s]+(\d+)', line)
 				if m is not None:
 					analysis_run.slurm_job_number = int(m.group(1))
+			analysis_run.processing_state = SequencingAnalysisRun.RUNNING_ANALYSIS
 			analysis_run.save()
 		
 
