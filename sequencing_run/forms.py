@@ -21,5 +21,5 @@ class AnalysisForm(forms.Form):
 	#flowcells = forms.ModelMultipleChoiceField(queryset=Flowcell.objects.all().order_by('-sequencing_date'), required=False)
 
 class ReportWithSampleSheetForm(forms.Form):
-	report_file = forms.FileField()
-	sample_sheet_file = forms.FileField()
+	report_file = forms.FileField(help_text='Analysis or demultiplexing statistics report')
+	sample_sheet_file = forms.FileField(help_text='Sample sheet file in tab-delimited text format')
