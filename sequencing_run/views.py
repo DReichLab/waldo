@@ -9,7 +9,7 @@ from sequencing_run.ssh_command import ssh_command
 from sequencing_run.models import SequencingRun, SequencingAnalysisRun
 from sequencing_run.analysis import start_analysis, query_job_status, get_kmer_analysis, get_final_report, get_demultiplex_report
 from sequencing_run.report_field_descriptions import report_field_descriptions
-from .report_match_samples import readSampleSheet, relabelSampleLines
+from .report_match_samples import readSampleSheet_array, relabelSampleLines_array
 
 from .forms import AnalysisForm, ReportWithSampleSheetForm
 
@@ -132,12 +132,12 @@ def report_with_sample_sheet_form(request):
 			
 			print(report_file.name)
 			print(sample_sheet_file.name)
-			#libraryIDs, plateIDs = readSampleSheet(sample_sheet_file)
-			#sampleLines = relabelSampleLines(report_file, libraryIDs, plateIDs)
-			#report = '\n'.join(sampleLines)
-			#response = HttpResponse(report, content_type='text/txt')
-			#response['Content-Disposition'] = 'attachment; filename="' + report_file.name + '"'
-			#return response
+			libraryIDs, plateIDs = readSampleSheet_array([line.decode('utf-8') for line in sample_sheet_file.readlines()])
+			sampleLines = relabelSampleLines_array([line.decode('utf-8') for line in report_file.readlines()], libraryIDs, plateIDs)
+			report = '\n'.join(sampleLines)
+			response = HttpResponse(report, content_type='text/txt')
+			response['Content-Disposition'] = 'attachment; filename="{}"'.format(report_file.name)
+			return response
 	# if a GET (or any other method) we'll create a blank form
 	else:
 		form = ReportWithSampleSheetForm()
