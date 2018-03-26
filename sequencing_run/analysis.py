@@ -146,7 +146,7 @@ def query_job_status():
 		
 	# iterate over running sequencing analysis runs
 	# if the slurm job is not present
-	expectedRunningJobs = SequencingAnalysisRun.objects.filter(processing_state__gte=SequencingAnalysisRun.RUNNING_ANALYSIS)
+	expectedRunningJobs = SequencingAnalysisRun.objects.filter(processing_state__gte=SequencingAnalysisRun.RUNNING_ANALYSIS).exclude(processing_state__gte=SequencingAnalysisRun.FINISHED)
 	for expectedRunningJob in expectedRunningJobs:
 		# query for sacct info and check for COMPLETED state
 		#sacct -j 5790362 -o "JobID,State"
