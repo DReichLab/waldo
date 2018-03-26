@@ -132,8 +132,8 @@ def report_with_sample_sheet_form(request):
 			
 			print(report_file.name)
 			print(sample_sheet_file.name)
-			libraryIDs, plateIDs = readSampleSheet_array([line.decode('utf-8') for line in sample_sheet_file.readlines()])
-			sampleLines = relabelSampleLines_array([line.decode('utf-8') for line in report_file.readlines()], libraryIDs, plateIDs)
+			libraryIDs, plateIDs, experiments = readSampleSheet_array([line.decode('utf-8') for line in sample_sheet_file.readlines()])
+			sampleLines = relabelSampleLines_array([line.decode('utf-8') for line in report_file.readlines()], libraryIDs, plateIDs, experiments)
 			report = '\n'.join(sampleLines)
 			response = HttpResponse(report, content_type='text/txt')
 			response['Content-Disposition'] = 'attachment; filename="{}"'.format(report_file.name)

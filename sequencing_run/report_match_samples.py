@@ -16,6 +16,7 @@ def readSampleSheet(sample_sheet_filename):
 def readSampleSheet_array(sample_sheet_contents_array):
 	libraryIDs = {}
 	plateIDs = {}
+	experiments = {}
 	
 	header_line = sample_sheet_contents_array[0]
 	headers = header_line.split('\t')
@@ -24,6 +25,7 @@ def readSampleSheet_array(sample_sheet_contents_array):
 	i7_index = headers.index('Index')
 	p5_barcode = headers.index('P5_barcode')
 	p7_barcode = headers.index('P7_barcode')
+	experiment_index = headers.index('Experiment')
 	plateID_index = headers.index('Capture_Name')
 	
 	data_lines = sample_sheet_contents_array[1:]
@@ -32,8 +34,9 @@ def readSampleSheet_array(sample_sheet_contents_array):
 		key = '{}_{}_{}_{}'.format(fields[i5_index], fields[i7_index], fields[p5_barcode], fields[p7_barcode])
 		libraryIDs[key] = fields[libraryID_index]
 		plateIDs[key] = fields[plateID_index]
+		experiments[key] = fields[experiment_index]
 		
-	return libraryIDs, plateIDs
+	return libraryIDs, plateIDs, experiments
 
 # retrieve information from a dictionary using an index-barcode key_index and its subsets
 # for barcodes with ':' delimiting multiple barcode sequences, all subset combinations will also be checked
@@ -65,10 +68,10 @@ def getInfo(sampleID, keyMapping):
 def relabelSampleLines(report_filename, libraryIDs, plateIDs):
 	with open(report_filename) as f:
 		sample_lines_input = f.readlines()
-		return relabelSampleLines_array(sample_lines_input, libraryIDs, plateIDs)
+		return relabelSampleLines_array(sample_lines_input, libraryIDs, plateIDs, experiments)
 		
 	
-def relabelSampleLines_array(sample_lines_input, libraryIDs, plateIDs):
+def relabelSampleLines_array(sample_lines_input, libraryIDs, plateIDs, experiments):
 	sampleLines = []
 	
 	line = sample_lines_input[0].rstrip('\n')
@@ -80,14 +83,20 @@ def relabelSampleLines_array(sample_lines_input, libraryIDs, plateIDs):
 	sample_sheet_key_index = headers.index('sample_sheet_key')
 	libraryID_index = headers.index('library_id')
 	plateID_index = headers.index('plate_id')
+	experiment_index= headers.index('experiment')
 	
 	for line in sample_lines_input[2:]:
 		fields = line.rstrip('\n').split('\t')
 		key = fields[key_index]
 		sampleSheetID1, fields[libraryID_index] = getInfo(key, libraryIDs)
 		sampleSheetID2, fields[plateID_index] = getInfo(key, plateIDs)
+		sampleSheetID3, fields[experiment_index] = getInfo(key, experiments)
+		
 		if sampleSheetID1 != sampleSheetID2:
 			raise ValueError('sample sheet ID mismatch {} != {}'.format(sampleSheetID1, sampleSheetID2))
+		if sampleSheetID1 != sampleSheetID3:
+			raise ValueError('sample sheet ID mismatch {} != {}'.format(sampleSheetID1, sampleSheetID3))
+		
 		fields[sample_sheet_key_index] = sampleSheetID1
 		sampleLine = '\t'.join(fields)
 		sampleLines.append(sampleLine)
@@ -97,8 +106,8 @@ if __name__ == "__main__":
 	report_filename = sys.argv[1]
 	sample_sheet_filename = sys.argv[2]
 	
-	libraryIDs, plateIDs = readSampleSheet(sample_sheet_filename)
+	libraryIDs, plateIDs, experiments = readSampleSheet(sample_sheet_filename)
 
-	sampleLines = relabelSampleLines(report_filename, libraryIDs, plateIDs)
+	sampleLines = relabelSampleLines(report_filename, libraryIDs, plateIDs, experiments)
 	for sample in sampleLines:
 		print(sample)
