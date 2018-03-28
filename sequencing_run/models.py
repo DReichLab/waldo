@@ -10,10 +10,9 @@ class SequencingRun(models.Model):
 class Flowcell(models.Model):
 	flowcell_text_id = models.CharField("flowcell", max_length=20, unique=True)
 	sequencing_date = models.DateField()
-	name = models.CharField(max_length=100)
 	
 	def __str__(self):
-		return '{} {} {}'.format(self.sequencing_date, self.name, self.flowcell_text_id)
+		return '{} {}'.format(self.sequencing_date, self.flowcell_text_id)
 
 class SequencingAnalysisRun(models.Model):
 	STARTED = 0

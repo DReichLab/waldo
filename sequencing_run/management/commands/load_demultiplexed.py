@@ -26,7 +26,7 @@ class Command(BaseCommand):
 		start_analysis = options['start_analysis']
 		
 		flowcell_text_id = self.get_flowcell_text_id(date_string, name)
-		flowcell_obj, created = Flowcell.objects.get_or_create(flowcell_text_id=flowcell_text_id, sequencing_date=date, name=name)
+		flowcell_obj, created = Flowcell.objects.get_or_create(flowcell_text_id=flowcell_text_id, sequencing_date=date)
 		#print(flowcell_text_id)
 		#print(flowcell_obj)
 		
