@@ -6,6 +6,13 @@ class SequencingRun(models.Model):
 	
 	def __str__(self):
 		return self.illumina_directory
+	
+class SequencingRunID(models.Model):
+	name = models.CharField(max_length=50)
+	order = models.IntegerField() # order from Zhao's db
+	
+	def __str__(self):
+		return self.name
 
 class Flowcell(models.Model):
 	flowcell_text_id = models.CharField("flowcell", max_length=20, unique=True)

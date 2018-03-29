@@ -6,7 +6,7 @@ from django.http import HttpResponseRedirect
 from django.conf import settings
 
 from sequencing_run.ssh_command import ssh_command
-from sequencing_run.models import SequencingRun, SequencingAnalysisRun
+from .models import SequencingRun, SequencingRunID, SequencingAnalysisRun
 from sequencing_run.analysis import start_analysis, query_job_status, get_kmer_analysis, get_final_report, get_demultiplex_report
 from sequencing_run.report_field_descriptions import report_field_descriptions
 from .report_match_samples import readSampleSheet_array, relabelSampleLines_array
@@ -30,7 +30,7 @@ def help_page(request):
 
 # Look at the Genetics file server to retrieve sequencing runs list
 def update_sequencing_run_list(request):
-	host = HOST=settings.TRANSFER_HOST
+	host = settings.TRANSFER_HOST
 	command = "ls {}".format(settings.FILES_SERVER_DIRECTORY)
 
 	ssh_result = ssh_command(host, command)
@@ -41,6 +41,21 @@ def update_sequencing_run_list(request):
 		s, created = SequencingRun.objects.get_or_create(illumina_directory = directory.strip() )
 	
 	return HttpResponse(result)
+
+# populate dropdown for sequencing run name
+def update_sequencing_run_ids():
+	host = settings.COMMAND_HOST
+	query = "SELECT sequenced_library_key, sequencing_id FROM sequenced_library GROUP BY sequencing_id ORDER BY sequenced_library_key DESC;"
+	command = "mysql devadna -N -e '{}'".format(query)
+	ssh_result = ssh_command(host, command)
+	result = ssh_result.stdout.readlines()
+	for line in result:
+		try:
+			numerical_id, name = line.strip().split('\t')
+			if name != None and len(name) > 0:
+				s, created = SequencingRunID.objects.get_or_create(name=name.strip(), order=int(numerical_id))
+		except:
+			pass
 
 def add_to_set_non_none(the_set, item):
 	if item != None:
@@ -109,6 +124,7 @@ def analysis_form(request):
     # if a GET (or any other method) we'll create a blank form
 	else:
 		update_sequencing_run_list(request) # argument is not used
+		update_sequencing_run_ids()
 		slurm_jobs = query_job_status()
 		form = AnalysisForm()
 
