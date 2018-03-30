@@ -9,7 +9,13 @@ import sys
 # create dictionaries from sample sheet that map index-barcodes to library IDs (S1.E1.L1) and plate IDs(Sugarplum)
 # lookup is based on column headers
 def readSampleSheet(sample_sheet_filename):	
-	with open(sample_sheet_filename) as f:
+	try:
+		return readSampleSheet_encoding(sample_sheet_filename, 'utf-8')
+	except:
+		return readSampleSheet_encoding(sample_sheet_filename, 'windows-1252')
+
+def readSampleSheet_encoding(sample_sheet_filename, encoding):
+	with open(sample_sheet_filename, encoding=encoding) as f:
 		sample_sheet_contents_array = f.readlines()
 		return readSampleSheet_array(sample_sheet_contents_array)
 
@@ -65,7 +71,7 @@ def getInfo(sampleID, keyMapping):
 
 # return an array of report lines, with libraryID and plateID fields adjusted according to the arguments,
 # which are derived from a sample sheet
-def relabelSampleLines(report_filename, libraryIDs, plateIDs):
+def relabelSampleLines(report_filename, libraryIDs, plateIDs, experiments):
 	with open(report_filename) as f:
 		sample_lines_input = f.readlines()
 		return relabelSampleLines_array(sample_lines_input, libraryIDs, plateIDs, experiments)

@@ -15,7 +15,7 @@ class Command(BaseCommand):
 		report_filename = options['report'][0]
 		sample_sheet_filename = options['sample_sheet'][0]
 		
-		libraryIDs, plateIDs = readSampleSheet(sample_sheet_filename)
-		sampleLines = relabelSampleLines(report_filename, libraryIDs, plateIDs)
+		libraryIDs, plateIDs, experiments = readSampleSheet(sample_sheet_filename)
+		sampleLines = relabelSampleLines(report_filename, libraryIDs, plateIDs, experiments)
 		for sample in sampleLines:
 			self.stdout.write(sample)
