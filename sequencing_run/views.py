@@ -74,7 +74,7 @@ def analysis_form(request):
 				# process the data in form.cleaned_data as required
 				# ...
 				#print(form.cleaned_data['illumina_directory'])
-				sequencing_run_name = form.cleaned_data['name']
+				sequencing_run_name = form.cleaned_data['name'].name
 				print(sequencing_run_name)
 				flowcell_queryset = SequencingAnalysisRun.objects.filter(name=sequencing_run_name).values_list('triggering_flowcell__flowcell_text_id', flat=True).order_by('id')
 				flowcells_text_ids = list(flowcell_queryset)
@@ -84,7 +84,7 @@ def analysis_form(request):
 					target=start_analysis,
 					args=(
 						str(form.cleaned_data['illumina_directory']),
-						form.cleaned_data['name'],
+						sequencing_run_name,
 						form.cleaned_data['sequencing_date'],
 						form.cleaned_data['top_samples_to_demultiplex'],
 						flowcells_text_ids,
