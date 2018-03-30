@@ -6,7 +6,7 @@ from django.http import HttpResponseRedirect
 from django.conf import settings
 
 from sequencing_run.ssh_command import ssh_command
-from .models import SequencingRun, SequencingRunID, SequencingAnalysisRun
+from .models import SequencingRun, SequencingRunID, SequencingAnalysisRun, Flowcell
 from sequencing_run.analysis import start_analysis, query_job_status, get_kmer_analysis, get_final_report, get_demultiplex_report
 from sequencing_run.report_field_descriptions import report_field_descriptions
 from .report_match_samples import readSampleSheet_array, relabelSampleLines_array
@@ -57,11 +57,6 @@ def update_sequencing_run_ids():
 		except:
 			pass
 
-def add_to_set_non_none(the_set, item):
-	if item != None:
-		the_set.add(item)
-	return the_set
-
 def analysis_form(request):
 	# always retreive the list of active screening runs
 	run_list = SequencingAnalysisRun.objects.all().order_by('pk').reverse()[:20]
@@ -79,13 +74,12 @@ def analysis_form(request):
 				# process the data in form.cleaned_data as required
 				# ...
 				#print(form.cleaned_data['illumina_directory'])
-				flowcell_set = set()
-				add_to_set_non_none(flowcell_set, form.cleaned_data['flowcell1'])
-				add_to_set_non_none(flowcell_set, form.cleaned_data['flowcell2'])
-				add_to_set_non_none(flowcell_set, form.cleaned_data['flowcell3'])
-				add_to_set_non_none(flowcell_set, form.cleaned_data['flowcell4'])
-				flowcells = list(flowcell_set)
-				print(flowcells)
+				sequencing_run_name = form.cleaned_data['name']
+				print(sequencing_run_name)
+				flowcell_queryset = SequencingAnalysisRun.objects.filter(name=sequencing_run_name).values_list('triggering_flowcell__flowcell_text_id', flat=True).order_by('id')
+				flowcells_text_ids = list(flowcell_queryset)
+				print(flowcells_text_ids)
+				
 				orchestra_thread = threading.Thread(
 					target=start_analysis,
 					args=(
@@ -93,7 +87,7 @@ def analysis_form(request):
 						form.cleaned_data['name'],
 						form.cleaned_data['sequencing_date'],
 						form.cleaned_data['top_samples_to_demultiplex'],
-						flowcells,
+						flowcells_text_ids,
 					)
 				)
 				orchestra_thread.start()
