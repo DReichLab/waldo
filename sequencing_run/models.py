@@ -1,12 +1,16 @@
 from django.db import models
 
 # Create your models here.
+
+# This should really be called an Illumina directory
 class SequencingRun(models.Model):
 	illumina_directory = models.CharField(max_length=255, unique=True)
 	
 	def __str__(self):
 		return self.illumina_directory
-	
+
+# These are the names attached to sequencing runs. 
+# For each name, there may be multiple sequencing runs covering the same set of samples
 class SequencingRunID(models.Model):
 	name = models.CharField(max_length=50)
 	order = models.IntegerField() # order from Zhao's db
@@ -47,6 +51,9 @@ class SequencingAnalysisRun(models.Model):
 	name = models.CharField("sequencing run name", max_length=100)
 	start = models.DateTimeField("sequencing run processing run start time")
 	processing_state = models.IntegerField(default=0, choices=ANALYSIS_RUN_STATES)
+	# pooled sequencing runs have multiple names
+	# non-pooled sequencing runs have only one
+	sample_set_names = models.ManyToManyField(SequencingRunID, through='OrderedSequencingRunID')
 	
 	sequencing_run = models.ForeignKey(SequencingRun, on_delete=models.CASCADE)
 	sequencing_date = models.DateField()
@@ -54,6 +61,17 @@ class SequencingAnalysisRun(models.Model):
 	top_samples_to_demultiplex = models.IntegerField()
 	triggering_flowcell = models.ForeignKey(Flowcell, on_delete=models.SET_NULL, null=True, related_name='triggered_analysis')
 	prior_flowcells_for_analysis = models.ManyToManyField(Flowcell)
+	
+# through model for labeling SequencingAnalysisRun with multiple SequencingRunID names and sorting
+class OrderedSequencingRunID(models.Model):
+	sequencing_analysis_run = models.ForeignKey(SequencingAnalysisRun, on_delete=models.CASCADE)
+	name = models.ForeignKey(SequencingRunID, on_delete=models.CASCADE)
+	interface_order = models.IntegerField()
+	
+	class Meta:
+		ordering = ["interface_order"]
+		unique_together = (("sequencing_analysis_run", "interface_order"),)
+	
 	
 # a library may comprise multiple demultiplexed bams from different sequencing runs
 class AnalyzedLibrary(models.Model):
