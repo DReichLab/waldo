@@ -11,10 +11,22 @@
 	{% load tz %}
 	{% localtime on %}
 	<h2>1240k Plus MT Analysis Runs</h2>
+	<!-- <p id="analysis_runs_text">Test</p> -->
 	
 	<script>
-	function load_sequencing_run_parameters(name, sequencing_run, sequencing_date, top_samples_to_demultiplex){
-		document.getElementById("id_name").value = name
+	function load_sequencing_run_parameters(sample_set_names, sequencing_run, sequencing_date, top_samples_to_demultiplex){
+		//document.getElementById("analysis_runs_text").innerHTML = 'test text'
+		
+		document.getElementById("id_name1").value = sample_set_names[0]
+		if (sample_set_names.length > 1){
+			document.getElementById("id_name2").value = sample_set_names[1]
+		}
+		if (sample_set_names.length > 2){
+			document.getElementById("id_name3").value = sample_set_names[2]
+		}
+		if (sample_set_names.length > 3){
+			document.getElementById("id_name4").value = sample_set_names[3]
+		}
 		document.getElementById("id_illumina_directory").value = sequencing_run
 		document.getElementById("id_sequencing_date").value = sequencing_date
 		document.getElementById("id_top_samples_to_demultiplex").value = top_samples_to_demultiplex
@@ -45,15 +57,15 @@
 				<td>{{run.top_samples_to_demultiplex}}</td>
 				{% if run.processing_state >= processing_state_report_threshold %}
 				<td>
-				<button onclick="load_sequencing_run_parameters('{{ run.name }}', '{{ run.sequencing_run }}', '{{ run.sequencing_date|date:'Y-m-d' }}', '{{ run.top_samples_to_demultiplex }}')", name="get_report">Get report</button>
+				<button onclick="load_sequencing_run_parameters([{% for single_name in run.sample_set_names.all %} {{single_name.id}}, {% endfor %}], '{{ run.sequencing_run }}', '{{ run.sequencing_date|date:'Y-m-d' }}', '{{ run.top_samples_to_demultiplex }}')", name="get_report">Get report</button>
 				</td>
 				{% endif %}
 				{% if run.processing_state >= processing_state_demultiplex_threshold %}
 				<td>
-				<button onclick="load_sequencing_run_parameters('{{ run.name }}', '{{ run.sequencing_run }}', '{{ run.sequencing_date|date:'Y-m-d' }}', '{{ run.top_samples_to_demultiplex }}')", name="get_kmer">Get kmer analysis</button>
+				<button onclick="load_sequencing_run_parameters([{% for single_name in run.sample_set_names.all %} {{single_name.id}}, {% endfor %}], '{{ run.sequencing_run }}', '{{ run.sequencing_date|date:'Y-m-d' }}', '{{ run.top_samples_to_demultiplex }}')", name="get_kmer">Get kmer analysis</button>
 				</td>
 				<td>
-				<button onclick="load_sequencing_run_parameters('{{ run.name }}', '{{ run.sequencing_run }}', '{{ run.sequencing_date|date:'Y-m-d' }}', '{{ run.top_samples_to_demultiplex }}')", name="get_demultiplex_report">Get demultiplexing report</button>
+				<button onclick="load_sequencing_run_parameters([{% for single_name in run.sample_set_names.all %} {{single_name.id}}, {% endfor %}], '{{ run.sequencing_run }}', '{{ run.sequencing_date|date:'Y-m-d' }}', '{{ run.top_samples_to_demultiplex }}')", name="get_demultiplex_report">Get demultiplexing report</button>
 				</td>
 				{% endif %}
 			</tr>

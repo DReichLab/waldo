@@ -70,16 +70,22 @@ def analysis_form(request):
 		# check whether it's valid:
 		if form.is_valid():
 			print('Valid form')
+			
+			# construct a single name from all names attached to this sequencing run
+			sequencing_run_names = []
+			for widget_name in ['name1', 'name2', 'name3', 'name4']:
+				name_object = form.cleaned_data[widget_name]
+				if name_object != None:
+					sequencing_run_names.append(name_object.name)
+			
+			sequencing_run_name = '_'.join(sequencing_run_names)
+			print(sequencing_run_names)
+			print(sequencing_run_name)
+			
 			if 'start_analysis' in request.POST:
 				# process the data in form.cleaned_data as required
 				# ...
 				#print(form.cleaned_data['illumina_directory'])
-				sequencing_run_name = form.cleaned_data['name'].name
-				print(sequencing_run_name)
-				flowcell_queryset = SequencingAnalysisRun.objects.filter(name=sequencing_run_name).values_list('triggering_flowcell__flowcell_text_id', flat=True).order_by('id')
-				flowcells_text_ids = list(flowcell_queryset)
-				print(flowcells_text_ids)
-				
 				orchestra_thread = threading.Thread(
 					target=start_analysis,
 					args=(
@@ -87,7 +93,7 @@ def analysis_form(request):
 						sequencing_run_name,
 						form.cleaned_data['sequencing_date'],
 						form.cleaned_data['top_samples_to_demultiplex'],
-						flowcells_text_ids,
+						sequencing_run_names,
 					)
 				)
 				orchestra_thread.start()
@@ -95,22 +101,22 @@ def analysis_form(request):
 				return HttpResponseRedirect('/sequencing_run/start/')
 			elif 'get_report' in request.POST:
 				date_string = form.cleaned_data['sequencing_date'].strftime("%Y%m%d")
-				filename = date_string + '_' + form.cleaned_data['name'] + '.report.txt'
-				report = get_final_report(date_string, form.cleaned_data['name'])
+				filename = date_string + '_' + sequencing_run_name + '.report.txt'
+				report = get_final_report(date_string, sequencing_run_name)
 				response = HttpResponse(report, content_type='text/txt')
 				response['Content-Disposition'] = 'attachment; filename="' + filename + '"'
 				return response
 			elif 'get_kmer' in request.POST:
 				date_string = form.cleaned_data['sequencing_date'].strftime("%Y%m%d")
-				filename = date_string + '_' + form.cleaned_data['name'] + '.kmer.txt'
-				report = get_kmer_analysis(date_string, form.cleaned_data['name'])
+				filename = date_string + '_' + sequencing_run_name + '.kmer.txt'
+				report = get_kmer_analysis(date_string, sequencing_run_name)
 				response = HttpResponse(report, content_type='text/txt')
 				response['Content-Disposition'] = 'attachment; filename="' + filename + '"'
 				return response
 			elif 'get_demultiplex_report' in request.POST:
 				date_string = form.cleaned_data['sequencing_date'].strftime("%Y%m%d")
-				filename = date_string + '_' + form.cleaned_data['name'] + '.demultiplex_report.txt'
-				report = get_demultiplex_report(date_string, form.cleaned_data['name'])
+				filename = date_string + '_' + sequencing_run_name + '.demultiplex_report.txt'
+				report = get_demultiplex_report(date_string, sequencing_run_name)
 				response = HttpResponse(report, content_type='text/txt')
 				response['Content-Disposition'] = 'attachment; filename="' + filename + '"'
 				return response
