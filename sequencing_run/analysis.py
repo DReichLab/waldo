@@ -10,7 +10,7 @@ from django.conf import settings
 ANALYSIS_COMMAND_LABEL = 'analysis'
 DEMULTIPLEX_COMMAND_LABEL = 'demultiplex'
 
-DEBUG = True
+DEBUG = False
 
 def start_analysis(source_illumina_dir, combined_sequencing_run_name, sequencing_date, number_top_samples_to_demultiplex, sequencing_run_names):
 	date_string = sequencing_date.strftime('%Y%m%d')
