@@ -74,16 +74,21 @@ class OrderedSequencingRunID(models.Model):
 	
 	
 # a library may comprise multiple demultiplexed bams from different sequencing runs
-class AnalyzedLibrary(models.Model):
+class ReleasedLibrary(models.Model):
 	sample = models.IntegerField()
+	lysis = models.IntegerField()
 	extract = models.IntegerField()
 	library = models.IntegerField()
 	experiment = models.CharField(max_length=20)
 	udg = models.CharField(max_length=10)
 	workflow = models.CharField(max_length=100)
-	report_path = models.CharField(max_length=300, blank=True)
+	path = models.CharField(max_length=300)
 	capture_name = models.CharField(max_length=50)
-	analysis_time = models.DateTimeField("completed analysis time")
+	release_time = models.DateTimeField("release time", auto_now_add=True)
+	version = models.IntegerField()
+	
+	class Meta:
+		unique_together = (("sample", "lysis", "extract", "library", "experiment", "udg", "version"),)
 
 # a demultiplexed bam with no associated sample/library/extract information
 class DemultiplexedSequencing(models.Model):
@@ -94,7 +99,7 @@ class DemultiplexedSequencing(models.Model):
 	p7_barcode = models.CharField(max_length=50, blank=True)
 	reference = models.CharField(max_length=30)
 	path = models.CharField(max_length=300)
-	analyzed_library = models.ForeignKey(AnalyzedLibrary, on_delete=models.SET_NULL, null=True)
+	library = models.ManyToManyField(ReleasedLibrary)
 	
 	class Meta:
 		unique_together = (("flowcell", "p5_barcode", "p7_barcode", "i5_index", "i7_index", "reference"),)

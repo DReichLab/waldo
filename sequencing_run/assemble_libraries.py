@@ -11,6 +11,7 @@ from sequencing_run.models import DemultiplexedSequencing, Flowcell, SequencingA
 import functools
 import operator
 from .ssh_command import save_file_with_contents
+import re
 
 nuclear_references = ['hg19']
 mt_references = ['rsrs']
@@ -59,10 +60,11 @@ def prepare_to_assemble_libraries(sequencing_date_string, sequencing_run_name, f
 	output_demultiplex_statistics(sequencing_date_string, sequencing_run_name, flowcells_text_ids)
 		
 # generate file with list of bams for library on each line and save it in run directory
+# each bam is a DemultiplexedSequencing
 def output_bam_list(bams_by_index_barcode_key, sequencing_date_string, sequencing_run_name, extension):
 	# each line is the list of bam paths for one index-barcode key
 	bam_lists = bams_by_index_barcode_key.values()
-	# flatten each list into tab delimited line of 
+	# flatten each list into tab delimited line of bam paths
 	bam_text_lists = ['\t'.join(map(lambda bam : bam.path, bam_list)) for bam_list in bam_lists]
 	output_text = '\n'.join(bam_text_lists)
 	
@@ -79,6 +81,44 @@ def output_demultiplex_statistics(sequencing_date_string, sequencing_run_name, f
 	save_file_with_contents(output_text, sequencing_date_string, sequencing_run_name, 'demultiplex_statistics_list', settings.COMMAND_HOST)
 	#print(output_text)
 	
+# each bam is a DemultiplexedSequencing
+def output_bam_list_with_sample_data(bams_by_index_barcode_key, sequencing_date_string, sequencing_run_name, extension, samples_parameters):
+	output_lines = []
+	# each line is the list arguments required for one library
+	# it needs to include all of the metadata required to build read groups
+	# of bam paths for one index-barcode key
+	for key in bams_by_index_barcode_key:
+		bam_list = bams_by_index_barcode_key[key]
+		library_id = samples_parameters[key].libraryID
+		#print(library_id)
+		label = "{}_{}_{}".format(sequencing_run_name, samples_parameters[key].experiment, samples_parameters[key].udg)
+		experiment = samples_parameters[key].experiment
+		#print(label)
+		
+		# parse sample number and use as individual
+		reg_exp_pattern = re.compile('S[\d]+')
+		match_object = reg_exp_pattern.match(library_id)
+		if match_object is None:
+			raise ValueError('invalid library id: cannot locate sample id')
+		else:
+			individual_id = match_object.group().replace('S', 'I')
+			#print(individual_id)
+			
+		library_output_fields = [key, library_id, individual_id, label, experiment]
+		
+		for bam in bam_list:
+			bam_date_string = bam.flowcell.sequencing_date.strftime("%Y%m%d")
+			#print(bam_date_string)
+			#print(bam.path)
+			library_output_fields.append(bam.path)
+			library_output_fields.append(bam_date_string)
+		
+		library_line = '\t'.join(library_output_fields)
+		output_lines.append(library_line)
+
+	output_text = '\n'.join(output_lines)
+	save_file_with_contents(output_text, sequencing_date_string, sequencing_run_name, extension, settings.COMMAND_HOST)
+	
 # this assembles only libraries on a sample sheet
 def prepare_to_assemble_release_libraries(sequencing_date_string, sequencing_run_name, flowcells_text_ids, samples_parameters):
 	nuclear_bams_by_index_barcode_key, mt_bams_by_index_barcode_key = generate_bam_lists(flowcells_text_ids)
@@ -88,5 +128,5 @@ def prepare_to_assemble_release_libraries(sequencing_date_string, sequencing_run
 	mt_bams_by_filtered_index_barcode_key = {index_barcode_key: bam_filename_list for index_barcode_key, bam_filename_list in mt_bams_by_index_barcode_key.items() if (index_barcode_key in samples_parameters and samples_parameters[index_barcode_key])}
 	
 	# save bam list files to pass to cromwell
-	output_bam_list(nuclear_bams_by_filtered_index_barcode_key, sequencing_date_string, sequencing_run_name, 'nuclear.release.bamlist')
-	output_bam_list(mt_bams_by_filtered_index_barcode_key, sequencing_date_string, sequencing_run_name, 'mt.release.bamlist')
+	output_bam_list_with_sample_data(nuclear_bams_by_filtered_index_barcode_key, sequencing_date_string, sequencing_run_name, 'nuclear.release.bamlist', samples_parameters)
+	output_bam_list_with_sample_data(mt_bams_by_filtered_index_barcode_key, sequencing_date_string, sequencing_run_name, 'mt.release.bamlist', samples_parameters)

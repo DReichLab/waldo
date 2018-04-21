@@ -24,9 +24,10 @@ class Command(BaseCommand):
 		#for flowcell_text_id in flowcell_text_ids:
 		#	self.stdout.write(flowcell_text_id)
 		nu = prepare_to_assemble_release_libraries(date_string, name, flowcell_text_ids, samples_parameters)
-		
+		'''
 		for key in nu:
 			bam_list = nu[key]
 			# DemultiplexedSequencing objects
 			bam_filename_list = [bam.path for bam in bam_list]
 			self.stdout.write("{}\t{}".format(key, "\t".join(bam_filename_list)))
+		'''

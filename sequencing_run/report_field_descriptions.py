@@ -40,18 +40,20 @@ def report_field_descriptions(request):
 		("damage_rsrs_ga2", "Damage at second base for reads aligning to rsrs MT. Estimated by G->A transitions using PMD Tools"),
 		("Haplogroup", "MT haplogroup as determined by haplogrep using consensus variant calling"),
 		("Haplogroup_rank", "The rank value is in the interval [0.5, 1] and indicates the quality of the haplogroup result. The value 0.5 is returned when there are no MT reads. The value 1 indicates a perfect match. "),
-		("spike3k_pre_autosome", "Number of reads overlapping a spike 3K target region on chromosome 1-22 before deduplication. For position p, this is the interval [p-50,p+50]."),
-		("spike3k_pre_x", "Number of reads overlapping a spike 3K target region on X chromosome before deduplication. For position p, this is the interval [p-50,p+50]."),
-		("spike3k_pre_y", "Number of reads overlapping a spike 3K target region on Y chromosome before deduplication. For position p, this is the interval [p-50,p+50]."),
-		("spike3k_post_autosome", "Number of reads overlapping a spike 3K target region on chromosome 1-22 after deduplication. For position p, this is the interval [p-50,p+50]."),
-		("spike3k_post_x", "Number of reads overlapping a spike 3K target region on X chromosome after deduplication. For position p, this is the interval [p-50,p+50]."),
-		("spike3k_post_y", "Number of reads overlapping a spike 3K target region on Y chromosome after deduplication. For position p, this is the interval [p-50,p+50]."),
-		("spike3k_post_sex", "Sex as determined by spike3k counts\nF if >= 50 autosomal hits and Y/Aut < 0.01,\nM if >= 50 autosomal hits and Y/Aut >= 0.05,\nU otherwise"),
-		("spike3k_complexity", "Library complexity as estimated by Nick Patterson's sppred3000 tool using the spike3k counts both before and after deduplication"),
+		#("spike3k_pre_autosome", "Number of reads overlapping a spike 3K target region on chromosome 1-22 before deduplication. For position p, this is the interval [p-50,p+50]."),
+		#("spike3k_pre_x", "Number of reads overlapping a spike 3K target region on X chromosome before deduplication. For position p, this is the interval [p-50,p+50]."),
+		#("spike3k_pre_y", "Number of reads overlapping a spike 3K target region on Y chromosome before deduplication. For position p, this is the interval [p-50,p+50]."),
+		#("spike3k_post_autosome", "Number of reads overlapping a spike 3K target region on chromosome 1-22 after deduplication. For position p, this is the interval [p-50,p+50]."),
+		#("spike3k_post_x", "Number of reads overlapping a spike 3K target region on X chromosome after deduplication. For position p, this is the interval [p-50,p+50]."),
+		#("spike3k_post_y", "Number of reads overlapping a spike 3K target region on Y chromosome after deduplication. For position p, this is the interval [p-50,p+50]."),
+		#("spike3k_post_sex", "Sex as determined by spike3k counts\nF if >= 50 autosomal hits and Y/Aut < 0.01,\nM if >= 50 autosomal hits and Y/Aut >= 0.05,\nU otherwise"),
+		#("spike3k_complexity", "Library complexity as estimated by Nick Patterson's sppred3000 tool using the spike3k counts both before and after deduplication"),
 		("contamination_contammix", "estimated maximum a posterior proportion authentic from contammix, using rsrs reads downsampled to 50x MT coverage"),
 		("contamination_contammix_lower", "2.5%  credible quantile for proportion authentic"),
 		("contamination_contammix_upper", "97.5%  credible quantile for proportion authentic"),
 		("contamination_contammix_gelman", "Gelman and Rubin diagnostic [potential scale reduction factor] point estimate"),
 		("contamination_contammix_inferred_error", "estimated error rate"),
+		
+		("preseq_target_coverage_at_threshold_", "ratio of unique reads hitting 1240k autosome targets to number of autosome targets")
     ]
 	return report_fields
