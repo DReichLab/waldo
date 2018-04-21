@@ -3,6 +3,7 @@ from sequencing_run.models import SequencingRun, SequencingRunID, SequencingAnal
 from sequencing_run.barcode_prep import barcodes_set, i5_set, i7_set
 import os
 import re
+import datetime
 
 from django.utils import timezone
 from django.conf import settings
@@ -43,7 +44,7 @@ def start_analysis(source_illumina_dir, combined_sequencing_run_name, sequencing
 
 		print('building input files')
 		# index-barcode key file
-		index_barcode_keys_used(date_string, combined_sequencing_run_name)
+		index_barcode_keys_used(date_string, combined_sequencing_run_name, sequencing_run_names)
 		# barcode and index files for run
 		barcodes_set(date_string, combined_sequencing_run_name)
 		i5_set(date_string, combined_sequencing_run_name)
@@ -215,8 +216,11 @@ def get_kmer_analysis(sequencing_date_string, combined_sequencing_run_name):
 def get_demultiplex_report(sequencing_date_string, combined_sequencing_run_name):
 	return get_report_file(sequencing_date_string, combined_sequencing_run_name, '.demultiplex_report', settings.DEMULTIPLEXED_PARENT_DIRECTORY)
 
-def index_barcode_keys_used(sequencing_date_string, combined_sequencing_run_name):
+def index_barcode_keys_used(sequencing_date_string, combined_sequencing_run_name, sequencing_run_names):
+	where_clauses = " OR ".join(['sequencing_id="{}"'.format(name) for name in sequencing_run_names])
+
+	queryForKeys = 'SELECT CONCAT(p5_index, "_", p7_index, "_", p5_barcode, "_", p7_barcode), library_id, plate_id, experiment FROM sequenced_library WHERE {};'.format(where_clauses)
+	
 	host = settings.COMMAND_HOST
-	queryForKeys = 'SELECT CONCAT(p5_index, "_", p7_index, "_", p5_barcode, "_", p7_barcode), library_id, plate_id, experiment FROM sequenced_library WHERE sequencing_id="%s";' % (combined_sequencing_run_name) ;
 	command = "mysql devadna -N -e '{0}' > {1}/{2}_{3}/{2}_{3}.index_barcode_keys".format(queryForKeys, settings.RUN_FILES_DIRECTORY, sequencing_date_string, combined_sequencing_run_name)
 	ssh_command(host, command, True, True)
