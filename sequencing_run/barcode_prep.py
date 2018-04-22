@@ -1,4 +1,4 @@
-from sequencing_run.ssh_command import ssh_command
+from .ssh_command import ssh_command, save_file_with_contents
 from django.conf import settings
 
 # Find the set of barcodes used for a sequencing run
@@ -59,10 +59,3 @@ def _barcodes_set(sequencing_date_string, sequencing_run_name, query, extension)
 	save_file_with_contents(barcodeFileTextOutput, sequencing_date_string, sequencing_run_name, extension, host)
 	#print (barcodeSetForRun)
 	return barcodeSetForRun
-
-# put a file in the run directory with the requested contents
-def save_file_with_contents(contents, sequencing_date_string, sequencing_run_name, extension, host):
-	
-	saveFileCommand = "echo '{0}' > {1}/{2}_{3}/{2}_{3}.{4}".format(contents, settings.RUN_FILES_DIRECTORY, sequencing_date_string, sequencing_run_name, extension)
-	#print (saveFileCommand)
-	ssh_command(host, saveFileCommand, False, True)

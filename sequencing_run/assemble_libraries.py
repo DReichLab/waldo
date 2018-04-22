@@ -10,7 +10,7 @@ from django.conf import settings
 from sequencing_run.models import DemultiplexedSequencing, Flowcell, SequencingAnalysisRun
 import functools
 import operator
-from sequencing_run.barcode_prep import save_file_with_contents
+from .ssh_command import save_file_with_contents
 
 nuclear_references = ['hg19']
 mt_references = ['rsrs']
