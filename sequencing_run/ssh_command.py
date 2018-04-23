@@ -39,4 +39,4 @@ def save_file_with_contents(contents, sequencing_date_string, sequencing_run_nam
 		with open(filename_full_path, 'w') as f:
 			f.write(contents)
 		destination = "{0}:{1}/{2}_{3}/{2}_{3}.{4}".format(host, settings.RUN_FILES_DIRECTORY, sequencing_date_string, sequencing_run_name, extension)
-		subprocess.run(['scp', filename_full_path, destination], check=True)
+		subprocess.check_output(['scp', filename_full_path, destination])
