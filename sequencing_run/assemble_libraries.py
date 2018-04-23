@@ -72,9 +72,9 @@ def output_bam_list(bams_by_index_barcode_key, sequencing_date_string, sequencin
 # generate a file that contains the demultiplex statistics for the flowcells
 def output_demultiplex_statistics(sequencing_date_string, sequencing_run_name, flowcells_text_ids):
 	#print(flowcells_text_ids)
-	q_list = [Q( ('flowcell_text_id__exact', flowcells_text_id) ) for flowcells_text_id in flowcells_text_ids]
-	flowcells = Flowcell.objects.filter(functools.reduce(operator.or_, q_list))
-	file_list = ["{0}/{1}_{2}/{1}_{2}.demultiplex_statistics".format(settings.DEMULTIPLEXED_PARENT_DIRECTORY, flowcell.sequencing_date.strftime("%Y%m%d"), sequencing_run_name) for flowcell in flowcells]
+	q_list = [Q( ('triggering_flowcell__flowcell_text_id__exact', flowcells_text_id) ) for flowcells_text_id in flowcells_text_ids]
+	runs = SequencingAnalysisRun.objects.filter(functools.reduce(operator.or_, q_list))
+	file_list = ["{0}/{1}_{2}/{1}_{2}.demultiplex_statistics".format(settings.DEMULTIPLEXED_PARENT_DIRECTORY, run.sequencing_date.strftime("%Y%m%d"), run.name) for run in runs]
 	output_text = '\n'.join(file_list)
 	save_file_with_contents(output_text, sequencing_date_string, sequencing_run_name, 'demultiplex_statistics_list', settings.COMMAND_HOST)
 	#print(output_text)
