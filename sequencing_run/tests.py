@@ -19,3 +19,11 @@ class SSHCommandTest(TestCase):
 		date_string = '20180101'
 		extension = 'test_extension'
 		save_file_with_contents(contents, date_string, name, extension, settings.COMMAND_HOST)
+		
+		# read back contents of file and check that contents match
+		expected_file_path = "{0}/{1}_{2}/{1}_{2}.{3}".format(settings.RUN_FILES_DIRECTORY, date_string, name, extension)
+		ssh_result = ssh_command(settings.COMMAND_HOST, "cat {}".format(expected_file_path), False, False)
+		
+		stdout_result = ssh_result.stdout.readlines()
+		first_line = stdout_result[0].strip()
+		self.assertEqual(contents, first_line)
