@@ -18,15 +18,10 @@
 		//document.getElementById("analysis_runs_text").innerHTML = 'test text'
 		
 		document.getElementById("id_name1").value = sample_set_names[0]
-		if (sample_set_names.length > 1){
-			document.getElementById("id_name2").value = sample_set_names[1]
-		}
-		if (sample_set_names.length > 2){
-			document.getElementById("id_name3").value = sample_set_names[2]
-		}
-		if (sample_set_names.length > 3){
-			document.getElementById("id_name4").value = sample_set_names[3]
-		}
+		document.getElementById("id_name2").value = (sample_set_names.length > 1) ? sample_set_names[1] : ""
+		document.getElementById("id_name3").value = (sample_set_names.length > 2) ? sample_set_names[2] : ""
+		document.getElementById("id_name4").value = (sample_set_names.length > 3) ? sample_set_names[3] : ""
+		
 		document.getElementById("id_illumina_directory").value = sequencing_run
 		document.getElementById("id_sequencing_date").value = sequencing_date
 		document.getElementById("id_top_samples_to_demultiplex").value = top_samples_to_demultiplex
