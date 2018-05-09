@@ -82,6 +82,7 @@ def output_demultiplex_statistics(sequencing_date_string, sequencing_run_name, f
 	#print(output_text)
 	
 # each bam is a DemultiplexedSequencing
+# In contrast to output_bam_list, this function includes sample data (experiment type, UDG treatment)
 def output_bam_list_with_sample_data(bams_by_index_barcode_key, sequencing_date_string, sequencing_run_name, extension, samples_parameters):
 	output_lines = []
 	# each line is the list arguments required for one library
@@ -93,6 +94,7 @@ def output_bam_list_with_sample_data(bams_by_index_barcode_key, sequencing_date_
 		#print(library_id)
 		label = "{}_{}_{}".format(sequencing_run_name, samples_parameters[key].experiment, samples_parameters[key].udg)
 		experiment = samples_parameters[key].experiment
+		udg = samples_parameters[key].udg
 		#print(label)
 		
 		# parse sample number and use as individual
@@ -104,7 +106,7 @@ def output_bam_list_with_sample_data(bams_by_index_barcode_key, sequencing_date_
 			individual_id = match_object.group().replace('S', 'I')
 			#print(individual_id)
 			
-		library_output_fields = [key, library_id, individual_id, label, experiment]
+		library_output_fields = [key, library_id, individual_id, label, experiment, udg]
 		
 		for bam in bam_list:
 			bam_date_string = bam.flowcell.sequencing_date.strftime("%Y%m%d")
