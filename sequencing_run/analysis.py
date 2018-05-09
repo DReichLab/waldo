@@ -46,9 +46,9 @@ def start_analysis(source_illumina_dir, combined_sequencing_run_name, sequencing
 		# index-barcode key file
 		index_barcode_keys_used(date_string, combined_sequencing_run_name, sequencing_run_names)
 		# barcode and index files for run
-		barcodes_set(date_string, combined_sequencing_run_name)
-		i5_set(date_string, combined_sequencing_run_name)
-		i7_set(date_string, combined_sequencing_run_name)
+		barcodes_set(date_string, combined_sequencing_run_name, sequencing_run_names)
+		i5_set(date_string, combined_sequencing_run_name, sequencing_run_names)
+		i7_set(date_string, combined_sequencing_run_name, sequencing_run_names)
 	
 		print('building input files with replacement')
 		# generate json input file
