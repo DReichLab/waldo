@@ -59,7 +59,7 @@ def update_sequencing_run_ids():
 
 def analysis_form(request):
 	# always retreive the list of active screening runs
-	run_list = SequencingAnalysisRun.objects.all().order_by('pk').reverse()[:20]
+	run_list = SequencingAnalysisRun.objects.all().order_by('pk').reverse()[:40]
 	
 	slurm_jobs = []
 	
