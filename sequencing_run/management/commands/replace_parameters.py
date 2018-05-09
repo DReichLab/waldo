@@ -21,7 +21,8 @@ class Command(BaseCommand):
 		source_filename = options['source_filename'][0]
 		command_label = options['command_label'][0]
 		
-		scratch_illumina_directory_path = "{}/{}_{}".format(settings.SCRATCH_PARENT_DIRECTORY, date_string, name)
 		analysis_run = SequencingAnalysisRun.objects.get(name=name, sequencing_date=date)
+		scratch_illumina_directory_path = "{}/{}_{}/{}".format(settings.SCRATCH_PARENT_DIRECTORY, date_string, name, analysis_run.sequencing_run.illumina_directory)
+		#print(scratch_illumina_directory_path)
 		
 		replace_parameters(source_filename, command_label, name, date_string, scratch_illumina_directory_path, analysis_run.id, analysis_run.top_samples_to_demultiplex)
