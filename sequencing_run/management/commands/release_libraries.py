@@ -19,8 +19,10 @@ class Command(BaseCommand):
 		date = datetime.datetime.strptime(date_string, "%Y%m%d").date()
 		sample_sheet_filename = options['sample_sheet'][0]
 		
+		names = name.split('_')
+		
 		samples_parameters = readSampleSheet(sample_sheet_filename)
-		flowcell_text_ids = flowcells_for_names([name])
+		flowcell_text_ids = flowcells_for_names(names)
 		#for flowcell_text_id in flowcell_text_ids:
 		#	self.stdout.write(flowcell_text_id)
 		nu = prepare_to_assemble_release_libraries(date_string, name, flowcell_text_ids, samples_parameters)
