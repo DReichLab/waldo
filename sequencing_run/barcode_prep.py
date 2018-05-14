@@ -14,11 +14,11 @@ def barcodes_set(sequencing_date_string, combined_sequencing_run_name, sequencin
 	return _barcodes_set(sequencing_date_string, combined_sequencing_run_name, queryForBarcodes, 'barcodes')
 
 
-# i5 indices from sample sheet plus standard Reich Lab i5 indices (1-48)
+# i5 indices from sample sheet plus standard Reich Lab i5 indices (1-48) and the shotgun indices (49-53)
 # eliminate '..' entries by requiring length > 3
 def i5_set(sequencing_date_string, combined_sequencing_run_name, sequencing_run_names):
 	where_clauses = " OR ".join(['sequencing_id="{}"'.format(name) for name in sequencing_run_names])
-	queryForBarcodes = 'SELECT p5_index FROM sequenced_library WHERE ({}) AND length(p5_index) > 3 UNION SELECT sequence FROM p5_index WHERE p5_index_key BETWEEN 1 AND 48;'.format(where_clauses)
+	queryForBarcodes = 'SELECT p5_index FROM sequenced_library WHERE ({}) AND length(p5_index) > 3 UNION SELECT sequence FROM p5_index WHERE p5_index_key BETWEEN 1 AND 53;'.format(where_clauses)
 	
 	return _barcodes_set(sequencing_date_string, combined_sequencing_run_name, queryForBarcodes, 'i5')
 
