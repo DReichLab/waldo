@@ -85,7 +85,7 @@ class AnalyzedLibrary(models.Model):
 	capture_name = models.CharField(max_length=50)
 	analysis_time = models.DateTimeField("completed analysis time")
 
-# a demultiplexed bam with no associated sample/library/extract information
+# a demultiplexed, aligned bam with no associated sample/library/extract information
 class DemultiplexedSequencing(models.Model):
 	flowcell = models.ForeignKey(Flowcell, on_delete=models.CASCADE)
 	i5_index = models.CharField(max_length=10)

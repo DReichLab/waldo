@@ -22,14 +22,14 @@ def start_analysis(source_illumina_dir, combined_sequencing_run_name, sequencing
 	scratch_illumina_parent_path = settings.SCRATCH_PARENT_DIRECTORY + "/" + destination_directory
 	scratch_illumina_directory_path = scratch_illumina_parent_path + "/" + source_illumina_dir
 	
-	run_entry = SequencingAnalysisRun(
+	run_entry = SequencingAnalysisRun.objects.get_or_create(
 		name = combined_sequencing_run_name, 
-		start = timezone.now(),
-		processing_state = SequencingAnalysisRun.STARTED,
 		sequencing_run = SequencingRun.objects.get(illumina_directory=source_illumina_dir),
-		sequencing_date = sequencing_date,
-		top_samples_to_demultiplex = number_top_samples_to_demultiplex
+		sequencing_date = sequencing_date
 	)
+	run_entry.start = timezone.now(),
+	run_entry.processing_state = SequencingAnalysisRun.STARTED,
+	run_entry.top_samples_to_demultiplex = number_top_samples_to_demultiplex
 	run_entry.save()
 		
 	# copy illumina directory
