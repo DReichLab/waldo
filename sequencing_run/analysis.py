@@ -22,7 +22,7 @@ def start_analysis(source_illumina_dir, combined_sequencing_run_name, sequencing
 	scratch_illumina_parent_path = settings.SCRATCH_PARENT_DIRECTORY + "/" + destination_directory
 	scratch_illumina_directory_path = scratch_illumina_parent_path + "/" + source_illumina_dir
 	
-	run_entry = SequencingAnalysisRun.objects.get_or_create(
+	run_entry, created = SequencingAnalysisRun.objects.get_or_create(
 		name = combined_sequencing_run_name, 
 		sequencing_run = SequencingRun.objects.get(illumina_directory=source_illumina_dir),
 		sequencing_date = sequencing_date
