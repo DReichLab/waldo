@@ -90,7 +90,7 @@ class ReleasedLibrary(models.Model):
 	class Meta:
 		unique_together = (("sample", "lysis", "extract", "library", "experiment", "udg", "version"),)
 
-# a demultiplexed bam with no associated sample/library/extract information
+# a demultiplexed, aligned bam with no associated sample/library/extract information
 class DemultiplexedSequencing(models.Model):
 	flowcell = models.ForeignKey(Flowcell, on_delete=models.CASCADE)
 	i5_index = models.CharField(max_length=10)

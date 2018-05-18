@@ -23,7 +23,7 @@ def start_analysis(source_illumina_dir, combined_sequencing_run_name, sequencing
 	scratch_illumina_directory_path = scratch_illumina_parent_path + "/" + source_illumina_dir
 	
 	run_entry = SequencingAnalysisRun(
-		name = combined_sequencing_run_name, 
+		name = combined_sequencing_run_name,
 		start = timezone.now(),
 		processing_state = SequencingAnalysisRun.STARTED,
 		sequencing_run = SequencingRun.objects.get(illumina_directory=source_illumina_dir),
@@ -46,9 +46,9 @@ def start_analysis(source_illumina_dir, combined_sequencing_run_name, sequencing
 		# index-barcode key file
 		index_barcode_keys_used(date_string, combined_sequencing_run_name, sequencing_run_names)
 		# barcode and index files for run
-		barcodes_set(date_string, combined_sequencing_run_name)
-		i5_set(date_string, combined_sequencing_run_name)
-		i7_set(date_string, combined_sequencing_run_name)
+		barcodes_set(date_string, combined_sequencing_run_name, sequencing_run_names)
+		i5_set(date_string, combined_sequencing_run_name, sequencing_run_names)
+		i7_set(date_string, combined_sequencing_run_name, sequencing_run_names)
 	
 		print('building input files with replacement')
 		# generate json input file
