@@ -6,15 +6,22 @@
 # 1. screening report with results remapped to library IDs and capture names
 import sys
 
+MINUS = 'minus'
+HALF = 'half'
+PLUS = 'plus'
+ALLOWED_UDG_VALUES = [MINUS, HALF, PLUS]
+
 class SampleInfo:
-	def __init__(self, libraryID, plateID, experiment, udg):
+	def __init__(self, libraryID, plateID, experiment, udg, do_not_use, wetlab_notes):
 		self.libraryID = libraryID
 		self.plateID = plateID
 		self.experiment = experiment
 		self.udg = udg
+		self.do_not_use = do_not_use
+		self.wetlab_notes = wetlab_notes
 		
 	def is_empty(self):
-		return (self.libraryID == '' and self.plateID == '' and self.experiment == '' and self.udg == '')
+		return (self.libraryID == '' and self.plateID == '' and self.experiment == '' and self.udg == '' and self.do_not_use == '' and self.wetlab_notes == '')
 
 # create dictionaries from sample sheet that map index-barcodes to library IDs (S1.E1.L1) and plate IDs(Sugarplum)
 # lookup is based on column headers
@@ -25,7 +32,7 @@ def readSampleSheet(sample_sheet_filename):
 		return readSampleSheet_encoding(sample_sheet_filename, 'windows-1252')
 
 def readSampleSheet_encoding(sample_sheet_filename, encoding):
-	with open(sample_sheet_filename, encoding=encoding) as f:
+	with open(sample_sheet_filename, encoding=encoding, errors='surrogateescape') as f:
 		sample_sheet_contents_array = f.readlines()
 		return readSampleSheet_array(sample_sheet_contents_array)
 
@@ -43,11 +50,26 @@ def readSampleSheet_array(sample_sheet_contents_array):
 	plateID_index = headers.index('Capture_Name')
 	udg_index = headers.index('UDG_treatment')
 	
+	lowercase_headers = [header.lower() for header in headers]
+	try:
+		do_not_use_index = lowercase_headers.index('do_not_use')
+	except ValueError:
+		do_not_use_index = -1
+	try:
+		wetlab_notes_index = lowercase_headers.index('wetlab_notes')
+	except:
+		wetlab_notes_index = -1
+	
 	data_lines = sample_sheet_contents_array[1:]
 	for line in data_lines:
 		fields = line.split('\t')
+		do_not_use = fields[do_not_use_index] if do_not_use_index >= 0 else ''
+		wetlab_notes = fields[wetlab_notes_index] if wetlab_notes_index >= 0 else ''
 		key = '{}_{}_{}_{}'.format(fields[i5_index], fields[i7_index], fields[p5_barcode], fields[p7_barcode])
-		samples_parameters[key] = SampleInfo(fields[libraryID_index], fields[plateID_index], fields[experiment_index], fields[udg_index])
+		udg = fields[udg_index].lower()
+		if udg not in ALLOWED_UDG_VALUES:
+			raise ValueError('Unhandled UDG value {}'.format(udg))
+		samples_parameters[key] = SampleInfo(fields[libraryID_index], fields[plateID_index], fields[experiment_index], udg, do_not_use, wetlab_notes)
 		
 	return samples_parameters
 
@@ -55,7 +77,7 @@ def readSampleSheet_array(sample_sheet_contents_array):
 # for barcodes with ':' delimiting multiple barcode sequences, all subset combinations will also be checked
 # the successful lookup key is returned as the sampleSheetID
 def getInfo(sampleID, keyMapping):
-	info = keyMapping.get(sampleID, SampleInfo('', '', '', ''))
+	info = keyMapping.get(sampleID, SampleInfo('', '', '', '', '', ''))
 	sampleSheetID = ''
 	if info != '':
 		sampleSheetID = sampleID
@@ -72,7 +94,7 @@ def getInfo(sampleID, keyMapping):
 						sampleSheetID = trialSampleID
 				# if there is more than one info that matches, we have a nonprogramming problem
 				elif not trialInfo.is_empty():
-					info = SampleInfo('MULTIPLE', 'MULTIPLE', 'MULTIPLE', 'MULTIPLE')
+					info = SampleInfo('MULTIPLE', 'MULTIPLE', 'MULTIPLE', 'MULTIPLE', 'MULTIPLE', 'MULTIPLE')
 					sampleSheetID = 'MULTIPLE'
 	return sampleSheetID, info
 
