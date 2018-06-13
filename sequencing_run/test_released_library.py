@@ -2,12 +2,15 @@ from django.test import TestCase
 
 from django.conf import settings
 
-from .models import ReleasedLibrary
+from .models import ReleasedLibrary, Batch, Capture
 
 # Create your tests here.
 
 class ReleaseLibrariesTests(TestCase):
 	def test_latest_release_library_version(self):
+		batch = Batch.objects.create(name='test_batch')
+		capture = Capture.objects.create(name='test_capture')
+		
 		ReleasedLibrary.objects.create(
 			sample=1, 
 			extract=1,
@@ -16,8 +19,9 @@ class ReleaseLibrariesTests(TestCase):
 			udg='half',
 			workflow='test',
 			path='testpath',
-			capture_name='test_capture',
-			version=1
+			version=1,
+			capture=capture,
+			batch=batch
 		)
 		
 		ReleasedLibrary.objects.create(
@@ -28,8 +32,9 @@ class ReleaseLibrariesTests(TestCase):
 			udg='half',
 			workflow='test',
 			path='testpath2',
-			capture_name='test_capture',
-			version=2
+			version=2,
+			capture=capture,
+			batch=batch
 		)
 		
 		library = ReleasedLibrary.objects.filter(sample=1, extract=1, library=1, experiment='raw', udg='half').latest('version')
@@ -37,7 +42,6 @@ class ReleaseLibrariesTests(TestCase):
 		self.assertEqual(library.extract, 1)
 		self.assertEqual(library.library, 1)
 		self.assertEqual(library.path, 'testpath2')
-		self.assertEqual(library.capture_name, 'test_capture')
 		self.assertEqual(library.version, 2)
 		
 	def test_latest_empty(self):
