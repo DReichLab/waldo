@@ -35,7 +35,12 @@ class LibraryID:
 			
 	def __str__(self):
 		fields = []
-		fields.append("S{:d}{}".format(self.sample, self.sample_suffix))
+		# samples were initially padded to 4 digits
+		if self.sample < 10000:
+			fields.append("S{:04d}{}".format(self.sample, self.sample_suffix))
+		else: # later samples are not padded more
+			fields.append("S{:d}{}".format(self.sample, self.sample_suffix))
+			
 		if self.lysis:
 			fields.append("Y{:d}".format(self.lysis))
 		if self.extract:

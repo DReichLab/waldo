@@ -8,7 +8,7 @@ from .library_id import LibraryID
 
 class LibraryIDTest(TestCase):
 	def test_valid_lysis(self):
-		x = 'S123.Y1.E2.L3'
+		x = 'S0123.Y1.E2.L3'
 		
 		lib = LibraryID(x)
 		self.assertEqual(123, lib.sample)
@@ -20,7 +20,7 @@ class LibraryIDTest(TestCase):
 		self.assertEqual(x, str(lib))
 	
 	def test_no_extact(self):
-		x = 'S2.L1'
+		x = 'S0002.L1'
 		
 		lib = LibraryID(x)
 		self.assertEqual(2, lib.sample)
@@ -32,7 +32,7 @@ class LibraryIDTest(TestCase):
 		self.assertEqual(x, str(lib))
 	
 	def test_no_lysis(self):
-		x = 'S123.E1.L2'
+		x = 'S0123.E1.L2'
 		
 		lib = LibraryID(x)
 		self.assertEqual(123, lib.sample)
@@ -44,7 +44,7 @@ class LibraryIDTest(TestCase):
 		self.assertEqual(x, str(lib))
 		
 	def test_control_with_sample_letter(self):
-		x = 'S123a.Y1.E2.L3'
+		x = 'S0123a.Y1.E2.L3'
 		
 		lib = LibraryID(x)
 		self.assertEqual(123, lib.sample)
@@ -56,7 +56,7 @@ class LibraryIDTest(TestCase):
 		self.assertEqual(x, str(lib))
 		
 	def test_no_sample_at_start1(self):
-		x = '123.Y1.E2.L3'
+		x = '0123.Y1.E2.L3'
 		with self.assertRaises(ValueError):
 			lib = LibraryID(x)
 			
@@ -66,16 +66,16 @@ class LibraryIDTest(TestCase):
 			lib = LibraryID(x)
 			
 	def test_no_library1(self):
-		x = 'S123.Y1.E2.3'
+		x = 'S0123.Y1.E2.3'
 		with self.assertRaises(ValueError):
 			lib = LibraryID(x)
 	
 	def test_no_library2(self):
-		x = 'S123.Y1.E23'
+		x = 'S0123.Y1.E23'
 		with self.assertRaises(ValueError):
 			lib = LibraryID(x)
 			
 	def test_extra_id(self):
-		x = 'S123.Y1.X9.E2.L3'
+		x = 'S0123.Y1.X9.E2.L3'
 		with self.assertRaises(ValueError):
 			lib = LibraryID(x)
