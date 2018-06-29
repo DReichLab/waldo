@@ -22,6 +22,9 @@ class SampleInfo:
 		
 	def is_empty(self):
 		return (self.libraryID == '' and self.plateID == '' and self.experiment == '' and self.udg == '' and self.do_not_use == '' and self.wetlab_notes == '')
+	
+	def __str__(self):
+		return "{}\t{}\t{}\t{}\t{}\t{}".format(self.libraryID, self.plateID, self.experiment, self.udg, self.do_not_use, self.wetlab_notes)
 
 # create dictionaries from sample sheet that map index-barcodes to library IDs (S1.E1.L1) and plate IDs(Sugarplum)
 # lookup is based on column headers
