@@ -8,14 +8,14 @@ class Command(BaseCommand):
 	help = 'Generate a list of bam files to assemble into candidate library bams'
 	
 	def add_arguments(self, parser):
-		parser.add_argument('--date_string', nargs=1)
-		parser.add_argument('--name', nargs=1)
+		parser.add_argument('--date_string')
+		parser.add_argument('--name')
 		# Positional arguments
 		parser.add_argument('flowcell_text_ids', nargs='+')
 		
 	def handle(self, *args, **options):
-		date_string = options['date_string'][0]
-		name = options['name'][0]
+		date_string = options['date_string']
+		name = options['name']
 		date = datetime.datetime.strptime(date_string, "%Y%m%d").date()
 		
 		flowcell_text_ids = options['flowcell_text_ids']
