@@ -4,7 +4,9 @@
 # 2. list of flowcells
 
 # output
-# assembled bam files
+# list of bams for assembly, each line has the components to build one bam 
+# demultiplexing bam lists have only bam paths
+# release bam lists include library ID, experiment type, UDG treatment, etc.
 from django.db.models import Q
 from django.conf import settings
 from .models import DemultiplexedSequencing, Flowcell, SequencingAnalysisRun, ReleasedLibrary
@@ -12,6 +14,7 @@ import functools
 import operator
 from .ssh_command import save_file_with_contents, ssh_command, save_file_base
 from .library_id import LibraryID
+from .index_barcode_key import IndexBarcodeKey
 import re
 import os
 
@@ -23,9 +26,9 @@ def flowcells_for_names(sequencing_run_names):
 	flowcell_text_ids = list(flowcell_queryset)
 	return flowcell_text_ids
 
-# For a set of flowcells, generate a list of bams to merge into libraries for each index-barcode combination
+# For a set of flowcells, generate a dictionary of bams to merge into libraries for each index-barcode combination
 # separate by reference
-# returns list of DemultiplexedSequencing objects
+# returns dictionaries of DemultiplexedSequencing objects
 def generate_bam_lists(flowcells_text_ids):
 	# query bam files produced from the argument flowcells
 	q_list = [Q( ('flowcell__flowcell_text_id__exact', flowcells_text_id) ) for flowcells_text_id in flowcells_text_ids]
@@ -179,6 +182,20 @@ def generate_bam_list_with_sample_data(bams_by_index_barcode_key, sequencing_run
 
 	output_text = '\n'.join(output_lines)
 	return output_text
+
+# Check whether a index-barcode combination in the sample sheet matches the discovered combination
+# For example, a control library may use B2 D2, which are portions of Q2
+def index_barcode_match(index_barcode_key, samples_parameters):
+	# if there is a direct match, we are done (fast)
+	if index_barcode_key in samples_parameters and samples_parameters[index_barcode_key]:
+		return True
+	# if there is not a direct match look for subset (slow)
+	key_object = IndexBarcodeKey(index_barcode_key)
+	for key_string_from_sheet in samples_parameters:
+		key_from_sheet = IndexBarcodeKey(key_string_from_sheet)
+		if key_from_sheet.maps_to(key_object):
+			return True
+	return False
 	
 # this assembles only libraries on a sample sheet
 def prepare_to_assemble_release_libraries(sequencing_run_name, samples_parameters):
@@ -186,9 +203,8 @@ def prepare_to_assemble_release_libraries(sequencing_run_name, samples_parameter
 	nuclear_bams_by_index_barcode_key, mt_bams_by_index_barcode_key = generate_bam_lists(flowcell_text_ids)
 	
 	# filter bam lists to include only samples on list
-	# This does not match control libraries, which do not have the full Q barcode sets
-	nuclear_bams_by_filtered_index_barcode_key = {index_barcode_key: bam_filename_list for index_barcode_key, bam_filename_list in nuclear_bams_by_index_barcode_key.items() if (index_barcode_key in samples_parameters and samples_parameters[index_barcode_key])}
-	mt_bams_by_filtered_index_barcode_key = {index_barcode_key: bam_filename_list for index_barcode_key, bam_filename_list in mt_bams_by_index_barcode_key.items() if (index_barcode_key in samples_parameters and samples_parameters[index_barcode_key])}
+	nuclear_bams_by_filtered_index_barcode_key = {index_barcode_key: bam_filename_list for index_barcode_key, bam_filename_list in nuclear_bams_by_index_barcode_key.items() if (index_barcode_match(index_barcode_key, samples_parameters))}
+	mt_bams_by_filtered_index_barcode_key = {index_barcode_key: bam_filename_list for index_barcode_key, bam_filename_list in mt_bams_by_index_barcode_key.items() if (index_barcode_match(index_barcode_key, samples_parameters))}
 	
 	# save bam list files to pass to cromwell
 	output_bam_list_with_sample_data(nuclear_bams_by_filtered_index_barcode_key, sequencing_run_name, 'nuclear.release.bamlist', samples_parameters)
