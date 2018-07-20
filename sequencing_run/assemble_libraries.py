@@ -85,9 +85,21 @@ def output_demultiplex_statistics(sequencing_date_string, sequencing_run_name, f
 	output_text = '\n'.join(file_list)
 	save_file_with_contents(output_text, sequencing_date_string, sequencing_run_name, 'demultiplex_statistics_list', settings.COMMAND_HOST)
 	#print(output_text)
-	
-def latest_library_version():
-	ReleasedLibrary.objects.filter(sample=1, extract=1, library=1, experiment='raw', udg='half').latest('version')
+
+# the library ID may not match the sample parameters field if a control library
+def latest_library_version(libraryID, sample_parameters):
+	if libraryID.startswith(settings.CONTROL_ID):
+		library = PositiveControlLibrary.objects.filter(name=libraryID).latest('version')
+	else:
+		library_id = LibraryID(sample_parameters.libraryID)
+		library = ReleasedLibrary.objects.filter(sample=library_id.sample,
+								 sample_suffix=library_id.sample_suffix,
+								 lysis=library_id.lysis,
+								 extract=library_id.extract, 
+								 library=library_id.library, 
+								 experiment=sample_parameters.experiment, 
+								 udg=sample_parameters.udg).latest('version')
+		return library.version
 	
 # each bam is a DemultiplexedSequencing
 # In contrast to output_bam_list, this function includes sample data (experiment type, UDG treatment)
@@ -123,6 +135,9 @@ def generate_bam_list_with_sample_data(bams_by_index_barcode_key, sequencing_run
 			# version determination
 			if library_id == settings.CONTROL_ID:
 				control_name = "{}_{}".format(settings.CONTROL_ID, sequencing_run_name)
+				# check for a prior version of this library
+				latestControl = PositiveControlLibrary.objects.filter(name=control_name).latest('version')
+				version = latestControl.version
 			else:
 				try:
 					lib = LibraryID(library_id) # this will remove Contl libraries

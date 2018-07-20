@@ -3,10 +3,14 @@ from django.test import TestCase
 from django.conf import settings
 
 from .models import ReleasedLibrary, Batch, Capture
+from .library_id import LibraryID
+from .assemble_libraries import latest_library_version
+from .report_match_samples import SampleInfo
 
 # Create your tests here.
 
 class ReleaseLibrariesTests(TestCase):
+	# simple test of whether of ReleasedLibrary and whether we can retrieve the latest version
 	def test_latest_release_library_version(self):
 		batch = Batch.objects.create(name='test_batch')
 		capture = Capture.objects.create(name='test_capture')
@@ -47,3 +51,26 @@ class ReleaseLibrariesTests(TestCase):
 	def test_latest_empty(self):
 		with self.assertRaises(ReleasedLibrary.DoesNotExist):
 			library = ReleasedLibrary.objects.filter(sample=1, extract=1, library=1, experiment='raw', udg='half').latest('version')
+			
+	# 
+	def test_next_version2(self):
+		batch = Batch.objects.create(name='test_batch')
+		capture = Capture.objects.create(name='test_capture')
+		library_id = LibraryID('S9000.E1.L1')
+		sample_info = SampleInfo(str(library_id), batch, 'raw', 'half', '', '')
+		
+		ReleasedLibrary.objects.create(
+			sample=library_id.sample, 
+			extract=library_id.extract,
+			library=library_id.library,
+			experiment=sample_info.experiment,
+			udg=sample_info.udg,
+			workflow='test',
+			path='testpath',
+			version=1,
+			capture=capture,
+			batch=batch
+		)
+		
+		self.assertEqual(1, latest_library_version(str(library_id), sample_info))
+		
