@@ -53,7 +53,7 @@ class ReleaseLibrariesTests(TestCase):
 			library = ReleasedLibrary.objects.filter(sample=1, extract=1, library=1, experiment='raw', udg='half').latest('version')
 			
 	# 
-	def test_next_version2(self):
+	def test_next_version2_3(self):
 		batch = Batch.objects.create(name='test_batch')
 		capture = Capture.objects.create(name='test_capture')
 		library_id = LibraryID('S9000.E1.L1')
@@ -74,3 +74,16 @@ class ReleaseLibrariesTests(TestCase):
 		
 		self.assertEqual(1, latest_library_version(str(library_id), sample_info))
 		
+		ReleasedLibrary.objects.create(
+			sample=library_id.sample, 
+			extract=library_id.extract,
+			library=library_id.library,
+			experiment=sample_info.experiment,
+			udg=sample_info.udg,
+			workflow='test',
+			path='testpath',
+			version=2,
+			capture=capture,
+			batch=batch
+		)
+		self.assertEqual(2, latest_library_version(str(library_id), sample_info))
