@@ -9,7 +9,7 @@
 # release bam lists include library ID, experiment type, UDG treatment, etc.
 from django.db.models import Q
 from django.conf import settings
-from .models import DemultiplexedSequencing, Flowcell, SequencingAnalysisRun, ReleasedLibrary
+from .models import DemultiplexedSequencing, Flowcell, SequencingAnalysisRun, ReleasedLibrary, PositiveControlLibrary
 import functools
 import operator
 from .ssh_command import save_file_with_contents, ssh_command, save_file_base
@@ -86,11 +86,9 @@ def output_demultiplex_statistics(sequencing_date_string, sequencing_run_name, f
 	save_file_with_contents(output_text, sequencing_date_string, sequencing_run_name, 'demultiplex_statistics_list', settings.COMMAND_HOST)
 	#print(output_text)
 
-# the library ID may not match the sample parameters field if a control library
-def latest_library_version(libraryID, sample_parameters):
-	if libraryID.startswith(settings.CONTROL_ID):
-		library = PositiveControlLibrary.objects.filter(name=libraryID).latest('version')
-	else:
+# the library ID will not match the sample parameters field if a control library
+def latest_library_version(sample_parameters):
+	try:
 		library_id = LibraryID(sample_parameters.libraryID)
 		library = ReleasedLibrary.objects.filter(sample=library_id.sample,
 								 sample_suffix=library_id.sample_suffix,
@@ -99,6 +97,9 @@ def latest_library_version(libraryID, sample_parameters):
 								 library=library_id.library, 
 								 experiment=sample_parameters.experiment, 
 								 udg=sample_parameters.udg).latest('version')
+		return library.version
+	except:
+		library = PositiveControlLibrary.objects.filter(name__name=sample_parameters.libraryID).latest('version')
 		return library.version
 	
 # each bam is a DemultiplexedSequencing
