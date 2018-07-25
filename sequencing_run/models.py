@@ -100,7 +100,7 @@ class ReleasedLibrary(Library):
 	library = models.IntegerField()
 	
 	class Meta:
-		unique_together = (("sample", "lysis", "extract", "library", "experiment", "udg", "version"),)
+		unique_together = (("sample", "sample_suffix", "lysis", "extract", "library", "experiment", "udg", "version"),)
 		
 # Each positive control library in each capture is marked with Contl.Capture
 class PositiveControlLibrary(Library):
