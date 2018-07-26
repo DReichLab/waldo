@@ -82,6 +82,7 @@ class Library(models.Model):
 	experiment = models.CharField(max_length=20)
 	udg = models.CharField(max_length=10)
 	workflow = models.CharField(max_length=100)
+	reference = models.CharField(max_length=30)
 	path = models.CharField(max_length=300)
 	release_time = models.DateTimeField("release time", auto_now_add=True)
 	version = models.IntegerField()
@@ -100,7 +101,7 @@ class ReleasedLibrary(Library):
 	library = models.IntegerField()
 	
 	class Meta:
-		unique_together = (("sample", "sample_suffix", "lysis", "extract", "library", "experiment", "udg", "version"),)
+		unique_together = (("sample", "sample_suffix", "lysis", "extract", "library", "experiment", "udg", "reference", "version"),)
 		
 # Each positive control library in each capture is marked with Contl.Capture
 class PositiveControlLibrary(Library):
