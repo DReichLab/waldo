@@ -1,5 +1,6 @@
 class IndexBarcodeKey():
 	BARCODE_DELIMITER = ':'
+	FIELD_DELIMITER = '_'
 	
 	def __init__(self, i5, i7, p5='', p7=''):
 		self.i5 = i5 
@@ -19,7 +20,12 @@ class IndexBarcodeKey():
 					raise ValueError('mismatch in barcode lengths')
 				
 	def __str__(self):
-		return '{}_{}_{}_{}'.format(self.i5, self.i7, self.p5, self.p7)
+		return IndexBarcodeKey.FIELD_DELIMITER.join([self.i5, self.i7, self.p5, self.p7])
+	
+	@classmethod
+	def from_string(cls, index_barcode_key_string):
+		fields = index_barcode_key_string.split(IndexBarcodeKey.FIELD_DELIMITER)
+		return cls(fields[0], fields[1], fields[2], fields[3])
 	
 	def barcode_subset(barcode_A, barcode_B):
 		A = barcode_A.split(IndexBarcodeKey.BARCODE_DELIMITER)

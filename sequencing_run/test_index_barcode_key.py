@@ -48,3 +48,25 @@ class IndexBarcodeKeyTest(TestCase):
 		
 		self.assertTrue(key_from_sheet.maps_to(key_from_data))
 		self.assertFalse(key_from_data.maps_to(key_from_sheet))
+		
+	def test_from_string_without_barcodes(self):
+		i5 = 'AGGTATT'
+		i7 = 'GCTTCAG'
+		key = IndexBarcodeKey(i5, i7)
+		
+		expected_key_string = 'AGGTATT_GCTTCAG__'
+		self.assertEqual(expected_key_string, key.__str__())
+		key_derived_from_string = IndexBarcodeKey.from_string(key.__str__())
+		self.assertEqual(expected_key_string, key_derived_from_string.__str__())
+
+	def test_from_string_with_barcodes(self):
+		i5 = 'GCCATAG'
+		i7 = 'TCGCAGG'
+		p5 = 'ACGGTCT:CGTTAGA:GTAACTC:TACCGAG'
+		p7 = 'AGTCACG:CTAGCGT:GACTGTA:TCGATAC'
+		
+		key = IndexBarcodeKey(i5, i7, p5, p7)
+		expected_key_string = 'GCCATAG_TCGCAGG_ACGGTCT:CGTTAGA:GTAACTC:TACCGAG_AGTCACG:CTAGCGT:GACTGTA:TCGATAC'
+		self.assertEqual(expected_key_string, key.__str__())
+		key_derived_from_string = IndexBarcodeKey.from_string(key.__str__())
+		self.assertEqual(expected_key_string, key_derived_from_string.__str__())

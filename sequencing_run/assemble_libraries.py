@@ -208,9 +208,9 @@ def index_barcode_match(index_barcode_key, samples_parameters):
 	if index_barcode_key in samples_parameters and samples_parameters[index_barcode_key]:
 		return True
 	# if there is not a direct match look for subset (slow)
-	key_object = IndexBarcodeKey(index_barcode_key)
+	key_object = IndexBarcodeKey.from_string(index_barcode_key)
 	for key_string_from_sheet in samples_parameters:
-		key_from_sheet = IndexBarcodeKey(key_string_from_sheet)
+		key_from_sheet = IndexBarcodeKey.from_string(key_string_from_sheet)
 		if key_from_sheet.maps_to(key_object):
 			return True
 	return False
