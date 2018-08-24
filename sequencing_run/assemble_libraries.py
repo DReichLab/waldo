@@ -139,6 +139,8 @@ def generate_bam_list_with_sample_data(bams_by_index_barcode_key, sequencing_run
 				# check for a prior version of this library
 				latestControl = PositiveControlLibrary.objects.filter(name=control_name).latest('version')
 				version = latestControl.version
+			elif library_id == settings.CONTROL_PCR_ID:
+				continue
 			else:
 				try:
 					lib = LibraryID(library_id) # this will remove Contl libraries

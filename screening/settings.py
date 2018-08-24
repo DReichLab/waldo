@@ -117,6 +117,7 @@ RESULTS_PARENT_DIRECTORY = os.path.join(GROUPS_DIRECTORY, 'results')
 RELEASED_LIBRARIES_DIRECTORY = os.path.join(GROUPS_DIRECTORY, 'released_libraries')
 CONTROL_LIBRARIES_DIRECTORY = os.path.join(GROUPS_DIRECTORY, 'controls')
 CONTROL_ID = 'Contl.Capture'
+CONTROL_PCR_ID = 'Contl.PCR'
 
 DEMULTIPLEXED_PARENT_DIRECTORY = "/n/groups/reich/matt/pipeline/demultiplex"
 NUCLEAR_SUBDIRECTORY = "nuclear_aligned_filtered"
