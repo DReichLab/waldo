@@ -121,14 +121,15 @@ def generate_bam_list_with_sample_data(bams_by_index_barcode_key, sequencing_run
 	# of bam paths for one index-barcode key
 	for key in bams_by_index_barcode_key:
 		bam_list = bams_by_index_barcode_key[key]
-		library_id = samples_parameters[key].libraryID
+		from_sample_sheet = samples_parameters[find_index_barcode_match(key, samples_parameters)]
+		library_id = from_sample_sheet.libraryID
 		#print(library_id)
-		label = "{}_{}_{}".format(sequencing_run_name, samples_parameters[key].experiment, samples_parameters[key].udg)
-		experiment = samples_parameters[key].experiment
-		udg = samples_parameters[key].udg
+		label = "{}_{}_{}".format(sequencing_run_name, from_sample_sheet.experiment, from_sample_sheet.udg)
+		experiment = from_sample_sheet.experiment
+		udg = from_sample_sheet.udg
 		reference = bam_list[0].reference
-		do_not_use = samples_parameters[key].do_not_use
-		wetlab_notes = samples_parameters[key].do_not_use
+		do_not_use = from_sample_sheet.do_not_use
+		wetlab_notes = from_sample_sheet.do_not_use
 		#print(label)
 		
 		if len(do_not_use) == 0:
@@ -137,8 +138,11 @@ def generate_bam_list_with_sample_data(bams_by_index_barcode_key, sequencing_run
 			if library_id == settings.CONTROL_ID:
 				control_name = "{}_{}".format(settings.CONTROL_ID, sequencing_run_name)
 				# check for a prior version of this library
-				latestControl = PositiveControlLibrary.objects.filter(name=control_name).latest('version')
-				version = latestControl.version
+				try:
+					latestControl = PositiveControlLibrary.objects.filter(name=control_name).latest('version')
+					version = latestControl.version
+				except:
+					pass
 			elif library_id == settings.CONTROL_PCR_ID:
 				continue
 			else:
@@ -179,7 +183,8 @@ def generate_bam_list_with_sample_data(bams_by_index_barcode_key, sequencing_run
 				reg_exp_pattern = re.compile('S[\d]+')
 				match_object = reg_exp_pattern.match(library_id)
 				if match_object is None:
-					raise ValueError('invalid library id: cannot locate sample id')
+					#raise ValueError('invalid library id: cannot locate sample id')
+					continue
 				else:
 					individual_id = match_object.group().replace('S', 'I')
 					#print(individual_id)
@@ -208,12 +213,16 @@ def index_barcode_match(index_barcode_key, samples_parameters):
 	if index_barcode_key in samples_parameters and samples_parameters[index_barcode_key]:
 		return True
 	# if there is not a direct match look for subset (slow)
+	result = find_index_barcode_match(index_barcode_key, samples_parameters)
+	return (result != None)
+	
+def find_index_barcode_match(index_barcode_key, samples_parameters):
 	key_object = IndexBarcodeKey.from_string(index_barcode_key)
 	for key_string_from_sheet in samples_parameters:
 		key_from_sheet = IndexBarcodeKey.from_string(key_string_from_sheet)
 		if key_from_sheet.maps_to(key_object):
-			return True
-	return False
+			return key_string_from_sheet
+	return None
 	
 # this assembles only libraries on a sample sheet
 def prepare_to_assemble_release_libraries(sequencing_run_name, samples_parameters):

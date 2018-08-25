@@ -22,7 +22,7 @@ class Command(BaseCommand):
 		#for s in samples_parameters:
 		#	print(s, samples_parameters[s])
 		nu = prepare_to_assemble_release_libraries(name, samples_parameters)
-		
+		self.stderr.write('{} finished release preparation'.format(name))
 		'''
 		sequencing_run_name = name
 
