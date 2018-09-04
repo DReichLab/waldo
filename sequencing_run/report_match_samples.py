@@ -70,9 +70,6 @@ def readSampleSheet_array(sample_sheet_contents_array):
 		wetlab_notes = fields[wetlab_notes_index] if wetlab_notes_index >= 0 else ''
 		key = '{}_{}_{}_{}'.format(fields[i5_index], fields[i7_index], fields[p5_barcode], fields[p7_barcode])
 		udg = fields[udg_index].lower()
-		# replace .. with minus
-		if udg == '..':
-			udg = MINUS
 		if udg not in ALLOWED_UDG_VALUES:
 			raise ValueError('Unhandled UDG value {}'.format(udg))
 		samples_parameters[key] = SampleInfo(fields[libraryID_index], fields[plateID_index], fields[experiment_index], udg, do_not_use, wetlab_notes)
