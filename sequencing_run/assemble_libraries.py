@@ -129,7 +129,7 @@ def generate_bam_list_with_sample_data(bams_by_index_barcode_key, sequencing_run
 		udg = from_sample_sheet.udg
 		reference = bam_list[0].reference
 		do_not_use = from_sample_sheet.do_not_use
-		wetlab_notes = from_sample_sheet.do_not_use
+		wetlab_notes = from_sample_sheet.wetlab_notes
 		#print(label)
 		
 		if len(do_not_use) == 0:
