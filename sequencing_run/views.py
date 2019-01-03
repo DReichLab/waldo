@@ -31,13 +31,14 @@ def help_page(request):
 # Look at the Genetics file server to retrieve sequencing runs list
 def update_sequencing_run_list(request):
 	host = settings.TRANSFER_HOST
-	command = "ls {}".format(settings.FILES_SERVER_DIRECTORY)
+	command = "ls -t {}".format(settings.FILES_SERVER_DIRECTORY)
 
 	ssh_result = ssh_command(host, command)
 	result = ssh_result.stdout.readlines()
 	# this is a list of directories with sequencing data
 	# write these to the database so the user can select which directory to use
-	for directory in result:
+	# for performance, only update the most recent 10 entries
+	for directory in result[0:10]:
 		s, created = SequencingRun.objects.get_or_create(illumina_directory = directory.strip() )
 	
 	return HttpResponse(result)
