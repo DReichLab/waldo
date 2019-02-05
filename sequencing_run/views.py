@@ -37,8 +37,8 @@ def update_sequencing_run_list(request):
 	result = ssh_result.stdout.readlines()
 	# this is a list of directories with sequencing data
 	# write these to the database so the user can select which directory to use
-	# for performance, only update the most recent 10 entries
-	for directory in result[0:10]:
+	# for performance, only update the most recent 5 entries
+	for directory in result[0:5]:
 		s, created = SequencingRun.objects.get_or_create(illumina_directory = directory.strip() )
 	
 	return HttpResponse(result)
