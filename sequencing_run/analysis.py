@@ -13,7 +13,7 @@ DEMULTIPLEX_COMMAND_LABEL = 'demultiplex'
 
 DEBUG = False
 
-def start_analysis(source_illumina_dir, combined_sequencing_run_name, sequencing_date, number_top_samples_to_demultiplex, sequencing_run_names):
+def start_analysis(source_illumina_dir, combined_sequencing_run_name, sequencing_date, number_top_samples_to_demultiplex, sequencing_run_names, copy_illumina=True):
 	date_string = sequencing_date.strftime('%Y%m%d')
 	destination_directory = date_string + '_' + combined_sequencing_run_name
 	
@@ -37,7 +37,8 @@ def start_analysis(source_illumina_dir, combined_sequencing_run_name, sequencing
 	run_entry.save()
 	
 	if not DEBUG:
-		copy_illumina_directory(source_illumina_dir, scratch_illumina_parent_path)
+		if copy_illumina:
+			copy_illumina_directory(source_illumina_dir, scratch_illumina_parent_path)
 		# make new directory for run files
 		print('making run directory')
 		make_run_directory(date_string, combined_sequencing_run_name)
