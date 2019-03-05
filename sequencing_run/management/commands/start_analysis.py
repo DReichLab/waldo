@@ -9,7 +9,7 @@ class Command(BaseCommand):
 	
 	def add_arguments(self, parser):
 		parser.add_argument('--date_string')
-		parser.add_argument('--name', nargs=+)
+		parser.add_argument('--name', nargs='+')
 		parser.add_argument('--illumina_directory')
 		parser.add_argument('--demultiplex', type=int, default=150)
 		parser.add_argument('--skip_copy', action='store_false')
