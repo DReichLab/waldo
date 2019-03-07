@@ -115,7 +115,7 @@ def copy_illumina_directory(source_illumina_dir, scratch_illumina_directory):
 	print(source_illumina_dir)
 	print(scratch_illumina_directory)
 	host = settings.TRANSFER_HOST
-	command = "rsync -a {}/{} {}".format(settings.FILES_SERVER_DIRECTORY, source_illumina_dir, scratch_illumina_directory)
+	command = 'rsync -a --exclude="Thumbnail_Images*" {}/{} {}'.format(settings.FILES_SERVER_DIRECTORY, source_illumina_dir, scratch_illumina_directory)
 	ssh_result = ssh_command(host, command, True, True)
 	return ssh_result
 
