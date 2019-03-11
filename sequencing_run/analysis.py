@@ -13,7 +13,7 @@ DEMULTIPLEX_COMMAND_LABEL = 'demultiplex'
 
 DEBUG = False
 
-def start_analysis(source_illumina_dir, combined_sequencing_run_name, sequencing_date, number_top_samples_to_demultiplex, sequencing_run_names):
+def start_analysis(source_illumina_dir, combined_sequencing_run_name, sequencing_date, number_top_samples_to_demultiplex, sequencing_run_names, copy_illumina=True):
 	date_string = sequencing_date.strftime('%Y%m%d')
 	destination_directory = date_string + '_' + combined_sequencing_run_name
 	
@@ -37,7 +37,8 @@ def start_analysis(source_illumina_dir, combined_sequencing_run_name, sequencing
 	run_entry.save()
 	
 	if not DEBUG:
-		copy_illumina_directory(source_illumina_dir, scratch_illumina_parent_path)
+		if copy_illumina:
+			copy_illumina_directory(source_illumina_dir, scratch_illumina_parent_path)
 		# make new directory for run files
 		print('making run directory')
 		make_run_directory(date_string, combined_sequencing_run_name)
@@ -114,7 +115,7 @@ def copy_illumina_directory(source_illumina_dir, scratch_illumina_directory):
 	print(source_illumina_dir)
 	print(scratch_illumina_directory)
 	host = settings.TRANSFER_HOST
-	command = "rsync -a {}/{} {}".format(settings.FILES_SERVER_DIRECTORY, source_illumina_dir, scratch_illumina_directory)
+	command = 'rsync -a --exclude="Thumbnail_Images*" {}/{} {}'.format(settings.FILES_SERVER_DIRECTORY, source_illumina_dir, scratch_illumina_directory)
 	ssh_result = ssh_command(host, command, True, True)
 	return ssh_result
 
@@ -165,7 +166,7 @@ def query_job_status():
 		
 	# iterate over running sequencing analysis runs
 	# if the slurm job is not present
-	expectedRunningJobs = SequencingAnalysisRun.objects.filter(processing_state__gte=SequencingAnalysisRun.RUNNING_ANALYSIS).exclude(processing_state__gte=SequencingAnalysisRun.FINISHED)
+	expectedRunningJobs = SequencingAnalysisRun.objects.filter(processing_state__gte=SequencingAnalysisRun.DEMULTIPLEXING).exclude(processing_state__gte=SequencingAnalysisRun.FINISHED)
 	for expectedRunningJob in expectedRunningJobs:
 		# query for sacct info and check for COMPLETED state
 		#sacct -j 5790362 -o "JobID,State"
