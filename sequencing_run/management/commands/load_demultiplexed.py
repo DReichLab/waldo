@@ -14,14 +14,14 @@ class Command(BaseCommand):
 	help = 'load demultiplexed index-barcode bams from a sequencing run into database'
 	
 	def add_arguments(self, parser):
-		parser.add_argument('--date_string', nargs=1)
-		parser.add_argument('--name', nargs=1)
-		parser.add_argument('--analysis_run', type=int, nargs=1)
+		parser.add_argument('--date_string')
+		parser.add_argument('--name')
+		parser.add_argument('--analysis_run', type=int)
 		parser.add_argument('--start_analysis', action='store_true', help='start analysis after loading bams')
 		
 	def handle(self, *args, **options):
-		date_string = options['date_string'][0]
-		name = options['name'][0]
+		date_string = options['date_string']
+		name = options['name']
 		date = datetime.datetime.strptime(date_string, "%Y%m%d").date()
 		start_analysis = options['start_analysis']
 		
@@ -35,7 +35,7 @@ class Command(BaseCommand):
 		# make this optional so we can add demultiplexing results without having to start from interface
 		try:
 			if options['analysis_run']:
-				analysis_run_id = options['analysis_run'][0]
+				analysis_run_id = options['analysis_run']
 				analysis_run = SequencingAnalysisRun.objects.get(id=analysis_run_id)
 				analysis_run.triggering_flowcell = flowcell_obj
 				analysis_run.save()
