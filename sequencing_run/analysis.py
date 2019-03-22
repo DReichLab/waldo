@@ -220,7 +220,7 @@ def get_demultiplex_report(sequencing_date_string, combined_sequencing_run_name)
 def index_barcode_keys_used(sequencing_date_string, combined_sequencing_run_name, sequencing_run_names):
 	where_clauses = " OR ".join(['sequencing_id="{}"'.format(name) for name in sequencing_run_names])
 
-	queryForKeys = 'SELECT CONCAT(UPPER(p5_index), "_", UPPER((p7_index), "_", UPPER(p5_barcode), "_", UPPER(p7_barcode)), library_id, plate_id, experiment FROM sequenced_library WHERE {};'.format(where_clauses)
+	queryForKeys = 'SELECT CONCAT(UPPER(p5_index), "_", UPPER(p7_index), "_", UPPER(p5_barcode), "_", UPPER(p7_barcode)), library_id, plate_id, experiment FROM sequenced_library WHERE {};'.format(where_clauses)
 	
 	host = settings.COMMAND_HOST
 	command = "mysql devadna -N -e '{0}' > {1}/{2}_{3}/{2}_{3}.index_barcode_keys".format(queryForKeys, settings.RUN_FILES_DIRECTORY, sequencing_date_string, combined_sequencing_run_name)
