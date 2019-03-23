@@ -13,6 +13,7 @@ class Command(BaseCommand):
 		parser.add_argument('--illumina_directory')
 		parser.add_argument('--demultiplex', type=int, default=150)
 		parser.add_argument('--skip_copy', action='store_false')
+		parser.add_argument('--hold', action='store_true')
 		
 	def handle(self, *args, **options):
 		date_string = options['date_string']
@@ -21,7 +22,8 @@ class Command(BaseCommand):
 		source_illumina_dir = options['illumina_directory']
 		number_top_samples_to_demultiplex = options['demultiplex']
 		copy = options['skip_copy']
+		hold = options['hold']
 		
 		combined_sequencing_run_name = '_'.join(sequencing_run_names)
 		
-		start_analysis(source_illumina_dir, combined_sequencing_run_name, sequencing_date, number_top_samples_to_demultiplex, sequencing_run_names, copy)
+		start_analysis(source_illumina_dir, combined_sequencing_run_name, sequencing_date, number_top_samples_to_demultiplex, sequencing_run_names, copy, hold)
