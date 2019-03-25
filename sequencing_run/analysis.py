@@ -13,7 +13,7 @@ DEMULTIPLEX_COMMAND_LABEL = 'demultiplex'
 
 DEBUG = False
 
-def start_analysis(source_illumina_dir, combined_sequencing_run_name, sequencing_date, number_top_samples_to_demultiplex, sequencing_run_names, copy_illumina=True):
+def start_analysis(source_illumina_dir, combined_sequencing_run_name, sequencing_date, number_top_samples_to_demultiplex, sequencing_run_names, copy_illumina=True, hold=False):
 	date_string = sequencing_date.strftime('%Y%m%d')
 	destination_directory = date_string + '_' + combined_sequencing_run_name
 	
@@ -93,7 +93,7 @@ def start_analysis(source_illumina_dir, combined_sequencing_run_name, sequencing
 	if not DEBUG:
 		print('starting cromwell')
 		# start demultiplexing and aligning job
-		start_result = start_cromwell(date_string, combined_sequencing_run_name, DEMULTIPLEX_COMMAND_LABEL)
+		start_result = start_cromwell(date_string, combined_sequencing_run_name, DEMULTIPLEX_COMMAND_LABEL, hold)
 		# retrieve SLURM job number from output
 		for line in start_result.stdout.readlines():
 			print(line)
@@ -141,9 +141,10 @@ def replace_parameters(source_filename, command_label, combined_sequencing_run_n
 	return ssh_result
 
 # The Broad Cromwell workflow tool runs the analysis
-def start_cromwell(date_string, run_name, command_label):
+def start_cromwell(date_string, run_name, command_label, hold=False):
 	host = settings.COMMAND_HOST
-	command = "sbatch {0}/{1}_{2}/{1}_{2}_{3}.sh".format(settings.RUN_FILES_DIRECTORY, date_string, run_name, command_label)
+	hold_option = '--hold' if hold else ''
+	command = "sbatch {4} {0}/{1}_{2}/{1}_{2}_{3}.sh".format(settings.RUN_FILES_DIRECTORY, date_string, run_name, command_label, hold_option)
 	ssh_result = ssh_command(host, command, False, True) # stdout printing is False to preserve SLURM job number output
 	return ssh_result
 
@@ -220,7 +221,7 @@ def get_demultiplex_report(sequencing_date_string, combined_sequencing_run_name)
 def index_barcode_keys_used(sequencing_date_string, combined_sequencing_run_name, sequencing_run_names):
 	where_clauses = " OR ".join(['sequencing_id="{}"'.format(name) for name in sequencing_run_names])
 
-	queryForKeys = 'SELECT CONCAT(UPPER(p5_index), "_", UPPER((p7_index), "_", UPPER(p5_barcode), "_", UPPER(p7_barcode)), library_id, plate_id, experiment FROM sequenced_library WHERE {};'.format(where_clauses)
+	queryForKeys = 'SELECT CONCAT(UPPER(p5_index), "_", UPPER(p7_index), "_", UPPER(p5_barcode), "_", UPPER(p7_barcode)), library_id, plate_id, experiment FROM sequenced_library WHERE {};'.format(where_clauses)
 	
 	host = settings.COMMAND_HOST
 	command = "mysql devadna -N -e '{0}' > {1}/{2}_{3}/{2}_{3}.index_barcode_keys".format(queryForKeys, settings.RUN_FILES_DIRECTORY, sequencing_date_string, combined_sequencing_run_name)
