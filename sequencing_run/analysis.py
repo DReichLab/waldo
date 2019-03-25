@@ -93,7 +93,7 @@ def start_analysis(source_illumina_dir, combined_sequencing_run_name, sequencing
 	if not DEBUG:
 		print('starting cromwell')
 		# start demultiplexing and aligning job
-		start_result = start_cromwell(date_string, combined_sequencing_run_name, DEMULTIPLEX_COMMAND_LABEL, False)
+		start_result = start_cromwell(date_string, combined_sequencing_run_name, DEMULTIPLEX_COMMAND_LABEL, hold)
 		# retrieve SLURM job number from output
 		for line in start_result.stdout.readlines():
 			print(line)
