@@ -143,7 +143,7 @@ def replace_parameters(source_filename, command_label, combined_sequencing_run_n
 # The Broad Cromwell workflow tool runs the analysis
 def start_cromwell(date_string, run_name, command_label, hold=False):
 	host = settings.COMMAND_HOST
-	hold_option = '' if hold else '--hold'
+	hold_option = '--hold' if hold else ''
 	command = "sbatch {4} {0}/{1}_{2}/{1}_{2}_{3}.sh".format(settings.RUN_FILES_DIRECTORY, date_string, run_name, command_label, hold_option)
 	ssh_result = ssh_command(host, command, False, True) # stdout printing is False to preserve SLURM job number output
 	return ssh_result
