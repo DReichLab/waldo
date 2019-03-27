@@ -5,6 +5,7 @@
 # Output: 
 # 1. screening report with results remapped to library IDs and capture names
 import sys
+import re
 
 MINUS = 'minus'
 HALF = 'half'
@@ -43,7 +44,7 @@ def readSampleSheet_array(sample_sheet_contents_array):
 	samples_parameters = {}
 	
 	header_line = sample_sheet_contents_array[0]
-	headers = header_line.split('\t')
+	headers = re.split('\t|\n', header_line)
 	libraryID_index = headers.index('Sample_Name')
 	i5_index = headers.index('Index2')
 	i7_index = headers.index('Index')
@@ -65,7 +66,7 @@ def readSampleSheet_array(sample_sheet_contents_array):
 	
 	data_lines = sample_sheet_contents_array[1:]
 	for line in data_lines:
-		fields = line.split('\t')
+		fields = re.split('\t|\n', line)
 		do_not_use = fields[do_not_use_index] if do_not_use_index >= 0 else ''
 		wetlab_notes = fields[wetlab_notes_index] if wetlab_notes_index >= 0 else ''
 		key = '{}_{}_{}_{}'.format(fields[i5_index], fields[i7_index], fields[p5_barcode], fields[p7_barcode])
