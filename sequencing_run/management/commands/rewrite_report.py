@@ -8,12 +8,12 @@ class Command(BaseCommand):
 	help = 'rewrite report using a sample sheet input'
 	
 	def add_arguments(self, parser):
-		parser.add_argument('--report', nargs=1)
-		parser.add_argument('--sample_sheet', nargs=1)
+		parser.add_argument('--report', required=True)
+		parser.add_argument('--sample_sheet', required=True)
 		
 	def handle(self, *args, **options):
-		report_filename = options['report'][0]
-		sample_sheet_filename = options['sample_sheet'][0]
+		report_filename = options['report']
+		sample_sheet_filename = options['sample_sheet']
 		
 		samples_parameters = readSampleSheet(sample_sheet_filename)
 		sampleLines = relabelSampleLines(report_filename, samples_parameters)
