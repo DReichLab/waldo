@@ -63,7 +63,6 @@ class SequencingAnalysisRun(models.Model):
 	slurm_job_number = models.IntegerField(null=True)
 	top_samples_to_demultiplex = models.IntegerField()
 	# new data to analyze
-	triggering_flowcell = models.ForeignKey(Flowcell, on_delete=models.SET_NULL, null=True, related_name='triggered_analysis')
 	triggering_flowcells = models.ManyToManyField(Flowcell, related_name='input_flowcells')
 	# old data to combine with new data
 	prior_flowcells_for_analysis = models.ManyToManyField(Flowcell)
@@ -118,7 +117,6 @@ class PositiveControlLibrary(Library):
 
 # a demultiplexed, aligned bam with no associated sample/library/extract information
 class DemultiplexedSequencing(models.Model):
-	flowcell = models.ForeignKey(Flowcell, on_delete=models.CASCADE, related_name='single_flowcell')
 	flowcells = models.ManyToManyField(Flowcell, related_name='source_flowcells')
 	i5_index = models.CharField(max_length=10)
 	i7_index = models.CharField(max_length=10)
@@ -127,9 +125,6 @@ class DemultiplexedSequencing(models.Model):
 	reference = models.CharField(max_length=30)
 	path = models.CharField(max_length=300)
 	library = models.ManyToManyField(ReleasedLibrary) # this needs to be many-to-many to support versions
-	
-	class Meta:
-		unique_together = (("flowcell", "p5_barcode", "p7_barcode", "i5_index", "i7_index", "reference"),)
 	
 
 
