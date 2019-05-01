@@ -18,6 +18,9 @@ class SequencingRunID(models.Model):
 	def __str__(self):
 		return self.name
 
+# Largest unit of flowcell with sample sheet
+# This may be the whole flowcell with all lanes for NextSeq
+# Or a single lane for X10 or NovaSeq
 class Flowcell(models.Model):
 	flowcell_text_id = models.CharField("flowcell", max_length=20, unique=True)
 	sequencing_date = models.DateField()
@@ -59,7 +62,10 @@ class SequencingAnalysisRun(models.Model):
 	sequencing_date = models.DateField()
 	slurm_job_number = models.IntegerField(null=True)
 	top_samples_to_demultiplex = models.IntegerField()
+	# new data to analyze
 	triggering_flowcell = models.ForeignKey(Flowcell, on_delete=models.SET_NULL, null=True, related_name='triggered_analysis')
+	triggering_flowcells = models.ManyToManyField(Flowcell, related_name='input_flowcells')
+	# old data to combine with new data
 	prior_flowcells_for_analysis = models.ManyToManyField(Flowcell)
 	
 # through model for labeling SequencingAnalysisRun with multiple SequencingRunID names and sorting
@@ -112,7 +118,8 @@ class PositiveControlLibrary(Library):
 
 # a demultiplexed, aligned bam with no associated sample/library/extract information
 class DemultiplexedSequencing(models.Model):
-	flowcell = models.ForeignKey(Flowcell, on_delete=models.CASCADE)
+	flowcell = models.ForeignKey(Flowcell, on_delete=models.CASCADE, related_name='single_flowcell')
+	flowcells = models.ManyToManyField(Flowcell, related_name='source_flowcells')
 	i5_index = models.CharField(max_length=10)
 	i7_index = models.CharField(max_length=10)
 	p5_barcode = models.CharField(max_length=50, blank=True)
