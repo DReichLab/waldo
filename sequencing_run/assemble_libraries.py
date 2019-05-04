@@ -31,7 +31,7 @@ def flowcells_for_names(sequencing_run_names):
 # returns dictionaries of DemultiplexedSequencing objects
 def generate_bam_lists(flowcells_text_ids):
 	# query bam files produced from the argument flowcells
-	q_list = [Q( ('flowcell__flowcell_text_id__exact', flowcells_text_id) ) for flowcells_text_id in flowcells_text_ids]
+	q_list = [Q( ('flowcells__flowcell_text_id__exact', flowcells_text_id) ) for flowcells_text_id in flowcells_text_ids]
 	# query for any bam sequenced from one of the argument flowcells
 	sublibraries = DemultiplexedSequencing.objects.filter(functools.reduce(operator.or_, q_list) )
 	
@@ -191,8 +191,9 @@ def generate_bam_list_with_sample_data(bams_by_index_barcode_key, sequencing_run
 				
 			library_output_fields = [key, library_id, individual_id, label, experiment, udg, reference, version, wetlab_notes]
 			
+			# each bam is a DemultiplexedSequencing object
 			for bam in bam_list:
-				bam_date_string = bam.flowcell.sequencing_date.strftime("%Y%m%d")
+				bam_date_string = bam.flowcells.order_by('sequencing_date').last().sequencing_date.strftime("%Y%m%d") # use most recent date
 				#print(bam_date_string)
 				#print(bam.path)
 				library_output_fields.append(bam.path)
