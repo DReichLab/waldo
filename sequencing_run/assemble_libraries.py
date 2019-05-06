@@ -33,7 +33,7 @@ def generate_bam_lists(flowcells_text_ids):
 	# query bam files produced from the argument flowcells
 	q_list = [Q( ('flowcells__flowcell_text_id__exact', flowcells_text_id) ) for flowcells_text_id in flowcells_text_ids]
 	# query for any bam sequenced from one of the argument flowcells
-	sublibraries = DemultiplexedSequencing.objects.filter(functools.reduce(operator.or_, q_list) )
+	sublibraries = DemultiplexedSequencing.objects.filter(functools.reduce(operator.or_, q_list) ).distinct()
 	
 	# construct maps indexed by index-barcode keys to assemble lists of bams to merge
 	nuclear_bams_by_index_barcode_key = {}
