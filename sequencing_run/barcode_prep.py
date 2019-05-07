@@ -16,17 +16,19 @@ def barcodes_set(sequencing_date_string, combined_sequencing_run_name, sequencin
 
 # i5 indices from sample sheet plus standard Reich Lab i5 indices (1-48) and the shotgun indices (49-53)
 # eliminate '..' entries by requiring length > 3
+# new_p5_index is 8 base-pair single stranded indices
 def i5_set(sequencing_date_string, combined_sequencing_run_name, sequencing_run_names):
 	where_clauses = " OR ".join(['sequencing_id="{}"'.format(name) for name in sequencing_run_names])
-	queryForBarcodes = 'SELECT UPPER(p5_index) FROM sequenced_library WHERE ({}) AND length(p5_index) > 3 UNION SELECT UPPER(sequence) FROM p5_index WHERE p5_index_key BETWEEN 1 AND 53;'.format(where_clauses)
+	queryForBarcodes = 'SELECT UPPER(p5_index) FROM sequenced_library WHERE ({}) AND length(p5_index) > 3 UNION SELECT UPPER(sequence) FROM p5_index WHERE p5_index_key BETWEEN 1 AND 53 UNION SELECT UPPER(p5_index_seq) FROM new_p5_index;'.format(where_clauses)
 	
 	return _barcodes_set(sequencing_date_string, combined_sequencing_run_name, queryForBarcodes, 'i5')
 
 # i7 indices from sample sheet plus standard Reich Lab i7 indices (1-96)
 # eliminate '..' entries by requiring length > 3
+# new_p7_index is 8 base-pair single stranded indices
 def i7_set(sequencing_date_string, combined_sequencing_run_name, sequencing_run_names):
 	where_clauses = " OR ".join(['sequencing_id="{}"'.format(name) for name in sequencing_run_names])
-	queryForBarcodes = 'SELECT UPPER(p7_index) FROM sequenced_library WHERE ({}) AND length(p7_index) > 3 UNION SELECT UPPER(sequence) FROM p7_index WHERE p7_index_key BETWEEN 1 AND 96;'.format(where_clauses)
+	queryForBarcodes = 'SELECT UPPER(p7_index) FROM sequenced_library WHERE ({}) AND length(p7_index) > 3 UNION SELECT UPPER(sequence) FROM p7_index WHERE p7_index_key BETWEEN 1 AND 96 UNION SELECT UPPER(p7_index_seq) FROM new_p7_index;'.format(where_clauses)
 	
 	return _barcodes_set(sequencing_date_string, combined_sequencing_run_name, queryForBarcodes, 'i7')
 
