@@ -9,12 +9,12 @@ class Command(BaseCommand):
 	help = 'Create index barcode key file mapping to library ids from database for specified sequencing run'
 	
 	def add_arguments(self, parser):
-		parser.add_argument('--date_string', nargs=1)
-		parser.add_argument('--name', nargs=1)
+		parser.add_argument('--date_string', required=True)
+		parser.add_argument('--name', required=True)
 		
 	def handle(self, *args, **options):
-		date_string = options['date_string'][0]
-		name = options['name'][0]
+		date_string = options['date_string']
+		name = options['name']
 		date = datetime.datetime.strptime(date_string, "%Y%m%d").date()
 		
 		analysis_run = SequencingAnalysisRun.objects.get(name=name, sequencing_date=date)
