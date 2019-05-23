@@ -18,7 +18,7 @@ class Command(BaseCommand):
 		parser.add_argument('--name')
 		parser.add_argument('--analysis_run', type=int)
 		parser.add_argument('--start_analysis', action='store_true', help='start analysis after loading bams')
-		parser.add_argument('--flowcell_by_lane', action='store_true', help='start analysis after loading bams')
+		parser.add_argument('--flowcell_by_lane', action='store_true', help='set to split flowcells into lanes. Used for Broad HiSeq or NovaSeq')
 		
 	def handle(self, *args, **options):
 		date_string = options['date_string']
