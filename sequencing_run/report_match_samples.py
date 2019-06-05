@@ -65,6 +65,7 @@ def readSampleSheet_array(sample_sheet_contents_array):
 		wetlab_notes_index = -1
 	
 	data_lines = sample_sheet_contents_array[1:]
+	duplicates = [] # if there is a problem with duplicate entries, find all of them before failing
 	for line in data_lines:
 		fields = re.split('\t|\n', line)
 		do_not_use = fields[do_not_use_index] if do_not_use_index >= 0 else ''
@@ -73,7 +74,13 @@ def readSampleSheet_array(sample_sheet_contents_array):
 		udg = fields[udg_index].lower()
 		if udg not in ALLOWED_UDG_VALUES:
 			raise ValueError('Unhandled UDG value {}'.format(udg))
+		if key in samples_parameters: # record duplicate keys and associated library ids for error reporting
+			duplicates.append((key, fields[libraryID_index]))
 		samples_parameters[key] = SampleInfo(fields[libraryID_index], fields[plateID_index], fields[experiment_index], udg, do_not_use, wetlab_notes)
+		
+	if len(duplicates) > 0: # we cannot tell samples with duplicate keys apart, fail with duplicates list
+		duplicates_strings = ['{}\t{}'.format(x[0], x[1]) for x in duplicates]
+		raise ValueError('DUPLICATE KEYS: {}'.format('\n'.join(duplicates_strings)))
 		
 	return samples_parameters
 
