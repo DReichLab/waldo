@@ -13,7 +13,7 @@ DEMULTIPLEX_COMMAND_LABEL = 'demultiplex'
 
 DEBUG = False
 
-def start_analysis(source_illumina_dir, combined_sequencing_run_name, sequencing_date, number_top_samples_to_demultiplex, sequencing_run_names, copy_illumina=True, hold=False):
+def start_analysis(source_illumina_dir, combined_sequencing_run_name, sequencing_date, number_top_samples_to_demultiplex, sequencing_run_names, copy_illumina=True, hold=False, allow_new_sequencing_run_id=False):
 	date_string = sequencing_date.strftime('%Y%m%d')
 	destination_directory = date_string + '_' + combined_sequencing_run_name
 	
@@ -22,14 +22,14 @@ def start_analysis(source_illumina_dir, combined_sequencing_run_name, sequencing
 	scratch_illumina_parent_path = settings.SCRATCH_PARENT_DIRECTORY + "/" + destination_directory
 	scratch_illumina_directory_path = scratch_illumina_parent_path + "/" + source_illumina_dir
 	
-	run_entry = SequencingAnalysisRun(
+	run_entry = SequencingAnalysisRun.objects.get_or_create(
 		name = combined_sequencing_run_name,
-		start = timezone.now(),
 		processing_state = SequencingAnalysisRun.STARTED,
 		sequencing_run = SequencingRun.objects.get(illumina_directory=source_illumina_dir),
 		sequencing_date = sequencing_date,
-		top_samples_to_demultiplex = number_top_samples_to_demultiplex
 	)
+	run_entry.start = timezone.now()
+	run_entry.top_samples_to_demultiplex = number_top_samples_to_demultiplex
 	run_entry.save()
 		
 	# copy illumina directory
@@ -86,7 +86,10 @@ def start_analysis(source_illumina_dir, combined_sequencing_run_name, sequencing
 	print('analysis sequencing_run_names {}'.format(sequencing_run_names))
 	interface_name_count = 0
 	for sequencing_run_name in sequencing_run_names:
-		name_object = SequencingRunID.objects.get(name=sequencing_run_name)
+		if allow_new_sequencing_run_id:
+			name_object = SequencingRunID.objects.get_or_create(name=sequencing_run_name)
+		else:
+			name_object = SequencingRunID.objects.get(name=sequencing_run_name)
 		OrderedSequencingRunID.objects.get_or_create(sequencing_analysis_run=run_entry, name=name_object, interface_order=interface_name_count)
 		interface_name_count += 1
 	
