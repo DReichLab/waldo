@@ -11,8 +11,8 @@ class Command(BaseCommand):
 	help = 'Approve a set of libraries for release'
 	
 	def add_arguments(self, parser):
-		parser.add_argument('--name')
-		parser.add_argument('--sample_sheet')
+		parser.add_argument('--name', required=True)
+		parser.add_argument('--sample_sheet', required=True)
 		
 	def handle(self, *args, **options):
 		name = options['name']
