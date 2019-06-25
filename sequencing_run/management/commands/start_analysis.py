@@ -20,6 +20,7 @@ class Command(BaseCommand):
 		parser.add_argument('--broad', action='store_true')
 		parser.add_argument('--i5')
 		parser.add_argument('--i7')
+		parser.add_argument('--library_id', nargs='*')
 		
 	def handle(self, *args, **options):
 		date_string = options['date_string']
@@ -41,8 +42,9 @@ class Command(BaseCommand):
 			additional_replacements['I5_INDEX'] = options['i5']
 		if options['i7']:
 			additional_replacements['I7_INDEX'] = options['i7']
+		library_ids = options['library_id']
 		
 		if create_illumina_entry:
 			seq_run, created = SequencingRun.objects.get_or_create(illumina_directory=source_illumina_dir)
 		
-		start_analysis(source_illumina_dir, combined_sequencing_run_name, sequencing_date, number_top_samples_to_demultiplex, sequencing_run_names, copy, hold, allow_new_sequencing_run_id, is_broad_shotgun, additional_replacements)
+		start_analysis(source_illumina_dir, combined_sequencing_run_name, sequencing_date, number_top_samples_to_demultiplex, sequencing_run_names, copy, hold, allow_new_sequencing_run_id, is_broad_shotgun, library_ids, additional_replacements)

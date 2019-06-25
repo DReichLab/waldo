@@ -14,7 +14,7 @@ DEMULTIPLEX_COMMAND_LABEL = 'demultiplex'
 DEBUG = False
 
 # additional_replacements is for string replacements in json and sh template files. These are used for i5 and i7 index labels for Broad shotgun sequencing. 
-def start_analysis(source_illumina_dir, combined_sequencing_run_name, sequencing_date, number_top_samples_to_demultiplex, sequencing_run_names, copy_illumina=True, hold=False, allow_new_sequencing_run_id=False, is_broad_shotgun=False, additional_replacements={}):
+def start_analysis(source_illumina_dir, combined_sequencing_run_name, sequencing_date, number_top_samples_to_demultiplex, sequencing_run_names, copy_illumina=True, hold=False, allow_new_sequencing_run_id=False, is_broad_shotgun=False, library_ids=[], additional_replacements={}):
 	date_string = sequencing_date.strftime('%Y%m%d')
 	destination_directory = date_string + '_' + combined_sequencing_run_name
 	
@@ -47,7 +47,7 @@ def start_analysis(source_illumina_dir, combined_sequencing_run_name, sequencing
 
 		print('building input files')
 		# index-barcode key file
-		index_barcode_keys_used(date_string, combined_sequencing_run_name, sequencing_run_names)
+		index_barcode_keys_used(date_string, combined_sequencing_run_name, sequencing_run_names, library_ids)
 		# barcode and index files for run
 		barcodes_set(date_string, combined_sequencing_run_name, sequencing_run_names)
 		i5_set(date_string, combined_sequencing_run_name, sequencing_run_names)
@@ -233,7 +233,7 @@ def get_demultiplex_report(sequencing_date_string, combined_sequencing_run_name)
 # This is designed for Broad shotgun sequencing, where the sample sheet has multiple libraries, but a lane is processed separately with only one library
 def index_barcode_keys_used(sequencing_date_string, combined_sequencing_run_name, sequencing_run_names, library_ids=[]):
 	where_clauses = " OR ".join(['sequencing_id="{}"'.format(name) for name in sequencing_run_names])
-	if len(library_id) > 0:
+	if len(library_ids) > 0:
 		library_ids_as_strings = ['"{}"'.format(library_id) for library_id in library_ids]
 		where_clauses = '({}) AND library_id IN ({})'.format(where_clauses, ','.join(library_ids_as_strings) )
 
