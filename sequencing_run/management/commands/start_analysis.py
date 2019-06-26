@@ -4,6 +4,7 @@ from django.utils import timezone
 import datetime
 from sequencing_run.analysis import start_analysis
 from sequencing_run.models import SequencingRun
+from sequencing_run.ssh_command import ssh_command
 
 class Command(BaseCommand):
 	help = 'start an analysis from the command line, optionally skipping copy of the illumina directory (assumed manual external copy)'
@@ -36,6 +37,10 @@ class Command(BaseCommand):
 		combined_sequencing_run_name = '_'.join(sequencing_run_names)
 		
 		is_broad_shotgun = options['broad']
+		if is_broad_shotgun: # link demultiplex directory
+			directory = '{}_{}'.format(date_string, combined_sequencing_run_name)
+			command = 'ln -s {0}/{2} {1}/{2}'.format(settings.DEMULTIPLEXED_BROAD_SHOTGUN_PARENT_DIRECTORY, settings.DEMULTIPLEXED_PARENT_DIRECTORY, directory)
+			ssh_result = ssh_command(settings.COMMAND_HOST, command, True, True)
 		
 		additional_replacements = {}
 		if options['i5']:

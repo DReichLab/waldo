@@ -118,5 +118,6 @@ CONTROL_ID = 'Contl.Capture'
 CONTROL_PCR_ID = 'Contl.PCR'
 
 DEMULTIPLEXED_PARENT_DIRECTORY = "/n/groups/reich/matt/pipeline/demultiplex"
+DEMULTIPLEXED_BROAD_SHOTGUN_PARENT_DIRECTORY = '/n/data1/hms/genetics/reich/1000Genomes/lh3/hominid/demultiplex'
 NUCLEAR_SUBDIRECTORY = "nuclear_aligned_filtered"
 MT_SUBDIRECTORY = "rsrs_aligned_filtered"
