@@ -19,8 +19,8 @@ class Command(BaseCommand):
 		parser.add_argument('--hold', action='store_true')
 		parser.add_argument('--allow_new_sequencing_run_id', action='store_true')
 		parser.add_argument('--broad', action='store_true')
-		parser.add_argument('--i5')
-		parser.add_argument('--i7')
+		parser.add_argument('--i5', action='store_true')
+		parser.add_argument('--i7', action='store_true')
 		parser.add_argument('--library_id', nargs='*')
 		
 	def handle(self, *args, **options):
