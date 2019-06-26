@@ -14,7 +14,7 @@ DEMULTIPLEX_COMMAND_LABEL = 'demultiplex'
 DEBUG = False
 
 # additional_replacements is for string replacements in json and sh template files. These are used for i5 and i7 index labels for Broad shotgun sequencing. 
-def start_analysis(source_illumina_dir, combined_sequencing_run_name, sequencing_date, number_top_samples_to_demultiplex, sequencing_run_names, copy_illumina=True, hold=False, allow_new_sequencing_run_id=False, is_broad_shotgun=False, library_ids=[], additional_replacements={}):
+def start_analysis(source_illumina_dir, combined_sequencing_run_name, sequencing_date, number_top_samples_to_demultiplex, sequencing_run_names, copy_illumina=True, hold=False, allow_new_sequencing_run_id=False, is_broad_shotgun=False, library_ids=[], additional_replacements={}, query_names = None):
 	date_string = sequencing_date.strftime('%Y%m%d')
 	destination_directory = date_string + '_' + combined_sequencing_run_name
 	
@@ -46,12 +46,13 @@ def start_analysis(source_illumina_dir, combined_sequencing_run_name, sequencing
 		make_run_directory(date_string, combined_sequencing_run_name)
 
 		print('building input files')
+		names_for_queries = sequencing_run_names if not is_broad_shotgun else query_names
 		# index-barcode key file
-		index_barcode_keys_used(date_string, combined_sequencing_run_name, sequencing_run_names, library_ids)
+		index_barcode_keys_used(date_string, combined_sequencing_run_name, names_for_queries, library_ids)
 		# barcode and index files for run
-		barcodes_set(date_string, combined_sequencing_run_name, sequencing_run_names)
-		i5_set(date_string, combined_sequencing_run_name, sequencing_run_names)
-		i7_set(date_string, combined_sequencing_run_name, sequencing_run_names)
+		barcodes_set(date_string, combined_sequencing_run_name, names_for_queries)
+		i5_set(date_string, combined_sequencing_run_name, names_for_queries)
+		i7_set(date_string, combined_sequencing_run_name, names_for_queries)
 	
 		print('building input files with replacement')
 		# generate json input file

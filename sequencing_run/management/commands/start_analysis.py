@@ -2,7 +2,7 @@ from django.core.management.base import BaseCommand, CommandError
 from django.conf import settings
 from django.utils import timezone
 import datetime
-from sequencing_run.analysis import start_analysis
+from sequencing_run.analysis import start_analysis, single_indices_only
 from sequencing_run.models import SequencingRun
 from sequencing_run.ssh_command import ssh_command
 
@@ -22,6 +22,7 @@ class Command(BaseCommand):
 		parser.add_argument('--i5', action='store_true')
 		parser.add_argument('--i7', action='store_true')
 		parser.add_argument('--library_id', nargs='*')
+		parser.add_argument('--query_name', help='This is the sequencing_id under which the indices are stored in sequenced_library')
 		
 	def handle(self, *args, **options):
 		date_string = options['date_string']
@@ -45,7 +46,8 @@ class Command(BaseCommand):
 		library_ids = options['library_id']
 		# read I5 and I7 indices from Zhao's MySQL database
 		if len(library_ids) == 1:
-			i5, i7 = single_indices_only(name, library_ids[0]) 
+			query_name = [options['query_name']]
+			i5, i7 = single_indices_only(query_name, library_ids[0]) 
 		
 		additional_replacements = {}
 		if options['i5']:
@@ -56,4 +58,4 @@ class Command(BaseCommand):
 		if create_illumina_entry:
 			seq_run, created = SequencingRun.objects.get_or_create(illumina_directory=source_illumina_dir)
 		
-		start_analysis(source_illumina_dir, combined_sequencing_run_name, sequencing_date, number_top_samples_to_demultiplex, sequencing_run_names, copy, hold, allow_new_sequencing_run_id, is_broad_shotgun, library_ids, additional_replacements)
+		start_analysis(source_illumina_dir, combined_sequencing_run_name, sequencing_date, number_top_samples_to_demultiplex, sequencing_run_names, copy, hold, allow_new_sequencing_run_id, is_broad_shotgun, library_ids, additional_replacements, query_name)
