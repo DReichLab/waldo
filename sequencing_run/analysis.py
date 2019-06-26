@@ -242,3 +242,17 @@ def index_barcode_keys_used(sequencing_date_string, combined_sequencing_run_name
 	host = settings.COMMAND_HOST
 	command = "mysql devadna -N -e '{0}' > {1}/{2}_{3}/{2}_{3}.index_barcode_keys".format(queryForKeys, settings.RUN_FILES_DIRECTORY, sequencing_date_string, combined_sequencing_run_name)
 	ssh_command(host, command, True, True)
+
+# Shotgun data may arrive with no indices. Find the i5 and i7 indices for a library. 
+# One use is the replacement these indices in the JSON parameter file
+def single_indices_only(sequencing_run_names, library_id):
+	where_clauses = "({}) AND {}".format(" OR ".join(['sequencing_id="{}"'.format(name) for name in sequencing_run_names]), 'library_id="{}"'.format(library_id))
+	queryForIndices = 'SELECT UPPER(p5_index), UPPER(p7_index) FROM sequenced_library WHERE {};'.format(where_clauses)
+	host = settings.COMMAND_HOST
+	command = "mysql devadna -N -e '{0}'".format(queryForIndices)
+	#print(command)
+	result = ssh_command(host, command)
+	result_string = result.stdout.read()
+	#print(result_string)
+	i5, i7 = result_string.split()
+	return i5, i7

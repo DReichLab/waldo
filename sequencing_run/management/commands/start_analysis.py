@@ -42,12 +42,16 @@ class Command(BaseCommand):
 			command = 'ln -s {0}/{2} {1}/{2}'.format(settings.DEMULTIPLEXED_BROAD_SHOTGUN_PARENT_DIRECTORY, settings.DEMULTIPLEXED_PARENT_DIRECTORY, directory)
 			ssh_result = ssh_command(settings.COMMAND_HOST, command, True, True)
 		
+		library_ids = options['library_id']
+		# read I5 and I7 indices from Zhao's MySQL database
+		if len(library_ids) == 1:
+			i5, i7 = single_indices_only(name, library_ids[0]) 
+		
 		additional_replacements = {}
 		if options['i5']:
-			additional_replacements['I5_INDEX'] = options['i5']
+			additional_replacements['I5_INDEX'] = i5
 		if options['i7']:
-			additional_replacements['I7_INDEX'] = options['i7']
-		library_ids = options['library_id']
+			additional_replacements['I7_INDEX'] = i7
 		
 		if create_illumina_entry:
 			seq_run, created = SequencingRun.objects.get_or_create(illumina_directory=source_illumina_dir)
