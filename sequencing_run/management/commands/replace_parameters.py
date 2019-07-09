@@ -9,10 +9,10 @@ class Command(BaseCommand):
 	help = 'Fill in template parameters to produce WDL json or shell script'
 	
 	def add_arguments(self, parser):
-		parser.add_argument('--date_string')
-		parser.add_argument('--name')
-		parser.add_argument('--source_filename')
-		parser.add_argument('--command_label')
+		parser.add_argument('--date_string', required=True)
+		parser.add_argument('--name', required=True)
+		parser.add_argument('--source_filename', required=True)
+		parser.add_argument('--command_label', required=True)
 		
 	def handle(self, *args, **options):
 		date_string = options['date_string']

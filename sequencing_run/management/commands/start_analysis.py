@@ -61,4 +61,4 @@ class Command(BaseCommand):
 		if create_illumina_entry:
 			seq_run, created = SequencingRun.objects.get_or_create(illumina_directory=source_illumina_dir)
 		
-		start_analysis(source_illumina_dir, combined_sequencing_run_name, sequencing_date, number_top_samples_to_demultiplex, sequencing_run_names, copy, hold, allow_new_sequencing_run_id, is_broad, library_ids, additional_replacements, query_name)
+		start_analysis(source_illumina_dir, combined_sequencing_run_name, sequencing_date, number_top_samples_to_demultiplex, sequencing_run_names, copy, hold, allow_new_sequencing_run_id, is_broad, is_broad_shotgun, library_ids, additional_replacements, query_name)

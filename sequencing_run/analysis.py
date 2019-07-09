@@ -14,7 +14,7 @@ DEMULTIPLEX_COMMAND_LABEL = 'demultiplex'
 DEBUG = False
 
 # additional_replacements is for string replacements in json and sh template files. These are used for i5 and i7 index labels for Broad shotgun sequencing. 
-def start_analysis(source_illumina_dir, combined_sequencing_run_name, sequencing_date, number_top_samples_to_demultiplex, sequencing_run_names, copy_illumina=True, hold=False, allow_new_sequencing_run_id=False, is_broad=False, library_ids=[], additional_replacements={}, query_names = None):
+def start_analysis(source_illumina_dir, combined_sequencing_run_name, sequencing_date, number_top_samples_to_demultiplex, sequencing_run_names, copy_illumina=True, hold=False, allow_new_sequencing_run_id=False, is_broad=False, is_broad_shotgun=False, library_ids=[], additional_replacements={}, query_names = None):
 	date_string = sequencing_date.strftime('%Y%m%d')
 	destination_directory = date_string + '_' + combined_sequencing_run_name
 	
@@ -58,7 +58,7 @@ def start_analysis(source_illumina_dir, combined_sequencing_run_name, sequencing
 		# generate json input file
 		run_entry.processing_state = SequencingAnalysisRun.PREPARING_JSON_INPUTS
 		run_entry.save()
-		json_source_file = 'demultiplex_template.json' if not is_broad else 'demultiplex_broad_shotgun_template.json'
+		json_source_file = 'demultiplex_template.json' if not is_broad_shotgun else 'demultiplex_broad_shotgun_template.json'
 		replace_parameters(json_source_file, DEMULTIPLEX_COMMAND_LABEL, combined_sequencing_run_name, date_string, scratch_illumina_directory_path, run_entry.id, number_top_samples_to_demultiplex, additional_replacements)
 		# generate SLURM script
 		run_entry.processing_state = SequencingAnalysisRun.PREPARING_RUN_SCRIPT
