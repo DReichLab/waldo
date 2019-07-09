@@ -14,7 +14,7 @@ DEMULTIPLEX_COMMAND_LABEL = 'demultiplex'
 DEBUG = False
 
 # additional_replacements is for string replacements in json and sh template files. These are used for i5 and i7 index labels for Broad shotgun sequencing. 
-def start_analysis(source_illumina_dir, combined_sequencing_run_name, sequencing_date, number_top_samples_to_demultiplex, sequencing_run_names, copy_illumina=True, hold=False, allow_new_sequencing_run_id=False, is_broad_shotgun=False, library_ids=[], additional_replacements={}, query_names = None):
+def start_analysis(source_illumina_dir, combined_sequencing_run_name, sequencing_date, number_top_samples_to_demultiplex, sequencing_run_names, copy_illumina=True, hold=False, allow_new_sequencing_run_id=False, is_broad=False, library_ids=[], additional_replacements={}, query_names = None):
 	date_string = sequencing_date.strftime('%Y%m%d')
 	destination_directory = date_string + '_' + combined_sequencing_run_name
 	
@@ -46,7 +46,7 @@ def start_analysis(source_illumina_dir, combined_sequencing_run_name, sequencing
 		make_run_directory(date_string, combined_sequencing_run_name)
 
 		print('building input files')
-		names_for_queries = sequencing_run_names if not is_broad_shotgun else query_names
+		names_for_queries = sequencing_run_names if query_names is None else query_names
 		# index-barcode key file
 		index_barcode_keys_used(date_string, combined_sequencing_run_name, names_for_queries, library_ids)
 		# barcode and index files for run
@@ -58,12 +58,12 @@ def start_analysis(source_illumina_dir, combined_sequencing_run_name, sequencing
 		# generate json input file
 		run_entry.processing_state = SequencingAnalysisRun.PREPARING_JSON_INPUTS
 		run_entry.save()
-		json_source_file = 'demultiplex_template.json' if not is_broad_shotgun else 'demultiplex_broad_shotgun_template.json'
+		json_source_file = 'demultiplex_template.json' if not is_broad else 'demultiplex_broad_shotgun_template.json'
 		replace_parameters(json_source_file, DEMULTIPLEX_COMMAND_LABEL, combined_sequencing_run_name, date_string, scratch_illumina_directory_path, run_entry.id, number_top_samples_to_demultiplex, additional_replacements)
 		# generate SLURM script
 		run_entry.processing_state = SequencingAnalysisRun.PREPARING_RUN_SCRIPT
 		run_entry.save()
-		sh_source_file = 'demultiplex_template.sh' if not is_broad_shotgun else 'demultiplex_broad_template.sh'
+		sh_source_file = 'demultiplex_template.sh' if not is_broad else 'demultiplex_broad_template.sh'
 		replace_parameters(sh_source_file, DEMULTIPLEX_COMMAND_LABEL, combined_sequencing_run_name, date_string, scratch_illumina_directory_path, run_entry.id, number_top_samples_to_demultiplex, additional_replacements)
 		# start demultiplexing job
 		run_entry.processing_state = SequencingAnalysisRun.DEMULTIPLEXING
@@ -234,7 +234,7 @@ def get_demultiplex_report(sequencing_date_string, combined_sequencing_run_name)
 # This is designed for Broad shotgun sequencing, where the sample sheet has multiple libraries, but a lane is processed separately with only one library
 def index_barcode_keys_used(sequencing_date_string, combined_sequencing_run_name, sequencing_run_names, library_ids=[]):
 	where_clauses = " OR ".join(['sequencing_id="{}"'.format(name) for name in sequencing_run_names])
-	if len(library_ids) > 0:
+	if library_ids is not None and len(library_ids) > 0:
 		library_ids_as_strings = ['"{}"'.format(library_id) for library_id in library_ids]
 		where_clauses = '({}) AND library_id IN ({})'.format(where_clauses, ','.join(library_ids_as_strings) )
 

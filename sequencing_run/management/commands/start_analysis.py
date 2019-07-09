@@ -19,6 +19,7 @@ class Command(BaseCommand):
 		parser.add_argument('--hold', action='store_true')
 		parser.add_argument('--allow_new_sequencing_run_id', action='store_true')
 		parser.add_argument('--broad', action='store_true')
+		parser.add_argument('--broad_shotgun', action='store_true')
 		parser.add_argument('--i5', action='store_true')
 		parser.add_argument('--i7', action='store_true')
 		parser.add_argument('--library_id', nargs='*')
@@ -37,7 +38,8 @@ class Command(BaseCommand):
 		
 		combined_sequencing_run_name = '_'.join(sequencing_run_names)
 		
-		is_broad_shotgun = options['broad']
+		is_broad_shotgun = options['broad_shotgun']
+		is_broad = options['broad'] or options['broad_shotgun']
 		if is_broad_shotgun: # link demultiplex directory
 			directory = '{}_{}'.format(date_string, combined_sequencing_run_name)
 			command = 'ln -s {0}/{2} {1}/{2}'.format(settings.DEMULTIPLEXED_BROAD_SHOTGUN_PARENT_DIRECTORY, settings.DEMULTIPLEXED_PARENT_DIRECTORY, directory)
@@ -45,7 +47,8 @@ class Command(BaseCommand):
 		
 		library_ids = options['library_id']
 		# read I5 and I7 indices from Zhao's MySQL database
-		if len(library_ids) == 1:
+		query_name = None
+		if library_ids is not None and len(library_ids) == 1:
 			query_name = [options['query_name']]
 			i5, i7 = single_indices_only(query_name, library_ids[0]) 
 		
@@ -58,4 +61,4 @@ class Command(BaseCommand):
 		if create_illumina_entry:
 			seq_run, created = SequencingRun.objects.get_or_create(illumina_directory=source_illumina_dir)
 		
-		start_analysis(source_illumina_dir, combined_sequencing_run_name, sequencing_date, number_top_samples_to_demultiplex, sequencing_run_names, copy, hold, allow_new_sequencing_run_id, is_broad_shotgun, library_ids, additional_replacements, query_name)
+		start_analysis(source_illumina_dir, combined_sequencing_run_name, sequencing_date, number_top_samples_to_demultiplex, sequencing_run_names, copy, hold, allow_new_sequencing_run_id, is_broad, library_ids, additional_replacements, query_name)
