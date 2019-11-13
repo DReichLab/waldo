@@ -35,7 +35,8 @@ INSTALLED_APPS = (
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'sequencing_run',
+    'samples',
+    'sequencing_run'
 )
 
 MIDDLEWARE_CLASSES = (

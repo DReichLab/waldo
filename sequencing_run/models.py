@@ -1,5 +1,7 @@
 from django.db import models
 
+from samples.models import Timestamped
+
 # Create your models here.
 
 # This should really be called an Illumina directory
@@ -120,14 +122,14 @@ class DemultiplexedSequencing(models.Model):
 	flowcells = models.ManyToManyField(Flowcell, related_name='source_flowcells')
 	i5_index = models.CharField(max_length=10)
 	i7_index = models.CharField(max_length=10)
-	p5_barcode = models.CharField(max_length=50, blank=True)
-	p7_barcode = models.CharField(max_length=50, blank=True)
+	p5_barcode = models.CharField(max_length=10, blank=True)
+	p7_barcode = models.CharField(max_length=10, blank=True)
 	reference = models.CharField(max_length=30)
 	path = models.CharField(max_length=300)
 	library = models.ManyToManyField(ReleasedLibrary) # this needs to be many-to-many to support versions
 	
 
-class MTAnalysis(models.Model):
+class MTAnalysis(Timestamped):
 	demultiplexing_sequences = models.BigIntegerField()
 	sequences_passing_filters = models.BigIntegerField()
 	sequences_aligning = models.BigIntegerField()
@@ -140,7 +142,7 @@ class MTAnalysis(models.Model):
 	haplogroup = models.CharField(max_length=25)
 	haplogroup_confidence = models.FloatField()
 	
-class SpikeAnalysis(models.Model):
+class SpikeAnalysis(Timestamped):
 	bioinfo_processing_protocol = models.CharField(max_length=50)
 	spike_track_id = models.CharField(max_length=50)
 	spike_pre_aut = models.IntegerField()
@@ -150,7 +152,7 @@ class SpikeAnalysis(models.Model):
 	spike_sex = models.CharField(max_length=10)
 	screening_outcome = models.CharField(max_length=50)
 
-class ShotgunAnalysis(models.Model):
+class ShotgunAnalysis(Timestamped):
 	bioinfo_processing_protocol = models.CharField(max_length=50)
 	track_id = models.CharField(max_length=50)
 	raw_sequences = models.BigIntegerField()
@@ -161,7 +163,7 @@ class ShotgunAnalysis(models.Model):
 	damage_rate = models.FloatField()
 	fraction_hg19_hit_mtdna = models.FloatField()
 	
-class NuclearAnalysis(models.Model):
+class NuclearAnalysis(Timestamped):
 	bioinfo_processing_protocol = models.CharField(max_length=50)
 	pulldown_logfile_location = models.CharField(max_length=300)
 	pulldown_1st_column_nickdb = models.CharField(max_length=50)
@@ -169,7 +171,7 @@ class NuclearAnalysis(models.Model):
 	pulldown_3rd_column_nickdb_bam = models.CharField(max_length=300)
 	pulldown_4th_column_nickdb_hetfa = models.CharField(max_length=500)
 	pulldown_5th_column_nickdb_readgroup_diploid_source = models.TextField()
-	seq_run_file_name = models.CharField(max_length=50) # TODO no idea what this is
+	seq_run_file_name = models.CharField(max_length=150) # TODO no idea what this is
 	track_id_report_file = models.CharField(max_length=100)
 	raw_reads_or_deindexing = models.BigIntegerField()
 	sequences_merge_pass_barcode = models.BigIntegerField()
