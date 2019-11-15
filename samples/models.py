@@ -69,7 +69,7 @@ class Return(Timestamped):
 	
 
 class Sample(Timestamped):
-	reich_lab_id = models.PositiveIntegerField(db_index=True)
+	reich_lab_id = models.PositiveIntegerField(db_index=True, unique=True, help_text=' assigned when a sample is selected from the queue by the wetlab')
 	
 	collaborator = models.ForeignKey(Collaborator, on_delete=models.PROTECT)
 	shipment = models.ForeignKey(Shipment, on_delete=models.PROTECT)
