@@ -13,9 +13,10 @@ class Timestamped(models.Model):
 		abstract = True
 
 class Shipment(Timestamped):
-	arrival_date = models.DateField()
-	number_of_samples_for_analysis = models.PositiveSmallIntegerField()
-	total_number_of_samples = models.PositiveSmallIntegerField()
+	text_id = models.CharField(max_length=30, db_index=True, unique=True)
+	arrival_date = models.DateField(null=True)
+	number_of_samples_for_analysis = models.PositiveSmallIntegerField(null=True)
+	total_number_of_samples = models.PositiveSmallIntegerField(null=True)
 	arrival_method = models.CharField(max_length=255)
 	tracking_number = models.CharField(max_length=30)
 	arrival_notes = models.TextField()
