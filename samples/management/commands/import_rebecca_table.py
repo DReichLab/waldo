@@ -3,7 +3,7 @@ from django.conf import settings
 from datetime import datetime, timedelta, timezone, date
 import pandas
 from pandas import ExcelFile
-from samples.models import Collaborator, Shipment
+from samples.models import Collaborator, Shipment, Return
 import sys
 
 from sequencing_run.assemble_libraries import flowcells_for_names, generate_bam_lists, generate_bam_list_with_sample_data, index_barcode_match
@@ -18,7 +18,8 @@ class Command(BaseCommand):
 	def handle(self, *args, **options):
 		process_row_map = {
 			'collaborator': self.collaborator,
-			'shipment': self.shipment
+			'shipment': self.shipment,
+			'return' : self.return_shipment,
 		}
 		
 		spreadsheet = options['spreadsheet']
@@ -53,13 +54,19 @@ class Command(BaseCommand):
 		
 	def pandas_timestamp_todb_date(self, pandas_timestamp):
 		try:
-			self.pandas_timestamp_todb(pandas_timestamp).date()
+			return self.pandas_timestamp_todb(pandas_timestamp).date()
 		except AttributeError:
 			return None
 	
 	def int_or_null(self, int_string):
 		try:
 			return int(int_string)
+		except ValueError:
+			return None
+	
+	def float_or_null(self, float_string):
+		try:
+			return float(float_string)
 		except ValueError:
 			return None
 	
@@ -121,3 +128,71 @@ class Command(BaseCommand):
 			modification_timestamp = self.pandas_timestamp_todb(row['ModificationTimestamp']),
 			modified_by = row['ModifiedBy']
 			)
+		
+	def return_shipment(self, row):
+		Return.objects.create(
+			id = int(row['Return_ID_pk'][1:]),
+			collaborator = Collaborator.objects.get(id=int(row['Collaborator_ID_fk'][1:])),
+			return_date = self.pandas_timestamp_todb_date(row['Return_Date']),
+			return_method = row['Return_Method'],
+			tracking_number = row['Tracking_Number'],
+			courier_delivery_date = self.pandas_timestamp_todb_date(row['Courier_Delivery_Date']),
+			recipient_delivery_confirmation = row['Recipient_Delivery_Confirmation'],
+			return_notes = row['Return_Notes'],
+
+			creation_timestamp = self.pandas_timestamp_todb(row['CreationTimestamp']),
+			created_by = row['CreatedBy'],
+			modification_timestamp = self.pandas_timestamp_todb(row['ModificationTimestamp']),
+			modified_by = row['ModifiedBy']
+		)
+
+	def sample(self, row):
+		# find foreign keys for nullable fields
+		try:
+			collaborator_foreign = Collaborator.objects.get(id=int(row['Collaborator_ID_fk'][1:]))
+		except (Collaborator.DoesNotExist, ValueError) as e:
+			collaborator_foreign = None
+		try:
+			shipment_foreign = Shipment.objects.get(text_id=row['Shipment_ID_fk'])
+		except Shipment.DoesNotExist as e:
+			shipment_foreign = None
+		try:
+			return_foreign = Return.objects.get(id=int(row['Return_ID_fk'][1:]))
+		except (Return.DoesNotExist, ValueError) as e:
+			return_foreign = None
+		# create sample object
+		Sample.objects.create(
+			id = int(row['SampleRecordID'][1:]),
+			reich_lab_id = int(row['Sample_ID_pk'][1:]),
+			queue_id = int(row['Queue_ID']),
+			collaborator = collaborator_foreign,
+			shipment = shipment_foreign,
+			return_id = return_foreign,
+			#Sample_Publications_fk
+			individual_id = row['Individual_ID'],
+			skeletal_element = row['Skeletal_Element'],
+			skeletal_code = row['Skeletal_Code'],
+			sample_date = row['Sample_Date'],
+			average_bp_date = self.float_or_null(['Average_BP_Date']),
+			date_fix_flag = row['Date_Fix_Flag'],
+			population_label = row['Population_Label'],
+			locality = row['Locality'],
+			country = row['Country'],
+			latitude = row['Latitude'],
+			longitude = row['Longitude'],
+			notes = row['Notes'],
+			notes_2 = row['Notes_2'],
+			collaborators = row['Associated_Collaborators'],
+			morphological_sex = row['Morphological_Sex'],
+			morphological_age = row['Morphological_Age'],
+			morphological_age_range = row['Morphological_Age_Range'],
+			loan_expiration_date = self.pandas_timestamp_todb_date(row['Loan_Expiration_Date']),
+			radiocarbon_dating_status = row['Radiocarbon_Dating_Status'],
+			publication = row['Publication'],
+			find = row['Find'],
+			
+			creation_timestamp = self.pandas_timestamp_todb(row['CreationTimestamp']),
+			created_by = row['CreatedBy'],
+			modification_timestamp = self.pandas_timestamp_todb(row['ModificationTimestamp']),
+			modified_by = row['ModifiedBy']
+		)

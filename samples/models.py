@@ -70,34 +70,35 @@ class Return(Timestamped):
 	
 
 class Sample(Timestamped):
-	reich_lab_id = models.PositiveIntegerField(db_index=True, unique=True, help_text=' assigned when a sample is selected from the queue by the wetlab')
+	reich_lab_id = models.PositiveIntegerField(db_index=True, unique=True, null=True, help_text=' assigned when a sample is selected from the queue by the wetlab')
+	queue_id = models.PositiveIntegerField(db_index=True, unique=True, null=True)
 	
-	collaborator = models.ForeignKey(Collaborator, on_delete=models.PROTECT)
-	shipment = models.ForeignKey(Shipment, on_delete=models.PROTECT)
-	return_id = models.ForeignKey(Return, on_delete=models.PROTECT)
+	collaborator = models.ForeignKey(Collaborator, on_delete=models.PROTECT, null=True)
+	shipment = models.ForeignKey(Shipment, on_delete=models.PROTECT, null=True)
+	return_id = models.ForeignKey(Return, on_delete=models.PROTECT, null=True)
 
-	individual_id = models.CharField(max_length=15)
+	individual_id = models.CharField(max_length=15, blank=True)
 	
-	skeletal_element = models.CharField(max_length=30, help_text='Type of bone sample submitted for aDNA analysis')
-	skeletal_code = models.CharField(max_length=150, help_text='Sample identification code assigned by the collaborator')	
-	sample_date = models.CharField(max_length=550, help_text='Age of sample; either a radiocarbon date or a date interval.')
-	average_bp_date = models.FloatField(help_text='Average Before Present date, calculated from average of calibrated date range after conversion to BP dates')
+	skeletal_element = models.CharField(max_length=30, blank=True, help_text='Type of bone sample submitted for aDNA analysis')
+	skeletal_code = models.CharField(max_length=150, blank=True, help_text='Sample identification code assigned by the collaborator')	
+	sample_date = models.CharField(max_length=550, blank=True, help_text='Age of sample; either a radiocarbon date or a date interval.')
+	average_bp_date = models.FloatField(null=True, help_text='Average Before Present date, calculated from average of calibrated date range after conversion to BP dates')
 	date_fix_flag = models.CharField(max_length=75, help_text='Flag for any issues with the date information submitted by the collaborator', blank=True)
-	population_label = models.CharField(max_length=100, help_text='Country_Culture_Period of Individual')
-	locality = models.CharField(max_length=150, help_text='Location where skeletal remains were found')
-	country = models.CharField(max_length=30, help_text='Country where skeletal remains were found')
-	latitude = models.CharField(max_length=20, help_text='Latitude where skeletal remains were found') # TODO convert to spatial
-	longitude = models.CharField(max_length=20, help_text='Longitude where skeletal remains were found') # TODO
-	notes = models.TextField(help_text='Any notes from the collaborator about the individual, sample, site, etc.')
-	notes_2 = models.TextField(help_text='Any notes from the collaborator about the individual, sample, site, etc.')
-	collaborators = models.TextField(max_length=300, help_text='List of additional collaborators asociated with the sample or reference if sample has been published') # convert to many-to-many field
-	morphological_sex = models.CharField(max_length=20, help_text='Sex as determined by skeletal remains') # TODO enumerated? 
-	morphological_age = models.CharField(max_length=25, help_text='Age as determined by skeletal remains: adult, child, infant, etc.') # TODO enumerated?
-	morphological_age_range = models.CharField(max_length=15, help_text='Age range in years as determined by skeletal remains') # TODO map to interval 
+	population_label = models.CharField(max_length=100, blank=True, help_text='Country_Culture_Period of Individual')
+	locality = models.CharField(max_length=150, blank=True, help_text='Location where skeletal remains were found')
+	country = models.CharField(max_length=30, blank=True, help_text='Country where skeletal remains were found')
+	latitude = models.CharField(max_length=20, blank=True, help_text='Latitude where skeletal remains were found') # TODO convert to spatial
+	longitude = models.CharField(max_length=20, blank=True, help_text='Longitude where skeletal remains were found') # TODO
+	notes = models.TextField(blank=True, help_text='Any notes from the collaborator about the individual, sample, site, etc.')
+	notes_2 = models.TextField(blank=True, help_text='Any notes from the collaborator about the individual, sample, site, etc.')
+	collaborators = models.TextField(max_length=300, blank=True, help_text='List of additional collaborators asociated with the sample or reference if sample has been published') # convert to many-to-many field
+	morphological_sex = models.CharField(max_length=20, blank=True, help_text='Sex as determined by skeletal remains') # TODO enumerated? 
+	morphological_age = models.CharField(max_length=25, blank=True, help_text='Age as determined by skeletal remains: adult, child, infant, etc.') # TODO enumerated?
+	morphological_age_range = models.CharField(max_length=15, blank=True, help_text='Age range in years as determined by skeletal remains') # TODO map to interval 
 	loan_expiration_date = models.DateField(null=True, help_text='Date by which samples need to be returned to collaborator')
-	radiocarbon_dating_status = models.CharField(max_length=120, help_text="David Reich's radiocarbon dating status as noted in his anno file") # TODO enumerate?
-	publication = models.CharField(max_length=100, help_text='Publication reference if sample has been published') # TODO many-to-many
-	find = models.TextField(help_text='Utilitarian field used to "find" samples by adding data into this field via excel spreadsheet import to create a found set') # TODO eliminate this entirely
+	radiocarbon_dating_status = models.CharField(max_length=120, blank=True, help_text="David Reich's radiocarbon dating status as noted in his anno file") # TODO enumerate?
+	publication = models.CharField(max_length=100, blank=True, help_text='Publication reference if sample has been published') # TODO many-to-many
+	find = models.TextField(blank=True, help_text='Utilitarian field used to "find" samples by adding data into this field via excel spreadsheet import to create a found set') # TODO eliminate this entirely
 	
 class PowderBatch(Timestamped):
 	name = models.CharField(max_length=50)
