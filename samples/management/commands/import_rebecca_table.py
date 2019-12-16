@@ -3,7 +3,7 @@ from django.conf import settings
 from datetime import datetime, timedelta, timezone, date
 import pandas
 from pandas import ExcelFile
-from samples.models import Collaborator, Shipment, Return
+from samples.models import Collaborator, Shipment, Return, Sample
 import sys
 
 from sequencing_run.assemble_libraries import flowcells_for_names, generate_bam_lists, generate_bam_list_with_sample_data, index_barcode_match
@@ -20,6 +20,7 @@ class Command(BaseCommand):
 			'collaborator': self.collaborator,
 			'shipment': self.shipment,
 			'return' : self.return_shipment,
+			'sample' : self.sample,
 		}
 		
 		spreadsheet = options['spreadsheet']
@@ -160,11 +161,20 @@ class Command(BaseCommand):
 			return_foreign = Return.objects.get(id=int(row['Return_ID_fk'][1:]))
 		except (Return.DoesNotExist, ValueError) as e:
 			return_foreign = None
+		try:
+			queue_id = int(row['Queue_ID'])
+		except ValueError:
+			queue_id = None
+		try:
+			average_bp_date = self.float_or_null(['Average_BP_Date'])
+		except TypeError:
+			average_bp_date = None
+			
 		# create sample object
 		Sample.objects.create(
-			id = int(row['SampleRecordID'][1:]),
+			id = int(row['SampleRecordID'][2:]),
 			reich_lab_id = int(row['Sample_ID_pk'][1:]),
-			queue_id = int(row['Queue_ID']),
+			queue_id = queue_id,
 			collaborator = collaborator_foreign,
 			shipment = shipment_foreign,
 			return_id = return_foreign,
@@ -173,7 +183,7 @@ class Command(BaseCommand):
 			skeletal_element = row['Skeletal_Element'],
 			skeletal_code = row['Skeletal_Code'],
 			sample_date = row['Sample_Date'],
-			average_bp_date = self.float_or_null(['Average_BP_Date']),
+			average_bp_date = average_bp_date,
 			date_fix_flag = row['Date_Fix_Flag'],
 			population_label = row['Population_Label'],
 			locality = row['Locality'],
