@@ -106,14 +106,16 @@ class PowderBatch(Timestamped):
 	technician = models.CharField(max_length=50)
 
 class PowderSample(Timestamped):
+	powder_sample_id = models.CharField(max_length=15, unique=True, null=False, db_index=True)
 	sample = models.ForeignKey(Sample, on_delete=models.PROTECT, help_text='Powder was produced from this sample')
-	powder_batch = models.ForeignKey(PowderBatch, on_delete=models.PROTECT, help_text='powder belongs to this processing batch')
+	powder_batch = models.ForeignKey(PowderBatch, on_delete=models.PROTECT, help_text='powder belongs to this processing batch', null=True)
 	sampling_tech = models.CharField(max_length=15, help_text='Technique used to produce the bone powder')
 	sampling_notes = models.TextField(help_text='Notes from technician about sample quality, method used, mg of bone powder produced and storage location', blank=True)
 	total_powder_produced_mg = models.FloatField(help_text='Total miligrams of bone powder produced from the sample')
 	storage_location = models.CharField(max_length=50, help_text='Storage location of remaining bone powder')
 	
 class Lysate(Timestamped):
+	lysate_id = models.CharField(max_length=15, unique=True, null=False, db_index=True)
 	powder_sample = models.ForeignKey(PowderSample, on_delete=models.PROTECT)
 	powder_used_mg = models.FloatField(help_text='milligrams of bone powder used in lysis')
 	total_volume_produced = models.FloatField(help_text='Total microliters of lysate produced')
@@ -121,63 +123,57 @@ class Lysate(Timestamped):
 	
 class ExtractionProtocol(Timestamped):
 	name = models.CharField(max_length=50)
-	start_date = models.DateField()
-	end_date = models.DateField()
-	update_description = models.TextField()
-	manual_robotic = models.CharField(max_length=20)
-	total_lysis_volume = models.FloatField()
-	lysate_fraction_extracted = models.FloatField()
-	final_extract_volume_produced = models.FloatField()
-	binding_buffer = models.CharField(max_length=20)
-	publication_summary = models.TextField()
+	start_date = models.DateField(null=True)
+	end_date = models.DateField(null=True)
+	update_description = models.TextField(blank=True)
+	manual_robotic = models.CharField(max_length=20, blank=True)
+	total_lysis_volume = models.FloatField(null=True)
+	lysate_fraction_extracted = models.FloatField(null=True)
+	final_extract_volume_produced = models.FloatField(null=True)
+	binding_buffer = models.CharField(max_length=20, blank=True)
+	reference_abbreviation = models.CharField(max_length=50, blank=True)
+	publication_summary = models.TextField(blank=True)
 	
 class ExtractBatch(Timestamped):
 	batch_name = models.CharField(max_length=50)
-	protocol = models.ForeignKey(ExtractionProtocol, on_delete=models.PROTECT)
-	technician = models.CharField(max_length=50)
+	protocol = models.ForeignKey(ExtractionProtocol, on_delete=models.PROTECT, null=True)
+	technician = models.CharField(max_length=50, blank=True)
 	date = models.DateField()
-	robot = models.CharField(max_length=20)
-	note = models.TextField()
+	robot = models.CharField(max_length=20, blank=True)
+	note = models.TextField(blank=True)
 	
 class Extract(Timestamped):
 	lysate_id = models.ForeignKey(Lysate, on_delete=models.PROTECT, null=True)
 	extract_batch_id = models.ForeignKey(ExtractBatch, on_delete=models.PROTECT)
-	lysis_volume_extracted = models.FloatField()
+	lysis_volume_extracted = models.FloatField(null=True)
+	extract_volume_remaining = models.FloatField(null=True)
 	notes = models.TextField(blank=True)
 	
 class Library(Timestamped):
+	reich_lab_library_id = models.CharField(max_length=20, unique=True, db_index=True)
 	udg_treatment = models.CharField(max_length=10)
 	ul_extract_used = models.FloatField()
 	# mg_equivalent_powder_used
-	alt_category = models.TextField()
-	notes = models.TextField()
-	find = models.CharField(max_length=50)
-
-class ControlsExtract(Timestamped):
-	ec_count = models.PositiveSmallIntegerField()
-	ec_median = models.FloatField()
-	ec_max = models.FloatField()
-	
-class ControlsLibrary(Timestamped):
-	lc_count = models.PositiveSmallIntegerField()
-	lc_median = models.FloatField()
-	lc_max = models.FloatField()
+	alt_category = models.CharField(max_length=20, blank=True)
+	notes = models.TextField(blank=True)
+	find = models.CharField(max_length=50, blank=True)
 	
 class LibraryProtocol(Timestamped):
-	name = models.CharField(max_length=50)
-	start_date = models.DateField()
-	end_date = models.DateField()
-	update_description = models.TextField()
-	publication_summary = models.TextField()
-	manual_robotic = models.CharField(max_length=20)
-	volumne_extract_used_standard = models.FloatField()
+	name = models.CharField(max_length=50, unique=True)
+	start_date = models.DateField(null=True)
+	end_date = models.DateField(null=True)
+	update_description = models.TextField(blank=True)
+	library_method_reference_abbreviation = models.CharField(max_length=20, blank=True)
+	publication_summary = models.TextField(blank=True)
+	manual_robotic = models.CharField(max_length=20, blank=True)
+	volume_extract_used_standard = models.FloatField(null=True)
 
 class LibraryBatch(Timestamped):
 	name = models.CharField(max_length=50)
-	protocol = models.ForeignKey(LibraryProtocol, on_delete=models.PROTECT)
-	technician = models.CharField(max_length=50)
-	prep_date = models.DateField()
-	prep_note = models.TextField()
+	protocol = models.ForeignKey(LibraryProtocol, on_delete=models.PROTECT, null=True)
+	technician = models.CharField(max_length=50, blank=True)
+	prep_date = models.DateField(null=True)
+	prep_note = models.TextField(blank=True)
 	prep_robot = models.CharField(max_length=20)
 	
 class MTCaptureProtocol(Timestamped):
@@ -189,52 +185,68 @@ class MTCaptureProtocol(Timestamped):
 	
 class NuclearCaptureProtocol(Timestamped):
 	name = models.CharField(max_length=50)
-	start_date = models.DateField()
-	end_date = models.DateField()
+	start_date = models.DateField(null=True)
+	end_date = models.DateField(null=True)
 	update_description = models.TextField()
-	publication_summary = models.TextField()
+	publication_summary = models.TextField(blank=True)
 	
 class MTCapturePlate(Timestamped):
 	name = models.CharField(max_length=30)
 	protocol = models.ForeignKey(MTCaptureProtocol, on_delete=models.PROTECT, null=True)
-	technician = models.CharField(max_length=50)
-	date = models.DateField()
-	robot = models.CharField(max_length=20)
+	technician = models.CharField(max_length=10, blank=True)
+	date = models.DateField(null=True)
+	robot = models.CharField(max_length=20, blank=True)
 	
 class MTSequencingRun(Timestamped):
 	name = models.CharField(max_length=30)
-	technician = models.CharField(max_length=50)
+	technician = models.CharField(max_length=10)
 	date = models.DateField()
 	
 class ShotgunPool(Timestamped):
 	name = models.CharField(max_length=50)
-	technician = models.CharField(max_length=50)
+	technician = models.CharField(max_length=10)
 	date = models.DateField()
 	
 class ShotgunSequencingRun(Timestamped):
 	name = models.CharField(max_length=50)
-	technician = models.CharField(max_length=50)
+	technician = models.CharField(max_length=10)
 	date = models.DateField()
 	
 class NuclearCapturePlate(Timestamped):
 	name = models.CharField(max_length=50)
-	enrichment_type = models.CharField(max_length=50)
+	enrichment_type = models.CharField(max_length=20, blank=True)
 	protocol = models.ForeignKey(NuclearCaptureProtocol, on_delete=models.PROTECT, null=True)
-	technician = models.CharField(max_length=50)
-	date = models.DateField()
+	technician = models.CharField(max_length=10, blank=True)
+	date = models.DateField(null=True)
 	robot = models.CharField(max_length=50)
 	hyb_wash_temps = models.CharField(max_length=50)
 	
 class NuclearSequencingRun(Timestamped):
 	name = models.CharField(max_length=50)
-	technician = models.CharField(max_length=50)
+	technician = models.CharField(max_length=10, blank=True)
 	date = models.DateField()
 	
+class ControlsExtract(Timestamped):
+	extract_batch = models.ForeignKey(ExtractBatch, on_delete=models.PROTECT)
+	nuclear_sequencing_run = models.ForeignKey(NuclearSequencingRun, on_delete=models.PROTECT, null=True)
+	ec_count = models.PositiveSmallIntegerField()
+	ec_median = models.FloatField()
+	ec_max = models.FloatField()
+	
+class ControlsLibrary(Timestamped):
+	library_batch = models.ForeignKey(LibraryBatch, on_delete=models.PROTECT)
+	nuclear_sequencing_run = models.ForeignKey(NuclearSequencingRun, on_delete=models.PROTECT, null=True)
+	lc_count = models.PositiveSmallIntegerField()
+	lc_median = models.FloatField()
+	lc_max = models.FloatField()
+	
 class RadiocarbonShipment(Timestamped):
-	ship_date = models.DateField()
+	ship_id = models.CharField(max_length=20, db_index=True, unique=True)
+	ship_date = models.DateField(null=True)
 	analysis_lab = models.CharField(max_length=50)
 	
 class RadiocarbonDatingInvoice(Timestamped):
+	invoice_number = models.CharField(max_length=20, db_index=True, unique=True)
 	company_name = models.CharField(max_length=50)
 	billing_period = models.CharField(max_length=50)
 	billing_date = models.DateField()
@@ -245,24 +257,24 @@ class RadiocarbonDatingInvoice(Timestamped):
 class RadiocarbonDatedSample(Timestamped):
 	sample = models.ForeignKey(Sample, on_delete=models.PROTECT)
 	radiocarbon_shipment = models.ForeignKey(RadiocarbonShipment, on_delete=models.PROTECT)
-	notes = models.TextField()
-	material = models.CharField(max_length=50)
-	fraction_modern = models.FloatField()
-	fraction_modern_plus_minus = models.FloatField()
-	d14c_per_mille = models.FloatField()
-	d14c_per_mille_plus_minus = models.FloatField()
-	age_14c_bp = models.FloatField()
-	age_14c_bp_plus_minus = models.FloatField()
-	delta13c_per_mille = models.FloatField()
-	delta15n_per_mille = models.FloatField()
-	percent_carbon = models.FloatField()
-	percent_nitrogen = models.FloatField()
-	carbon_to_nitrogen_ratio = models.FloatField()
-	run_date = models.DateField()
-	lab_code = models.CharField(max_length=50)
-	payment_lab = models.CharField(max_length=50)
-	invoice = models.ForeignKey(RadiocarbonDatingInvoice, on_delete=models.PROTECT)
-	find = models.CharField(max_length=10)
+	notes = models.TextField(blank=True)
+	material = models.CharField(max_length=50, blank=True)
+	fraction_modern = models.FloatField(null=True)
+	fraction_modern_plus_minus = models.FloatField(null=True)
+	d14c_per_mille = models.FloatField(null=True)
+	d14c_per_mille_plus_minus = models.FloatField(null=True)
+	age_14c_bp = models.FloatField(null=True)
+	age_14c_bp_plus_minus = models.FloatField(null=True)
+	delta13c_per_mille = models.FloatField(null=True)
+	delta15n_per_mille = models.FloatField(null=True)
+	percent_carbon = models.FloatField(null=True)
+	percent_nitrogen = models.FloatField(null=True)
+	carbon_to_nitrogen_ratio = models.FloatField(null=True)
+	run_date = models.DateField(null=True)
+	lab_code = models.CharField(max_length=50, blank=True)
+	payment_lab = models.CharField(max_length=50, blank=True)
+	invoice = models.ForeignKey(RadiocarbonDatingInvoice, on_delete=models.PROTECT, null=True)
+	find = models.CharField(max_length=10, blank=True)
 	
 class Publication(Timestamped):
 	title = models.CharField(max_length=200)
@@ -278,9 +290,9 @@ class DistributionsShipment(Timestamped):
 	date = models.DateField(help_text='Distribution shipment date')
 	shipment_method = models.CharField(max_length=20, help_text='Shipment method used to send samples: FedEx, USPS, hand carried')
 	shipment_tracking_number = models.CharField(max_length=30, help_text='Courier package tracking number')
-	shipment_notes = models.TextField(help_text='Any notes associated with the distribution shipment')
-	delivery_date = models.DateField(help_text='Date distribution shipment was delivered')
-	delivery_notes = models.TextField(help_text='Any notes assoicated with the distribution delivery: person confirming delivery, etc.')
+	shipment_notes = models.TextField(help_text='Any notes associated with the distribution shipment', blank=True)
+	delivery_date = models.DateField(help_text='Date distribution shipment was delivered', null=True)
+	delivery_notes = models.TextField(help_text='Any notes assoicated with the distribution delivery: person confirming delivery, etc.', blank=True)
 	
 class DistributionsPowder(Timestamped):
 	distribution_shipment = models.ForeignKey(DistributionsShipment, on_delete=models.PROTECT)
@@ -296,3 +308,14 @@ class DistributionsExtract(Timestamped):
 	distribution_shipment = models.ForeignKey(DistributionsShipment, on_delete=models.PROTECT)
 	extract = models.ForeignKey(Extract, on_delete=models.PROTECT)
 	extract_sent_ul = models.FloatField(help_text='Total microliters of extract distributed')
+	
+class Results(Timestamped):
+	library_id = models.CharField(max_length=15, db_index=True)
+	mt_capture_plate = models.ForeignKey(MTCapturePlate, null=True, on_delete=models.SET_NULL)
+	mt_seq_run = models.ForeignKey(MTSequencingRun, null=True, on_delete=models.SET_NULL)
+	shotgun_pool = models.ForeignKey(ShotgunPool, null=True, on_delete=models.SET_NULL)
+	shotgun_seq_run = models.ForeignKey(ShotgunSequencingRun, null=True, on_delete=models.SET_NULL)
+	nuclear_capture_plate = models.ForeignKey(NuclearCapturePlate, null=True, on_delete=models.SET_NULL)
+	nulcear_seq_run = models.ForeignKey(NuclearSequencingRun, null=True, on_delete=models.SET_NULL)
+	extract_control = models.ForeignKey(ControlsExtract, null=True, on_delete=models.SET_NULL)
+	library_control = models.ForeignKey(ControlsLibrary, null=True, on_delete=models.SET_NULL)

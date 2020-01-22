@@ -1,6 +1,6 @@
 from django.db import models
 
-from samples.models import Timestamped
+from samples.models import Timestamped, Results
 
 # Create your models here.
 
@@ -122,14 +122,15 @@ class DemultiplexedSequencing(models.Model):
 	flowcells = models.ManyToManyField(Flowcell, related_name='source_flowcells')
 	i5_index = models.CharField(max_length=10)
 	i7_index = models.CharField(max_length=10)
-	p5_barcode = models.CharField(max_length=10, blank=True)
-	p7_barcode = models.CharField(max_length=10, blank=True)
+	p5_barcode = models.CharField(max_length=40, blank=True)
+	p7_barcode = models.CharField(max_length=40, blank=True)
 	reference = models.CharField(max_length=30)
 	path = models.CharField(max_length=300)
 	library = models.ManyToManyField(ReleasedLibrary) # this needs to be many-to-many to support versions
 	
 
 class MTAnalysis(Timestamped):
+	parent = models.ForeignKey(Results, on_delete=models.CASCADE)
 	demultiplexing_sequences = models.BigIntegerField()
 	sequences_passing_filters = models.BigIntegerField()
 	sequences_aligning = models.BigIntegerField()
@@ -141,51 +142,57 @@ class MTAnalysis(Timestamped):
 	consensus_match_95ci = models.FloatField()
 	haplogroup = models.CharField(max_length=25)
 	haplogroup_confidence = models.FloatField()
+	track_mt_rsrs = models.CharField(max_length=160, blank=True)
+	report = models.CharField(max_length=35, blank=True)
 	
 class SpikeAnalysis(Timestamped):
+	parent = models.ForeignKey(Results, on_delete=models.CASCADE)
 	bioinfo_processing_protocol = models.CharField(max_length=50)
 	spike_track_id = models.CharField(max_length=50)
 	spike_pre_aut = models.IntegerField()
 	spike_post_aut = models.IntegerField()
 	spike_post_y = models.IntegerField()
 	spike_complexity = models.FloatField()
-	spike_sex = models.CharField(max_length=10)
+	spike_sex = models.CharField(max_length=30)
 	screening_outcome = models.CharField(max_length=50)
 
 class ShotgunAnalysis(Timestamped):
+	parent = models.ForeignKey(Results, on_delete=models.CASCADE)
 	bioinfo_processing_protocol = models.CharField(max_length=50)
 	track_id = models.CharField(max_length=50)
 	raw_sequences = models.BigIntegerField()
-	sequences_passing_filters = models.BigIntegerField()
-	reads_mapped_hg19 = models.BigIntegerField()
-	mean_median_sequence_length = models.FloatField()
-	percent_hg19 = models.FloatField()
-	damage_rate = models.FloatField()
-	fraction_hg19_hit_mtdna = models.FloatField()
+	sequences_passing_filters = models.BigIntegerField(null=True)
+	reads_mapped_hg19 = models.BigIntegerField(null=True)
+	mean_median_sequence_length = models.FloatField(null=True)
+	percent_hg19 = models.FloatField(null=True)
+	damage_rate = models.FloatField(null=True)
+	fraction_hg19_hit_mtdna = models.FloatField(null=True)
 	
 class NuclearAnalysis(Timestamped):
-	bioinfo_processing_protocol = models.CharField(max_length=50)
+	parent = models.ForeignKey(Results, on_delete=models.CASCADE)
+	bioinfo_processing_protocol = models.CharField(max_length=20)
 	pulldown_logfile_location = models.CharField(max_length=300)
 	pulldown_1st_column_nickdb = models.CharField(max_length=50)
-	pulldown_2nd_column_nickdb_alt_sample = models.CharField(max_length=150)
-	pulldown_3rd_column_nickdb_bam = models.CharField(max_length=300)
-	pulldown_4th_column_nickdb_hetfa = models.CharField(max_length=500)
+	pulldown_2nd_column_nickdb_alt_sample = models.CharField(max_length=50)
+	pulldown_3rd_column_nickdb_bam = models.CharField(max_length=200)
+	pulldown_4th_column_nickdb_hetfa = models.CharField(max_length=100)
 	pulldown_5th_column_nickdb_readgroup_diploid_source = models.TextField()
 	seq_run_file_name = models.CharField(max_length=150) # TODO no idea what this is
-	track_id_report_file = models.CharField(max_length=100)
+	track_id_report_file = models.CharField(max_length=160)
 	raw_reads_or_deindexing = models.BigIntegerField()
-	sequences_merge_pass_barcode = models.BigIntegerField()
-	target_sequences_pass_qc_predup = models.BigIntegerField()
-	target_sequences_pass_qc_postdedup = models.BigIntegerField()
-	unique_targets_hit = models.IntegerField()
-	unique_snps_hit = models.IntegerField()
-	coverage_targeted_positions = models.FloatField()
-	expected_coverage_10_marginal_uniqueness = models.FloatField()
-	expected_coverage_37_marginal_uniqueness = models.FloatField()
-	mean_median_seq_length = models.FloatField()
-	damage_last_base = models.FloatField()
-	x_hits = models.IntegerField()
-	y_hits = models.IntegerField()
+	sequences_merge_pass_barcode = models.BigIntegerField(null=True)
+	target_sequences_pass_qc_predup = models.BigIntegerField(null=True)
+	target_sequences_pass_qc_postdedup = models.BigIntegerField(null=True)
+	unique_targets_hit = models.IntegerField(null=True)
+	unique_snps_hit = models.IntegerField(null=True)
+	coverage_targeted_positions = models.FloatField(null=True)
+	expected_coverage_10_marginal_uniqueness = models.FloatField(null=True)
+	expected_coverage_37_marginal_uniqueness = models.FloatField(null=True)
+	marginal_uniqueness = models.FloatField(null=True)
+	mean_median_seq_length = models.FloatField(null=True)
+	damage_last_base = models.FloatField(null=True)
+	x_hits = models.IntegerField(null=True)
+	y_hits = models.IntegerField(null=True)
 	sex = models.CharField(max_length=20)
 	y_haplogroup = models.CharField(max_length=20)
 	angsd_snps = models.IntegerField()
