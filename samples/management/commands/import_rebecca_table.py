@@ -3,7 +3,7 @@ from django.conf import settings
 from datetime import datetime, timedelta, timezone, date
 import pandas
 from pandas import ExcelFile
-from samples.models import Shipment, Collaborator, Return, Sample, PowderBatch, PowderSample, Lysate, ExtractionProtocol, ExtractBatch, Extract, Library, ControlsExtract, ControlsLibrary, LibraryProtocol, LibraryBatch, NuclearCaptureProtocol, MTCapturePlate, MTSequencingRun, ShotgunPool, ShotgunSequencingRun, NuclearCapturePlate, NuclearSequencingRun, RadiocarbonShipment, RadiocarbonDatingInvoice, RadiocarbonDatedSample, DistributionsShipment, DistributionsLysate
+from samples.models import Shipment, Collaborator, Return, Sample, PowderBatch, PowderSample, Lysate, ExtractionProtocol, ExtractBatch, Extract, Library, ControlsExtract, ControlsLibrary, LibraryProtocol, LibraryBatch, NuclearCaptureProtocol, MTCapturePlate, MTSequencingRun, ShotgunPool, ShotgunSequencingRun, NuclearCapturePlate, NuclearSequencingRun, RadiocarbonShipment, RadiocarbonDatingInvoice, RadiocarbonDatedSample, DistributionsShipment, DistributionsLysate, parse_sample_string
 from sequencing_run.models import MTAnalysis, SpikeAnalysis, ShotgunAnalysis, NuclearAnalysis
 import sys
 from decimal import *
@@ -46,6 +46,7 @@ class Command(BaseCommand):
 			'radiocarbon_dated_sample': self.radiocarbon_dated_sample,
 			'distributions_shipment': self.distributions_shipment,
 			'distributions_lysate': self.distributions_lysate,
+			'results': self.results
 		}
 		
 		spreadsheet = options['spreadsheet']
@@ -173,6 +174,12 @@ class Command(BaseCommand):
 		)
 
 	def sample(self, row):
+		# sample identifier must parse
+		try:
+			reich_lab_id_number, control = parse_sample_string(row['Sample_ID_pk'])
+		except ValueError:
+			reich_lab_id_number = None
+			control = ''
 		# find foreign keys for nullable fields
 		try:
 			collaborator_foreign = Collaborator.objects.get(id=int(row['Collaborator_ID_fk'][1:]))
@@ -190,7 +197,8 @@ class Command(BaseCommand):
 		# create sample object
 		Sample.objects.create(
 			id = int(row['SampleRecordID'][2:]),
-			reich_lab_id = int(row['Sample_ID_pk'][1:]),
+			reich_lab_id = reich_lab_id_number,
+			control = control,
 			queue_id = self.int_or_null(row['Queue_ID']),
 			collaborator = collaborator_foreign,
 			shipment = shipment_foreign,
@@ -228,7 +236,7 @@ class Command(BaseCommand):
 		PowderBatch.objects.create(
 			id = int(row['Powder_Batch_pk'][2:]),
 			name = row['Powder_Batch_Name'],
-			date = self.pandas_timestamp_todb_date(row['Powder_Batch_Name']),
+			date = self.pandas_timestamp_todb_date(row['Powder_Batch_Date']),
 			technician = row['Powder_Batch_Technician'],
 			
 			creation_timestamp = self.pandas_timestamp_todb(row['CreationTimestamp']),
@@ -238,6 +246,8 @@ class Command(BaseCommand):
 		)
 	
 	def powder_sample(self, row):
+		# sample must parse
+		reich_lab_id_number, control = parse_sample_string(row['Sample_ID_fk'])
 		# find foreign keys for nullable fields
 		try:
 			powder_batch_foreign = PowderBatch.objects.get(id=int(row['Powder_Batch_ID_fk'][2:]))
@@ -246,11 +256,11 @@ class Command(BaseCommand):
 		
 		PowderSample.objects.create(
 			powder_sample_id = row['Powder_Sample_ID_pk'],
-			sample = Sample.objects.get(id=int(row['Sample_ID_fk'][1:])),
+			sample = Sample.objects.get(reich_lab_id=reich_lab_id_number, control=control),
 			powder_batch = powder_batch_foreign,
 			sampling_tech = row['Sampling_Tech'],
 			sampling_notes = row['Sampling_Notes'],
-			total_powder_produced_mg =  float(row['Total_mg_Powder_Produced']),
+			total_powder_produced_mg =  self.float_or_null(row['Total_mg_Powder_Produced']),
 			storage_location = row['Storage_Location'],
 			
 			creation_timestamp = self.pandas_timestamp_todb(row['CreationTimestamp']),
@@ -259,12 +269,12 @@ class Command(BaseCommand):
 			modified_by = row['ModifiedBy']
 		)
 		
-	def lysate(self, row):
+	def lysate(self, row):		
 		Lysate.objects.create(
 			lysate_id = row['Lysate_ID_pk'],
 			powder_sample = PowderSample.objects.get(powder_sample_id=row['Powder_Sample_ID_fk']),
-			powder_used_mg = float(row['mg_Powder_Used']),
-			total_volume_produced = float(row['Lysate_Total_Volume_Produced']),
+			powder_used_mg = self.float_or_null(row['mg_Powder_Used']),
+			total_volume_produced = self.float_or_null(row['Lysate_Total_Volume_Produced']),
 			
 			creation_timestamp = self.pandas_timestamp_todb(row['CreationTimestamp']),
 			created_by = row['CreatedBy'],
@@ -319,9 +329,14 @@ class Command(BaseCommand):
 			extract_batch_id_foreign = ExtractBatch.objects.get(id=int(row['Extract_Batch_ID_fk'][2:]))
 		except (ExtractBatch.DoesNotExist, ValueError) as e:
 			extract_batch_id_foreign = None
+		try:
+			lysate_id_foreign = Lysate.objects.get(lysate_id=row['Lysate_ID_fk'])
+		except (Lysate.DoesNotExist, ValueError) as e:
+			lysate_id_foreign = None
+			
 		Extract.objects.create(
-			id = int(row['Extract_ID_pk']),
-			lysate_id = Lysate.objects.get(lysate_id=row['Lysate_ID_fk']),
+			extract_id = row['Extract_ID_pk'],
+			lysate_id = lysate_id_foreign,
 			extract_batch_id = extract_batch_id_foreign,
 			lysis_volume_extracted = self.float_or_null(row['Lysis_Volume_Extracted']),
 			extract_volume_remaining = self.float_or_null(row['Extract_Volume_Remaining']),

@@ -2,6 +2,18 @@ from django.db import models
 from django.utils import timezone
 from datetime import date
 
+import re
+
+def parse_sample_string(s):
+	# we expect a sample number to start with 'S'
+	# S1234a
+	match = re.fullmatch('S([\d]+)([a-z]?)', s)
+	if match:
+		sample_number = int(match.group(1))
+		control = match.group(2)
+		return sample_number, control
+	else:
+		raise ValueError('Error parsing sample {}'.format(s))
 
 class Timestamped(models.Model):
 	creation_timestamp = models.DateTimeField(default=timezone.now)
@@ -63,14 +75,15 @@ class Return(Timestamped):
 	collaborator = models.ForeignKey(Collaborator, on_delete=models.PROTECT)
 	return_date = models.DateField(default=date.today)
 	return_method = models.CharField(max_length=50)
-	tracking_number = models.CharField(max_length=30)
+	tracking_number = models.CharField(max_length=30, blank=True)
 	courier_delivery_date = models.DateField(null=True)
-	recipient_delivery_confirmation = models.TextField()
-	return_notes = models.TextField()
+	recipient_delivery_confirmation = models.TextField(blank=True)
+	return_notes = models.TextField(blank=True)
 	
 
 class Sample(Timestamped):
-	reich_lab_id = models.PositiveIntegerField(db_index=True, unique=True, null=True, help_text=' assigned when a sample is selected from the queue by the wetlab')
+	reich_lab_id = models.PositiveIntegerField(db_index=True, null=True, help_text=' assigned when a sample is selected from the queue by the wetlab')
+	control = models.CharField(max_length=1, blank=True, help_text='Non-empty value indicates this is a control')
 	queue_id = models.PositiveIntegerField(db_index=True, unique=True, null=True)
 	
 	collaborator = models.ForeignKey(Collaborator, on_delete=models.PROTECT, null=True)
@@ -100,9 +113,12 @@ class Sample(Timestamped):
 	publication = models.CharField(max_length=100, blank=True, help_text='Publication reference if sample has been published') # TODO many-to-many
 	find = models.TextField(blank=True, help_text='Utilitarian field used to "find" samples by adding data into this field via excel spreadsheet import to create a found set') # TODO eliminate this entirely
 	
+	class Meta:
+		unique_together = ['reich_lab_id', 'control']
+	
 class PowderBatch(Timestamped):
 	name = models.CharField(max_length=50)
-	date = models.DateField()
+	date = models.DateField(null=True)
 	technician = models.CharField(max_length=50)
 
 class PowderSample(Timestamped):
@@ -111,14 +127,14 @@ class PowderSample(Timestamped):
 	powder_batch = models.ForeignKey(PowderBatch, on_delete=models.PROTECT, help_text='powder belongs to this processing batch', null=True)
 	sampling_tech = models.CharField(max_length=15, help_text='Technique used to produce the bone powder')
 	sampling_notes = models.TextField(help_text='Notes from technician about sample quality, method used, mg of bone powder produced and storage location', blank=True)
-	total_powder_produced_mg = models.FloatField(help_text='Total miligrams of bone powder produced from the sample')
+	total_powder_produced_mg = models.FloatField(null=True, help_text='Total miligrams of bone powder produced from the sample')
 	storage_location = models.CharField(max_length=50, help_text='Storage location of remaining bone powder')
 	
 class Lysate(Timestamped):
 	lysate_id = models.CharField(max_length=15, unique=True, null=False, db_index=True)
 	powder_sample = models.ForeignKey(PowderSample, on_delete=models.PROTECT)
-	powder_used_mg = models.FloatField(help_text='milligrams of bone powder used in lysis')
-	total_volume_produced = models.FloatField(help_text='Total microliters of lysate produced')
+	powder_used_mg = models.FloatField(null=True, help_text='milligrams of bone powder used in lysis')
+	total_volume_produced = models.FloatField(null=True, help_text='Total microliters of lysate produced')
 	notes = models.TextField(blank=True)
 	
 class ExtractionProtocol(Timestamped):
@@ -138,13 +154,14 @@ class ExtractBatch(Timestamped):
 	batch_name = models.CharField(max_length=50)
 	protocol = models.ForeignKey(ExtractionProtocol, on_delete=models.PROTECT, null=True)
 	technician = models.CharField(max_length=50, blank=True)
-	date = models.DateField()
+	date = models.DateField(null=True)
 	robot = models.CharField(max_length=20, blank=True)
 	note = models.TextField(blank=True)
 	
 class Extract(Timestamped):
+	extract_id = models.CharField(max_length=20, unique=True, db_index=True)
 	lysate_id = models.ForeignKey(Lysate, on_delete=models.PROTECT, null=True)
-	extract_batch_id = models.ForeignKey(ExtractBatch, on_delete=models.PROTECT)
+	extract_batch_id = models.ForeignKey(ExtractBatch, null=True, on_delete=models.PROTECT)
 	lysis_volume_extracted = models.FloatField(null=True)
 	extract_volume_remaining = models.FloatField(null=True)
 	notes = models.TextField(blank=True)
@@ -152,7 +169,7 @@ class Extract(Timestamped):
 class Library(Timestamped):
 	reich_lab_library_id = models.CharField(max_length=20, unique=True, db_index=True)
 	udg_treatment = models.CharField(max_length=10)
-	ul_extract_used = models.FloatField()
+	ul_extract_used = models.FloatField(null=True)
 	# mg_equivalent_powder_used
 	alt_category = models.CharField(max_length=20, blank=True)
 	notes = models.TextField(blank=True)
