@@ -216,18 +216,18 @@ class MTCapturePlate(Timestamped):
 	
 class MTSequencingRun(Timestamped):
 	name = models.CharField(max_length=30)
-	technician = models.CharField(max_length=10)
-	date = models.DateField()
+	technician = models.CharField(max_length=10, blank=True)
+	date = models.DateField(null=True)
 	
 class ShotgunPool(Timestamped):
 	name = models.CharField(max_length=50)
-	technician = models.CharField(max_length=10)
-	date = models.DateField()
+	technician = models.CharField(max_length=10, blank=True)
+	date = models.DateField(null=True)
 	
 class ShotgunSequencingRun(Timestamped):
 	name = models.CharField(max_length=50)
-	technician = models.CharField(max_length=10)
-	date = models.DateField()
+	technician = models.CharField(max_length=10, blank=True)
+	date = models.DateField(null=True)
 	
 class NuclearCapturePlate(Timestamped):
 	name = models.CharField(max_length=50)
@@ -241,7 +241,7 @@ class NuclearCapturePlate(Timestamped):
 class NuclearSequencingRun(Timestamped):
 	name = models.CharField(max_length=50)
 	technician = models.CharField(max_length=10, blank=True)
-	date = models.DateField()
+	date = models.DateField(null=True)
 	
 class ControlsExtract(Timestamped):
 	extract_batch = models.ForeignKey(ExtractBatch, on_delete=models.PROTECT)
@@ -268,12 +268,12 @@ class RadiocarbonDatingInvoice(Timestamped):
 	billing_period = models.CharField(max_length=50)
 	billing_date = models.DateField()
 	item_description = models.TextField()
-	number_of_samples = models.PositiveSmallIntegerField()
+	number_of_samples = models.PositiveSmallIntegerField(null=True)
 	total_charge = models.DecimalField(max_digits=9, decimal_places=2)
 	
 class RadiocarbonDatedSample(Timestamped):
 	sample = models.ForeignKey(Sample, on_delete=models.PROTECT)
-	radiocarbon_shipment = models.ForeignKey(RadiocarbonShipment, on_delete=models.PROTECT)
+	radiocarbon_shipment = models.ForeignKey(RadiocarbonShipment, on_delete=models.PROTECT, null=True)
 	notes = models.TextField(blank=True)
 	material = models.CharField(max_length=50, blank=True)
 	fraction_modern = models.FloatField(null=True)
@@ -327,7 +327,7 @@ class DistributionsExtract(Timestamped):
 	extract_sent_ul = models.FloatField(help_text='Total microliters of extract distributed')
 	
 class Results(Timestamped):
-	library_id = models.CharField(max_length=15, db_index=True)
+	library_id = models.CharField(max_length=25, db_index=True)
 	mt_capture_plate = models.ForeignKey(MTCapturePlate, null=True, on_delete=models.SET_NULL)
 	mt_seq_run = models.ForeignKey(MTSequencingRun, null=True, on_delete=models.SET_NULL)
 	shotgun_pool = models.ForeignKey(ShotgunPool, null=True, on_delete=models.SET_NULL)

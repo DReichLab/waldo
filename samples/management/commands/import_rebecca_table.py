@@ -3,7 +3,7 @@ from django.conf import settings
 from datetime import datetime, timedelta, timezone, date
 import pandas
 from pandas import ExcelFile
-from samples.models import Shipment, Collaborator, Return, Sample, PowderBatch, PowderSample, Lysate, ExtractionProtocol, ExtractBatch, Extract, Library, ControlsExtract, ControlsLibrary, LibraryProtocol, LibraryBatch, NuclearCaptureProtocol, MTCapturePlate, MTSequencingRun, ShotgunPool, ShotgunSequencingRun, NuclearCapturePlate, NuclearSequencingRun, RadiocarbonShipment, RadiocarbonDatingInvoice, RadiocarbonDatedSample, DistributionsShipment, DistributionsLysate, parse_sample_string
+from samples.models import Shipment, Collaborator, Return, Sample, PowderBatch, PowderSample, Lysate, ExtractionProtocol, ExtractBatch, Extract, Library, ControlsExtract, ControlsLibrary, LibraryProtocol, LibraryBatch, MTCaptureProtocol, NuclearCaptureProtocol, MTCapturePlate, MTSequencingRun, ShotgunPool, ShotgunSequencingRun, NuclearCapturePlate, NuclearSequencingRun, RadiocarbonShipment, RadiocarbonDatingInvoice, RadiocarbonDatedSample, DistributionsShipment, DistributionsLysate, parse_sample_string, Results
 from sequencing_run.models import MTAnalysis, SpikeAnalysis, ShotgunAnalysis, NuclearAnalysis
 import sys
 from decimal import *
@@ -61,6 +61,8 @@ class Command(BaseCommand):
 			except Exception as e:
 				print(row, file=sys.stderr)
 				raise e
+		
+		self.stderr.write(options['table_type'])
 			
 	def timestring_todb(self, datetime_string):
 		eastern_daylight_timedelta = timedelta(hours=-4)
@@ -573,7 +575,7 @@ class Command(BaseCommand):
 			billing_date = self.pandas_timestamp_todb_date(row['Billing_Date']),
 			item_description = row['Item_Description'],
 			number_of_samples = self.int_or_null(row['Number_of_Samples']),
-			total_charge = Decimal('{.2f}'.format(float(row['Total_Charge']))),
+			total_charge = Decimal('{:.2f}'.format(float(row['Total_Charge']))),
 
 			creation_timestamp = self.pandas_timestamp_todb(row['CreationTimestamp']),
 			created_by = row['CreatedBy'],
@@ -584,15 +586,21 @@ class Command(BaseCommand):
 	def radiocarbon_dated_sample(self, row):
 		# foreign keys for nullable fields
 		try:
-			invoice_number = int(row['Invoice_Number_fk'][2:])
+			invoice_number = row['Invoice_Number_fk']
 			invoice_foreign = RadiocarbonDatingInvoice.objects.get(invoice_number=invoice_number)
 		except (RadiocarbonDatingInvoice.DoesNotExist, ValueError) as e:
 			invoice_foreign = None
+			
+		try:
+			radiocarbon_shipment = row['AMS_Ship_ID_fk']
+			radiocarbon_shipment_foreign = RadiocarbonShipment.objects.get(ship_id=radiocarbon_shipment)
+		except (RadiocarbonShipment.DoesNotExist, ValueError) as e:
+			radiocarbon_shipment_foreign = None
 		
 		RadiocarbonDatedSample.objects.create(
 			id = int(row['Dated_Sample_ID_pk'][2:]),
 			sample = Sample.objects.get(reich_lab_id=int(row['Sample_ID_fk'][1:])),
-			radiocarbon_shipment = row['AMS_Ship_ID_fk'],
+			radiocarbon_shipment = radiocarbon_shipment_foreign,
 			notes = row['AMS_Notes'],
 			material = row['Material'],
 			fraction_modern = self.float_or_null(row['Fraction_Modern']),
@@ -622,8 +630,8 @@ class Command(BaseCommand):
 	
 	def distributions_shipment(self, row):
 		DistributionsShipment.objects.create(
-			id = int(row['Distribution_Shipment_ID_pk']),
-			collaborator = Collaborator.objects.get(id=int(row['Collaborator_ID_fk'])),
+			id = int(row['Distribution_Shipment_ID_pk'][2:]),
+			collaborator = Collaborator.objects.get(id=int(row['Collaborator_ID_fk'][1:])),
 			date = self.pandas_timestamp_todb_date(row['Distribution_Date']),
 			shipment_method = row['Shipment_Method'],
 			shipment_tracking_number = row['Shipment_Tracking_Number'],
@@ -640,8 +648,8 @@ class Command(BaseCommand):
 	def distributions_lysate(self, row):
 		DistributionsLysate.objects.create(
 			id = int(row['Lysate_Distribution_ID_pk'][2:]),
-			distribution_shipment = DistributionsShipment.objects.get(id=int(row['Distribution_Shipment_ID_fk'])),
-			lysate = Lysate.objects.get(lysate_id=row['Lysate_ID_fk']),
+			distribution_shipment = DistributionsShipment.objects.get(id=int(row['Distribution_Shipment_ID_fk'][2:])),
+			lysate = Lysate.objects.get(lysate_id__startswith=row['Lysate_ID_fk']),
 			lysate_sent_ul = float(row['uL_Lysate_Sent']),
 			
 			creation_timestamp = self.pandas_timestamp_todb(row['CreationTimestamp']),
@@ -650,39 +658,47 @@ class Command(BaseCommand):
 			modified_by = row['ModifiedBy']
 		)
 		
+	# Nothing in this table
+	'''
+	def distributions_extract(self, row):
+		DistributionsExtract.objects.create(
+			
+		)
+	'''
+		
 	def results(self, row):
 		# foreign keys for nullable fields
 		try:
 			mt_capture_plate_foreign = MTCapturePlate.objects.get(id=int(row['MT_Capture_Plate_fk'][4:]))
-		except (MTCapturePlate.DoesNotExist) as e:
+		except (MTCapturePlate.DoesNotExist, ValueError) as e:
 			mt_capture_plate_foreign = None
 		try:
 			mt_seq_run_foreign = MTSequencingRun.objects.get(id=int(row['MT_Seq_Run_fk'][4:]))
-		except (MTSequencingRun.DoesNotExist) as e:
+		except (MTSequencingRun.DoesNotExist, ValueError) as e:
 			mt_seq_run_foreign = None
 		try:
 			shotgun_pool_foreign = ShotgunPool.objects.get(id=int(row['Shotgun_Pool_fk'][3:]))
-		except (ShotgunPool.DoesNotExist) as e:
+		except (ShotgunPool.DoesNotExist, ValueError) as e:
 			shotgun_pool_foreign = None
 		try:
 			shotgun_seq_run_foreign = ShotgunSequencingRun.objects.get(id=int(row['Shotgun_Seq_Run_fk'][3:]))
-		except (ShotgunSequencingRun.DoesNotExist) as e:
+		except (ShotgunSequencingRun.DoesNotExist, ValueError) as e:
 			shotgun_seq_run_foreign = None
 		try:
 			nuclear_capture_plate_foreign = NuclearCapturePlate.objects.get(id=int(row['Nuclear_Capture_Plate_fk'][3:]))
-		except (NuclearCapturePlate.DoesNotExist) as e:
+		except (NuclearCapturePlate.DoesNotExist, ValueError) as e:
 			nuclear_capture_plate_foreign = None
 		try:
 			nuclear_seq_run_foreign = NuclearSequencingRun.objects.get(id=int(row['Nuclear_Seq_Run_fk'][3:]))
-		except (NuclearSequencingRun.DoesNotExist) as e:
+		except (NuclearSequencingRun.DoesNotExist, ValueError) as e:
 			nuclear_seq_run_foreign = None
 		try:
 			extract_control_foreign = ControlsExtract.objects.get(id=int(row['EC_Group_ID_fk'][2:]))
-		except (ControlsExtract.DoesNotExist) as e:
+		except (ControlsExtract.DoesNotExist, ValueError) as e:
 			extract_control_foreign = None
 		try:
 			library_control_foreign = ControlsLibrary.objects.get(id=int(row['LC_Group_ID_fk'][2:]))
-		except (ControlsLibrary.DoesNotExist) as e:
+		except (ControlsLibrary.DoesNotExist, ValueError) as e:
 			library_control_foreign = None
 			
 		results_object = Results.objects.create(
@@ -703,20 +719,21 @@ class Command(BaseCommand):
 		)
 		
 		# MT Analysis
-		if len(row['mtDNA_Raw_Sequences']) > 0:
+		mt_raw = self.int_or_null(row['mtDNA_Raw_Sequences'])
+		if mt_raw is not None:
 			MTAnalysis.objects.create(
 				parent = results_object,
-				demultiplexing_sequences = int(row['mtDNA_Raw_Sequences']),
-				sequences_passing_filters = int(row['mtDNA_Sequences_Passing_Filters']),
-				sequences_aligning = int(row['mtDNA_Sequences_Target_Alignment']),
-				sequences_aligning_post_dedup = int(row['mtDNA_Sequences_Target_Alignment_PostDedup']),
-				coverage = int(row['mtDNA_Coverage']),
-				mean_median_sequence_length = float(row['mtDNA_Mean_Median_Seq_Length']),
-				damage_last_base = float(row['mtDNA_Damage_Last_Base']),
-				consensus_match = float(row['mtDNA_Consensus_Match']),
+				demultiplexing_sequences = mt_raw,
+				sequences_passing_filters = self.int_or_null(row['mtDNA_Sequences_Passing_Filters']),
+				sequences_aligning = self.int_or_null(row['mtDNA_Sequences_Target_Alignment']),
+				sequences_aligning_post_dedup = self.int_or_null(row['mtDNA_Sequences_Target_Alignment_PostDedup']),
+				coverage = self.float_or_null(row['mtDNA_Coverage']),
+				mean_median_sequence_length = self.float_or_null(row['mtDNA_Mean_Median_Seq_Length']),
+				damage_last_base = self.float_or_null(row['mtDNA_Damage_Last_Base']),
+				consensus_match = self.float_or_null(row['mtDNA_Consensus_Match']),
 				consensus_match_95ci = row['mtDNA_Consensus_Match_95CI'],
 				haplogroup = row['mtDNA_Haplogroup'],
-				haplogroup_confidence = float(row['mtDNA_Haplogroup_Confidence']),
+				haplogroup_confidence = self.float_or_null(row['mtDNA_Haplogroup_Confidence']),
 				track_mt_rsrs = row['Track_mt_rsrs'],
 				report = row['mtDNA_report'],
 
@@ -733,10 +750,10 @@ class Command(BaseCommand):
 				parent = results_object,
 				bioinfo_processing_protocol = row['Spike_Bioinfo_Processing_Protocol'],
 				spike_track_id = row['Spike_Track_ID'],
-				spike_pre_aut = int(row['Spike_preAut']),
-				spike_post_aut = int(row['Spike_postAut']),
-				spike_post_y = int(row['Spike_postY']),
-				spike_complexity = float(row['Spike_Complexity']),
+				spike_pre_aut = self.int_or_null(row['Spike_preAut']),
+				spike_post_aut = self.int_or_null(row['Spike_postAut']),
+				spike_post_y = self.int_or_null(row['Spike_postY']),
+				spike_complexity = self.float_or_null(row['Spike_Complexity']),
 				spike_sex = row['Spike_Sex'],
 				screening_outcome =row['mtDNA_Screening_Outcome'], 
 				
@@ -747,12 +764,13 @@ class Command(BaseCommand):
 			)
 
 		# Shotgun analysis
-		if len(row['Shotgun_Raw_Sequences']) > 0:
+		shotgun_raw = self.int_or_null(row['Shotgun_Raw_Sequences'])
+		if shotgun_raw is not None:
 			ShotgunAnalysis.objects.create(
 				parent = results_object,
 				bioinfo_processing_protocol = row['Shotgun_Bioinfo_Processing_Protocol'],
 				track_id = row['Shotgun_Track_ID'],
-				raw_sequences = int(row['Shotgun_Raw_Sequences']),
+				raw_sequences = shotgun_raw,
 				sequences_passing_filters = self.int_or_null(row['Shotgun_Sequences_Passing_Filters']),
 				reads_mapped_hg19 = self.int_or_null(row['Shotgun_Reads_Mapped_HG19']),
 				mean_median_sequence_length = self.float_or_null(row['Shotgun_Mean_Median_Seq_Length']),
@@ -767,7 +785,8 @@ class Command(BaseCommand):
 			)
 		
 		# nuclear analysis
-		if len(row['Nuclear_Raw_Reads_OR_Deindexing']) > 0:
+		nuclear_deindexing = self.int_or_null(row['Nuclear_Raw_Reads_OR_Deindexing'])
+		if nuclear_deindexing is not None:
 			NuclearAnalysis.objects.create(
 				parent = results_object,
 				bioinfo_processing_protocol = row['Nuclear_Bioinfo_Processing_Protocol'],
@@ -779,7 +798,7 @@ class Command(BaseCommand):
 				pulldown_5th_column_nickdb_readgroup_diploid_source = row['Pulldown_5th_Column_NickDB_readgroup_diploid_source'],
 				seq_run_file_name = row['Nuclear_Seq_Run_File_Name'],
 				track_id_report_file = row['Nuclear_Track_ID_Report_File'],
-				raw_reads_or_deindexing = int(row['Nuclear_Raw_Reads_OR_Deindexing']),
+				raw_reads_or_deindexing = nuclear_deindexing,
 				sequences_merge_pass_barcode = self.int_or_null(row['Nuclear_Sequences_Merge_Pass_Barcode']),
 				target_sequences_pass_qc_predup = self.int_or_null(row['Nuclear_Target_Sequences_Pass_QC_PreDedup']),
 				target_sequences_pass_qc_postdedup = self.int_or_null(row['Nuclear_Target_Sequences_Pass_QC_PostDedup']),
