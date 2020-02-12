@@ -55,9 +55,9 @@ class Command(BaseCommand):
 		
 		# add demultiplexed bams to database
 		#nuclear
-		self.load_demultiplexed_bams_into_database(date_string, name, flowcell_objs, settings.NUCLEAR_SUBDIRECTORY, 'hg19')
+		self.load_demultiplexed_bams_into_database(date_string, name, flowcell_objs, nuclear_subdirectory, 'hg19')
 		#mt
-		self.load_demultiplexed_bams_into_database(date_string, name, flowcell_objs, settings.MT_SUBDIRECTORY, 'rsrs')
+		self.load_demultiplexed_bams_into_database(date_string, name, flowcell_objs, mt_subdirectory, 'rsrs')
 		
 		if start_analysis:
 			analysis_run = SequencingAnalysisRun.objects.get(id=analysis_run_id)
