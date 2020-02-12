@@ -14,11 +14,13 @@ class Command(BaseCommand):
 	help = 'load demultiplexed index-barcode bams from a sequencing run into database'
 	
 	def add_arguments(self, parser):
-		parser.add_argument('--date_string')
-		parser.add_argument('--name')
-		parser.add_argument('--analysis_run', type=int)
-		parser.add_argument('--start_analysis', action='store_true', help='start analysis after loading bams')
-		parser.add_argument('--flowcell_by_lane', action='store_true', help='set to split flowcells into lanes. Used for Broad HiSeq or NovaSeq')
+		parser.add_argument('--date_string', required=True)
+		parser.add_argument('--name', required=True)
+		parser.add_argument('--analysis_run', type=int, required=True)
+		parser.add_argument('--start_analysis', action='store_true', required=True, help='start analysis after loading bams')
+		parser.add_argument('--flowcell_by_lane', action='store_true', required=True, help='set to split flowcells into lanes. Used for Broad HiSeq or NovaSeq')
+		parser.add_argument('--nuclear_subdirectory', help='directory for nuclear files under demultiplex directory')
+		parser.add_argument('--mt_subdirectory', help='directory for mt files under demultiplex directory')
 		
 	def handle(self, *args, **options):
 		date_string = options['date_string']
@@ -26,6 +28,8 @@ class Command(BaseCommand):
 		date = datetime.datetime.strptime(date_string, "%Y%m%d").date()
 		start_analysis = options['start_analysis']
 		flowcell_by_lane = options['flowcell_by_lane']
+		nuclear_subdirectory = options['nuclear_subdirectory'] if options['nuclear_subdirectory'] else settings.NUCLEAR_SUBDIRECTORY
+		mt_subdirectory = options['mt_subdirectory'] if options['mt_subdirectory'] else settings.MT_SUBDIRECTORY
 		
 		# save flowcell for this SequencingAnalysisRun
 		flowcell_text_ids = self.get_flowcell_text_ids(date_string, name, flowcell_by_lane)
