@@ -28,17 +28,12 @@ class Shipment(Timestamped):
 	text_id = models.CharField(max_length=30, db_index=True, unique=True)
 	arrival_date = models.DateField(null=True)
 	number_of_samples_for_analysis = models.PositiveSmallIntegerField(null=True)
-	total_number_of_samples = models.PositiveSmallIntegerField(null=True)
 	arrival_method = models.CharField(max_length=255)
 	tracking_number = models.CharField(max_length=30)
 	arrival_notes = models.TextField()
 	shipment_notes = models.TextField()
 	storage_location_note = models.TextField()
-	special_packaging_location = models.TextField()
-	documents_in_package = models.TextField()
-	agreement_permits = models.TextField()
 	agreement_permit_location = models.TextField()
-	supplementary_information = models.TextField()
 	supplementary_information_location = models.TextField()
 	
 class Collaborator(Timestamped):
@@ -93,7 +88,8 @@ class Sample(Timestamped):
 	individual_id = models.CharField(max_length=15, blank=True)
 	
 	skeletal_element = models.CharField(max_length=30, blank=True, help_text='Type of bone sample submitted for aDNA analysis')
-	skeletal_code = models.CharField(max_length=150, blank=True, help_text='Sample identification code assigned by the collaborator')	
+	skeletal_code = models.CharField(max_length=150, blank=True, help_text='Sample identification code assigned by the collaborator')
+	skeletal_code_renamed = models.CharField(max_length=150, blank=True, help_text='Sample identification code assigned by the Reich Lab')
 	sample_date = models.CharField(max_length=550, blank=True, help_text='Age of sample; either a radiocarbon date or a date interval.')
 	average_bp_date = models.FloatField(null=True, help_text='Average Before Present date, calculated from average of calibrated date range after conversion to BP dates')
 	date_fix_flag = models.CharField(max_length=75, help_text='Flag for any issues with the date information submitted by the collaborator', blank=True)
@@ -110,8 +106,6 @@ class Sample(Timestamped):
 	morphological_age_range = models.CharField(max_length=15, blank=True, help_text='Age range in years as determined by skeletal remains') # TODO map to interval 
 	loan_expiration_date = models.DateField(null=True, help_text='Date by which samples need to be returned to collaborator')
 	radiocarbon_dating_status = models.CharField(max_length=120, blank=True, help_text="David Reich's radiocarbon dating status as noted in his anno file") # TODO enumerate?
-	publication = models.CharField(max_length=100, blank=True, help_text='Publication reference if sample has been published') # TODO many-to-many
-	find = models.TextField(blank=True, help_text='Utilitarian field used to "find" samples by adding data into this field via excel spreadsheet import to create a found set') # TODO eliminate this entirely
 	
 	class Meta:
 		unique_together = ['reich_lab_id', 'control']
@@ -129,13 +123,6 @@ class PowderSample(Timestamped):
 	sampling_notes = models.TextField(help_text='Notes from technician about sample quality, method used, mg of bone powder produced and storage location', blank=True)
 	total_powder_produced_mg = models.FloatField(null=True, help_text='Total miligrams of bone powder produced from the sample')
 	storage_location = models.CharField(max_length=50, help_text='Storage location of remaining bone powder')
-	
-class Lysate(Timestamped):
-	lysate_id = models.CharField(max_length=15, unique=True, null=False, db_index=True)
-	powder_sample = models.ForeignKey(PowderSample, on_delete=models.PROTECT)
-	powder_used_mg = models.FloatField(null=True, help_text='milligrams of bone powder used in lysis')
-	total_volume_produced = models.FloatField(null=True, help_text='Total microliters of lysate produced')
-	notes = models.TextField(blank=True)
 	
 class ExtractionProtocol(Timestamped):
 	name = models.CharField(max_length=50)
@@ -157,6 +144,17 @@ class ExtractBatch(Timestamped):
 	date = models.DateField(null=True)
 	robot = models.CharField(max_length=20, blank=True)
 	note = models.TextField(blank=True)
+	plate_storage = models.CharField(max_length=50, blank=True)
+
+class Lysate(Timestamped):
+	lysate_id = models.CharField(max_length=15, unique=True, null=False, db_index=True)
+	powder_sample = models.ForeignKey(PowderSample, on_delete=models.PROTECT)
+	extract_batch = models.ForeignKey(ExtractBatch, on_delete=models.PROTECT)
+	powder_used_mg = models.FloatField(null=True, help_text='milligrams of bone powder used in lysis')
+	total_volume_produced = models.FloatField(null=True, help_text='Total microliters of lysate produced')
+	position = models.CharField(max_length=3, blank=True, help_text='Position on plate')
+	tube_barcode = models.CharField(max_length=10, blank=True, help_text='Physical barcode on tube')
+	notes = models.TextField(blank=True)
 	
 class Extract(Timestamped):
 	extract_id = models.CharField(max_length=20, unique=True, db_index=True)
@@ -165,6 +163,7 @@ class Extract(Timestamped):
 	lysis_volume_extracted = models.FloatField(null=True)
 	extract_volume_remaining = models.FloatField(null=True)
 	notes = models.TextField(blank=True)
+	storage_location = models.CharField(max_length=50, blank=True)
 	
 class Library(Timestamped):
 	reich_lab_library_id = models.CharField(max_length=20, unique=True, db_index=True)
@@ -173,7 +172,6 @@ class Library(Timestamped):
 	# mg_equivalent_powder_used
 	alt_category = models.CharField(max_length=20, blank=True)
 	notes = models.TextField(blank=True)
-	find = models.CharField(max_length=50, blank=True)
 	
 class LibraryProtocol(Timestamped):
 	name = models.CharField(max_length=50, unique=True)
@@ -270,6 +268,7 @@ class RadiocarbonDatingInvoice(Timestamped):
 	item_description = models.TextField()
 	number_of_samples = models.PositiveSmallIntegerField(null=True)
 	total_charge = models.DecimalField(max_digits=9, decimal_places=2)
+	note = models.TextField(blank=True)
 	
 class RadiocarbonDatedSample(Timestamped):
 	sample = models.ForeignKey(Sample, on_delete=models.PROTECT)
@@ -291,7 +290,6 @@ class RadiocarbonDatedSample(Timestamped):
 	lab_code = models.CharField(max_length=50, blank=True)
 	payment_lab = models.CharField(max_length=50, blank=True)
 	invoice = models.ForeignKey(RadiocarbonDatingInvoice, on_delete=models.PROTECT, null=True)
-	find = models.CharField(max_length=10, blank=True)
 	
 class Publication(Timestamped):
 	title = models.CharField(max_length=200)

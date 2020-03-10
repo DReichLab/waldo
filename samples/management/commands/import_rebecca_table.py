@@ -104,17 +104,12 @@ class Command(BaseCommand):
 			text_id = row['Shipment_ID_pk'],
 			arrival_date = self.pandas_timestamp_todb_date(row['Arrival_Date']),
 			number_of_samples_for_analysis = self.int_or_null(row['Number_of_Samples_for_Analysis']),
-			total_number_of_samples = self.int_or_null(row['Total_Number_of_Samples']),
 			arrival_method = row['Arrival_Method'],
 			tracking_number = row['Tracking_Number'],
 			arrival_notes = row['Arrival_Notes'],
 			shipment_notes = row['Shipment_Notes'],
 			storage_location_note = row['Storage_Location_Note'],
-			special_packaging_location = row['Special_Packaging_Location'],
-			documents_in_package = row['Documents_In_Package'],
-			agreement_permits = row['Agreement_Permits'],
 			agreement_permit_location = row['Agreement_Permit_Location'],
-			supplementary_information = row['Supplementary_Information'],
 			supplementary_information_location = row['Supplementary_Information_Location'],
 			creation_timestamp = self.pandas_timestamp_todb(row['CreationTimestamp']),
 			created_by = row['CreatedBy'],
@@ -209,6 +204,7 @@ class Command(BaseCommand):
 			individual_id = row['Individual_ID'],
 			skeletal_element = row['Skeletal_Element'],
 			skeletal_code = row['Skeletal_Code'],
+			skeletal_code_renamed = row['Skeletal_Code_Renamed'],
 			sample_date = row['Sample_Date'],
 			average_bp_date = self.float_or_null(row['Average_BP_Date']),
 			date_fix_flag = row['Date_Fix_Flag'],
@@ -225,8 +221,6 @@ class Command(BaseCommand):
 			morphological_age_range = row['Morphological_Age_Range'],
 			loan_expiration_date = self.pandas_timestamp_todb_date(row['Loan_Expiration_Date']),
 			radiocarbon_dating_status = row['Radiocarbon_Dating_Status'],
-			publication = row['Publication'],
-			find = row['Find'],
 			
 			creation_timestamp = self.pandas_timestamp_todb(row['CreationTimestamp']),
 			created_by = row['CreatedBy'],
@@ -271,12 +265,20 @@ class Command(BaseCommand):
 			modified_by = row['ModifiedBy']
 		)
 		
-	def lysate(self, row):		
+	def lysate(self, row):
+		try:
+			extract_batch_id_foreign = ExtractBatch.objects.get(id=int(row['Extract_Batch_ID_fk'][2:]))
+		except (ExtractBatch.DoesNotExist, ValueError) as e:
+			extract_batch_id_foreign = None
 		Lysate.objects.create(
 			lysate_id = row['Lysate_ID_pk'],
+			extract_batch = extract_batch_id_foreign,
 			powder_sample = PowderSample.objects.get(powder_sample_id=row['Powder_Sample_ID_fk']),
 			powder_used_mg = self.float_or_null(row['mg_Powder_Used']),
 			total_volume_produced = self.float_or_null(row['Lysate_Total_Volume_Produced']),
+			position = row['lysate_position'],
+			tube_barcode = row['tube_barcode'],
+			notes = row['Lysate_Note'],
 			
 			creation_timestamp = self.pandas_timestamp_todb(row['CreationTimestamp']),
 			created_by = row['CreatedBy'],
@@ -319,6 +321,7 @@ class Command(BaseCommand):
 			date = self.pandas_timestamp_todb_date(row['Extraction_Date']),
 			robot = row['Extraction_Robot'],
 			note = row['Extraction_Note'],
+			plate_storage = row['Plate_Storage'],
 
 			creation_timestamp = self.pandas_timestamp_todb(row['CreationTimestamp']),
 			created_by = row['CreatedBy'],
@@ -343,6 +346,7 @@ class Command(BaseCommand):
 			lysis_volume_extracted = self.float_or_null(row['Lysis_Volume_Extracted']),
 			extract_volume_remaining = self.float_or_null(row['Extract_Volume_Remaining']),
 			notes = row['Extraction_Note'],
+			storage_location = row['Storage_Location'],
 			
 			creation_timestamp = self.pandas_timestamp_todb(row['CreationTimestamp']),
 			created_by = row['CreatedBy'],
@@ -357,7 +361,6 @@ class Command(BaseCommand):
 			ul_extract_used = self.float_or_null(row['uL_Extract_Used']),
 			alt_category = row['Alt_Category'], 
 			notes = row['Library_Notes'],
-			find = row['Find'],
 			
 			creation_timestamp = self.pandas_timestamp_todb(row['CreationTimestamp']),
 			created_by = row['CreatedBy'],
@@ -576,6 +579,7 @@ class Command(BaseCommand):
 			item_description = row['Item_Description'],
 			number_of_samples = self.int_or_null(row['Number_of_Samples']),
 			total_charge = Decimal('{:.2f}'.format(float(row['Total_Charge']))),
+			note = row['Note'],
 
 			creation_timestamp = self.pandas_timestamp_todb(row['CreationTimestamp']),
 			created_by = row['CreatedBy'],
@@ -618,7 +622,6 @@ class Command(BaseCommand):
 			lab_code = row['Lab_Code'],
 			payment_lab = row['Payment_Lab'],
 			invoice = invoice_foreign,
-			find = row['Find'],
 			
 			creation_timestamp = self.pandas_timestamp_todb(row['CreationTimestamp']),
 			created_by = row['CreatedBy'],
