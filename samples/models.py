@@ -27,14 +27,12 @@ class Timestamped(models.Model):
 class Shipment(Timestamped):
 	text_id = models.CharField(max_length=30, db_index=True, unique=True)
 	arrival_date = models.DateField(null=True)
-	number_of_samples_for_analysis = models.PositiveSmallIntegerField(null=True)
 	arrival_method = models.CharField(max_length=255)
 	tracking_number = models.CharField(max_length=30)
 	arrival_notes = models.TextField()
 	shipment_notes = models.TextField()
-	storage_location_note = models.TextField()
-	agreement_permit_location = models.TextField()
-	supplementary_information_location = models.TextField()
+	documents_location = models.TextField()
+	additional_information_location = models.TextField()
 	
 class Collaborator(Timestamped):
 	first_name = models.CharField(max_length=30, db_index=True)
@@ -64,7 +62,7 @@ class Collaborator(Timestamped):
 	notes = models.TextField(help_text='Additional information about collaborator')
 	
 	primary_collaborator = models.BooleanField(null=True, db_index=True, help_text='Is this person a Primary Collaborator? This field is used select collaborators for Harvard office of Academic Reasearch Integrity approval')
-	harvard_ari_approval = models.BooleanField(db_index=True, help_text='Has the Harvard office of Academic Research Integrity cleared this collaborator?')
+	ora_approval = models.BooleanField(db_index=True, help_text='Has the Harvard office of Academic Research Integrity cleared this collaborator?')
 	
 class Return(Timestamped):
 	collaborator = models.ForeignKey(Collaborator, on_delete=models.PROTECT)
@@ -72,7 +70,6 @@ class Return(Timestamped):
 	return_method = models.CharField(max_length=50)
 	tracking_number = models.CharField(max_length=30, blank=True)
 	courier_delivery_date = models.DateField(null=True)
-	recipient_delivery_confirmation = models.TextField(blank=True)
 	return_notes = models.TextField(blank=True)
 	
 
@@ -87,13 +84,13 @@ class Sample(Timestamped):
 
 	individual_id = models.CharField(max_length=15, blank=True)
 	
-	skeletal_element = models.CharField(max_length=30, blank=True, help_text='Type of bone sample submitted for aDNA analysis')
+	skeletal_element = models.CharField(max_length=50, blank=True, help_text='Type of bone sample submitted for aDNA analysis')
 	skeletal_code = models.CharField(max_length=150, blank=True, help_text='Sample identification code assigned by the collaborator')
-	skeletal_code_renamed = models.CharField(max_length=150, blank=True, help_text='Sample identification code assigned by the Reich Lab')
+	skeletal_code_renamed = models.TextField(blank=True, help_text='Sample identification code assigned by the Reich Lab')
 	sample_date = models.CharField(max_length=550, blank=True, help_text='Age of sample; either a radiocarbon date or a date interval.')
 	average_bp_date = models.FloatField(null=True, help_text='Average Before Present date, calculated from average of calibrated date range after conversion to BP dates')
 	date_fix_flag = models.CharField(max_length=75, help_text='Flag for any issues with the date information submitted by the collaborator', blank=True)
-	population_label = models.CharField(max_length=100, blank=True, help_text='Country_Culture_Period of Individual')
+	group_label = models.CharField(max_length=100, blank=True, help_text='Country_Culture_Period of Individual')
 	locality = models.CharField(max_length=150, blank=True, help_text='Location where skeletal remains were found')
 	country = models.CharField(max_length=30, blank=True, help_text='Country where skeletal remains were found')
 	latitude = models.CharField(max_length=20, blank=True, help_text='Latitude where skeletal remains were found') # TODO convert to spatial
@@ -105,7 +102,7 @@ class Sample(Timestamped):
 	morphological_age = models.CharField(max_length=25, blank=True, help_text='Age as determined by skeletal remains: adult, child, infant, etc.') # TODO enumerated?
 	morphological_age_range = models.CharField(max_length=15, blank=True, help_text='Age range in years as determined by skeletal remains') # TODO map to interval 
 	loan_expiration_date = models.DateField(null=True, help_text='Date by which samples need to be returned to collaborator')
-	radiocarbon_dating_status = models.CharField(max_length=120, blank=True, help_text="David Reich's radiocarbon dating status as noted in his anno file") # TODO enumerate?
+	dating_status = models.TextField(blank=True, help_text="David Reich's radiocarbon dating status as noted in his anno file") # TODO enumerate?
 	
 	class Meta:
 		unique_together = ['reich_lab_id', 'control']
@@ -132,7 +129,7 @@ class ExtractionProtocol(Timestamped):
 	manual_robotic = models.CharField(max_length=20, blank=True)
 	total_lysis_volume = models.FloatField(null=True)
 	lysate_fraction_extracted = models.FloatField(null=True)
-	final_extract_volume_produced = models.FloatField(null=True)
+	final_extract_volume = models.FloatField(null=True)
 	binding_buffer = models.CharField(max_length=20, blank=True)
 	reference_abbreviation = models.CharField(max_length=50, blank=True)
 	publication_summary = models.TextField(blank=True)
@@ -144,16 +141,16 @@ class ExtractBatch(Timestamped):
 	date = models.DateField(null=True)
 	robot = models.CharField(max_length=20, blank=True)
 	note = models.TextField(blank=True)
-	plate_storage = models.CharField(max_length=50, blank=True)
 
 class Lysate(Timestamped):
 	lysate_id = models.CharField(max_length=15, unique=True, null=False, db_index=True)
-	powder_sample = models.ForeignKey(PowderSample, on_delete=models.PROTECT)
-	extract_batch = models.ForeignKey(ExtractBatch, on_delete=models.PROTECT)
+	powder_sample = models.ForeignKey(PowderSample, null=True, on_delete=models.PROTECT)
 	powder_used_mg = models.FloatField(null=True, help_text='milligrams of bone powder used in lysis')
 	total_volume_produced = models.FloatField(null=True, help_text='Total microliters of lysate produced')
+	
+	plate_id = models.CharField(max_length=12, blank=True)
 	position = models.CharField(max_length=3, blank=True, help_text='Position on plate')
-	tube_barcode = models.CharField(max_length=10, blank=True, help_text='Physical barcode on tube')
+	barcode = models.CharField(max_length=12, blank=True, help_text='Physical barcode on tube')
 	notes = models.TextField(blank=True)
 	
 class Extract(Timestamped):
@@ -161,9 +158,9 @@ class Extract(Timestamped):
 	lysate_id = models.ForeignKey(Lysate, on_delete=models.PROTECT, null=True)
 	extract_batch_id = models.ForeignKey(ExtractBatch, null=True, on_delete=models.PROTECT)
 	lysis_volume_extracted = models.FloatField(null=True)
-	extract_volume_remaining = models.FloatField(null=True)
+	#extract_volume_remaining = models.FloatField(null=True)
 	notes = models.TextField(blank=True)
-	storage_location = models.CharField(max_length=50, blank=True)
+	storage_location = models.TextField(blank=True)
 	
 class Library(Timestamped):
 	reich_lab_library_id = models.CharField(max_length=20, unique=True, db_index=True)
@@ -172,6 +169,7 @@ class Library(Timestamped):
 	# mg_equivalent_powder_used
 	alt_category = models.CharField(max_length=20, blank=True)
 	notes = models.TextField(blank=True)
+	assessment = models.TextField(help_text='Xcontam listed if |Z|>2 standard errors from zero: 0.02-0.05="QUESTIONABLE", >0.05="QUESTIONABLE_CRITICAL" or "FAIL") (mtcontam 97.5th percentile estimates listed if coverage >2: <0.8 is "QUESTIONABLE_CRITICAL", 0.8-0.95 is "QUESTIONABLE", and 0.95-0.98 is recorded but "PASS", gets overriden by ANGSD')
 	
 class LibraryProtocol(Timestamped):
 	name = models.CharField(max_length=50, unique=True)
@@ -331,6 +329,21 @@ class Results(Timestamped):
 	shotgun_pool = models.ForeignKey(ShotgunPool, null=True, on_delete=models.SET_NULL)
 	shotgun_seq_run = models.ForeignKey(ShotgunSequencingRun, null=True, on_delete=models.SET_NULL)
 	nuclear_capture_plate = models.ForeignKey(NuclearCapturePlate, null=True, on_delete=models.SET_NULL)
-	nulcear_seq_run = models.ForeignKey(NuclearSequencingRun, null=True, on_delete=models.SET_NULL)
+	nuclear_seq_run = models.ForeignKey(NuclearSequencingRun, null=True, on_delete=models.SET_NULL)
 	extract_control = models.ForeignKey(ControlsExtract, null=True, on_delete=models.SET_NULL)
 	library_control = models.ForeignKey(ControlsLibrary, null=True, on_delete=models.SET_NULL)
+
+# David Reich's anno file is a series of instances
+class Instance(Timestamped):
+	instance_id = models.CharField(max_length=40, db_index=True)
+	master_id = models.CharField(max_length=40, db_index=True)
+	reich_lab_id = models.PositiveIntegerField(db_index=True, null=True, help_text='Lowest Reich Lab sample ID for this individual')
+	
+	library_ids = models.ManyToManyField(Library) # this is implicitly a list of samples as well
+	published_year = models.PositiveSmallIntegerField(null=True)
+	publication = models.CharField(max_length=50, blank=True)
+	group_id = models.CharField(max_length=120)
+	
+	data_type = models.CharField(max_length=20) # TODO enumerate this 1240k, shotgun, BigYoruba, etc.
+	family = models.TextField(blank=True, help_text='family id and position within family')
+	assessment = models.TextField(help_text='Xcontam listed if |Z|>2 standard errors from zero: 0.02-0.05="QUESTIONABLE", >0.05="QUESTIONABLE_CRITICAL" or "FAIL") (mtcontam 97.5th percentile estimates listed if coverage >2: <0.8 is "QUESTIONABLE_CRITICAL", 0.8-0.95 is "QUESTIONABLE", and 0.95-0.98 is recorded but "PASS", gets overriden by ANGSD')

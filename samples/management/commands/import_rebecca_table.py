@@ -103,14 +103,12 @@ class Command(BaseCommand):
 		Shipment.objects.create(
 			text_id = row['Shipment_ID_pk'],
 			arrival_date = self.pandas_timestamp_todb_date(row['Arrival_Date']),
-			number_of_samples_for_analysis = self.int_or_null(row['Number_of_Samples_for_Analysis']),
 			arrival_method = row['Arrival_Method'],
 			tracking_number = row['Tracking_Number'],
 			arrival_notes = row['Arrival_Notes'],
 			shipment_notes = row['Shipment_Notes'],
-			storage_location_note = row['Storage_Location_Note'],
-			agreement_permit_location = row['Agreement_Permit_Location'],
-			supplementary_information_location = row['Supplementary_Information_Location'],
+			documents_location = row['Agreement_Permit_Location'],
+			additional_information_location = row['Supplementary_Information_Location'],
 			creation_timestamp = self.pandas_timestamp_todb(row['CreationTimestamp']),
 			created_by = row['CreatedBy'],
 			modification_timestamp = self.pandas_timestamp_todb(row['ModificationTimestamp']),
@@ -146,7 +144,7 @@ class Command(BaseCommand):
 			research_gate_academia = row['ResearchGate_Academia'],
 			notes = row['Collaborator_Notes'],
 			primary_collaborator = bool(row.get('Primary_Collaborator', False)),
-			harvard_ari_approval = bool(row.get('Harvard_ARI_Approval', False)),
+			ora_approval = bool(row.get('Harvard_ARI_Approval', False)),
 			creation_timestamp = self.pandas_timestamp_todb(row['CreationTimestamp']),
 			created_by = row['CreatedBy'],
 			modification_timestamp = self.pandas_timestamp_todb(row['ModificationTimestamp']),
@@ -161,7 +159,6 @@ class Command(BaseCommand):
 			return_method = row['Return_Method'],
 			tracking_number = row['Tracking_Number'],
 			courier_delivery_date = self.pandas_timestamp_todb_date(row['Courier_Delivery_Date']),
-			recipient_delivery_confirmation = row['Recipient_Delivery_Confirmation'],
 			return_notes = row['Return_Notes'],
 
 			creation_timestamp = self.pandas_timestamp_todb(row['CreationTimestamp']),
@@ -208,7 +205,7 @@ class Command(BaseCommand):
 			sample_date = row['Sample_Date'],
 			average_bp_date = self.float_or_null(row['Average_BP_Date']),
 			date_fix_flag = row['Date_Fix_Flag'],
-			population_label = row['Population_Label'],
+			group_label = row['Population_Label'],
 			locality = row['Locality'],
 			country = row['Country'],
 			latitude = row['Latitude'],
@@ -220,7 +217,7 @@ class Command(BaseCommand):
 			morphological_age = row['Morphological_Age'],
 			morphological_age_range = row['Morphological_Age_Range'],
 			loan_expiration_date = self.pandas_timestamp_todb_date(row['Loan_Expiration_Date']),
-			radiocarbon_dating_status = row['Radiocarbon_Dating_Status'],
+			dating_status = row['Radiocarbon_Dating_Status'],
 			
 			creation_timestamp = self.pandas_timestamp_todb(row['CreationTimestamp']),
 			created_by = row['CreatedBy'],
@@ -267,18 +264,18 @@ class Command(BaseCommand):
 		
 	def lysate(self, row):
 		try:
-			extract_batch_id_foreign = ExtractBatch.objects.get(id=int(row['Extract_Batch_ID_fk'][2:]))
-		except (ExtractBatch.DoesNotExist, ValueError) as e:
-			extract_batch_id_foreign = None
+			powder_sample_id_foreign = PowderSample.objects.get(powder_sample_id=row['Powder_Sample_ID_fk'])
+		except (PowderSample.DoesNotExist, ValueError) as e:
+			powder_sample_id_foreign = None
 		Lysate.objects.create(
 			lysate_id = row['Lysate_ID_pk'],
-			extract_batch = extract_batch_id_foreign,
-			powder_sample = PowderSample.objects.get(powder_sample_id=row['Powder_Sample_ID_fk']),
+			powder_sample = powder_sample_id_foreign,
 			powder_used_mg = self.float_or_null(row['mg_Powder_Used']),
 			total_volume_produced = self.float_or_null(row['Lysate_Total_Volume_Produced']),
-			position = row['lysate_position'],
-			tube_barcode = row['tube_barcode'],
-			notes = row['Lysate_Note'],
+			plate_id= row['PlateID'],
+			position = row['Position'],
+			barcode = row['Barcode'],
+			notes = row['Lysis_Note'],
 			
 			creation_timestamp = self.pandas_timestamp_todb(row['CreationTimestamp']),
 			created_by = row['CreatedBy'],
@@ -296,7 +293,7 @@ class Command(BaseCommand):
 			manual_robotic = row['Manual_Robotic'],
 			total_lysis_volume = self.float_or_null(row['Total_Lysis_Volume']),
 			lysate_fraction_extracted = self.float_or_null(row['Lysaste_Fraction_Extracted']),
-			final_extract_volume_produced = self.float_or_null(row['Final_Extract_Volume_Produced']),
+			final_extract_volume = self.float_or_null(row['Final_Extract_Volume_Produced']),
 			binding_buffer = row['Binding_Buffer'],
 			reference_abbreviation = row['Ext_Method_Ref_Abbrev'],
 			publication_summary = row['Extraction_Protocol_Pub_Summary'],
@@ -321,7 +318,6 @@ class Command(BaseCommand):
 			date = self.pandas_timestamp_todb_date(row['Extraction_Date']),
 			robot = row['Extraction_Robot'],
 			note = row['Extraction_Note'],
-			plate_storage = row['Plate_Storage'],
 
 			creation_timestamp = self.pandas_timestamp_todb(row['CreationTimestamp']),
 			created_by = row['CreatedBy'],
@@ -344,9 +340,9 @@ class Command(BaseCommand):
 			lysate_id = lysate_id_foreign,
 			extract_batch_id = extract_batch_id_foreign,
 			lysis_volume_extracted = self.float_or_null(row['Lysis_Volume_Extracted']),
-			extract_volume_remaining = self.float_or_null(row['Extract_Volume_Remaining']),
+			#extract_volume_remaining = self.float_or_null(row['Extract_Volume_Remaining']),
 			notes = row['Extraction_Note'],
-			storage_location = row['Storage_Location'],
+			storage_location = row['Extract_Storage_Location'],
 			
 			creation_timestamp = self.pandas_timestamp_todb(row['CreationTimestamp']),
 			created_by = row['CreatedBy'],
@@ -579,7 +575,7 @@ class Command(BaseCommand):
 			item_description = row['Item_Description'],
 			number_of_samples = self.int_or_null(row['Number_of_Samples']),
 			total_charge = Decimal('{:.2f}'.format(float(row['Total_Charge']))),
-			note = row['Note'],
+			note = row['Billing_Note'],
 
 			creation_timestamp = self.pandas_timestamp_todb(row['CreationTimestamp']),
 			created_by = row['CreatedBy'],
@@ -712,7 +708,7 @@ class Command(BaseCommand):
 			shotgun_pool = shotgun_pool_foreign,
 			shotgun_seq_run = shotgun_seq_run_foreign,
 			nuclear_capture_plate = nuclear_capture_plate_foreign,
-			nulcear_seq_run = nuclear_seq_run_foreign,
+			nuclear_seq_run = nuclear_seq_run_foreign,
 			extract_control = extract_control_foreign,
 			library_control = library_control_foreign,
 			creation_timestamp = self.pandas_timestamp_todb(row['CreationTimestamp']),
@@ -777,7 +773,7 @@ class Command(BaseCommand):
 				sequences_passing_filters = self.int_or_null(row['Shotgun_Sequences_Passing_Filters']),
 				reads_mapped_hg19 = self.int_or_null(row['Shotgun_Reads_Mapped_HG19']),
 				mean_median_sequence_length = self.float_or_null(row['Shotgun_Mean_Median_Seq_Length']),
-				percent_hg19 = self.float_or_null(row['Shotgun_Percent_HG19']),
+				fraction_hg19 = self.float_or_null(row['Shotgun_Percent_HG19']),
 				damage_rate = self.float_or_null(row['Shotgun_Damage_Rate']),
 				fraction_hg19_hit_mtdna = self.float_or_null(row['Shotgun_Fraction_HG19_Hit_mtDNA']),
 				
@@ -825,7 +821,7 @@ class Command(BaseCommand):
 				assessment = row['Assessment'],
 				version_release = row['Version_Release'],
 				results_note = row['Results_Note'],
-				find = row['Find'],
+				#find = row['Find'],
 				
 				creation_timestamp = self.pandas_timestamp_todb(row['CreationTimestamp']),
 				created_by = row['CreatedBy'],

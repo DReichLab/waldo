@@ -127,7 +127,11 @@ class DemultiplexedSequencing(models.Model):
 	reference = models.CharField(max_length=30)
 	path = models.CharField(max_length=300)
 	library = models.ManyToManyField(ReleasedLibrary) # this needs to be many-to-many to support versions
-	
+
+class AnalysisFiles(Timestamped):
+	mt_bam = models.CharField(max_length=300, blank=True)
+	mt_fasta = models.CharField(max_length=300, blank=True)
+	nuclear_bam = models.CharField(max_length=300, blank=True)
 
 class MTAnalysis(Timestamped):
 	parent = models.ForeignKey(Results, on_delete=models.CASCADE)
@@ -164,7 +168,7 @@ class ShotgunAnalysis(Timestamped):
 	sequences_passing_filters = models.BigIntegerField(null=True)
 	reads_mapped_hg19 = models.BigIntegerField(null=True)
 	mean_median_sequence_length = models.FloatField(null=True)
-	percent_hg19 = models.FloatField(null=True)
+	fraction_hg19 = models.FloatField(null=True)
 	damage_rate = models.FloatField(null=True)
 	fraction_hg19_hit_mtdna = models.FloatField(null=True)
 	
