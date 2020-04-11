@@ -129,9 +129,19 @@ class DemultiplexedSequencing(models.Model):
 	library = models.ManyToManyField(ReleasedLibrary) # this needs to be many-to-many to support versions
 
 class AnalysisFiles(Timestamped):
+	parent = models.ForeignKey(Results, on_delete=models.CASCADE, null=True)
+	bioinfo_processing_protocol = models.CharField(max_length=20, blank=True)
 	mt_bam = models.CharField(max_length=300, blank=True)
 	mt_fasta = models.CharField(max_length=300, blank=True)
 	nuclear_bam = models.CharField(max_length=300, blank=True)
+	shotgun_bam = models.CharField(max_length=300, blank=True)
+	
+	pulldown_logfile_location = models.CharField(max_length=300, blank=True)
+	pulldown_1st_column_nickdb = models.CharField(max_length=50, blank=True)
+	pulldown_2nd_column_nickdb_alt_sample = models.CharField(max_length=50, blank=True)
+	pulldown_3rd_column_nickdb_bam = models.CharField(max_length=200, blank=True)
+	pulldown_4th_column_nickdb_hetfa = models.CharField(max_length=100, blank=True)
+	pulldown_5th_column_nickdb_readgroup_diploid_source = models.TextField(blank=True)
 
 class MTAnalysis(Timestamped):
 	parent = models.ForeignKey(Results, on_delete=models.CASCADE)
@@ -202,7 +212,8 @@ class NuclearAnalysis(Timestamped):
 	angsd_snps = models.IntegerField(null=True)
 	angsd_mean = models.FloatField(null=True)
 	angsd_z = models.FloatField(null=True)
-	assessment = models.CharField(max_length=350)
+	assessment = models.TextField()
 	version_release = models.CharField(max_length=20)
 	results_note = models.TextField()
 	find = models.TextField()
+	damage_restricted = models.BooleanField(default=False)
