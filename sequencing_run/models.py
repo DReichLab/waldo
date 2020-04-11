@@ -129,7 +129,7 @@ class DemultiplexedSequencing(models.Model):
 	library = models.ManyToManyField(ReleasedLibrary) # this needs to be many-to-many to support versions
 
 class AnalysisFiles(Timestamped):
-	parent = models.ForeignKey(Results, on_delete=models.CASCADE, null=True)
+	parent = models.ForeignKey(Results, on_delete=models.CASCADE)
 	bioinfo_processing_protocol = models.CharField(max_length=20, blank=True)
 	mt_bam = models.CharField(max_length=300, blank=True)
 	mt_fasta = models.CharField(max_length=300, blank=True)
@@ -185,12 +185,6 @@ class ShotgunAnalysis(Timestamped):
 class NuclearAnalysis(Timestamped):
 	parent = models.ForeignKey(Results, on_delete=models.CASCADE)
 	bioinfo_processing_protocol = models.CharField(max_length=20)
-	pulldown_logfile_location = models.CharField(max_length=300)
-	pulldown_1st_column_nickdb = models.CharField(max_length=50)
-	pulldown_2nd_column_nickdb_alt_sample = models.CharField(max_length=50)
-	pulldown_3rd_column_nickdb_bam = models.CharField(max_length=200)
-	pulldown_4th_column_nickdb_hetfa = models.CharField(max_length=100)
-	pulldown_5th_column_nickdb_readgroup_diploid_source = models.TextField()
 	seq_run_file_name = models.CharField(max_length=150) # TODO no idea what this is
 	track_id_report_file = models.CharField(max_length=160)
 	raw_reads_or_deindexing = models.BigIntegerField()
