@@ -145,7 +145,7 @@ class AnalysisFiles(Timestamped):
 
 class MTAnalysis(Timestamped):
 	parent = models.ForeignKey(Results, on_delete=models.CASCADE)
-	demultiplexing_sequences = models.BigIntegerField()
+	demultiplexing_sequences = models.BigIntegerField(null=True)
 	sequences_passing_filters = models.BigIntegerField(null=True)
 	sequences_aligning = models.BigIntegerField(null=True)
 	sequences_aligning_post_dedup = models.BigIntegerField(null=True)
@@ -161,7 +161,7 @@ class MTAnalysis(Timestamped):
 	
 class SpikeAnalysis(Timestamped):
 	parent = models.ForeignKey(Results, on_delete=models.CASCADE)
-	bioinfo_processing_protocol = models.CharField(max_length=50)
+	bioinfo_processing_protocol = models.CharField(max_length=50, blank=True)
 	spike_track_id = models.CharField(max_length=150, blank=True)
 	spike_pre_aut = models.IntegerField(null=True)
 	spike_post_aut = models.IntegerField(null=True)
@@ -172,9 +172,9 @@ class SpikeAnalysis(Timestamped):
 
 class ShotgunAnalysis(Timestamped):
 	parent = models.ForeignKey(Results, on_delete=models.CASCADE)
-	bioinfo_processing_protocol = models.CharField(max_length=50)
-	track_id = models.CharField(max_length=150)
-	raw_sequences = models.BigIntegerField()
+	bioinfo_processing_protocol = models.CharField(max_length=50, blank=True)
+	track_id = models.CharField(max_length=150, blank=True)
+	raw_sequences = models.BigIntegerField(null=True)
 	sequences_passing_filters = models.BigIntegerField(null=True)
 	reads_mapped_hg19 = models.BigIntegerField(null=True)
 	mean_median_sequence_length = models.FloatField(null=True)
@@ -184,10 +184,10 @@ class ShotgunAnalysis(Timestamped):
 	
 class NuclearAnalysis(Timestamped):
 	parent = models.ForeignKey(Results, on_delete=models.CASCADE)
-	bioinfo_processing_protocol = models.CharField(max_length=20)
-	seq_run_file_name = models.CharField(max_length=150) # TODO no idea what this is
-	track_id_report_file = models.CharField(max_length=160)
-	raw_reads_or_deindexing = models.BigIntegerField()
+	bioinfo_processing_protocol = models.CharField(max_length=20, blank=True)
+	seq_run_file_name = models.CharField(max_length=150, blank=True) # TODO no idea what this is
+	track_id_report_file = models.CharField(max_length=160, blank=True)
+	raw_reads_or_deindexing = models.BigIntegerField(null=True)
 	sequences_merge_pass_barcode = models.BigIntegerField(null=True)
 	target_sequences_pass_qc_predup = models.BigIntegerField(null=True)
 	target_sequences_pass_qc_postdedup = models.BigIntegerField(null=True)
@@ -206,8 +206,8 @@ class NuclearAnalysis(Timestamped):
 	angsd_snps = models.IntegerField(null=True)
 	angsd_mean = models.FloatField(null=True)
 	angsd_z = models.FloatField(null=True)
-	assessment = models.TextField()
+	assessment = models.TextField(blank=True)
 	version_release = models.CharField(max_length=20)
-	results_note = models.TextField()
-	find = models.TextField()
+	results_note = models.TextField(blank=True)
+	find = models.TextField(blank=True)
 	damage_restricted = models.BooleanField(default=False)
