@@ -200,7 +200,8 @@ def load_pipeline_report(report_filename, desired_experiment, release_label, seq
 # load the contents of Nick's pulldown stdout files for
 # mean depth (coverage)
 # coverage (number of SNPs hit)
-def load_pulldown_stdout(pulldown_stdout, release_label):
+# Pulldown stdout does not contain _d identifiers. We rewrite these when merging.
+def load_pulldown_stdout(pulldown_stdout, release_label, sequencing_run_name, damage_restricted):
 	with open(pulldown_stdout) as f:
 		for line in f:
 			if 'mean depth' in line:
@@ -212,13 +213,15 @@ def load_pulldown_stdout(pulldown_stdout, release_label):
 				coverage = float(fields[4])
 				snps_hit = int(fields[6])
 				
-				nuclear = NuclearAnalysis.objects.get(parent__library_id = library_id, version_release = release_label)
+				results = Results.objects.get(library_id__exact=library_id, nuclear_seq_run__name__iexact=sequencing_run_name)
+				
+				nuclear, nuclear_created = NuclearAnalysis.objects.get_or_create(parent = results, version_release = release_label, damage_restricted = damage_restricted)
 				
 				nuclear.unique_snps_hit = snps_hit
-				set_timestamps(nuclear, False, timezone.now())
+				set_timestamps(nuclear, nuclear_created, timezone.now())
 				nuclear.save()
 				
-				analysis_files, analysis_files_created = AnalysisFiles.objects.get_or_create(parent = nuclear.parent)
+				analysis_files, analysis_files_created = AnalysisFiles.objects.get_or_create(parent = results)
 				analysis_files.bioinfo_processing_protocol = bioinfo_processing_protocol
 				# these are from pulldown, not report
 				analysis_files.pulldown_logfile_location = Path(pulldown_stdout).resolve()
@@ -232,7 +235,7 @@ def load_pulldown_stdout(pulldown_stdout, release_label):
 # load bam location and read groups from pulldown dblist file
 # dblist does not contain _d damage restricted library ids
 # fields saved from the dblist are independent of damage restriction
-def load_pulldown_dblist(dblist, release_label):
+def load_pulldown_dblist(dblist, release_label, sequencing_run_name):
 	with open(dblist) as f:
 		for line in f:
 			fields = line.split()
@@ -242,8 +245,9 @@ def load_pulldown_dblist(dblist, release_label):
 			bam_path = fields[2]
 			read_groups = fields[3]
 			
-			nuclear = NuclearAnalysis.objects.get(parent__library_id = library_id, version_release = release_label)
-			analysis_files, analysis_files_created = AnalysisFiles.objects.get_or_create(parent = nuclear.parent)
+			results = Results.objects.get(library_id__exact=library_id, nuclear_seq_run__name__iexact=sequencing_run_name)
+			
+			analysis_files, analysis_files_created = AnalysisFiles.objects.get_or_create(parent = results)
 			
 			# TODO should be a more robust way of loading other paths
 			analysis_files.mt_bam = bam_path.replace('hg19', 'rsrs') 
