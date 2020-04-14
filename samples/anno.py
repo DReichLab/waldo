@@ -45,6 +45,14 @@ def get_number(obj, field_name, decimal_digits=3):
 			pass
 	return ''
 
+# append a string to thelist, replacing blanks with '..'
+EMPTY = '..'
+def mod_append(thelist, string):
+	if string != '':
+		thelist.append(string)
+	else:
+		thelist.append(EMPTY)
+
 # this library id may contain _d damage-restriction indicator
 def library_anno_line(library_id_raw, sequencing_run_name, release_label):
 	#print(library_id_raw, file=sys.stderr)
@@ -63,45 +71,45 @@ def library_anno_line(library_id_raw, sequencing_run_name, release_label):
 	fields = []
 	
 	#Instance ID ("_all" means includes a mix of UDG-treated and non-UDG-treated; "_published" distinguishes a published sample for a still-unpublished higher quality version)
-	fields.append(instance_id)
+	mod_append(fields, instance_id)
 	
 	#Master ID
 	master_id = '' #TODO
-	fields.append(master_id)
+	mod_append(fields, master_id)
 	
 	#Skeletal code
-	#fields.append(get_text(sample, 'skeletal_code_renamed'))
-	fields.append(get_text(sample, 'skeletal_code'))
+	#mod_append(fields, get_text(sample, 'skeletal_code_renamed'))
+	mod_append(fields, get_text(sample, 'skeletal_code'))
 	#Skeletal element
-	fields.append(get_text(sample, 'skeletal_element'))
+	mod_append(fields, get_text(sample, 'skeletal_element'))
 	#Year this sample was first published [missing: GreenScience 2010 (Vi33.15, Vi33.26), Olalde2018 (I2657), RasmussenNature2010 (Australian)]
 	published_year = ''
-	fields.append(str(published_year))
+	mod_append(fields, str(published_year))
 	#Publication
 	publication = ''
-	fields.append(publication)
+	mod_append(fields, publication)
 	#Representative contact
-	fields.append(get_text(sample, 'collaborators'))
+	mod_append(fields, get_text(sample, 'collaborators'))
 	#Completeness of Date Information
-	fields.append(get_text(sample, 'date_fix_flag'))
+	mod_append(fields, get_text(sample, 'date_fix_flag'))
 	#Average of 95.4% date range in calBP (defined as 1950 CE)
-	fields.append(get_number(sample, 'average_bp_date', 1))
+	mod_append(fields, get_number(sample, 'average_bp_date', 1))
 	#Date: One of two formats. (Format 1) 95.4% CI calibrated radiocarbon age (Conventional Radiocarbon Age BP, Lab number) e.g. 5983-5747 calBCE (6980±50 BP, Beta-226472). (Format 2) Archaeological context date, e.g. 2500-1700 BCE
-	fields.append(get_text(sample, 'sample_date'))
+	mod_append(fields, get_text(sample, 'sample_date'))
 	#Group_ID (format convention which we try to adhere to is "Country_<Geographic.Region_<Geographic.Subregion_>><Archaeological.Period.Or.DateBP_<Alternative.Archaeological.Period_>><Archaeological.Culture_<Alternative.Archaeological.Culture>><genetic.subgrouping.index.if.necessary_><"o_"sometimes.with.additional.detail.if.an.outlier><additional.suffix.especially.relative.status.if.we.recommend.removing.from.main.analysis.grouping><"contam_".if.contaminated><"lc_".if.<15000.SNPs.on.autosomal.targets><".SG".or.".DG".if.shotgun.data>; HG=hunter-gatherer, N=Neolithic, C=Chalcolithic/CopperAge, BA=BronzeAge, IA=IronAge, E=Early, M=Middle, L=Late, A=Antiquity)
-	fields.append(get_text(sample, 'group_label'))
+	mod_append(fields, get_text(sample, 'group_label'))
 	#Locality
-	fields.append(get_text(sample, 'locality'))
+	mod_append(fields, get_text(sample, 'locality'))
 	#Country
-	fields.append(get_text(sample, 'country'))
+	mod_append(fields, get_text(sample, 'country'))
 	#Lat.
-	fields.append(get_text(sample, 'latitude'))
+	mod_append(fields, get_text(sample, 'latitude'))
 	#Long
-	fields.append(get_text(sample, 'longitude'))
+	mod_append(fields, get_text(sample, 'longitude'))
 	#Data type
-	fields.append('1240K') # TODO
+	mod_append(fields, '1240K') # TODO
 	#No. Libraries
-	fields.append('1') # TODO
+	mod_append(fields, '1') # TODO
 	
 	results = Results.objects.get(library_id__exact = library_id_str, nuclear_seq_run__name__iexact = sequencing_run_name)
 	nuclear = NuclearAnalysis.objects.get(parent = results, version_release = release_label, damage_restricted = damage_restricted)
@@ -115,101 +123,101 @@ def library_anno_line(library_id_raw, sequencing_run_name, release_label):
 		print('{} shotgun not found'.format(library_id_str), file=sys.stderr)
 	
 	#Data: mtDNA bam
-	fields.append(analysis_files.mt_bam)
+	mod_append(fields, analysis_files.mt_bam)
 	#Data: mtDNA fasta
-	fields.append(analysis_files.mt_fasta)
+	mod_append(fields, analysis_files.mt_fasta)
 	#Data: pulldown logfile location
-	fields.append(analysis_files.pulldown_logfile_location)
+	mod_append(fields, analysis_files.pulldown_logfile_location)
 	#Data: pulldown sample ID
-	fields.append(analysis_files.pulldown_1st_column_nickdb)
+	mod_append(fields, analysis_files.pulldown_1st_column_nickdb)
 	#Data: autosomal bam
-	fields.append(analysis_files.nuclear_bam)
+	mod_append(fields, analysis_files.nuclear_bam)
 	#Data: autosomal readgroups or hetfa or ranfa
-	fields.append(analysis_files.pulldown_5th_column_nickdb_readgroup_diploid_source)
+	mod_append(fields, analysis_files.pulldown_5th_column_nickdb_readgroup_diploid_source)
 	#Coverage on autosomal targets
-	fields.append(get_number(nuclear, 'coverage_targeted_positions'))
+	mod_append(fields, get_number(nuclear, 'coverage_targeted_positions'))
 	#SNPs hit on autosomal targets
-	fields.append(get_number(nuclear, 'unique_snps_hit', 0))
+	mod_append(fields, get_number(nuclear, 'unique_snps_hit', 0))
 	#Mean length of shotgun sequences (merged data)
-	fields.append(get_number(shotgun, 'mean_median_sequence_length', 1))
+	mod_append(fields, get_number(shotgun, 'mean_median_sequence_length', 1))
 	#Sex
-	fields.append(nuclear.sex)
+	mod_append(fields, nuclear.sex)
 	#Family ID and position within family
-	fields.append('') # TODO
+	mod_append(fields, '') # TODO
 	#Y chrom. (automatically called only if >50000 autosomal SNPs hit)
-	fields.append('') # TODO
+	mod_append(fields, '') # TODO
 	#mtDNA coverage (merged data)
-	fields.append(get_number(mt, 'coverage'))
+	mod_append(fields, get_number(mt, 'coverage'))
 	#mtDNA haplogroup if ≥2 coverage or published (merged data or consensus if not available)
 	#mtDNA match to consensus if ≥2 coverage (merged data)
 	if mt.coverage >= 2.0:
-		fields.append(get_text(mt, 'haplogroup'))
-		fields.append(get_number(mt, 'consensus_match'))
+		mod_append(fields, get_text(mt, 'haplogroup'))
+		mod_append(fields, get_number(mt, 'consensus_match'))
 	else:
-		fields.append('')
-		fields.append('')
+		mod_append(fields, '')
+		mod_append(fields, '')
 	#Damage rate in first nucleotide on sequences overlapping 1240k targets (merged data)
-	fields.append(get_number(nuclear, 'damage_last_base'))
+	mod_append(fields, get_number(nuclear, 'damage_last_base'))
 	#Sex ratio [Y/(Y+X) counts] (merged data)
 	x_hits = nuclear.x_hits
 	y_hits = nuclear.y_hits
 	try:
 		sex_ratio = y_hits / (x_hits + y_hits)
-		fields.append('{:.3f}'.format(sex_ratio))
+		mod_append(fields, '{:.3f}'.format(sex_ratio))
 	except:
-		fields.append('-1')
+		mod_append(fields, '-1')
 	#Xcontam ANGSD SNPs (only if male and ≥200)
 	#Xcontam ANGSD MOM point estimate (only if male and ≥200)
 	#Xcontam ANGSD MOM Z-score (only if male and ≥200)
 	#Xcontam ANGSD MOM 95% CI truncated at 0 (only if male and ≥200)
 	if nuclear.sex == 'M':
-		fields.append(get_number(nuclear, 'angsd_snps', 0))
+		mod_append(fields, get_number(nuclear, 'angsd_snps', 0))
 		if nuclear.angsd_snps >= 200:
-			fields.append(get_number(nuclear, 'angsd_mean'))
-			fields.append(get_number(nuclear, 'angsd_z'))
+			mod_append(fields, get_number(nuclear, 'angsd_mean'))
+			mod_append(fields, get_number(nuclear, 'angsd_z'))
 			angsd_se = nuclear.angsd_mean / nuclear.angsd_z
 			angsd_min_range = max(0, nuclear.angsd_mean - 1.96 * angsd_se)
 			angsd_max_range = nuclear.angsd_mean + 1.96 * angsd_se
-			fields.append('[{:.3f}, {:.3f}]'.format(angsd_min_range, angsd_max_range)) # confidence interval
+			mod_append(fields, '[{:.3f}, {:.3f}]'.format(angsd_min_range, angsd_max_range)) # confidence interval
 		else:
 			for i in range(3):
-				fields.append('')
+				mod_append(fields, '')
 	else:
 		for i in range(4):
-			fields.append('')
+			mod_append(fields, '')
 	#Library type (minus=no.damage.correction, half=damage.retained.at.last.position, plus=damage.fully.corrected, ss=single.stranded.library.preparation)
 	library_type = Library.objects.get(reich_lab_library_id = library_id_str).udg_treatment
 	if 'ss.half' not in library_type.lower():
 		raise ValueError('Unexpected library type {}'.format(library_type))
-	fields.append(library_type)
+	mod_append(fields, library_type)
 	#LibraryID(s)
-	fields.append('[{}]'.format(library_id_str))
+	mod_append(fields, '[{}]'.format(library_id_str))
 	#endogenous by library (computed on shotgun data)
-	fields.append(get_number(shotgun, 'fraction_hg19', 5))
+	mod_append(fields, get_number(shotgun, 'fraction_hg19', 5))
 	# TODO by library changes (multiple libraries)
 	#1240k coverage (by library)
 	try:
-		fields.append('[{}]'.format(get_number(nuclear, 'coverage_targeted_positions')))
+		mod_append(fields, '[{}]'.format(get_number(nuclear, 'coverage_targeted_positions')))
 	except:
-		fields.append('')
+		mod_append(fields, '')
 	#Damage rate in first nucleotide on sequences overlapping 1240k targets (by library)
-	fields.append('[{}]'.format(get_number(nuclear, 'damage_last_base')))
+	mod_append(fields, '[{}]'.format(get_number(nuclear, 'damage_last_base')))
 	#mtDNA coverage (by library)
-	fields.append('[{}]'.format(get_number(mt, 'coverage')))
+	mod_append(fields, '[{}]'.format(get_number(mt, 'coverage')))
 	#mtDNA haplogroup if ≥2 coverage (by library)
 	#mtDNA match to consensus if ≥2 coverage (by library)
 	if mt.coverage >= 2.0:
-		fields.append('[{}]'.format(mt.haplogroup))
-		fields.append('[{}]'.format(get_number(mt, 'consensus_match')))
+		mod_append(fields, '[{}]'.format(mt.haplogroup))
+		mod_append(fields, '[{}]'.format(get_number(mt, 'consensus_match')))
 	else:
-		fields.append('[]')
-		fields.append('[]')
+		mod_append(fields, '[]')
+		mod_append(fields, '[]')
 	#batch notes (e.g. if a control well looks contaminated)
-	fields.append('') # TODO not yet pulled in from ESS files
+	mod_append(fields, '') # TODO not yet pulled in from ESS files
 	
 	#ASSESSMENT
 	if damage_restricted:
-		fields.append('')
+		mod_append(fields, '')
 	else:
 		assessment_reasons = []
 		assessment_snp = 0
@@ -268,6 +276,6 @@ def library_anno_line(library_id_raw, sequencing_run_name, release_label):
 		
 		assessment_reasons_str = '({})'.format(', '.join(assessment_reasons))
 		assessment_string = '{}{}'.format(assessment_map[assessment_overall], assessment_reasons_str if assessment_overall > 0 else '')
-		fields.append(assessment_string)
+		mod_append(fields, assessment_string)
 	
 	return fields
