@@ -23,7 +23,14 @@ class Command(BaseCommand):
 					library_id_raw = fields[0]
 					sex = fields[1]
 					identifier, library_id = individual_from_library_id(library_id_raw)
-						
-					group_label = Sample.objects.get(reich_lab_id__exact=library_id.sample).group_label
+					
+					try:
+						group_label = Sample.objects.get(reich_lab_id__exact=library_id.sample).group_label
+					except Sample.DoesNotExist as e:
+						# controls do not have sample information
+						# If we are missing a non-control, alert
+						if len(library_id.sample_suffix) == 0:
+							self.stderr.write('{} not found'.format(library_id.sample))
+						group_label = ''
 					
 					self.stdout.write('{}\t{}\t{}'.format(identifier, sex, group_label))
