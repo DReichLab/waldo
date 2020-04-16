@@ -1,6 +1,6 @@
 import re
 import sys
-from samples.models import Library, Sample, Results
+from samples.models import Library, Sample, Results, Collaborator
 from sequencing_run.models import AnalysisFiles, MTAnalysis, ShotgunAnalysis, NuclearAnalysis
 from sequencing_run.library_id import LibraryID
 
@@ -92,7 +92,12 @@ def library_anno_line(library_id_raw, sequencing_run_name, release_label):
 	publication = ''
 	mod_append(fields, publication)
 	#Representative contact
-	mod_append(fields, get_text(sample, 'collaborators'))
+	if(sample is not None and sample.collaborator is not None):
+		first_name = get_text(sample.collaborator, 'first_name')
+		last_name = get_text(sample.collaborator, 'last_name')
+		mod_append(fields, '{}, {}'.format(last_name, first_name))
+	else:
+		mod_append(fields, '')
 	#Completeness of Date Information
 	mod_append(fields, get_text(sample, 'date_fix_flag'))
 	#Average of 95.4% date range in calBP (defined as 1950 CE)
