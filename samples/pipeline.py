@@ -197,6 +197,21 @@ def load_pipeline_report(report_filename, desired_experiment, release_label, seq
 					elif 'Raw' in experiment:
 						load_shotgun_fields(library_id, fields, headers, release_label, sequencing_run_name)
 						
+# diagnostic check for results objects
+def test_results_exist(pulldown_stdout, sequencing_run_name):
+	with open(pulldown_stdout) as f:
+		for line in f:
+			if 'mean depth' in line:
+				fields = line.split()
+				if fields[2] != 'mean' or fields[3] != 'depth:' or fields[5] != 'coverage:' or fields[0] != fields[1]:
+					raise ValueError('Parse problem in pulldown stdout: {}'.format(line))
+				library_id = fields[0]
+				
+				try:
+					results = Results.objects.get(library_id__exact=library_id, nuclear_seq_run__name__iexact=sequencing_run_name)
+				except Results.DoesNotExist as e:
+					print('No Results object for {}'.format(library_id))
+						
 # load the contents of Nick's pulldown stdout files for
 # mean depth (coverage)
 # coverage (number of SNPs hit)

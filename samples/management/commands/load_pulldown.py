@@ -1,5 +1,5 @@
 from django.core.management.base import BaseCommand, CommandError
-from samples.pipeline import load_pulldown_stdout, load_pulldown_dblist
+from samples.pipeline import load_pulldown_stdout, load_pulldown_dblist, test_results_exist
 
 class Command(BaseCommand):
 	help = 'Load a pulldown stdout output and dblist input to database'
@@ -10,6 +10,7 @@ class Command(BaseCommand):
 		parser.add_argument('--dblist', required=True)
 		parser.add_argument('-p', '--pulldown', help='filenames for stdout for normal (non-damage-restricted) pulldowns', nargs='*')
 		parser.add_argument('-d', '--damage_restricted', help='filenames for stdout for damage-restricted pulldowns', nargs='*')
+		parser.add_argument('-t', '--test_only', help='test for results existence only', action='store_true')
 		
 	def handle(self, *args, **options):
 		pulldown = options['pulldown']
@@ -18,8 +19,12 @@ class Command(BaseCommand):
 		sequencing_run_name = options['sequencing_run_name']
 		damage_restricted = options['damage_restricted']
 		
-		for p in pulldown:
-			load_pulldown_stdout(p, release_version_label, sequencing_run_name, False)
-		for p in damage_restricted:
-			load_pulldown_stdout(p, release_version_label, sequencing_run_name, True)
-		load_pulldown_dblist(dblist, release_version_label, sequencing_run_name)
+		if options['test_only']:
+			for p in pulldown:
+				test_results_exist(p, sequencing_run_name)
+		else:
+			for p in pulldown:
+				load_pulldown_stdout(p, release_version_label, sequencing_run_name, False)
+			for p in damage_restricted:
+				load_pulldown_stdout(p, release_version_label, sequencing_run_name, True)
+			load_pulldown_dblist(dblist, release_version_label, sequencing_run_name)
