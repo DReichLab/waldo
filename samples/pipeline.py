@@ -217,14 +217,15 @@ def load_pulldown_stdout(pulldown_stdout, release_label, sequencing_run_name, da
 				
 				nuclear, nuclear_created = NuclearAnalysis.objects.get_or_create(parent = results, version_release = release_label, damage_restricted = damage_restricted)
 				
+				nuclear.coverage_targeted_positions = coverage
 				nuclear.unique_snps_hit = snps_hit
+				nuclear.pulldown_logfile_location = Path(pulldown_stdout).resolve()
 				set_timestamps(nuclear, nuclear_created, timezone.now())
 				nuclear.save()
 				
 				analysis_files, analysis_files_created = AnalysisFiles.objects.get_or_create(parent = results)
 				analysis_files.bioinfo_processing_protocol = bioinfo_processing_protocol
 				# these are from pulldown, not report
-				analysis_files.pulldown_logfile_location = Path(pulldown_stdout).resolve()
 				analysis_files.pulldown_1st_column_nickdb = instance_id
 				#.pulldown_2nd_column_nickdb_alt_sample = 
 				#.pulldown_4th_column_nickdb_hetfa = models.CharField(max_length=100)

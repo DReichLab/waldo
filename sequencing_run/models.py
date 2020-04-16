@@ -136,7 +136,6 @@ class AnalysisFiles(Timestamped):
 	nuclear_bam = models.CharField(max_length=300, blank=True)
 	shotgun_bam = models.CharField(max_length=300, blank=True)
 	
-	pulldown_logfile_location = models.CharField(max_length=300, blank=True)
 	pulldown_1st_column_nickdb = models.CharField(max_length=50, blank=True)
 	pulldown_2nd_column_nickdb_alt_sample = models.CharField(max_length=50, blank=True)
 	pulldown_3rd_column_nickdb_bam = models.CharField(max_length=200, blank=True)

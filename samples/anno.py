@@ -134,7 +134,7 @@ def library_anno_line(library_id_raw, sequencing_run_name, release_label):
 	#Data: mtDNA fasta
 	mod_append(fields, analysis_files.mt_fasta)
 	#Data: pulldown logfile location
-	mod_append(fields, analysis_files.pulldown_logfile_location)
+	mod_append(fields, nuclear.pulldown_logfile_location)
 	#Data: pulldown sample ID
 	mod_append(fields, analysis_files.pulldown_1st_column_nickdb)
 	#Data: autosomal bam
