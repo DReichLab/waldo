@@ -162,15 +162,6 @@ class Extract(Timestamped):
 	notes = models.TextField(blank=True)
 	storage_location = models.TextField(blank=True)
 	
-class Library(Timestamped):
-	reich_lab_library_id = models.CharField(max_length=20, unique=True, db_index=True)
-	udg_treatment = models.CharField(max_length=10)
-	ul_extract_used = models.FloatField(null=True)
-	# mg_equivalent_powder_used
-	alt_category = models.CharField(max_length=20, blank=True)
-	notes = models.TextField(blank=True)
-	assessment = models.TextField(help_text='Xcontam listed if |Z|>2 standard errors from zero: 0.02-0.05="QUESTIONABLE", >0.05="QUESTIONABLE_CRITICAL" or "FAIL") (mtcontam 97.5th percentile estimates listed if coverage >2: <0.8 is "QUESTIONABLE_CRITICAL", 0.8-0.95 is "QUESTIONABLE", and 0.95-0.98 is recorded but "PASS", gets overriden by ANGSD')
-	
 class LibraryProtocol(Timestamped):
 	name = models.CharField(max_length=50, unique=True)
 	start_date = models.DateField(null=True)
@@ -188,6 +179,17 @@ class LibraryBatch(Timestamped):
 	prep_date = models.DateField(null=True)
 	prep_note = models.TextField(blank=True)
 	prep_robot = models.CharField(max_length=20)
+	
+class Library(Timestamped):
+	extract_id = models.ForeignKey(Extract, on_delete=models.PROTECT, null=True)
+	library_batch_id = models.ForeignKey(LibraryBatch, on_delete=models.PROTECT, null=True)
+	reich_lab_library_id = models.CharField(max_length=20, unique=True, db_index=True)
+	udg_treatment = models.CharField(max_length=10)
+	ul_extract_used = models.FloatField(null=True)
+	# mg_equivalent_powder_used
+	alt_category = models.CharField(max_length=20, blank=True)
+	notes = models.TextField(blank=True)
+	assessment = models.TextField(help_text='Xcontam listed if |Z|>2 standard errors from zero: 0.02-0.05="QUESTIONABLE", >0.05="QUESTIONABLE_CRITICAL" or "FAIL") (mtcontam 97.5th percentile estimates listed if coverage >2: <0.8 is "QUESTIONABLE_CRITICAL", 0.8-0.95 is "QUESTIONABLE", and 0.95-0.98 is recorded but "PASS", gets overriden by ANGSD')
 	
 class MTCaptureProtocol(Timestamped):
 	name = models.CharField(max_length=50)
