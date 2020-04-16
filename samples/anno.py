@@ -160,7 +160,7 @@ def library_anno_line(library_id_raw, sequencing_run_name, release_label):
 	mod_append(fields, get_number(mt, 'coverage'))
 	#mtDNA haplogroup if ≥2 coverage or published (merged data or consensus if not available)
 	#mtDNA match to consensus if ≥2 coverage (merged data)
-	if mt is not None and mt.coverage >= 2.0:
+	if mt is not None and mt.coverage is not None and mt.coverage >= 2.0:
 		mod_append(fields, get_text(mt, 'haplogroup'))
 		mod_append(fields, get_text(mt, 'consensus_match_95ci'))
 	else:
@@ -220,7 +220,7 @@ def library_anno_line(library_id_raw, sequencing_run_name, release_label):
 	mod_append(fields, '{}'.format(get_number(mt, 'coverage')))
 	#mtDNA haplogroup if ≥2 coverage (by library)
 	#mtDNA match to consensus if ≥2 coverage (by library)
-	if mt is not None and mt.coverage >= 2.0:
+	if mt is not None and mt.coverage is not None and mt.coverage >= 2.0:
 		mod_append(fields, '{}'.format(mt.haplogroup))
 		#mod_append(fields, '{}'.format(get_number(mt, 'consensus_match')))
 		mod_append(fields, get_text(mt, 'consensus_match_95ci'))
@@ -262,7 +262,7 @@ def library_anno_line(library_id_raw, sequencing_run_name, release_label):
 		# (mtcontam 97.5th percentile estimates listed if coverage >2: <0.8 is "QUESTIONABLE_CRITICAL", 0.8-0.95 is "QUESTIONABLE", and 0.95-0.98 is recorded but "PASS", gets overriden by ANGSD)
 		# TODO separate these lower and upper values so we do not have to reparse interval
 		assessment_contammix = 0
-		if mt.coverage >= 2.0:
+		if mt is not None and mt.coverage is not None and mt.coverage >= 2.0:
 			mtci = mt.consensus_match_95ci
 			mtci_values = [float(v) for v in mtci[mtci.index('[')+1:mtci.index(']')-1].split(',')]
 			mt_ci_upper = mtci_values[1]
