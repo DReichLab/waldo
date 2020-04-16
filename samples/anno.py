@@ -114,13 +114,20 @@ def library_anno_line(library_id_raw, sequencing_run_name, release_label):
 	results = Results.objects.get(library_id__exact = library_id_str, nuclear_seq_run__name__iexact = sequencing_run_name)
 	nuclear = NuclearAnalysis.objects.get(parent = results, version_release = release_label, damage_restricted = damage_restricted)
 	analysis_files = AnalysisFiles.objects.get(parent = results)
-	mt = MTAnalysis.objects.get(parent = results)
+		
+	try:
+		mt = MTAnalysis.objects.get(parent = results, damage_restricted = damage_restricted)
+	except MTAnalysis.DoesNotExist as e:
+		mt = None
+		if not damage-restricted: # when we do damage-restricted analysis, update
+			print('{} MT not found, damage-restricted {}'.format(library_id_str, str(damage_restricted)), file=sys.stderr)
 	
 	try:
-		shotgun = ShotgunAnalysis.objects.get(parent = results)
+		shotgun = ShotgunAnalysis.objects.get(parent = results, damage_restricted = damage_restricted)
 	except ShotgunAnalysis.DoesNotExist as e:
 		shotgun = None
-		print('{} shotgun not found'.format(library_id_str), file=sys.stderr)
+		if not damage-restricted: # when we do damage-restricted analysis, update
+			print('{} shotgun not found, damage-restricted {}'.format(library_id_str, str(damage_restricted)), file=sys.stderr)
 	
 	#Data: mtDNA bam
 	mod_append(fields, analysis_files.mt_bam)
@@ -191,27 +198,28 @@ def library_anno_line(library_id_raw, sequencing_run_name, release_label):
 		raise ValueError('Unexpected library type {}'.format(library_type))
 	mod_append(fields, library_type)
 	#LibraryID(s)
-	mod_append(fields, '[{}]'.format(library_id_str))
+	mod_append(fields, '{}'.format(library_id_str))
 	#endogenous by library (computed on shotgun data)
 	mod_append(fields, get_number(shotgun, 'fraction_hg19', 5))
 	# TODO by library changes (multiple libraries)
 	#1240k coverage (by library)
 	try:
-		mod_append(fields, '[{}]'.format(get_number(nuclear, 'coverage_targeted_positions')))
+		mod_append(fields, '{}'.format(get_number(nuclear, 'coverage_targeted_positions')))
 	except:
 		mod_append(fields, '')
 	#Damage rate in first nucleotide on sequences overlapping 1240k targets (by library)
-	mod_append(fields, '[{}]'.format(get_number(nuclear, 'damage_last_base')))
+	mod_append(fields, '{}'.format(get_number(nuclear, 'damage_last_base')))
 	#mtDNA coverage (by library)
-	mod_append(fields, '[{}]'.format(get_number(mt, 'coverage')))
+	mod_append(fields, '{}'.format(get_number(mt, 'coverage')))
 	#mtDNA haplogroup if ≥2 coverage (by library)
 	#mtDNA match to consensus if ≥2 coverage (by library)
 	if mt.coverage >= 2.0:
-		mod_append(fields, '[{}]'.format(mt.haplogroup))
-		mod_append(fields, '[{}]'.format(get_number(mt, 'consensus_match')))
+		mod_append(fields, '{}'.format(mt.haplogroup))
+		#mod_append(fields, '{}'.format(get_number(mt, 'consensus_match')))
+		mod_append(fields, '{}'.format(get_text(mt, 'consensus_match_95ci')))
 	else:
-		mod_append(fields, '[]')
-		mod_append(fields, '[]')
+		mod_append(fields, '')
+		mod_append(fields, '')
 	#batch notes (e.g. if a control well looks contaminated)
 	mod_append(fields, '') # TODO not yet pulled in from ESS files
 	
@@ -274,7 +282,7 @@ def library_anno_line(library_id_raw, sequencing_run_name, release_label):
 					2 : 'QUESTIONABLE_CRITICAL' }
 		assessment_overall = max(assessment_snp, assessment_damage, assessment_sex_ratio, assessment_contammix, assessment_angsd)
 		
-		assessment_reasons_str = '({})'.format(', '.join(assessment_reasons))
+		assessment_reasons_str = ' ({})'.format(', '.join(assessment_reasons))
 		assessment_string = '{}{}'.format(assessment_map[assessment_overall], assessment_reasons_str if assessment_overall > 0 else '')
 		mod_append(fields, assessment_string)
 	

@@ -158,6 +158,7 @@ class MTAnalysis(Timestamped):
 	haplogroup_confidence = models.FloatField(null=True)
 	track_mt_rsrs = models.CharField(max_length=160, blank=True)
 	report = models.CharField(max_length=35, blank=True)
+	damage_restricted = models.BooleanField(default=False)
 	
 class SpikeAnalysis(Timestamped):
 	parent = models.ForeignKey(Results, on_delete=models.CASCADE)
@@ -169,6 +170,7 @@ class SpikeAnalysis(Timestamped):
 	spike_complexity = models.FloatField(null=True)
 	spike_sex = models.CharField(max_length=30, blank=True)
 	screening_outcome = models.CharField(max_length=50, blank=True)
+	damage_restricted = models.BooleanField(default=False)
 
 class ShotgunAnalysis(Timestamped):
 	parent = models.ForeignKey(Results, on_delete=models.CASCADE)
@@ -181,6 +183,7 @@ class ShotgunAnalysis(Timestamped):
 	fraction_hg19 = models.FloatField(null=True)
 	damage_rate = models.FloatField(null=True)
 	fraction_hg19_hit_mtdna = models.FloatField(null=True)
+	damage_restricted = models.BooleanField(default=False)
 	
 class NuclearAnalysis(Timestamped):
 	parent = models.ForeignKey(Results, on_delete=models.CASCADE)
@@ -210,4 +213,5 @@ class NuclearAnalysis(Timestamped):
 	version_release = models.CharField(max_length=20)
 	results_note = models.TextField(blank=True)
 	find = models.TextField(blank=True)
+	pulldown_logfile_location = models.CharField(max_length=300, blank=True)
 	damage_restricted = models.BooleanField(default=False)
