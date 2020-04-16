@@ -173,12 +173,12 @@ class LibraryProtocol(Timestamped):
 	volume_extract_used_standard = models.FloatField(null=True)
 
 class LibraryBatch(Timestamped):
-	name = models.CharField(max_length=50)
+	name = models.CharField(max_length=50, blank=True)
 	protocol = models.ForeignKey(LibraryProtocol, on_delete=models.PROTECT, null=True)
 	technician = models.CharField(max_length=50, blank=True)
 	prep_date = models.DateField(null=True)
 	prep_note = models.TextField(blank=True)
-	prep_robot = models.CharField(max_length=20)
+	prep_robot = models.CharField(max_length=20, blank=True)
 	
 class Library(Timestamped):
 	extract_id = models.ForeignKey(Extract, on_delete=models.PROTECT, null=True)
