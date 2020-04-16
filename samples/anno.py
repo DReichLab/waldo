@@ -175,6 +175,7 @@ def library_anno_line(library_id_raw, sequencing_run_name, release_label):
 		sex_ratio = y_hits / (x_hits + y_hits)
 		mod_append(fields, '{:.3f}'.format(sex_ratio))
 	except:
+		sex_ratio = -1
 		mod_append(fields, '-1')
 	#Xcontam ANGSD SNPs (only if male and ≥200)
 	#Xcontam ANGSD MOM point estimate (only if male and ≥200)
@@ -251,7 +252,7 @@ def library_anno_line(library_id_raw, sequencing_run_name, release_label):
 			assessment_reasons.append('damage.ss.half={:.3f}'.format(nuclear.damage_last_base))
 		
 		assessment_sex_ratio = 0
-		if 0.1 <= sex_ratio and sex_ratio <= 0.3:
+		if (0.1 <= sex_ratio and sex_ratio <= 0.3) or sex_ratio == -1:
 			assessment_sex_ratio = 2
 		elif (0.03 <= sex_ratio and sex_ratio <= 0.1) or (0.3 <= sex_ratio and sex_ratio <= 0.35):
 			assessment_sex_ratio = 1
