@@ -56,9 +56,9 @@ def mod_append(thelist, string):
 # this library id may contain _d damage-restriction indicator
 def library_anno_line(library_id_raw, sequencing_run_name, release_label):
 	#print(library_id_raw, file=sys.stderr)
+	damage_restricted = library_id_raw.endswith('_d')
 	instance_id, library_id_obj = individual_from_library_id(library_id_raw)
 	library_id_str = str(library_id_obj)
-	damage_restricted = library_id_raw.endswith('_d')
 	try:
 		sample = Sample.objects.get(reich_lab_id__exact=library_id_obj.sample)
 	except Sample.DoesNotExist as e:
@@ -74,8 +74,11 @@ def library_anno_line(library_id_raw, sequencing_run_name, release_label):
 	mod_append(fields, instance_id)
 	
 	#Master ID
-	master_id = '' #TODO
-	mod_append(fields, master_id)
+	master_id = 'I{:d}'.format(library_id_obj.sample) #TODO
+	if len(library_id_obj.sample_suffix) > 0:
+		mod_append(fields, '')
+	else:
+		mod_append(fields, master_id)
 	
 	#Skeletal code
 	#mod_append(fields, get_text(sample, 'skeletal_code_renamed'))
@@ -119,14 +122,14 @@ def library_anno_line(library_id_raw, sequencing_run_name, release_label):
 		mt = MTAnalysis.objects.get(parent = results, damage_restricted = damage_restricted)
 	except MTAnalysis.DoesNotExist as e:
 		mt = None
-		if not damage-restricted: # when we do damage-restricted analysis, update
+		if not damage_restricted: # when we do damage-restricted analysis, update
 			print('{} MT not found, damage-restricted {}'.format(library_id_str, str(damage_restricted)), file=sys.stderr)
 	
 	try:
 		shotgun = ShotgunAnalysis.objects.get(parent = results, damage_restricted = damage_restricted)
 	except ShotgunAnalysis.DoesNotExist as e:
 		shotgun = None
-		if not damage-restricted: # when we do damage-restricted analysis, update
+		if not damage_restricted: # when we do damage-restricted analysis, update
 			print('{} shotgun not found, damage-restricted {}'.format(library_id_str, str(damage_restricted)), file=sys.stderr)
 	
 	#Data: mtDNA bam
@@ -157,9 +160,9 @@ def library_anno_line(library_id_raw, sequencing_run_name, release_label):
 	mod_append(fields, get_number(mt, 'coverage'))
 	#mtDNA haplogroup if ≥2 coverage or published (merged data or consensus if not available)
 	#mtDNA match to consensus if ≥2 coverage (merged data)
-	if mt.coverage >= 2.0:
+	if mt is not None and mt.coverage >= 2.0:
 		mod_append(fields, get_text(mt, 'haplogroup'))
-		mod_append(fields, get_number(mt, 'consensus_match'))
+		mod_append(fields, get_text(mt, 'consensus_match_95ci'))
 	else:
 		mod_append(fields, '')
 		mod_append(fields, '')
@@ -188,10 +191,13 @@ def library_anno_line(library_id_raw, sequencing_run_name, release_label):
 			mod_append(fields, '[{:.3f}, {:.3f}]'.format(angsd_min_range, angsd_max_range)) # confidence interval
 		else:
 			for i in range(3):
-				mod_append(fields, '')
+				mod_append(fields, 'n/a (<200 SNPs)')
+	elif nuclear.sex == 'F':
+		for i in range(4):
+			mod_append(fields, 'n/a (female)')
 	else:
 		for i in range(4):
-			mod_append(fields, '')
+			mod_append(fields, 'n/a (unknown sex)')
 	#Library type (minus=no.damage.correction, half=damage.retained.at.last.position, plus=damage.fully.corrected, ss=single.stranded.library.preparation)
 	library_type = Library.objects.get(reich_lab_library_id = library_id_str).udg_treatment
 	if 'ss.half' not in library_type.lower():
@@ -213,10 +219,10 @@ def library_anno_line(library_id_raw, sequencing_run_name, release_label):
 	mod_append(fields, '{}'.format(get_number(mt, 'coverage')))
 	#mtDNA haplogroup if ≥2 coverage (by library)
 	#mtDNA match to consensus if ≥2 coverage (by library)
-	if mt.coverage >= 2.0:
+	if mt is not None and mt.coverage >= 2.0:
 		mod_append(fields, '{}'.format(mt.haplogroup))
 		#mod_append(fields, '{}'.format(get_number(mt, 'consensus_match')))
-		mod_append(fields, '{}'.format(get_text(mt, 'consensus_match_95ci')))
+		mod_append(fields, get_text(mt, 'consensus_match_95ci'))
 	else:
 		mod_append(fields, '')
 		mod_append(fields, '')
