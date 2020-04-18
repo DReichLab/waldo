@@ -16,13 +16,13 @@ def individual_from_library_id(library_id_raw):
 		damage_restricted = False
 	library_id = LibraryID(library_id_raw)
 
-	library_list = Library.objects.filter(reich_lab_library_id__startswith='S{:d}.'.format(library_id.sample))
+	library_list = Library.objects.filter(reich_lab_library_id__startswith='S{:04d}.'.format(library_id.sample))
 	
 	#for x in library_list:
 	#	print(x.reich_lab_library_id)
 	
 	if len(library_list) == 1:
-		identifier = 'I{:d}'.format(library_id.sample)
+		identifier = 'I{:04d}'.format(library_id.sample)
 	else:
 		identifier = str(library_id)
 	if damage_restricted: # retain whether damage restricted or not
@@ -59,22 +59,24 @@ def library_anno_line(library_id_raw, sequencing_run_name, release_label):
 	damage_restricted = library_id_raw.endswith('_d')
 	instance_id, library_id_obj = individual_from_library_id(library_id_raw)
 	library_id_str = str(library_id_obj)
+	is_control = len(library_id_obj.sample_suffix) > 0
 	try:
 		sample = Sample.objects.get(reich_lab_id__exact=library_id_obj.sample)
 	except Sample.DoesNotExist as e:
 		# controls do not have sample information, but all regular samples should
-		if len(library_id_obj.sample_suffix) == 0:
+		if not is_control:
 			print('{} not found'.format(library_id_obj.sample), file=sys.stderr)
 			raise e
 		sample = None
 	
 	fields = []
 	
+	fields.append('') # index
 	#Instance ID ("_all" means includes a mix of UDG-treated and non-UDG-treated; "_published" distinguishes a published sample for a still-unpublished higher quality version)
 	mod_append(fields, instance_id)
 	
 	#Master ID
-	master_id = 'I{:d}'.format(library_id_obj.sample) #TODO
+	master_id = get_text(sample, 'individual_id')
 	if len(library_id_obj.sample_suffix) > 0:
 		mod_append(fields, '')
 	else:
@@ -89,7 +91,7 @@ def library_anno_line(library_id_raw, sequencing_run_name, release_label):
 	published_year = ''
 	mod_append(fields, str(published_year))
 	#Publication
-	publication = ''
+	publication = 'Unpublished'
 	mod_append(fields, publication)
 	#Representative contact
 	if(sample is not None and sample.collaborator is not None):
@@ -101,11 +103,14 @@ def library_anno_line(library_id_raw, sequencing_run_name, release_label):
 	#Completeness of Date Information
 	mod_append(fields, get_text(sample, 'date_fix_flag'))
 	#Average of 95.4% date range in calBP (defined as 1950 CE)
-	mod_append(fields, get_number(sample, 'average_bp_date', 1))
+	mod_append(fields, get_number(sample, 'average_bp_date', 0))
 	#Date: One of two formats. (Format 1) 95.4% CI calibrated radiocarbon age (Conventional Radiocarbon Age BP, Lab number) e.g. 5983-5747 calBCE (6980±50 BP, Beta-226472). (Format 2) Archaeological context date, e.g. 2500-1700 BCE
 	mod_append(fields, get_text(sample, 'sample_date'))
 	#Group_ID (format convention which we try to adhere to is "Country_<Geographic.Region_<Geographic.Subregion_>><Archaeological.Period.Or.DateBP_<Alternative.Archaeological.Period_>><Archaeological.Culture_<Alternative.Archaeological.Culture>><genetic.subgrouping.index.if.necessary_><"o_"sometimes.with.additional.detail.if.an.outlier><additional.suffix.especially.relative.status.if.we.recommend.removing.from.main.analysis.grouping><"contam_".if.contaminated><"lc_".if.<15000.SNPs.on.autosomal.targets><".SG".or.".DG".if.shotgun.data>; HG=hunter-gatherer, N=Neolithic, C=Chalcolithic/CopperAge, BA=BronzeAge, IA=IronAge, E=Early, M=Middle, L=Late, A=Antiquity)
-	mod_append(fields, get_text(sample, 'group_label'))
+	if is_control:
+		mod_append(fields, 'Control')
+	else:
+		mod_append(fields, get_text(sample, 'group_label'))
 	#Locality
 	mod_append(fields, get_text(sample, 'locality'))
 	#Country
@@ -169,8 +174,8 @@ def library_anno_line(library_id_raw, sequencing_run_name, release_label):
 		mod_append(fields, get_text(mt, 'haplogroup'))
 		mod_append(fields, get_text(mt, 'consensus_match_95ci'))
 	else:
-		mod_append(fields, '')
-		mod_append(fields, '')
+		mod_append(fields, 'n/a (<2x coverage)')
+		mod_append(fields, 'n/a (<2x coverage)')
 	#Damage rate in first nucleotide on sequences overlapping 1240k targets (merged data)
 	mod_append(fields, get_number(nuclear, 'damage_last_base'))
 	#Sex ratio [Y/(Y+X) counts] (merged data)
@@ -181,7 +186,7 @@ def library_anno_line(library_id_raw, sequencing_run_name, release_label):
 		mod_append(fields, '{:.3f}'.format(sex_ratio))
 	except:
 		sex_ratio = -1
-		mod_append(fields, '-1')
+		mod_append(fields, '')
 	#Xcontam ANGSD SNPs (only if male and ≥200)
 	#Xcontam ANGSD MOM point estimate (only if male and ≥200)
 	#Xcontam ANGSD MOM Z-score (only if male and ≥200)
@@ -230,14 +235,14 @@ def library_anno_line(library_id_raw, sequencing_run_name, release_label):
 		#mod_append(fields, '{}'.format(get_number(mt, 'consensus_match')))
 		mod_append(fields, get_text(mt, 'consensus_match_95ci'))
 	else:
-		mod_append(fields, '')
-		mod_append(fields, '')
+		mod_append(fields, 'n/a (<2x coverage)')
+		mod_append(fields, 'n/a (<2x coverage)')
 	#batch notes (e.g. if a control well looks contaminated)
 	mod_append(fields, '') # TODO not yet pulled in from ESS files
 	
 	#ASSESSMENT
 	if damage_restricted:
-		mod_append(fields, '')
+		assessment_string = 'PROVISIONAL_PASS'
 	else:
 		assessment_reasons = []
 		assessment_snp = 0
@@ -257,12 +262,16 @@ def library_anno_line(library_id_raw, sequencing_run_name, release_label):
 			assessment_reasons.append('damage.ss.half={:.3f}'.format(nuclear.damage_last_base))
 		
 		assessment_sex_ratio = 0
-		if (0.1 <= sex_ratio and sex_ratio <= 0.3) or sex_ratio == -1:
-			assessment_sex_ratio = 2
-		elif (0.03 <= sex_ratio and sex_ratio <= 0.1) or (0.3 <= sex_ratio and sex_ratio <= 0.35):
-			assessment_sex_ratio = 1
-		if assessment_sex_ratio > 0:
-			assessment_reasons.append('sexratio[{:.3f}]'.format(sex_ratio))
+		if sex_ratio == -1:
+			assessment_reasons.append('sexratio[..]')
+		else:
+			if (0.1 <= sex_ratio and sex_ratio <= 0.3) or sex_ratio == -1:
+				assessment_sex_ratio = 2
+			elif (0.03 <= sex_ratio and sex_ratio <= 0.1) or (0.3 <= sex_ratio and sex_ratio <= 0.35):
+				assessment_sex_ratio = 1
+			if assessment_sex_ratio > 0:
+				sex_ratio_str = 'sexratio[{:.3f}]'.format(sex_ratio)
+				assessment_reasons.append(sex_ratio_str)
 		
 		# (mtcontam 97.5th percentile estimates listed if coverage >2: <0.8 is "QUESTIONABLE_CRITICAL", 0.8-0.95 is "QUESTIONABLE", and 0.95-0.98 is recorded but "PASS", gets overriden by ANGSD)
 		# TODO separate these lower and upper values so we do not have to reparse interval
@@ -295,7 +304,9 @@ def library_anno_line(library_id_raw, sequencing_run_name, release_label):
 		assessment_overall = max(assessment_snp, assessment_damage, assessment_sex_ratio, assessment_contammix, assessment_angsd)
 		
 		assessment_reasons_str = ' ({})'.format(', '.join(assessment_reasons))
-		assessment_string = '{}{}'.format(assessment_map[assessment_overall], assessment_reasons_str if assessment_overall > 0 else '')
-		mod_append(fields, assessment_string)
+		assessment_string = 'PROVISIONAL_{}{}'.format(assessment_map[assessment_overall], assessment_reasons_str if assessment_overall > 0 else '')
+	if is_control:
+		assessment_string = 'IGNORE_' + assessment_string
+	mod_append(fields, assessment_string)
 	
 	return fields

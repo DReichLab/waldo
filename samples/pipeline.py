@@ -211,6 +211,8 @@ def test_results_exist(pulldown_stdout, sequencing_run_name):
 					results = Results.objects.get(library_id__exact=library_id, nuclear_seq_run__name__iexact=sequencing_run_name)
 				except Results.DoesNotExist as e:
 					print('No Results object for {}'.format(library_id))
+				except Results.MultipleObjectsReturned as e:
+					print('Multiple Results object for {}'.format(library_id))
 						
 # load the contents of Nick's pulldown stdout files for
 # mean depth (coverage)
