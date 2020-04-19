@@ -5,6 +5,7 @@ from sequencing_run.models import AnalysisFiles, MTAnalysis, NuclearAnalysis, Sh
 from sequencing_run.library_id import LibraryID
 
 import re
+import sys
 from pathlib import Path
 
 bioinfo_processing_protocol = 'Matt'
@@ -34,13 +35,17 @@ class ReportEntry:
 			else:
 				return None
 
-def load_mt_capture_fields(library_id, report_fields, report_headers, release_label, sequencing_run_name):
-	results = Results.objects.get(library_id__exact=library_id, mt_seq_run__name__iexact=sequencing_run_name)
+def load_mt_capture_fields(library_id, report_fields, report_headers, release_label, sequencing_run_name, damage_restricted):
+	try:
+		results = Results.objects.get(library_id__exact=library_id, mt_seq_run__name__iexact=sequencing_run_name)
+	except Results.DoesNotExist as e:
+		print('{} not found for load_mt_capture_fields'.format(library_id), file=sys.stderr)
+		raise e
 	
 	now = timezone.now()
 	entry = ReportEntry(report_headers, report_fields)
 	# MTAnalysis
-	mt, mt_created = MTAnalysis.objects.get_or_create(parent = results)
+	mt, mt_created = MTAnalysis.objects.get_or_create(parent = results, damage_restricted = damage_restricted)
 	mt.demultiplexing_sequences = entry.get('raw', int)
 	mt.sequences_passing_filters = entry.get('merged', int)
 	mt.sequences_aligning = entry.get('MT_pre', int)
@@ -71,13 +76,17 @@ def load_mt_capture_fields(library_id, report_fields, report_headers, release_la
 	set_timestamps(mt, mt_created, now)
 	mt.save()
 
-def load_nuclear_capture_fields(library_id, report_fields, report_headers, release_label, sequencing_run_name):
-	results = Results.objects.get(library_id__exact=library_id, nuclear_seq_run__name__iexact=sequencing_run_name)
+def load_nuclear_capture_fields(library_id, report_fields, report_headers, release_label, sequencing_run_name, damage_restricted):
+	try:
+		results = Results.objects.get(library_id__exact=library_id, nuclear_seq_run__name__iexact=sequencing_run_name)
+	except Results.DoesNotExist as e:
+		print('{} not found for load_nuclear_capture_fields'.format(library_id), file=sys.stderr)
+		raise e
 	
 	now = timezone.now()
 	entry = ReportEntry(report_headers, report_fields)
 	# NuclearAnalysis
-	nuclear, nuclear_created = NuclearAnalysis.objects.get_or_create(parent = results, version_release = release_label)
+	nuclear, nuclear_created = NuclearAnalysis.objects.get_or_create(parent = results, version_release = release_label, damage_restricted = damage_restricted)
 	
 	nuclear.bioinfo_processing_protocol = bioinfo_processing_protocol
 	
@@ -137,13 +146,17 @@ def load_nuclear_capture_fields(library_id, report_fields, report_headers, relea
 	set_timestamps(nuclear, nuclear_created, now)
 	nuclear.save()
 	
-def load_shotgun_fields(library_id, report_fields, report_headers, release_label, sequencing_run_name):
-	results = Results.objects.get(library_id__exact=library_id, shotgun_seq_run__name__iexact=sequencing_run_name)
+def load_shotgun_fields(library_id, report_fields, report_headers, release_label, sequencing_run_name, damage_restricted):
+	try:
+		results = Results.objects.get(library_id__exact=library_id, shotgun_seq_run__name__iexact=sequencing_run_name)
+	except Results.DoesNotExist as e:
+		print('{} not found for load_shotgun_fields'.format(library_id), file=sys.stderr)
+		raise e
 	
 	now = timezone.now()
 	entry = ReportEntry(report_headers, report_fields)
 	
-	shotgun, shotgun_created = ShotgunAnalysis.objects.get_or_create(parent = results)
+	shotgun, shotgun_created = ShotgunAnalysis.objects.get_or_create(parent = results, damage_restricted = damage_restricted)
 	shotgun.bioinfo_processing_protocol = bioinfo_processing_protocol
 	#shotgun.track_id =
 	shotgun.raw_sequences = entry.get('raw', int)
@@ -174,6 +187,7 @@ def load_shotgun_fields(library_id, report_fields, report_headers, release_label
 	shotgun.save()
 
 def load_pipeline_report(report_filename, desired_experiment, release_label, sequencing_run_name):
+	damage_restricted = False # TODO When damage restricted analysis is done, change this hard coding
 	with open(report_filename) as f:
 		f.readline() # first line is read count
 		header_line = f.readline() # second line is header fields
@@ -192,10 +206,10 @@ def load_pipeline_report(report_filename, desired_experiment, release_label, seq
 			if library_id.startswith('S'): # is not '' and library_id is not 'Contl.Capture':				
 				if len(fields) == len(headers): # no data will have fewer fields than headers
 					if desired_experiment in experiment:
-						load_mt_capture_fields(library_id, fields, headers, release_label, sequencing_run_name)
-						load_nuclear_capture_fields(library_id, fields, headers, release_label, sequencing_run_name)
+						load_mt_capture_fields(library_id, fields, headers, release_label, sequencing_run_name, damage_restricted)
+						load_nuclear_capture_fields(library_id, fields, headers, release_label, sequencing_run_name, damage_restricted)
 					elif 'Raw' in experiment:
-						load_shotgun_fields(library_id, fields, headers, release_label, sequencing_run_name)
+						load_shotgun_fields(library_id, fields, headers, release_label, sequencing_run_name, damage_restricted)
 						
 # diagnostic check for results objects
 def test_results_exist(pulldown_stdout, sequencing_run_name):
@@ -210,9 +224,9 @@ def test_results_exist(pulldown_stdout, sequencing_run_name):
 				try:
 					results = Results.objects.get(library_id__exact=library_id, nuclear_seq_run__name__iexact=sequencing_run_name)
 				except Results.DoesNotExist as e:
-					print('No Results object for {}'.format(library_id))
+					print('No Results object for {}'.format(library_id), file=sys.stderr)
 				except Results.MultipleObjectsReturned as e:
-					print('Multiple Results object for {}'.format(library_id))
+					print('Multiple Results object for {}'.format(library_id), file=sys.stderr)
 						
 # load the contents of Nick's pulldown stdout files for
 # mean depth (coverage)
