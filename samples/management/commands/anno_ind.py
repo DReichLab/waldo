@@ -32,5 +32,8 @@ class Command(BaseCommand):
 						if len(library_id.sample_suffix) == 0:
 							self.stderr.write('{} not found'.format(library_id.sample))
 						group_label = ''
+					except Sample.MultipleObjectsReturned as e:
+						self.stderr.write('{} has multiple samples'.format(library_id.sample))
+						raise e
 					
 					self.stdout.write('{}\t{}\t{}'.format(identifier, sex, group_label))
