@@ -25,7 +25,7 @@ class Command(BaseCommand):
 					identifier, library_id = individual_from_library_id(library_id_raw)
 					
 					try:
-						group_label = Sample.objects.get(reich_lab_id__exact=library_id.sample).group_label
+						group_label = Sample.objects.get(reich_lab_id__exact=library_id.sample, control__exact=library_id.sample_suffix).group_label
 					except Sample.DoesNotExist as e:
 						# controls do not have sample information
 						# If we are missing a non-control, alert

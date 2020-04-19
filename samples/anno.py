@@ -61,7 +61,7 @@ def library_anno_line(library_id_raw, sequencing_run_name, release_label):
 	library_id_str = str(library_id_obj)
 	is_control = len(library_id_obj.sample_suffix) > 0
 	try:
-		sample = Sample.objects.get(reich_lab_id__exact=library_id_obj.sample)
+		sample = Sample.objects.get(reich_lab_id__exact=library_id_obj.sample, control__exact=library_id_obj.sample_suffix)
 	except Sample.DoesNotExist as e:
 		# controls do not have sample information, but all regular samples should
 		if not is_control:
