@@ -1,5 +1,5 @@
 from django.utils import timezone
-from .models import Results
+from .models import Results, Library
 from .anno import individual_from_library_id
 from sequencing_run.models import AnalysisFiles, MTAnalysis, NuclearAnalysis, ShotgunAnalysis
 from sequencing_run.library_id import LibraryID
@@ -18,6 +18,21 @@ def set_timestamps(timestamped_object, was_created, update_time, user='mym11'):
 		timestamped_object.creation_timestamp = update_time
 	timestamped_object.modification_timestamp = update_time
 	timestamped_object.modified_by = user
+
+# TODO UDG and strandedness should be separate fields
+# For now, we have to parse these apart
+def udg_and_strandedness(compound):
+	lower = compound.lower()
+	strandedness = 'ss' if 'ss' in lower else 'ds'
+	if 'minus' in lower:
+		udg = 'minus'
+	elif 'half' in lower:
+		udg = 'half'
+	elif 'plus' in lower:
+		udg = 'plus'
+	else:
+		raise ValueError('Bad udg {}'.format(lower))
+	return udg, strandedness
 
 # Convenience class for accessing fields from the pipeline report to handle missing values
 class ReportEntry:
@@ -41,6 +56,8 @@ def load_mt_capture_fields(library_id, report_fields, report_headers, release_la
 	except Results.DoesNotExist as e:
 		print('{} not found for load_mt_capture_fields'.format(library_id), file=sys.stderr)
 		raise e
+	library = Library.objects.get(reich_lab_library_id = library_id)
+	udg, strandedness = udg_and_strandedness(library.udg_treatment)
 	
 	now = timezone.now()
 	entry = ReportEntry(report_headers, report_fields)
@@ -56,7 +73,12 @@ def load_mt_capture_fields(library_id, report_fields, report_headers, release_la
 	try:
 		damage_rsrs_ct1 = entry.get('damage_rsrs_ct1', float)
 		damage_rsrs_ga1 = entry.get('damage_rsrs_ga1', float)
-		mt.damage_last_base = (damage_rsrs_ct1 + damage_rsrs_ga1) / 2
+		if strandedness == 'ds':
+			mt.damage_last_base = (damage_rsrs_ct1 + damage_rsrs_ga1) / 2
+		elif strandedness == 'ss':
+			mt.damage_last_base = damage_rsrs_ct1
+		else:
+			raise ValueError('bad strandedness {}'.format(standedness))
 	except:
 		mt.damage_last_base = None
 	
@@ -82,6 +104,8 @@ def load_nuclear_capture_fields(library_id, report_fields, report_headers, relea
 	except Results.DoesNotExist as e:
 		print('{} not found for load_nuclear_capture_fields'.format(library_id), file=sys.stderr)
 		raise e
+	library = Library.objects.get(reich_lab_library_id = library_id)
+	udg, strandedness = udg_and_strandedness(library.udg_treatment)
 	
 	now = timezone.now()
 	entry = ReportEntry(report_headers, report_fields)
@@ -122,7 +146,12 @@ def load_nuclear_capture_fields(library_id, report_fields, report_headers, relea
 	try:
 		damage_nuclear_ct1 = entry.get('damage_nuclear_ct1', float)
 		damage_nuclear_ga1 = entry.get('damage_nuclear_ga1', float)
-		nuclear.damage_last_base = (damage_nuclear_ct1 + damage_nuclear_ga1) / 2
+		if strandedness == 'ds':
+			nuclear.damage_last_base = (damage_nuclear_ct1 + damage_nuclear_ga1) / 2
+		elif strandedness == 'ss':
+			nuclear.damage_last_base = damage_nuclear_ct1
+		else:
+			raise ValueError('bad strandedness {}'.format(standedness))
 	except:
 		pass
 	
@@ -152,6 +181,8 @@ def load_shotgun_fields(library_id, report_fields, report_headers, release_label
 	except Results.DoesNotExist as e:
 		print('{} not found for load_shotgun_fields'.format(library_id), file=sys.stderr)
 		raise e
+	library = Library.objects.get(reich_lab_library_id = library_id)
+	udg, strandedness = udg_and_strandedness(library.udg_treatment)
 	
 	now = timezone.now()
 	entry = ReportEntry(report_headers, report_fields)
@@ -179,7 +210,13 @@ def load_shotgun_fields(library_id, report_fields, report_headers, release_label
 	try:
 		damage_nuclear_ct1 = entry.get('damage_nuclear_ct1', float)
 		damage_nuclear_ga1 = entry.get('damage_nuclear_ga1', float)
-		shotgun.damage_rate = (damage_nuclear_ct1 + damage_nuclear_ga1) / 2
+		if strandedness == 'ds':
+			shotgun.damage_last_base = (damage_nuclear_ct1 + damage_nuclear_ga1) / 2
+		elif strandedness == 'ss':
+			shotgun.damage_last_base = damage_nuclear_ct1
+		else:
+			raise ValueError('bad strandedness {}'.format(standedness))
+		
 	except:
 		pass
 	
