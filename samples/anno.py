@@ -29,13 +29,14 @@ def individual_from_library_id(library_id_raw):
 		identifier += '_d'
 	return identifier, library_id
 
+# get a named field from an object
 def get_text(obj, field_name):
 	if obj is not None:
 		return getattr(obj, field_name)
 	else:
 		return ''
 
-# get an named field from an object
+# get a named number field from an object as a string
 def get_number(obj, field_name, decimal_digits=3):
 	if obj is not None:
 		try:
@@ -47,11 +48,11 @@ def get_number(obj, field_name, decimal_digits=3):
 
 # append a string to thelist, replacing blanks with '..'
 EMPTY = '..'
-def mod_append(thelist, string):
+def mod_append(thelist, string, default=EMPTY):
 	if string != '':
 		thelist.append(string)
 	else:
-		thelist.append(EMPTY)
+		thelist.append(default)
 
 # this library id may contain _d damage-restriction indicator
 def library_anno_line(library_id_raw, sequencing_run_name, release_label):
@@ -161,7 +162,7 @@ def library_anno_line(library_id_raw, sequencing_run_name, release_label):
 	#Mean length of shotgun sequences (merged data)
 	mod_append(fields, get_number(shotgun, 'mean_median_sequence_length', 1))
 	#Sex
-	mod_append(fields, nuclear.sex)
+	mod_append(fields, nuclear.sex, 'U')
 	#Family ID and position within family
 	mod_append(fields, '') # TODO
 	#Y chrom. (automatically called only if >50000 autosomal SNPs hit)
@@ -196,7 +197,8 @@ def library_anno_line(library_id_raw, sequencing_run_name, release_label):
 		if nuclear.angsd_snps >= 200:
 			mod_append(fields, get_number(nuclear, 'angsd_mean'))
 			mod_append(fields, get_number(nuclear, 'angsd_z'))
-			angsd_se = nuclear.angsd_mean / nuclear.angsd_z
+			angsd_z = nuclear.angsd_z
+			angsd_se = nuclear.angsd_mean / angsd_z
 			angsd_min_range = max(0, nuclear.angsd_mean - 1.96 * angsd_se)
 			angsd_max_range = nuclear.angsd_mean + 1.96 * angsd_se
 			mod_append(fields, '[{:.3f}, {:.3f}]'.format(angsd_min_range, angsd_max_range)) # confidence interval
@@ -211,7 +213,8 @@ def library_anno_line(library_id_raw, sequencing_run_name, release_label):
 			mod_append(fields, 'n/a (unknown sex)')
 	#Library type (minus=no.damage.correction, half=damage.retained.at.last.position, plus=damage.fully.corrected, ss=single.stranded.library.preparation)
 	library_type = Library.objects.get(reich_lab_library_id = library_id_str).udg_treatment
-	if 'ss.half' not in library_type.lower():
+	library_type = library_type.lower()
+	if 'ss.half' not in library_type:
 		raise ValueError('Unexpected library type {}'.format(library_type))
 	mod_append(fields, library_type)
 	#LibraryID(s)
@@ -241,41 +244,55 @@ def library_anno_line(library_id_raw, sequencing_run_name, release_label):
 	mod_append(fields, '') # TODO not yet pulled in from ESS files
 	
 	#ASSESSMENT
-	if damage_restricted:
-		assessment_string = 'PROVISIONAL_PASS'
-	else:
-		assessment_reasons = []
-		assessment_snp = 0
-		if nuclear.unique_snps_hit < 2500:
-			assessment_snp = 2
-			assessment_reasons.append('<2500.SNPs')
-		elif nuclear.unique_snps_hit <= 5000:
-			assessment_snp = 1
-			assessment_reasons.append('2500.to.5000.SNPs')
+	assessment_reasons = []
+	assessment_snp = 0
+	if nuclear.unique_snps_hit < 500:
+		assessment_snp = 3
+		assessment_reasons.append('<500.SNPs')
+	elif nuclear.unique_snps_hit < 2500:
+		assessment_snp = 2
+		assessment_reasons.append('<2500.SNPs')
+	elif nuclear.unique_snps_hit <= 5000:
+		assessment_snp = 1
+		assessment_reasons.append('2500.to.5000.SNPs')
 		
-		assessment_damage = 0
-		if nuclear.damage_last_base < 0.03:
-			assessment_damage = 2
-		elif nuclear.damage_last_base < 0.10:
-			assessment_damage = 1
+	assessment_damage = 0
+	try:
+		# single stranded damage has different thresholds than double stranded
+		if 'ss' in library_type:
+			if nuclear.damage_last_base < 0.03:
+				assessment_damage = 3
+			elif nuclear.damage_last_base < 0.10:
+				assessment_damage = 1
+		else: # double stranded
+			if nuclear.damage_last_base < 0.01:
+				assessment_damage = 3
+			elif nuclear.damage_last_base < 0.03:
+				assessment_damage = 1
 		if assessment_damage > 0:
-			assessment_reasons.append('damage.ss.half={:.3f}'.format(nuclear.damage_last_base))
+			assessment_reasons.append('damage.{}={:.3f}'.format(library_type, nuclear.damage_last_base))
+	except:
+		pass
 		
-		assessment_sex_ratio = 0
+	assessment_sex_ratio = 0
+	try:
 		if sex_ratio == -1:
-			assessment_reasons.append('sexratio[..]')
+			pass
 		else:
-			if (0.1 <= sex_ratio and sex_ratio <= 0.3) or sex_ratio == -1:
-				assessment_sex_ratio = 2
+			if (0.1 <= sex_ratio and sex_ratio <= 0.3):
+				assessment_sex_ratio = 3
 			elif (0.03 <= sex_ratio and sex_ratio <= 0.1) or (0.3 <= sex_ratio and sex_ratio <= 0.35):
 				assessment_sex_ratio = 1
 			if assessment_sex_ratio > 0:
 				sex_ratio_str = 'sexratio[{:.3f}]'.format(sex_ratio)
 				assessment_reasons.append(sex_ratio_str)
+	except:
+		pass
 		
-		# (mtcontam 97.5th percentile estimates listed if coverage >2: <0.8 is "QUESTIONABLE_CRITICAL", 0.8-0.95 is "QUESTIONABLE", and 0.95-0.98 is recorded but "PASS", gets overriden by ANGSD)
-		# TODO separate these lower and upper values so we do not have to reparse interval
-		assessment_contammix = 0
+	# (mtcontam 97.5th percentile estimates listed if coverage >2: <0.8 is "QUESTIONABLE_CRITICAL", 0.8-0.95 is "QUESTIONABLE", and 0.95-0.98 is recorded but "PASS", gets overriden by ANGSD)
+	# TODO separate these lower and upper values so we do not have to reparse interval
+	assessment_contammix = 0
+	try:
 		if mt is not None and mt.coverage is not None and mt.coverage >= 2.0:
 			mtci = mt.consensus_match_95ci
 			mtci_values = [float(v) for v in mtci[mtci.index('[')+1:mtci.index(']')-1].split(',')]
@@ -286,27 +303,35 @@ def library_anno_line(library_id_raw, sequencing_run_name, release_label):
 				assessment_contammix = 1
 			if assessment_contammix > 0:
 				assessment_reasons.append('mtmatchmax={:.3f}'.format(mt_ci_upper))
+	except:
+		pass
 		
-		#(Xcontam listed if |Z|>2 standard errors from zero: 0.02-0.05="QUESTIONABLE", >0.05="QUESTIONABLE_CRITICAL" or "FAIL") 
-		assessment_angsd = 0
-		if nuclear.sex == 'M' and nuclear.angsd_snps >= 200:
-			if angsd_max_range >= 0.05:
+	#(Xcontam listed if |Z|>2 standard errors from zero: 0.02-0.05="QUESTIONABLE", >0.05="QUESTIONABLE_CRITICAL" or "FAIL") 
+	assessment_angsd = 0
+	try:
+		if nuclear.sex == 'M' and nuclear.angsd_snps >= 200 and angsd_z > 2:
+			if angsd_min_range > 0.1:
+				assessment_angsd = 3
+			elif angsd_min_range >= 0.05:
 				assessment_angsd = 2
-			elif angsd_max_range >= 0.02:
+			elif angsd_min_range >= 0.02:
 				assessment_angsd = 1
-			if assessment_angsd > 0:
-				assessment_reasons.append('Xcontam=[{:.3f},{:.3f}]'.format(angsd_min_range, angsd_max_range))
+			# always print 
+			assessment_reasons.append('Xcontam=[{:.3f},{:.3f}]'.format(angsd_min_range, angsd_max_range))
 			assessment_contammix = min(assessment_contammix, assessment_angsd) # angsd contamination will override mt contammix
+	except:
+		pass
 		
-		assessment_map = { 0 : 'PASS',
-					1 : 'QUESTIONABLE',
-					2 : 'QUESTIONABLE_CRITICAL' }
-		assessment_overall = max(assessment_snp, assessment_damage, assessment_sex_ratio, assessment_contammix, assessment_angsd)
-		
-		assessment_reasons_str = ' ({})'.format(', '.join(assessment_reasons))
-		assessment_string = 'PROVISIONAL_{}{}'.format(assessment_map[assessment_overall], assessment_reasons_str if assessment_overall > 0 else '')
+	assessment_map = { 0 : 'PASS',
+				1 : 'QUESTIONABLE',
+				2 : 'QUESTIONABLE_CRITICAL',
+				3 : 'FAIL' }
+	assessment_overall = max(assessment_snp, assessment_damage, assessment_sex_ratio, assessment_contammix, assessment_angsd)
+	
+	assessment_reasons_str = ' ({})'.format(', '.join(assessment_reasons))
+	assessment_string = 'PROVISIONAL_{}{}'.format(assessment_map[assessment_overall], assessment_reasons_str if assessment_overall > 0 else '')
 	if is_control:
-		assessment_string = 'IGNORE_' + assessment_string
+		assessment_string = 'IGNORE_CONTROL'
 	mod_append(fields, assessment_string)
 	
 	return fields
