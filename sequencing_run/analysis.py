@@ -58,7 +58,20 @@ def start_analysis(source_illumina_dir, combined_sequencing_run_name, sequencing
 		# generate json input file
 		run_entry.processing_state = SequencingAnalysisRun.PREPARING_JSON_INPUTS
 		run_entry.save()
-		json_source_file = 'demultiplex_template.json' if not is_broad_shotgun else 'demultiplex_broad_shotgun_template.json'
+		json_source_file = 'demultiplex_template.json'
+		if is_broad_shotgun:
+			additional_replacements[settings.HUMAN_REFERENCE] = settings.SHOTGUN_HUMAN_REFERENCE
+			additional_replacements[settings.DEMULTIPLEXED_PARENT_DIRECTORY] = settings.DEMULTIPLEXED_BROAD_SHOTGUN_PARENT_DIRECTORY
+			if 'I5_INDEX' in additional_replacements and 'I7_INDEX' in additional_replacements:
+				# insert index reads to end of json options file
+				additional_replacements['^}$'] = ''',
+					"demultiplex_align_bams.intake_fastq.has_index_reads": "false",
+					"demultiplex_align_bams.barcode_count_check.fixed_i5": "{0}",
+					"demultiplex_align_bams.barcode_count_check.fixed_i7": "{1}",
+					"demultiplex_align_bams.merge_and_trim_lane.fixed_i5": "{0}",
+					"demultiplex_align_bams.merge_and_trim_lane.fixed_i7": "{1}"
+				}
+				'''.format(additional_replacements['I5_INDEX'], additional_replacements['I7_INDEX'])
 		replace_parameters(json_source_file, DEMULTIPLEX_COMMAND_LABEL, combined_sequencing_run_name, date_string, scratch_illumina_directory_path, run_entry.id, number_top_samples_to_demultiplex, additional_replacements)
 		# generate SLURM script
 		run_entry.processing_state = SequencingAnalysisRun.PREPARING_RUN_SCRIPT
