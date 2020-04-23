@@ -14,7 +14,7 @@ class Command(BaseCommand):
 		parser.add_argument('--name', nargs='+', required=True)
 		parser.add_argument('--illumina_directory', required=True)
 		parser.add_argument('--create_illumina_entry', action='store_true', help='Create the database entry for the illumina directory. Use this for when data are not in the reichseq/reich NextSeq location. Implies skip_copy as well.')
-		parser.add_argument('--demultiplex', type=int, default=150)
+		parser.add_argument('--demultiplex', type=int, default=200)
 		parser.add_argument('--skip_copy', action='store_false')
 		parser.add_argument('--hold', action='store_true')
 		parser.add_argument('--allow_new_sequencing_run_id', action='store_true')
