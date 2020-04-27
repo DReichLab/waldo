@@ -143,22 +143,27 @@ def copy_illumina_directory(source_illumina_dir, scratch_illumina_directory):
 	ssh_result = ssh_command(host, command, True, True)
 	return ssh_result
 
+def escape_slashes(original):
+	return str(original).replace('/', '\\/')
+
 #values passed to construct the command string are sanitized by form validation
-def replace_parameters(source_filename, command_label, combined_sequencing_run_name, date_string, scratch_illumina_directory, run_entry_id, number_top_samples_to_demultiplex=150, additional_replacements={}):
-	escaped_scratch_illumina_directory = scratch_illumina_directory.replace('/','\\/')
+def replace_parameters(source_filename, command_label, combined_sequencing_run_name, date_string, scratch_illumina_directory, run_entry_id, number_top_samples_to_demultiplex=200, additional_replacements={}):
 	replacement_dictionary = {
 		"INPUT_LABEL": combined_sequencing_run_name,
 		"INPUT_DATE": date_string,
-		"INPUT_DIRECTORY": escaped_scratch_illumina_directory,
+		"INPUT_DIRECTORY": scratch_illumina_directory,
 		"INPUT_NUM_SAMPLES": str(number_top_samples_to_demultiplex),
 		"INPUT_DJANGO_ANALYSIS_RUN": str(run_entry_id)
 	}
 	replacement_dictionary.update(additional_replacements)
+	escaped_replacement_dictionary = {}
+	for key, value in replacement_dictionary.items():
+		escaped_replacement_dictionary[escape_slashes(key)] = escape_slashes(value)
 	
 	extension = os.path.splitext(source_filename)[1]
 	host = settings.COMMAND_HOST
 	command = "sed '" \
-		+ ''.join(["s/{}/{}/g;".format(key, replacement_dictionary[key]) for key in replacement_dictionary]) \
+		+ ''.join(["s/{}/{}/g;".format(key, escaped_replacement_dictionary[key]) for key in escaped_replacement_dictionary]) \
 		+ "'" \
 		+ " {}/{}".format(settings.RUN_FILES_DIRECTORY, source_filename) \
 		+ " > {0}/{1}_{2}/{1}_{2}_{4}{3}".format(settings.RUN_FILES_DIRECTORY, date_string, combined_sequencing_run_name, extension, command_label)
