@@ -55,6 +55,7 @@ class Command(BaseCommand):
 		
 		# add demultiplexed bams to database
 		#nuclear
+		# TODO identify reference properly
 		self.load_demultiplexed_bams_into_database(date_string, name, flowcell_objs, nuclear_subdirectory, 'hg19')
 		#mt
 		self.load_demultiplexed_bams_into_database(date_string, name, flowcell_objs, mt_subdirectory, 'rsrs')
@@ -95,18 +96,10 @@ class Command(BaseCommand):
 					sequenced.flowcells.add(flowcell)
 				sequenced.save()
 			
-	# Find the flowcell text idd from a demultiplexed flowcell, using the contents of the Illumina fastq headers
+	# Find the flowcell text id from a demultiplexed flowcell, using the contents of the Illumina fastq headers
 	def get_flowcell_text_ids(self, date_string, name, flowcell_by_lane):
 		# if we are running on the web host, try to read the file directly
 		read_groups_file_path = "{}/{}_{}/read_groups".format(settings.DEMULTIPLEXED_PARENT_DIRECTORY, date_string, name)
-		# try with removing the leading /n of directory in case we are on orchestra and not O2
-		try:
-			if read_groups_file_path.startswith('/n/'):
-				shortened_read_groups_file_path = read_groups_file_path[2:]
-				with open(shortened_read_groups_file_path) as f:
-					return self.read_flowcell_text_ids_from_file_contents(f, flowcell_by_lane)
-		except FileNotFoundError:
-			pass
 		# now try with nonshortened
 		try:
 			with open(read_groups_file_path) as f:
