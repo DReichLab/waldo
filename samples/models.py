@@ -243,14 +243,12 @@ class NuclearSequencingRun(Timestamped):
 	
 class ControlsExtract(Timestamped):
 	extract_batch = models.ForeignKey(ExtractBatch, on_delete=models.PROTECT)
-	nuclear_sequencing_run = models.ForeignKey(NuclearSequencingRun, on_delete=models.PROTECT, null=True)
 	ec_count = models.PositiveSmallIntegerField()
 	ec_median = models.FloatField()
 	ec_max = models.FloatField()
 	
 class ControlsLibrary(Timestamped):
 	library_batch = models.ForeignKey(LibraryBatch, on_delete=models.PROTECT)
-	nuclear_sequencing_run = models.ForeignKey(NuclearSequencingRun, on_delete=models.PROTECT, null=True)
 	lc_count = models.PositiveSmallIntegerField()
 	lc_median = models.FloatField()
 	lc_max = models.FloatField()
@@ -326,6 +324,7 @@ class DistributionsExtract(Timestamped):
 	
 class Results(Timestamped):
 	library_id = models.CharField(max_length=25, db_index=True)
+	library_fk = models.ForeignKey(Library, null=True, on_delete=models.SET_NULL)
 	mt_capture_plate = models.ForeignKey(MTCapturePlate, null=True, on_delete=models.SET_NULL)
 	mt_seq_run = models.ForeignKey(MTSequencingRun, null=True, on_delete=models.SET_NULL)
 	shotgun_pool = models.ForeignKey(ShotgunPool, null=True, on_delete=models.SET_NULL)
