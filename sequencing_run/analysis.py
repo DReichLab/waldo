@@ -85,7 +85,7 @@ def start_analysis(source_illumina_dir, combined_sequencing_run_name, sequencing
 		# get analysis job ready
 		# this will be triggered by 'load_demultiplexed' command after at end of demultiplexing job
 		replace_parameters('analysis_template.json', ANALYSIS_COMMAND_LABEL, combined_sequencing_run_name, date_string, scratch_illumina_directory_path, run_entry.id)
-		replace_parameters('analysis_template.sh', ANALYSIS_COMMAND_LABEL, combined_sequencing_run_name, date_string, scratch_illumina_directory_path, run_entry.id)
+		replace_parameters('analysis_template.sh', ANALYSIS_COMMAND_LABEL, combined_sequencing_run_name, date_string, scratch_illumina_directory_path, run_entry.id, additional_replacements=additional_replacements)
 
 	print('save flowcell info for later')
 	flowcell_queryset = SequencingAnalysisRun.objects.filter(sample_set_names__name__in=sequencing_run_names).values_list('triggering_flowcells__flowcell_text_id', flat=True).order_by('id')
