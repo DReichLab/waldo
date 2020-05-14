@@ -104,7 +104,7 @@ STATIC_URL = '/static/'
 COMMAND_HOST = "mym11@o2.hms.harvard.edu"
 TRANSFER_HOST = "mym11@transfer.rc.hms.harvard.edu"
 FILES_SERVER_DIRECTORY = "/files/Genetics/reichseq/reich/reichseq/reich"
-SCRATCH_PARENT_DIRECTORY = "/n/scratch2/mym11/automated_pipeline"
+SCRATCH_PARENT_DIRECTORY = "/n/scratch3/users/m/mym11/automated_pipeline"
 
 GROUPS_DIRECTORY = "/n/groups/reich/matt/pipeline/"
 RUN_FILES_DIRECTORY = os.path.join(GROUPS_DIRECTORY, 'run')
