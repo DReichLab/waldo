@@ -54,12 +54,21 @@ def mod_append(thelist, string, default=EMPTY):
 	else:
 		thelist.append(default)
 
+def replace_empty(thelist):
+	return [s if len(s) > 0 else EMPTY for s in thelist]
+
 # this library id may contain _d damage-restriction indicator
-def library_anno_line(library_id_raw, sequencing_run_name, release_label):
-	#print(library_id_raw, file=sys.stderr)
-	damage_restricted = library_id_raw.endswith('_d')
-	instance_id, library_id_obj = individual_from_library_id(library_id_raw)
-	library_id_str = str(library_id_obj)
+def library_anno_line(instance_id_raw, sequencing_run_name, release_label, component_library_ids=[]):
+	#print(instance_id_raw, file=sys.stderr)
+	damage_restricted = instance_id_raw.endswith('_d')
+	is_merge = len(component_library_ids) > 0
+	if not is_merge: # single library
+		instance_id, library_id_obj = individual_from_library_id(instance_id_raw)
+		component_library_ids[0] = str(library_id_obj)
+	else: # merge
+		instance_id = instance_id_raw
+		ignored, library_id_obj = individual_from_library_id(component_library_ids[0]) # assumes first library has sample number
+	
 	is_control = len(library_id_obj.sample_suffix) > 0
 	try:
 		sample = Sample.objects.get(reich_lab_id__exact=library_id_obj.sample, control__exact=library_id_obj.sample_suffix)
@@ -78,7 +87,9 @@ def library_anno_line(library_id_raw, sequencing_run_name, release_label):
 	
 	#Master ID
 	master_id = get_text(sample, 'individual_id')
-	if len(library_id_obj.sample_suffix) > 0:
+	if is_merge:
+		mod_append(fields, instance_id.split('_')[0])
+	elif len(library_id_obj.sample_suffix) > 0: # controls do not have master ID
 		mod_append(fields, '')
 	else:
 		mod_append(fields, master_id)
@@ -123,25 +134,50 @@ def library_anno_line(library_id_raw, sequencing_run_name, release_label):
 	#Data type
 	mod_append(fields, '1240K') # TODO
 	#No. Libraries
-	mod_append(fields, '1') # TODO
+	mod_append(fields, str(len(component_library_ids)))
 	
-	results = Results.objects.get(library_id__exact = library_id_str, nuclear_seq_run__name__iexact = sequencing_run_name)
-	nuclear = NuclearAnalysis.objects.get(parent = results, version_release = release_label, damage_restricted = damage_restricted)
-	analysis_files = AnalysisFiles.objects.get(parent = results)
+	nuclear_list = []
+	mt_list = []
+	shotgun_list = []
+	for library_id_str in component_library_ids:
+		if sequencing_run_name is not None:
+			results = Results.objects.get(library_id__exact = library_id_str, nuclear_seq_run__name__iexact = sequencing_run_name)
+		else:
+			try:
+				results = Results.objects.get(library_id__exact = library_id_str)
+			except Results.MultipleObjectsReturned as e:
+				print('{} has multiple results'.format(library_id_str), file=sys.stderr)
+				multiple_results = Results.objects.filter(library_id__exact = library_id_str).order_by('creation_timestamp')
+				for result in multiple_results:
+					print('sequencing runs: {}'.format(result.nuclear_seq_run.name), file=sys.stderr)
+				results = multiple_results[len(multiple_results)-1]
+				#raise e
+		if release_label is not None:
+			nuclear = NuclearAnalysis.objects.get(parent = results, version_release = release_label, damage_restricted = damage_restricted)
+		else:
+			try:
+				nuclear = NuclearAnalysis.objects.get(parent = results,	damage_restricted = damage_restricted)
+			except NuclearAnalysis.DoesNotExist as error:
+				nuclear = None
+				print('{} Nuclear analysis not found, damage-restricted {}'.format(library_id_str, str(damage_restricted)), file=sys.stderr)
+			
+		try:
+			mt = MTAnalysis.objects.get(parent = results, damage_restricted = damage_restricted)
+		except MTAnalysis.DoesNotExist as e:
+			mt = None
+			if not damage_restricted: # when we do damage-restricted analysis, update
+				print('{} MT not found, damage-restricted {}'.format(library_id_str, str(damage_restricted)), file=sys.stderr)
 		
-	try:
-		mt = MTAnalysis.objects.get(parent = results, damage_restricted = damage_restricted)
-	except MTAnalysis.DoesNotExist as e:
-		mt = None
-		if not damage_restricted: # when we do damage-restricted analysis, update
-			print('{} MT not found, damage-restricted {}'.format(library_id_str, str(damage_restricted)), file=sys.stderr)
-	
-	try:
-		shotgun = ShotgunAnalysis.objects.get(parent = results, damage_restricted = damage_restricted)
-	except ShotgunAnalysis.DoesNotExist as e:
-		shotgun = None
-		if not damage_restricted: # when we do damage-restricted analysis, update
-			print('{} shotgun not found, damage-restricted {}'.format(library_id_str, str(damage_restricted)), file=sys.stderr)
+		try:
+			shotgun = ShotgunAnalysis.objects.get(parent = results, damage_restricted = damage_restricted)
+		except ShotgunAnalysis.DoesNotExist as e:
+			shotgun = None
+			if not damage_restricted: # when we do damage-restricted analysis, update
+				print('{} shotgun not found, damage-restricted {}'.format(library_id_str, str(damage_restricted)), file=sys.stderr)
+		nuclear_list += [nuclear]
+		mt_list += [mt]
+		shotgun_list += [shotgun]
+	analysis_files = AnalysisFiles.objects.get(parent = results) # TODO
 	
 	#Data: mtDNA bam
 	mod_append(fields, analysis_files.mt_bam)
@@ -212,36 +248,42 @@ def library_anno_line(library_id_raw, sequencing_run_name, release_label):
 		for i in range(4):
 			mod_append(fields, 'n/a (unknown sex)')
 	#Library type (minus=no.damage.correction, half=damage.retained.at.last.position, plus=damage.fully.corrected, ss=single.stranded.library.preparation)
-	library_type = Library.objects.get(reich_lab_library_id = library_id_str).udg_treatment
-	library_type = library_type.lower()
-	if 'ss.half' not in library_type:
-		raise ValueError('Unexpected library type {}'.format(library_type))
-	mod_append(fields, library_type)
+	library_types = []
+	for library_id_str in component_library_ids:
+		library_type = Library.objects.get(reich_lab_library_id = library_id_str).udg_treatment
+		library_type = library_type.lower()
+		library_types += [library_id_str]
+		#if 'ss.half' not in library_type:
+			#raise ValueError('Unexpected library type {}'.format(library_type))
+	mod_append(fields, ','.join(library_types))
 	#LibraryID(s)
-	mod_append(fields, '{}'.format(library_id_str))
+	mod_append(fields, ','.join(component_library_ids))
 	#endogenous by library (computed on shotgun data)
-	mod_append(fields, get_number(shotgun, 'fraction_hg19', 5))
-	# TODO by library changes (multiple libraries)
+	endogenous_by_library = [get_number(shotgun, 'fraction_hg19', 5) for shotgun in shotgun_list]
+	mod_append(fields, ','.join(replace_empty(endogenous_by_library)))
 	#1240k coverage (by library)
 	try:
-		mod_append(fields, '{}'.format(get_number(nuclear, 'coverage_targeted_positions')))
+		coverage_by_library = [get_number(nuclear, 'coverage_targeted_positions') for nuclear in nuclear_list]
+		mod_append(fields, ','.join(replace_empty(coverage_by_library)))
 	except:
 		mod_append(fields, '')
 	#Damage rate in first nucleotide on sequences overlapping 1240k targets (by library)
-	mod_append(fields, '{}'.format(get_number(nuclear, 'damage_last_base')))
+	damage_by_library = [get_number(nuclear, 'damage_last_base') for nuclear in nuclear_list]
+	mod_append(fields, ','.join(replace_empty(damage_by_library)))
 	#mtDNA coverage (by library)
-	mod_append(fields, '{}'.format(get_number(mt, 'coverage')))
+	mt_coverage_by_library = [get_number(mt, 'coverage') for mt in mt_list]
+	mod_append(fields, ','.join(replace_empty(mt_coverage_by_library)))
 	#mtDNA haplogroup if ≥2 coverage (by library)
+	haplogroup_by_library = [mt.haplogroup if (mt is not None and mt.coverage is not None and mt.coverage >= 2.0) else 'n/a (<2x coverage)' for mt in mt_list]
+	mod_append(fields, ','.join(haplogroup_by_library))
 	#mtDNA match to consensus if ≥2 coverage (by library)
-	if mt is not None and mt.coverage is not None and mt.coverage >= 2.0:
-		mod_append(fields, '{}'.format(mt.haplogroup))
-		#mod_append(fields, '{}'.format(get_number(mt, 'consensus_match')))
-		mod_append(fields, get_text(mt, 'consensus_match_95ci'))
-	else:
-		mod_append(fields, 'n/a (<2x coverage)')
-		mod_append(fields, 'n/a (<2x coverage)')
+	consensus_match_by_library = [get_text(mt, 'consensus_match_95ci') if (mt is not None and mt.coverage is not None and mt.coverage >= 2.0) else 'n/a (<2x coverage)' for mt in mt_list]
+	mod_append(fields, ','.join(consensus_match_by_library))
 	#batch notes (e.g. if a control well looks contaminated)
 	mod_append(fields, '') # TODO not yet pulled in from ESS files
+
+	if is_merge: # TODO kluge to output merge data
+		return fields
 	
 	#ASSESSMENT
 	assessment_reasons = []
