@@ -185,6 +185,7 @@ class Library(Timestamped):
 	library_batch_id = models.ForeignKey(LibraryBatch, on_delete=models.PROTECT, null=True)
 	reich_lab_library_id = models.CharField(max_length=20, unique=True, db_index=True)
 	udg_treatment = models.CharField(max_length=10)
+	library_type = models.CharField(max_length=10, blank=True)
 	ul_extract_used = models.FloatField(null=True)
 	# mg_equivalent_powder_used
 	alt_category = models.CharField(max_length=20, blank=True)
