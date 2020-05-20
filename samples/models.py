@@ -87,7 +87,7 @@ class Sample(Timestamped):
 	skeletal_element = models.CharField(max_length=50, blank=True, help_text='Type of bone sample submitted for aDNA analysis')
 	skeletal_code = models.CharField(max_length=150, blank=True, help_text='Sample identification code assigned by the collaborator')
 	skeletal_code_renamed = models.TextField(blank=True, help_text='Sample identification code assigned by the Reich Lab')
-	sample_date = models.CharField(max_length=550, blank=True, help_text='Age of sample; either a radiocarbon date or a date interval.')
+	sample_date = models.TextField(blank=True, help_text='Age of sample; either a radiocarbon date or a date interval.')
 	average_bp_date = models.FloatField(null=True, help_text='Average Before Present date, calculated from average of calibrated date range after conversion to BP dates')
 	date_fix_flag = models.CharField(max_length=75, help_text='Flag for any issues with the date information submitted by the collaborator', blank=True)
 	group_label = models.CharField(max_length=100, blank=True, help_text='Country_Culture_Period of Individual')
