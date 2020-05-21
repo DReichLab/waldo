@@ -122,7 +122,7 @@ class PowderSample(Timestamped):
 	storage_location = models.CharField(max_length=50, help_text='Storage location of remaining bone powder')
 	
 class ExtractionProtocol(Timestamped):
-	name = models.CharField(max_length=50)
+	name = models.CharField(max_length=150)
 	start_date = models.DateField(null=True)
 	end_date = models.DateField(null=True)
 	update_description = models.TextField(blank=True)
@@ -173,7 +173,7 @@ class LibraryProtocol(Timestamped):
 	volume_extract_used_standard = models.FloatField(null=True)
 
 class LibraryBatch(Timestamped):
-	name = models.CharField(max_length=50, blank=True)
+	name = models.CharField(max_length=150, blank=True)
 	protocol = models.ForeignKey(LibraryProtocol, on_delete=models.PROTECT, null=True)
 	technician = models.CharField(max_length=50, blank=True)
 	prep_date = models.DateField(null=True)
@@ -193,14 +193,14 @@ class Library(Timestamped):
 	assessment = models.TextField(help_text='Xcontam listed if |Z|>2 standard errors from zero: 0.02-0.05="QUESTIONABLE", >0.05="QUESTIONABLE_CRITICAL" or "FAIL") (mtcontam 97.5th percentile estimates listed if coverage >2: <0.8 is "QUESTIONABLE_CRITICAL", 0.8-0.95 is "QUESTIONABLE", and 0.95-0.98 is recorded but "PASS", gets overriden by ANGSD')
 	
 class MTCaptureProtocol(Timestamped):
-	name = models.CharField(max_length=50)
+	name = models.CharField(max_length=150)
 	start_date = models.DateField()
 	end_date = models.DateField()
 	update_description = models.TextField()
 	publication_summary = models.TextField()
 	
 class NuclearCaptureProtocol(Timestamped):
-	name = models.CharField(max_length=50)
+	name = models.CharField(max_length=150)
 	start_date = models.DateField(null=True)
 	end_date = models.DateField(null=True)
 	update_description = models.TextField()
