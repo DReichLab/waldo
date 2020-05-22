@@ -203,7 +203,7 @@ class LibraryProtocol(Timestamped):
 	start_date = models.DateField(null=True)
 	end_date = models.DateField(null=True)
 	description = models.TextField(blank=True)
-	library_method_reference_abbreviation = models.CharField(max_length=50, blank=True)
+	manuscript_summary = models.CharField(max_length=50, blank=True)
 	protocol_reference = models.TextField(blank=True)
 	manual_robotic = models.CharField(max_length=20, blank=True)
 	volume_extract_used_standard = models.FloatField(null=True)
@@ -236,7 +236,7 @@ class MTCaptureProtocol(Timestamped):
 	end_date = models.DateField()
 	description = models.TextField()
 	manuscript_summary = models.TextField(blank=True, help_text='Enrichment method summary for manuscripts')
-	publication_summary = models.TextField(blank=True)
+	protocol_reference = models.TextField(blank=True)
 	
 class NuclearCaptureProtocol(Timestamped):
 	name = models.CharField(max_length=150)
