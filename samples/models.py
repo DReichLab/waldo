@@ -25,7 +25,7 @@ class Timestamped(models.Model):
 		abstract = True
 
 class Shipment(Timestamped):
-	text_id = models.CharField(max_length=30, db_index=True, unique=True)
+	shipment_name = models.CharField(max_length=30, db_index=True, unique=True)
 	arrival_date = models.DateField(null=True)
 	arrival_method = models.CharField(max_length=255)
 	tracking_number = models.CharField(max_length=30)
@@ -35,8 +35,8 @@ class Shipment(Timestamped):
 	additional_information_location = models.TextField()
 	
 class Collaborator(Timestamped):
-	first_name = models.CharField(max_length=30, db_index=True)
-	last_name = models.CharField(max_length=30, db_index=True)
+	first_name = models.CharField(max_length=50, db_index=True)
+	last_name = models.CharField(max_length=50, db_index=True)
 	title = models.CharField(max_length=65, help_text="Collaborator's professional title", blank=True)
 	institution = models.CharField(max_length=100, db_index=True, help_text="Collaborator's associated institution or company")
 	department = models.CharField(max_length=110, help_text="Collaborator's department or division", blank=True)
@@ -63,6 +63,26 @@ class Collaborator(Timestamped):
 	
 	primary_collaborator = models.BooleanField(null=True, db_index=True, help_text='Is this person a Primary Collaborator? This field is used select collaborators for Harvard office of Academic Reasearch Integrity approval')
 	ora_approval = models.BooleanField(db_index=True, help_text='Has the Harvard office of Academic Research Integrity cleared this collaborator?')
+
+class WetLabStaff(Timestamped):
+	first_name = models.CharField(max_length=30, db_index=True)
+	late_name = models.CharField(max_length=30, db_index=True)
+	start_date = models.DateField(null=True)
+	end_date = models.DateField(null=True)
+	title = models.CharField(max_length=50)
+	email_1 = models.CharField(max_length=50, blank=True)
+	email_2 = models.CharField(max_length=50, blank=True)
+	phone_number = models.CharField(max_length=30, blank=True)
+	
+class SupportStaff(Timestamped):
+	first_name = models.CharField(max_length=30, db_index=True)
+	late_name = models.CharField(max_length=30, db_index=True)
+	start_date = models.DateField(null=True)
+	end_date = models.DateField(null=True)
+	title = models.CharField(max_length=50)
+	email_1 = models.CharField(max_length=50, blank=True)
+	email_2 = models.CharField(max_length=50, blank=True)
+	phone_number = models.CharField(max_length=30, blank=True)
 	
 class Return(Timestamped):
 	collaborator = models.ForeignKey(Collaborator, on_delete=models.PROTECT)
@@ -91,6 +111,11 @@ class Sample(Timestamped):
 	average_bp_date = models.FloatField(null=True, help_text='Average Before Present date, calculated from average of calibrated date range after conversion to BP dates')
 	date_fix_flag = models.CharField(max_length=75, help_text='Flag for any issues with the date information submitted by the collaborator', blank=True)
 	group_label = models.CharField(max_length=100, blank=True, help_text='Country_Culture_Period of Individual')
+	geo_region = models.CharField(max_length=50, blank=True, help_text='Geographic region component of group label of an Individual')
+	geo_subregion = models.CharField(max_length=50, blank=True, help_text='Geographic subregion component of group label of an Individual')
+	period = models.CharField(max_length=50, blank=True, help_text='Archaeologic period component of group label of an Individual')
+	culture = models.CharField(max_length=50, blank=True, help_text='Archaeologic culture component of group label of an Individual')
+	outlier = models.CharField(max_length=50, blank=True, help_text='Outlier designation component of group label of an Individual')
 	locality = models.CharField(max_length=150, blank=True, help_text='Location where skeletal remains were found')
 	country = models.CharField(max_length=30, blank=True, help_text='Country where skeletal remains were found')
 	latitude = models.CharField(max_length=20, blank=True, help_text='Latitude where skeletal remains were found') # TODO convert to spatial
@@ -106,11 +131,18 @@ class Sample(Timestamped):
 	
 	class Meta:
 		unique_together = ['reich_lab_id', 'control']
+		
+class SamplePrepProtocol(Timestamped):
+	preparation_method = models.CharField(max_length=50, help_text='Method used to produce bone powder')
+	manuscript_summary = models.TextField(help_text='Sampling method summary for manuscripts')
+	protocol_reference = models.TextField(blank=True, help_text='Protocol citation')
+	notes = models.TextField(blank=True, help_text='Notes about the method used to create bone powder')
 	
 class PowderBatch(Timestamped):
 	name = models.CharField(max_length=50)
 	date = models.DateField(null=True)
 	technician = models.CharField(max_length=50)
+	technician_fk = models.ForeignKey(WetLabStaff, on_delete=models.SET_NULL, null=True)
 
 class PowderSample(Timestamped):
 	powder_sample_id = models.CharField(max_length=15, unique=True, null=False, db_index=True)
@@ -120,24 +152,27 @@ class PowderSample(Timestamped):
 	sampling_notes = models.TextField(help_text='Notes from technician about sample quality, method used, mg of bone powder produced and storage location', blank=True)
 	total_powder_produced_mg = models.FloatField(null=True, help_text='Total miligrams of bone powder produced from the sample')
 	storage_location = models.CharField(max_length=50, help_text='Storage location of remaining bone powder')
+	sample_prep_lab = models.CharField(max_length=50, blank=True, help_text='Name of lab where bone powder was produced')
+	sample_prep_protocol = models.ForeignKey(SamplePrepProtocol, on_delete=models.SET_NULL, null=True)
 	
 class ExtractionProtocol(Timestamped):
 	name = models.CharField(max_length=150)
 	start_date = models.DateField(null=True)
 	end_date = models.DateField(null=True)
-	update_description = models.TextField(blank=True)
+	description = models.TextField(blank=True)
 	manual_robotic = models.CharField(max_length=20, blank=True)
 	total_lysis_volume = models.FloatField(null=True)
 	lysate_fraction_extracted = models.FloatField(null=True)
 	final_extract_volume = models.FloatField(null=True)
 	binding_buffer = models.CharField(max_length=20, blank=True)
-	reference_abbreviation = models.CharField(max_length=50, blank=True)
-	publication_summary = models.TextField(blank=True)
+	reference_abbreviation = models.CharField(max_length=150, blank=True)
+	protocol_reference = models.TextField(blank=True)
 	
 class ExtractBatch(Timestamped):
 	batch_name = models.CharField(max_length=50)
 	protocol = models.ForeignKey(ExtractionProtocol, on_delete=models.PROTECT, null=True)
 	technician = models.CharField(max_length=50, blank=True)
+	technician_fk = models.ForeignKey(WetLabStaff, on_delete=models.SET_NULL, null=True)
 	date = models.DateField(null=True)
 	robot = models.CharField(max_length=20, blank=True)
 	note = models.TextField(blank=True)
@@ -161,14 +196,15 @@ class Extract(Timestamped):
 	#extract_volume_remaining = models.FloatField(null=True)
 	notes = models.TextField(blank=True)
 	storage_location = models.TextField(blank=True)
+	extraction_lab = models.CharField(max_length=50, blank=True, help_text='Name of lab where DNA extraction was done')
 	
 class LibraryProtocol(Timestamped):
 	name = models.CharField(max_length=50, unique=True)
 	start_date = models.DateField(null=True)
 	end_date = models.DateField(null=True)
-	update_description = models.TextField(blank=True)
-	library_method_reference_abbreviation = models.CharField(max_length=20, blank=True)
-	publication_summary = models.TextField(blank=True)
+	description = models.TextField(blank=True)
+	library_method_reference_abbreviation = models.CharField(max_length=50, blank=True)
+	protocol_reference = models.TextField(blank=True)
 	manual_robotic = models.CharField(max_length=20, blank=True)
 	volume_extract_used_standard = models.FloatField(null=True)
 
@@ -179,6 +215,7 @@ class LibraryBatch(Timestamped):
 	prep_date = models.DateField(null=True)
 	prep_note = models.TextField(blank=True)
 	prep_robot = models.CharField(max_length=20, blank=True)
+	technician_fk = models.ForeignKey(WetLabStaff, on_delete=models.SET_NULL, null=True)
 	
 class Library(Timestamped):
 	extract_id = models.ForeignKey(Extract, on_delete=models.PROTECT, null=True)
@@ -186,6 +223,7 @@ class Library(Timestamped):
 	reich_lab_library_id = models.CharField(max_length=20, unique=True, db_index=True)
 	udg_treatment = models.CharField(max_length=10)
 	library_type = models.CharField(max_length=10, blank=True)
+	library_prep_lab = models.CharField(max_length=50, blank=True, help_text='Name of lab where library preparation was done')
 	ul_extract_used = models.FloatField(null=True)
 	# mg_equivalent_powder_used
 	alt_category = models.CharField(max_length=20, blank=True)
@@ -196,43 +234,58 @@ class MTCaptureProtocol(Timestamped):
 	name = models.CharField(max_length=150)
 	start_date = models.DateField()
 	end_date = models.DateField()
-	update_description = models.TextField()
-	publication_summary = models.TextField()
+	description = models.TextField()
+	manuscript_summary = models.TextField(blank=True, help_text='Enrichment method summary for manuscripts')
+	publication_summary = models.TextField(blank=True)
 	
 class NuclearCaptureProtocol(Timestamped):
 	name = models.CharField(max_length=150)
 	start_date = models.DateField(null=True)
 	end_date = models.DateField(null=True)
-	update_description = models.TextField()
-	publication_summary = models.TextField(blank=True)
+	description = models.TextField()
+	manuscript_summary = models.TextField(blank=True, help_text='Enrichment method summary for manuscripts')
+	protocol_reference = models.TextField(blank=True)
+	
+class SequencingPlatform(Timestamped):
+	platform = models.CharField(max_length=20)
+	library_type = models.CharField(max_length=20, blank=True)
+	read_length = models.CharField(max_length=20)
+	note = models.TextField()
 	
 class MTCapturePlate(Timestamped):
 	name = models.CharField(max_length=30)
 	protocol = models.ForeignKey(MTCaptureProtocol, on_delete=models.PROTECT, null=True)
 	technician = models.CharField(max_length=10, blank=True)
+	technician_fk = models.ForeignKey(WetLabStaff, on_delete=models.SET_NULL, null=True)
 	date = models.DateField(null=True)
 	robot = models.CharField(max_length=20, blank=True)
 	
 class MTSequencingRun(Timestamped):
 	name = models.CharField(max_length=30)
 	technician = models.CharField(max_length=10, blank=True)
+	technician_fk = models.ForeignKey(WetLabStaff, on_delete=models.SET_NULL, null=True)
 	date = models.DateField(null=True)
+	sequencing = models.ForeignKey(SequencingPlatform, on_delete=models.SET_NULL, null=True)
 	
 class ShotgunPool(Timestamped):
 	name = models.CharField(max_length=50)
 	technician = models.CharField(max_length=10, blank=True)
+	technician_fk = models.ForeignKey(WetLabStaff, on_delete=models.SET_NULL, null=True)
 	date = models.DateField(null=True)
 	
 class ShotgunSequencingRun(Timestamped):
 	name = models.CharField(max_length=50)
 	technician = models.CharField(max_length=10, blank=True)
+	technician_fk = models.ForeignKey(WetLabStaff, on_delete=models.SET_NULL, null=True)
 	date = models.DateField(null=True)
+	sequencing = models.ForeignKey(SequencingPlatform, on_delete=models.SET_NULL, null=True)
 	
 class NuclearCapturePlate(Timestamped):
 	name = models.CharField(max_length=50)
 	enrichment_type = models.CharField(max_length=20, blank=True)
 	protocol = models.ForeignKey(NuclearCaptureProtocol, on_delete=models.PROTECT, null=True)
 	technician = models.CharField(max_length=10, blank=True)
+	technician_fk = models.ForeignKey(WetLabStaff, on_delete=models.SET_NULL, null=True)
 	date = models.DateField(null=True)
 	robot = models.CharField(max_length=50)
 	hyb_wash_temps = models.CharField(max_length=50)
@@ -240,7 +293,9 @@ class NuclearCapturePlate(Timestamped):
 class NuclearSequencingRun(Timestamped):
 	name = models.CharField(max_length=50)
 	technician = models.CharField(max_length=10, blank=True)
+	technician_fk = models.ForeignKey(WetLabStaff, on_delete=models.SET_NULL, null=True)
 	date = models.DateField(null=True)
+	sequencing = models.ForeignKey(SequencingPlatform, on_delete=models.SET_NULL, null=True)
 	
 class ControlsExtract(Timestamped):
 	extract_batch = models.ForeignKey(ExtractBatch, on_delete=models.PROTECT)
