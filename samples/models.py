@@ -66,7 +66,7 @@ class Collaborator(Timestamped):
 
 class WetLabStaff(Timestamped):
 	first_name = models.CharField(max_length=30, db_index=True)
-	late_name = models.CharField(max_length=30, db_index=True)
+	last_name = models.CharField(max_length=30, db_index=True)
 	start_date = models.DateField(null=True)
 	end_date = models.DateField(null=True)
 	title = models.CharField(max_length=50)
@@ -76,7 +76,7 @@ class WetLabStaff(Timestamped):
 	
 class SupportStaff(Timestamped):
 	first_name = models.CharField(max_length=30, db_index=True)
-	late_name = models.CharField(max_length=30, db_index=True)
+	last_name = models.CharField(max_length=30, db_index=True)
 	start_date = models.DateField(null=True)
 	end_date = models.DateField(null=True)
 	title = models.CharField(max_length=50)
@@ -165,7 +165,7 @@ class ExtractionProtocol(Timestamped):
 	lysate_fraction_extracted = models.FloatField(null=True)
 	final_extract_volume = models.FloatField(null=True)
 	binding_buffer = models.CharField(max_length=20, blank=True)
-	reference_abbreviation = models.CharField(max_length=150, blank=True)
+	manuscript_summary = models.CharField(max_length=150, blank=True)
 	protocol_reference = models.TextField(blank=True)
 	
 class ExtractBatch(Timestamped):
