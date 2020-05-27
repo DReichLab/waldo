@@ -143,6 +143,7 @@ class PowderBatch(Timestamped):
 	date = models.DateField(null=True)
 	technician = models.CharField(max_length=50)
 	technician_fk = models.ForeignKey(WetLabStaff, on_delete=models.SET_NULL, null=True)
+	notes = models.TextField(blank=True)
 
 class PowderSample(Timestamped):
 	powder_sample_id = models.CharField(max_length=15, unique=True, null=False, db_index=True)
@@ -248,9 +249,10 @@ class NuclearCaptureProtocol(Timestamped):
 	
 class SequencingPlatform(Timestamped):
 	platform = models.CharField(max_length=20)
-	library_type = models.CharField(max_length=20, blank=True)
 	read_length = models.CharField(max_length=20)
 	note = models.TextField()
+	lanes_runs = models.FloatField(null=True, help_text='number of lanes for HISeqs or number of runs for Miseq and NextSeq')
+	location = models.CharField(max_length=50, blank=True, help_text='location of sequencing platform')
 	
 class MTCapturePlate(Timestamped):
 	name = models.CharField(max_length=30)
@@ -259,6 +261,7 @@ class MTCapturePlate(Timestamped):
 	technician_fk = models.ForeignKey(WetLabStaff, on_delete=models.SET_NULL, null=True)
 	date = models.DateField(null=True)
 	robot = models.CharField(max_length=20, blank=True)
+	notes = models.TextField(blank=True)
 	
 class MTSequencingRun(Timestamped):
 	name = models.CharField(max_length=30)
@@ -266,12 +269,14 @@ class MTSequencingRun(Timestamped):
 	technician_fk = models.ForeignKey(WetLabStaff, on_delete=models.SET_NULL, null=True)
 	date = models.DateField(null=True)
 	sequencing = models.ForeignKey(SequencingPlatform, on_delete=models.SET_NULL, null=True)
+	notes = models.TextField(blank=True)
 	
 class ShotgunPool(Timestamped):
 	name = models.CharField(max_length=50)
 	technician = models.CharField(max_length=10, blank=True)
 	technician_fk = models.ForeignKey(WetLabStaff, on_delete=models.SET_NULL, null=True)
 	date = models.DateField(null=True)
+	notes = models.TextField(blank=True)
 	
 class ShotgunSequencingRun(Timestamped):
 	name = models.CharField(max_length=50)
@@ -279,6 +284,7 @@ class ShotgunSequencingRun(Timestamped):
 	technician_fk = models.ForeignKey(WetLabStaff, on_delete=models.SET_NULL, null=True)
 	date = models.DateField(null=True)
 	sequencing = models.ForeignKey(SequencingPlatform, on_delete=models.SET_NULL, null=True)
+	notes = models.TextField(blank=True)
 	
 class NuclearCapturePlate(Timestamped):
 	name = models.CharField(max_length=50)
@@ -289,6 +295,7 @@ class NuclearCapturePlate(Timestamped):
 	date = models.DateField(null=True)
 	robot = models.CharField(max_length=50)
 	hyb_wash_temps = models.CharField(max_length=50)
+	notes = models.TextField(blank=True)
 	
 class NuclearSequencingRun(Timestamped):
 	name = models.CharField(max_length=50)
@@ -296,6 +303,7 @@ class NuclearSequencingRun(Timestamped):
 	technician_fk = models.ForeignKey(WetLabStaff, on_delete=models.SET_NULL, null=True)
 	date = models.DateField(null=True)
 	sequencing = models.ForeignKey(SequencingPlatform, on_delete=models.SET_NULL, null=True)
+	notes = models.TextField(blank=True)
 	
 class ControlsExtract(Timestamped):
 	extract_batch = models.ForeignKey(ExtractBatch, on_delete=models.PROTECT)
