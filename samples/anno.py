@@ -57,6 +57,16 @@ def mod_append(thelist, string, default=EMPTY):
 def replace_empty(thelist):
 	return [s if len(s) > 0 else EMPTY for s in thelist]
 
+def reformat_interval(interval_string):
+	new_interval_string = ''
+	try:
+		values = [float(s) for s in interval_string.strip(' []').split(',')]
+		new_interval_string = '[{:.3f},{:.3f}]'.format(values[0], values[1])
+	except error:
+		print(error, file=sys.stderr)
+	finally:
+		return new_interval_string
+
 # this library id may contain _d damage-restriction indicator
 def library_anno_line(instance_id_raw, sequencing_run_name, release_label, component_library_ids=[]):
 	#print(instance_id_raw, file=sys.stderr)
@@ -209,7 +219,7 @@ def library_anno_line(instance_id_raw, sequencing_run_name, release_label, compo
 	#mtDNA match to consensus if ≥2 coverage (merged data)
 	if mt is not None and mt.coverage is not None and mt.coverage >= 2.0:
 		mod_append(fields, get_text(mt, 'haplogroup'))
-		mod_append(fields, get_text(mt, 'consensus_match_95ci'))
+		mod_append(fields, reformat_interval(get_text(mt, 'consensus_match_95ci')))
 	else:
 		mod_append(fields, 'n/a (<2x coverage)')
 		mod_append(fields, 'n/a (<2x coverage)')
@@ -237,7 +247,7 @@ def library_anno_line(instance_id_raw, sequencing_run_name, release_label, compo
 			angsd_se = nuclear.angsd_mean / angsd_z
 			angsd_min_range = max(0, nuclear.angsd_mean - 1.96 * angsd_se)
 			angsd_max_range = nuclear.angsd_mean + 1.96 * angsd_se
-			mod_append(fields, '[{:.3f}, {:.3f}]'.format(angsd_min_range, angsd_max_range)) # confidence interval
+			mod_append(fields, '[{:.3f},{:.3f}]'.format(angsd_min_range, angsd_max_range)) # confidence interval
 		else:
 			for i in range(3):
 				mod_append(fields, 'n/a (<200 SNPs)')
@@ -250,9 +260,10 @@ def library_anno_line(instance_id_raw, sequencing_run_name, release_label, compo
 	#Library type (minus=no.damage.correction, half=damage.retained.at.last.position, plus=damage.fully.corrected, ss=single.stranded.library.preparation)
 	library_types = []
 	for library_id_str in component_library_ids:
-		library_type = Library.objects.get(reich_lab_library_id = library_id_str).udg_treatment
-		library_type = library_type.lower()
-		library_types += [library_id_str]
+		library_obj = Library.objects.get(reich_lab_library_id = library_id_str)
+		udg = library_obj.udg_treatment.lower()
+		strandedness = library_obj.library_type.lower()
+		library_types += ['{}.{}'.format(strandedness, udg)]
 		#if 'ss.half' not in library_type:
 			#raise ValueError('Unexpected library type {}'.format(library_type))
 	mod_append(fields, ','.join(library_types))
@@ -277,7 +288,7 @@ def library_anno_line(instance_id_raw, sequencing_run_name, release_label, compo
 	haplogroup_by_library = [mt.haplogroup if (mt is not None and mt.coverage is not None and mt.coverage >= 2.0) else 'n/a (<2x coverage)' for mt in mt_list]
 	mod_append(fields, ','.join(haplogroup_by_library))
 	#mtDNA match to consensus if ≥2 coverage (by library)
-	consensus_match_by_library = [get_text(mt, 'consensus_match_95ci') if (mt is not None and mt.coverage is not None and mt.coverage >= 2.0) else 'n/a (<2x coverage)' for mt in mt_list]
+	consensus_match_by_library = [reformat_interval(get_text(mt, 'consensus_match_95ci')) if (mt is not None and mt.coverage is not None and mt.coverage >= 2.0) else 'n/a (<2x coverage)' for mt in mt_list]
 	mod_append(fields, ','.join(consensus_match_by_library))
 	#batch notes (e.g. if a control well looks contaminated)
 	mod_append(fields, '') # TODO not yet pulled in from ESS files
@@ -301,16 +312,19 @@ def library_anno_line(instance_id_raw, sequencing_run_name, release_label, compo
 	assessment_damage = 0
 	try:
 		# single stranded damage has different thresholds than double stranded
-		if 'ss' in library_type:
-			if nuclear.damage_last_base < 0.03:
-				assessment_damage = 3
-			elif nuclear.damage_last_base < 0.10:
-				assessment_damage = 1
-		else: # double stranded
+		if library_type == 'half' # double stranded
 			if nuclear.damage_last_base < 0.01:
 				assessment_damage = 3
 			elif nuclear.damage_last_base < 0.03:
 				assessment_damage = 1
+		elif 'ss' in library_type or 'minus' in library_type:
+			if nuclear.damage_last_base < 0.03:
+				assessment_damage = 3
+			elif nuclear.damage_last_base < 0.10:
+				assessment_damage = 1
+		else:
+			raise ValueError('unhandled library type: {}'.format(library_type))
+		
 		if assessment_damage > 0:
 			assessment_reasons.append('damage.{}={:.3f}'.format(library_type, nuclear.damage_last_base))
 	except:
@@ -326,7 +340,7 @@ def library_anno_line(instance_id_raw, sequencing_run_name, release_label, compo
 			elif (0.03 <= sex_ratio and sex_ratio <= 0.1) or (0.3 <= sex_ratio and sex_ratio <= 0.35):
 				assessment_sex_ratio = 1
 			if assessment_sex_ratio > 0:
-				sex_ratio_str = 'sexratio[{:.3f}]'.format(sex_ratio)
+				sex_ratio_str = 'sexratio={:.3f}'.format(sex_ratio)
 				assessment_reasons.append(sex_ratio_str)
 	except:
 		pass
@@ -338,13 +352,14 @@ def library_anno_line(instance_id_raw, sequencing_run_name, release_label, compo
 		if mt is not None and mt.coverage is not None and mt.coverage >= 2.0:
 			mtci = mt.consensus_match_95ci
 			mtci_values = [float(v) for v in mtci[mtci.index('[')+1:mtci.index(']')-1].split(',')]
+			mt_ci_lower = mtci_values[0]
 			mt_ci_upper = mtci_values[1]
-			if mt_ci_upper < 0.8:
+			if mt_ci_upper < 0.9:
 				assessment_contammix = 2
-			elif mt_ci_upper < 0.95:
+			elif mt_ci_upper < 0.98:
 				assessment_contammix = 1
 			if assessment_contammix > 0:
-				assessment_reasons.append('mtmatchmax={:.3f}'.format(mt_ci_upper))
+				assessment_reasons.append('mtcontam=[{:.3f},{:.3f}]'.format(mt_ci_lower, mt_ci_upper))
 	except:
 		pass
 		
@@ -367,7 +382,7 @@ def library_anno_line(instance_id_raw, sequencing_run_name, release_label, compo
 	assessment_map = { 0 : 'PASS',
 				1 : 'QUESTIONABLE',
 				2 : 'QUESTIONABLE_CRITICAL',
-				3 : 'FAIL' }
+				3 : 'QUESTIONABLE_CRITICAL' } # David switched fails back to this category
 	assessment_overall = max(assessment_snp, assessment_damage, assessment_sex_ratio, assessment_contammix, assessment_angsd)
 	
 	assessment_reasons_str = ' ({})'.format(', '.join(assessment_reasons))
