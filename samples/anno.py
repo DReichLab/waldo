@@ -312,7 +312,7 @@ def library_anno_line(instance_id_raw, sequencing_run_name, release_label, compo
 	assessment_damage = 0
 	try:
 		# single stranded damage has different thresholds than double stranded
-		if library_type == 'half' # double stranded
+		if library_type == 'half': # double stranded
 			if nuclear.damage_last_base < 0.01:
 				assessment_damage = 3
 			elif nuclear.damage_last_base < 0.03:
