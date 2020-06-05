@@ -19,9 +19,11 @@ def set_timestamps(timestamped_object, was_created, update_time, user='mym11'):
 	timestamped_object.modification_timestamp = update_time
 	timestamped_object.modified_by = user
 
-# TODO UDG and strandedness should be separate fields
-# For now, we have to parse these apart
-def udg_and_strandedness(compound):
+# UDG and strandedness from library
+def udg_and_strandedness(library):
+	udg = library.udg_treatment
+	strandedness = library.library_type
+	'''
 	lower = compound.lower()
 	strandedness = 'ss' if 'ss' in lower else 'ds'
 	if 'minus' in lower:
@@ -32,6 +34,7 @@ def udg_and_strandedness(compound):
 		udg = 'plus'
 	else:
 		raise ValueError('Bad udg {}'.format(lower))
+	'''
 	return udg, strandedness
 
 # Convenience class for accessing fields from the pipeline report to handle missing values
@@ -57,7 +60,7 @@ def load_mt_capture_fields(library_id, report_fields, report_headers, release_la
 		print('{} not found for load_mt_capture_fields'.format(library_id), file=sys.stderr)
 		raise e
 	library = Library.objects.get(reich_lab_library_id = library_id)
-	udg, strandedness = udg_and_strandedness(library.udg_treatment)
+	udg, strandedness = udg_and_strandedness(library)
 	
 	now = timezone.now()
 	entry = ReportEntry(report_headers, report_fields)
@@ -105,7 +108,7 @@ def load_nuclear_capture_fields(library_id, report_fields, report_headers, relea
 		print('{} not found for load_nuclear_capture_fields'.format(library_id), file=sys.stderr)
 		raise e
 	library = Library.objects.get(reich_lab_library_id = library_id)
-	udg, strandedness = udg_and_strandedness(library.udg_treatment)
+	udg, strandedness = udg_and_strandedness(library)
 	
 	now = timezone.now()
 	entry = ReportEntry(report_headers, report_fields)
@@ -182,7 +185,7 @@ def load_shotgun_fields(library_id, report_fields, report_headers, release_label
 		print('{} not found for load_shotgun_fields'.format(library_id), file=sys.stderr)
 		raise e
 	library = Library.objects.get(reich_lab_library_id = library_id)
-	udg, strandedness = udg_and_strandedness(library.udg_treatment)
+	udg, strandedness = udg_and_strandedness(library)
 	
 	now = timezone.now()
 	entry = ReportEntry(report_headers, report_fields)
