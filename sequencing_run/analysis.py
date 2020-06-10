@@ -13,6 +13,14 @@ DEMULTIPLEX_COMMAND_LABEL = 'demultiplex'
 
 DEBUG = False
 
+index_additions = '''  ,
+  "demultiplex_align_bams.intake_fastq.has_index_reads": "false",
+  "demultiplex_align_bams.barcode_count_check.fixed_i5": "{0}",
+  "demultiplex_align_bams.barcode_count_check.fixed_i7": "{1}",
+  "demultiplex_align_bams.merge_and_trim_lane.fixed_i5": "{0}",
+  "demultiplex_align_bams.merge_and_trim_lane.fixed_i7": "{1}"
+}}'''
+
 # additional_replacements is for string replacements in json and sh template files. These are used for i5 and i7 index labels for Broad shotgun sequencing. 
 def start_analysis(source_illumina_dir, combined_sequencing_run_name, sequencing_date, number_top_samples_to_demultiplex, sequencing_run_names, copy_illumina=True, hold=False, allow_new_sequencing_run_id=False, is_broad=False, is_broad_shotgun=False, library_ids=[], additional_replacements={}, query_names = None):
 	date_string = sequencing_date.strftime('%Y%m%d')
@@ -64,14 +72,7 @@ def start_analysis(source_illumina_dir, combined_sequencing_run_name, sequencing
 			additional_replacements[settings.DEMULTIPLEXED_PARENT_DIRECTORY] = settings.DEMULTIPLEXED_BROAD_SHOTGUN_PARENT_DIRECTORY
 			if 'I5_INDEX' in additional_replacements and 'I7_INDEX' in additional_replacements:
 				# insert index reads to end of json options file
-				additional_replacements['^}$'] = ''',
-					"demultiplex_align_bams.intake_fastq.has_index_reads": "false",
-					"demultiplex_align_bams.barcode_count_check.fixed_i5": "{0}",
-					"demultiplex_align_bams.barcode_count_check.fixed_i7": "{1}",
-					"demultiplex_align_bams.merge_and_trim_lane.fixed_i5": "{0}",
-					"demultiplex_align_bams.merge_and_trim_lane.fixed_i7": "{1}"
-				}
-				'''.format(additional_replacements['I5_INDEX'], additional_replacements['I7_INDEX'])
+				additional_replacements['^}$'] = index_additions.format(additional_replacements['I5_INDEX'], additional_replacements['I7_INDEX'])
 		replace_parameters(json_source_file, DEMULTIPLEX_COMMAND_LABEL, combined_sequencing_run_name, date_string, scratch_illumina_directory_path, run_entry.id, number_top_samples_to_demultiplex, additional_replacements)
 		# generate SLURM script
 		run_entry.processing_state = SequencingAnalysisRun.PREPARING_RUN_SCRIPT
@@ -143,9 +144,6 @@ def copy_illumina_directory(source_illumina_dir, scratch_illumina_directory):
 	ssh_result = ssh_command(host, command, True, True)
 	return ssh_result
 
-def escape_slashes(original):
-	return str(original).replace('/', '\\/')
-
 #values passed to construct the command string are sanitized by form validation
 def replace_parameters(source_filename, command_label, combined_sequencing_run_name, date_string, scratch_illumina_directory, run_entry_id, number_top_samples_to_demultiplex=200, additional_replacements={}):
 	replacement_dictionary = {
@@ -156,19 +154,15 @@ def replace_parameters(source_filename, command_label, combined_sequencing_run_n
 		"INPUT_DJANGO_ANALYSIS_RUN": str(run_entry_id)
 	}
 	replacement_dictionary.update(additional_replacements)
-	escaped_replacement_dictionary = {}
-	for key, value in replacement_dictionary.items():
-		escaped_replacement_dictionary[escape_slashes(key)] = escape_slashes(value)
-	
+	source_path = '{}/{}'.format(settings.RUN_FILES_DIRECTORY, source_filename)
 	extension = os.path.splitext(source_filename)[1]
-	host = settings.COMMAND_HOST
-	command = "sed '" \
-		+ ''.join(["s/{}/{}/g;".format(key, escaped_replacement_dictionary[key]) for key in escaped_replacement_dictionary]) \
-		+ "'" \
-		+ " {}/{}".format(settings.RUN_FILES_DIRECTORY, source_filename) \
-		+ " > {0}/{1}_{2}/{1}_{2}_{4}{3}".format(settings.RUN_FILES_DIRECTORY, date_string, combined_sequencing_run_name, extension, command_label)
-	ssh_result = ssh_command(host, command, True, True)
-	return ssh_result
+	output_path = '{0}/{1}_{2}/{1}_{2}_{4}{3}'.format(settings.RUN_FILES_DIRECTORY, date_string, combined_sequencing_run_name, extension, command_label)
+	with open(source_path) as f:
+		contents = f.read(50000) # max file size to handle
+		for key, value in replacement_dictionary.items():
+			contents = re.sub(re.compile(key, re.M), value, contents)
+	with open(output_path, 'w') as output:
+		print(contents, file=output)
 
 # The Broad Cromwell workflow tool runs the analysis
 def start_cromwell(date_string, run_name, command_label, hold=False):
