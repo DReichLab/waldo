@@ -16,10 +16,10 @@ def parse_sample_string(s):
 		raise ValueError('Error parsing sample {}'.format(s))
 
 class Timestamped(models.Model):
-	creation_timestamp = models.DateTimeField(default=timezone.now)
-	created_by = models.CharField(max_length=20)
-	modification_timestamp = models.DateTimeField(default=timezone.now)
-	modified_by = models.CharField(max_length=20)
+	creation_timestamp = models.DateTimeField(default=timezone.now, null=True)
+	created_by = models.CharField(max_length=20, blank=True)
+	modification_timestamp = models.DateTimeField(default=timezone.now, null=True)
+	modified_by = models.CharField(max_length=20, blank=True)
 	
 	class Meta:
 		abstract = True
