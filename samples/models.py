@@ -27,30 +27,30 @@ class Timestamped(models.Model):
 class Shipment(Timestamped):
 	shipment_name = models.CharField(max_length=30, db_index=True, unique=True)
 	arrival_date = models.DateField(null=True)
-	arrival_method = models.CharField(max_length=255)
-	tracking_number = models.CharField(max_length=30)
-	arrival_notes = models.TextField()
-	shipment_notes = models.TextField()
-	documents_location = models.TextField()
-	additional_information_location = models.TextField()
+	arrival_method = models.CharField(max_length=255, blank=True)
+	tracking_number = models.CharField(max_length=30, blank=True)
+	arrival_notes = models.TextField(blank=True)
+	shipment_notes = models.TextField(blank=True)
+	documents_location = models.TextField(blank=True)
+	additional_information_location = models.TextField(blank=True)
 	
 class Collaborator(Timestamped):
 	first_name = models.CharField(max_length=50, db_index=True)
 	last_name = models.CharField(max_length=50, db_index=True)
 	title = models.CharField(max_length=65, help_text="Collaborator's professional title", blank=True)
-	institution = models.CharField(max_length=100, db_index=True, help_text="Collaborator's associated institution or company")
+	institution = models.CharField(max_length=100, db_index=True, help_text="Collaborator's associated institution or company", blank=True)
 	department = models.CharField(max_length=110, help_text="Collaborator's department or division", blank=True)
-	address_1 = models.CharField(max_length=70)
+	address_1 = models.CharField(max_length=70, blank=True)
 	address_2 = models.CharField(max_length=50, blank=True)
 	address_3 = models.CharField(max_length=50, blank=True)
-	city = models.CharField(max_length=50)
-	county_region = models.CharField(max_length=50)
-	state = models.CharField(max_length=50)
-	country = models.CharField(max_length=50, db_index=True)
-	postal_code = models.CharField(max_length=20)
+	city = models.CharField(max_length=50, blank=True)
+	county_region = models.CharField(max_length=50, blank=True)
+	state = models.CharField(max_length=50, blank=True)
+	country = models.CharField(max_length=50, db_index=True, blank=True)
+	postal_code = models.CharField(max_length=20, blank=True)
 	phone_number_office = models.CharField(max_length=30, blank=True)
 	phone_number_mobile = models.CharField(max_length=30, blank=True)
-	email_1 = models.CharField(max_length=50)
+	email_1 = models.CharField(max_length=50, blank=True)
 	email_2 = models.CharField(max_length=50, blank=True)
 	skype_user_name = models.CharField(max_length=30, blank=True)
 	facetime_user_name = models.CharField(max_length=30, blank=True)
@@ -59,17 +59,17 @@ class Collaborator(Timestamped):
 	facebook = models.CharField(max_length=50, blank=True)
 	website = models.CharField(max_length=200, blank=True)
 	research_gate_academia = models.CharField(max_length=100, blank=True)
-	notes = models.TextField(help_text='Additional information about collaborator')
+	notes = models.TextField(help_text='Additional information about collaborator', blank=True)
 	
 	primary_collaborator = models.BooleanField(null=True, db_index=True, help_text='Is this person a Primary Collaborator? This field is used select collaborators for Harvard office of Academic Reasearch Integrity approval')
-	ora_approval = models.BooleanField(db_index=True, help_text='Has the Harvard office of Academic Research Integrity cleared this collaborator?')
+	ora_approval = models.BooleanField(db_index=True, help_text='Has the Harvard office of Academic Research Integrity cleared this collaborator?', default=False)
 
 class WetLabStaff(Timestamped):
 	first_name = models.CharField(max_length=30, db_index=True)
 	last_name = models.CharField(max_length=30, db_index=True)
 	start_date = models.DateField(null=True)
 	end_date = models.DateField(null=True)
-	title = models.CharField(max_length=50)
+	title = models.CharField(max_length=50, blank=True)
 	email_1 = models.CharField(max_length=50, blank=True)
 	email_2 = models.CharField(max_length=50, blank=True)
 	phone_number = models.CharField(max_length=30, blank=True)
@@ -79,7 +79,7 @@ class SupportStaff(Timestamped):
 	last_name = models.CharField(max_length=30, db_index=True)
 	start_date = models.DateField(null=True)
 	end_date = models.DateField(null=True)
-	title = models.CharField(max_length=50)
+	title = models.CharField(max_length=50, blank=True)
 	email_1 = models.CharField(max_length=50, blank=True)
 	email_2 = models.CharField(max_length=50, blank=True)
 	phone_number = models.CharField(max_length=30, blank=True)
@@ -87,7 +87,7 @@ class SupportStaff(Timestamped):
 class Return(Timestamped):
 	collaborator = models.ForeignKey(Collaborator, on_delete=models.PROTECT)
 	return_date = models.DateField(default=date.today)
-	return_method = models.CharField(max_length=50)
+	return_method = models.CharField(max_length=50, blank=True)
 	tracking_number = models.CharField(max_length=30, blank=True)
 	courier_delivery_date = models.DateField(null=True)
 	return_notes = models.TextField(blank=True)
@@ -134,14 +134,14 @@ class Sample(Timestamped):
 		
 class SamplePrepProtocol(Timestamped):
 	preparation_method = models.CharField(max_length=50, help_text='Method used to produce bone powder')
-	manuscript_summary = models.TextField(help_text='Sampling method summary for manuscripts')
+	manuscript_summary = models.TextField(blank=True, help_text='Sampling method summary for manuscripts')
 	protocol_reference = models.TextField(blank=True, help_text='Protocol citation')
 	notes = models.TextField(blank=True, help_text='Notes about the method used to create bone powder')
 	
 class PowderBatch(Timestamped):
 	name = models.CharField(max_length=50)
 	date = models.DateField(null=True)
-	technician = models.CharField(max_length=50)
+	technician = models.CharField(max_length=50, blank=True)
 	technician_fk = models.ForeignKey(WetLabStaff, on_delete=models.SET_NULL, null=True)
 	notes = models.TextField(blank=True)
 
@@ -149,10 +149,10 @@ class PowderSample(Timestamped):
 	powder_sample_id = models.CharField(max_length=15, unique=True, null=False, db_index=True)
 	sample = models.ForeignKey(Sample, on_delete=models.PROTECT, help_text='Powder was produced from this sample')
 	powder_batch = models.ForeignKey(PowderBatch, on_delete=models.PROTECT, help_text='powder belongs to this processing batch', null=True)
-	sampling_tech = models.CharField(max_length=15, help_text='Technique used to produce the bone powder')
+	sampling_tech = models.CharField(max_length=15, blank=True, help_text='Technique used to produce the bone powder')
 	sampling_notes = models.TextField(help_text='Notes from technician about sample quality, method used, mg of bone powder produced and storage location', blank=True)
 	total_powder_produced_mg = models.FloatField(null=True, help_text='Total miligrams of bone powder produced from the sample')
-	storage_location = models.CharField(max_length=50, help_text='Storage location of remaining bone powder')
+	storage_location = models.CharField(max_length=50, blank=True, help_text='Storage location of remaining bone powder')
 	sample_prep_lab = models.CharField(max_length=50, blank=True, help_text='Name of lab where bone powder was produced')
 	sample_prep_protocol = models.ForeignKey(SamplePrepProtocol, on_delete=models.SET_NULL, null=True)
 	
@@ -229,13 +229,13 @@ class Library(Timestamped):
 	# mg_equivalent_powder_used
 	alt_category = models.CharField(max_length=20, blank=True)
 	notes = models.TextField(blank=True)
-	assessment = models.TextField(help_text='Xcontam listed if |Z|>2 standard errors from zero: 0.02-0.05="QUESTIONABLE", >0.05="QUESTIONABLE_CRITICAL" or "FAIL") (mtcontam 97.5th percentile estimates listed if coverage >2: <0.8 is "QUESTIONABLE_CRITICAL", 0.8-0.95 is "QUESTIONABLE", and 0.95-0.98 is recorded but "PASS", gets overriden by ANGSD')
+	assessment = models.TextField(blank=True, help_text='Xcontam listed if |Z|>2 standard errors from zero: 0.02-0.05="QUESTIONABLE", >0.05="QUESTIONABLE_CRITICAL" or "FAIL") (mtcontam 97.5th percentile estimates listed if coverage >2: <0.8 is "QUESTIONABLE_CRITICAL", 0.8-0.95 is "QUESTIONABLE", and 0.95-0.98 is recorded but "PASS", gets overriden by ANGSD')
 	
 class MTCaptureProtocol(Timestamped):
 	name = models.CharField(max_length=150)
-	start_date = models.DateField()
-	end_date = models.DateField()
-	description = models.TextField()
+	start_date = models.DateField(null=True)
+	end_date = models.DateField(null=True)
+	description = models.TextField(blank=True)
 	manuscript_summary = models.TextField(blank=True, help_text='Enrichment method summary for manuscripts')
 	protocol_reference = models.TextField(blank=True)
 	
@@ -243,14 +243,14 @@ class NuclearCaptureProtocol(Timestamped):
 	name = models.CharField(max_length=150)
 	start_date = models.DateField(null=True)
 	end_date = models.DateField(null=True)
-	description = models.TextField()
+	description = models.TextField(blank=True)
 	manuscript_summary = models.TextField(blank=True, help_text='Enrichment method summary for manuscripts')
 	protocol_reference = models.TextField(blank=True)
 	
 class SequencingPlatform(Timestamped):
 	platform = models.CharField(max_length=20)
-	read_length = models.CharField(max_length=20)
-	note = models.TextField()
+	read_length = models.CharField(max_length=20, blank=True)
+	note = models.TextField(blank=True)
 	lanes_runs = models.FloatField(null=True, help_text='number of lanes for HISeqs or number of runs for Miseq and NextSeq')
 	location = models.CharField(max_length=50, blank=True, help_text='location of sequencing platform')
 	
@@ -293,8 +293,8 @@ class NuclearCapturePlate(Timestamped):
 	technician = models.CharField(max_length=10, blank=True)
 	technician_fk = models.ForeignKey(WetLabStaff, on_delete=models.SET_NULL, null=True)
 	date = models.DateField(null=True)
-	robot = models.CharField(max_length=50)
-	hyb_wash_temps = models.CharField(max_length=50)
+	robot = models.CharField(max_length=50, blank=True)
+	hyb_wash_temps = models.CharField(max_length=50, blank=True)
 	notes = models.TextField(blank=True)
 	
 class NuclearSequencingRun(Timestamped):
@@ -307,29 +307,29 @@ class NuclearSequencingRun(Timestamped):
 	
 class ControlsExtract(Timestamped):
 	extract_batch = models.ForeignKey(ExtractBatch, on_delete=models.PROTECT)
-	ec_count = models.PositiveSmallIntegerField()
-	ec_median = models.FloatField()
-	ec_max = models.FloatField()
+	ec_count = models.PositiveSmallIntegerField(null=True)
+	ec_median = models.FloatField(null=True)
+	ec_max = models.FloatField(null=True)
 	
 class ControlsLibrary(Timestamped):
 	library_batch = models.ForeignKey(LibraryBatch, on_delete=models.PROTECT)
-	lc_count = models.PositiveSmallIntegerField()
-	lc_median = models.FloatField()
-	lc_max = models.FloatField()
+	lc_count = models.PositiveSmallIntegerField(null=True)
+	lc_median = models.FloatField(null=True)
+	lc_max = models.FloatField(null=True)
 	
 class RadiocarbonShipment(Timestamped):
 	ship_id = models.CharField(max_length=20, db_index=True, unique=True)
 	ship_date = models.DateField(null=True)
-	analysis_lab = models.CharField(max_length=50)
+	analysis_lab = models.CharField(max_length=50, blank=True)
 	
 class RadiocarbonDatingInvoice(Timestamped):
 	invoice_number = models.CharField(max_length=20, db_index=True, unique=True)
-	company_name = models.CharField(max_length=50)
-	billing_period = models.CharField(max_length=50)
-	billing_date = models.DateField()
-	item_description = models.TextField()
+	company_name = models.CharField(max_length=50, blank=True)
+	billing_period = models.CharField(max_length=50, blank=True)
+	billing_date = models.DateField(null=True)
+	item_description = models.TextField(blank=True)
 	number_of_samples = models.PositiveSmallIntegerField(null=True)
-	total_charge = models.DecimalField(max_digits=9, decimal_places=2)
+	total_charge = models.DecimalField(max_digits=9, decimal_places=2, null=True)
 	note = models.TextField(blank=True)
 	
 class RadiocarbonDatedSample(Timestamped):
@@ -355,18 +355,18 @@ class RadiocarbonDatedSample(Timestamped):
 	
 class Publication(Timestamped):
 	title = models.CharField(max_length=200)
-	first_author = models.CharField(max_length=50)
-	year = models.PositiveSmallIntegerField()
-	journal = models.CharField(max_length=100)
-	pages = models.CharField(max_length=30)
-	author_list = models.TextField()
-	url = models.CharField(max_length=50)
+	first_author = models.CharField(max_length=50, blank=True)
+	year = models.PositiveSmallIntegerField(null=True)
+	journal = models.CharField(max_length=100, blank=True)
+	pages = models.CharField(max_length=30, blank=True)
+	author_list = models.TextField(blank=True)
+	url = models.CharField(max_length=50, blank=True)
 	
 class DistributionsShipment(Timestamped):
 	collaborator = models.ForeignKey(Collaborator, on_delete=models.PROTECT)
-	date = models.DateField(help_text='Distribution shipment date')
-	shipment_method = models.CharField(max_length=20, help_text='Shipment method used to send samples: FedEx, USPS, hand carried')
-	shipment_tracking_number = models.CharField(max_length=30, help_text='Courier package tracking number')
+	date = models.DateField(null=True, help_text='Distribution shipment date')
+	shipment_method = models.CharField(max_length=20, blank=True, help_text='Shipment method used to send samples: FedEx, USPS, hand carried')
+	shipment_tracking_number = models.CharField(max_length=30, blank=True, help_text='Courier package tracking number')
 	shipment_notes = models.TextField(help_text='Any notes associated with the distribution shipment', blank=True)
 	delivery_date = models.DateField(help_text='Date distribution shipment was delivered', null=True)
 	delivery_notes = models.TextField(help_text='Any notes assoicated with the distribution delivery: person confirming delivery, etc.', blank=True)
