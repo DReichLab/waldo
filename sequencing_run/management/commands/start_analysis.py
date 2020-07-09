@@ -14,7 +14,7 @@ class Command(BaseCommand):
 		parser.add_argument('--name', nargs='+', required=True)
 		parser.add_argument('--illumina_directory', required=True)
 		parser.add_argument('--create_illumina_entry', action='store_true', help='Create the database entry for the illumina directory. Use this for when data are not in the reichseq/reich NextSeq location. Implies skip_copy as well.')
-		parser.add_argument('--demultiplex', type=int, default=150)
+		parser.add_argument('--demultiplex', type=int, default=200)
 		parser.add_argument('--skip_copy', action='store_false')
 		parser.add_argument('--hold', action='store_true')
 		parser.add_argument('--allow_new_sequencing_run_id', action='store_true')
@@ -24,6 +24,7 @@ class Command(BaseCommand):
 		parser.add_argument('--i7', action='store_true')
 		parser.add_argument('--library_id', nargs='*')
 		parser.add_argument('--query_name', help='This is the sequencing_id under which the indices are stored in sequenced_library')
+		parser.add_argument('--medium_priority', action='store_true')
 		
 	def handle(self, *args, **options):
 		date_string = options['date_string']
@@ -57,6 +58,9 @@ class Command(BaseCommand):
 			additional_replacements['I5_INDEX'] = i5
 		if options['i7']:
 			additional_replacements['I7_INDEX'] = i7
+			
+		if options['medium_priority']:
+			additional_replacements['-p priority'] = '-p medium'
 		
 		if create_illumina_entry:
 			seq_run, created = SequencingRun.objects.get_or_create(illumina_directory=source_illumina_dir)

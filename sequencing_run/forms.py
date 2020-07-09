@@ -14,7 +14,7 @@ class AnalysisForm(forms.Form):
 	name3 = forms.ModelChoiceField(queryset=SequencingRunID.objects.all().order_by('-order'), label="sequencing run name (optional)", required=False)
 	name4 = forms.ModelChoiceField(queryset=SequencingRunID.objects.all().order_by('-order'), label="sequencing run name (optional)", required=False)
 	sequencing_date = forms.DateField(label='Sequencing Date (YYYY-MM-DD)')
-	top_samples_to_demultiplex = forms.IntegerField(label='# most common samples to demultiplex', initial=200, min_value=1, max_value=1000)
+	top_samples_to_demultiplex = forms.IntegerField(label='# most common samples to demultiplex', initial=200, min_value=0, max_value=1000)
 
 class ReportWithSampleSheetForm(forms.Form):
 	report_file = forms.FileField(help_text='Analysis or demultiplexing statistics report')

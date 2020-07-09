@@ -60,7 +60,7 @@ def update_sequencing_run_ids():
 
 def analysis_form(request):
 	# always retreive the list of active screening runs
-	run_list = SequencingAnalysisRun.objects.all().order_by('pk').reverse()[:40]
+	run_list = SequencingAnalysisRun.objects.all().order_by('pk').reverse()[:64]
 	
 	slurm_jobs = []
 	
@@ -124,7 +124,8 @@ def analysis_form(request):
 
     # if a GET (or any other method) we'll create a blank form
 	else:
-		update_sequencing_run_list(request) # argument is not used
+		if request.GET.__contains__('refresh'): # NextSeq updates are disabled now unless requested
+			update_sequencing_run_list(request) # argument is not used
 		update_sequencing_run_ids()
 		slurm_jobs = query_job_status()
 		form = AnalysisForm()

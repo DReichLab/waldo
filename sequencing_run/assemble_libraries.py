@@ -76,12 +76,23 @@ def output_bam_list(bams_by_index_barcode_key, sequencing_date_string, sequencin
 	save_file_with_contents(output_text, sequencing_date_string, sequencing_run_name, extension, settings.COMMAND_HOST)
 	#print(output_text)
 	
-# generate a file that contains the demultiplex statistics for the flowcells
+# For the compound sequencing run names (e.g. Nuvian_Oolan), check if there is at least one overlapping name
+# This is designed to separate reports for the same flowcell that are processed using different refereces (one shotgun library + one twist capture library). For the capture library, we do not want to include shotgun counts when reprocessing the same flowcell with the new reference
+def check_name_overlap(name1, name2):
+	name1_parts = name1.split('_')
+	name2_parts = name2.split('_')
+	
+	for candidate in name1_parts:
+		if len(candidate) >= 3 and candidate in name2_parts: # prevent digit only from matching H55HGCCX2_1_Twist
+			return True
+	return False
+	
+# generate a file that contains the demultiplex statistics for the flowcells, partially restricted by sequencing run names
 def output_demultiplex_statistics(sequencing_date_string, sequencing_run_name, flowcells_text_ids):
 	#print(flowcells_text_ids)
 	q_list = [Q( ('triggering_flowcells__flowcell_text_id__exact', flowcells_text_id) ) for flowcells_text_id in flowcells_text_ids]
 	runs = SequencingAnalysisRun.objects.filter(functools.reduce(operator.or_, q_list)).distinct()
-	file_list = ["{0}/{1}_{2}/{1}_{2}.demultiplex_statistics".format(settings.DEMULTIPLEXED_PARENT_DIRECTORY, run.sequencing_date.strftime("%Y%m%d"), run.name) for run in runs]
+	file_list = ["{0}/{1}_{2}/{1}_{2}.demultiplex_statistics".format(settings.DEMULTIPLEXED_PARENT_DIRECTORY, run.sequencing_date.strftime("%Y%m%d"), run.name) for run in runs if check_name_overlap(sequencing_run_name, run.name)]
 	output_text = '\n'.join(file_list)
 	save_file_with_contents(output_text, sequencing_date_string, sequencing_run_name, 'demultiplex_statistics_list', settings.COMMAND_HOST)
 	#print(output_text)
