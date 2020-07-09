@@ -13,6 +13,7 @@ class Command(BaseCommand):
 		parser.add_argument('--name', required=True)
 		parser.add_argument('--source_filename', required=True)
 		parser.add_argument('--command_label', required=True)
+		parser.add_argument('--shotgun', action='store_true')
 		
 	def handle(self, *args, **options):
 		date_string = options['date_string']
@@ -25,4 +26,11 @@ class Command(BaseCommand):
 		scratch_illumina_directory_path = "{}/{}_{}/{}".format(settings.SCRATCH_PARENT_DIRECTORY, date_string, name, analysis_run.sequencing_run.illumina_directory)
 		#print(scratch_illumina_directory_path)
 		
-		replace_parameters(source_filename, command_label, name, date_string, scratch_illumina_directory_path, analysis_run.id, analysis_run.top_samples_to_demultiplex)
+		additional_replacements = {}
+		if(options['shotgun']):
+			additional_replacements[settings.HUMAN_REFERENCE] = settings.SHOTGUN_HUMAN_REFERENCE
+			additional_replacements[settings.DEMULTIPLEXED_PARENT_DIRECTORY] = settings.DEMULTIPLEXED_BROAD_SHOTGUN_PARENT_DIRECTORY
+		#self.stderr.write(str(additional_replacements))
+		
+		replace_parameters(source_filename, command_label, name, date_string, scratch_illumina_directory_path, analysis_run.id, analysis_run.top_samples_to_demultiplex, additional_replacements=additional_replacements)
+
