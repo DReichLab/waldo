@@ -17,8 +17,8 @@ class Command(BaseCommand):
 		parser.add_argument('--date_string', required=True)
 		parser.add_argument('--name', required=True)
 		parser.add_argument('--analysis_run', type=int, required=True)
-		parser.add_argument('--start_analysis', action='store_true', required=True, help='start analysis after loading bams')
-		parser.add_argument('--flowcell_by_lane', action='store_true', required=True, help='set to split flowcells into lanes. Used for Broad HiSeq or NovaSeq')
+		parser.add_argument('--start_analysis', action='store_true', help='start analysis after loading bams')
+		parser.add_argument('--flowcell_by_lane', action='store_true', help='set to split flowcells into lanes. Used for Broad HiSeq or NovaSeq')
 		parser.add_argument('--nuclear_subdirectory', help='directory for nuclear files under demultiplex directory')
 		parser.add_argument('--mt_subdirectory', help='directory for mt files under demultiplex directory')
 		
