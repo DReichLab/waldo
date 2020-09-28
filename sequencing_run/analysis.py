@@ -4,6 +4,7 @@ from sequencing_run.barcode_prep import barcodes_set, i5_set, i7_set
 import os
 import re
 import datetime
+import getpass
 
 from django.utils import timezone
 from django.conf import settings
@@ -21,6 +22,12 @@ index_additions = '''  ,
   "demultiplex_align_bams.merge_and_trim_lane.fixed_i7": "{1}"
 }}'''
 
+# dynamic scratch parent directory that depends on user
+def get_scratch_directory():
+	user = getpass.getuser()
+	directory = "/n/scratch3/users/{}/{}/automated_pipeline".format(user[0], user)
+	return directory
+
 # additional_replacements is for string replacements in json and sh template files. These are used for i5 and i7 index labels for Broad shotgun sequencing. 
 def start_analysis(source_illumina_dir, combined_sequencing_run_name, sequencing_date, number_top_samples_to_demultiplex, sequencing_run_names, copy_illumina=True, hold=False, allow_new_sequencing_run_id=False, is_broad=False, is_broad_shotgun=False, library_ids=[], additional_replacements={}, query_names = None):
 	date_string = sequencing_date.strftime('%Y%m%d')
@@ -28,7 +35,7 @@ def start_analysis(source_illumina_dir, combined_sequencing_run_name, sequencing
 	
 	# the source_illumina_dir is the directory name only, not the full path
 	# we need the scratch directory to include the full path including the illumina directory name for bcl2fastq in the analysis pipeline to find it
-	scratch_illumina_parent_path = settings.SCRATCH_PARENT_DIRECTORY + "/" + destination_directory
+	scratch_illumina_parent_path = get_scratch_directory() + "/" + destination_directory
 	scratch_illumina_directory_path = scratch_illumina_parent_path + "/" + source_illumina_dir
 	
 	run_entry, created = SequencingAnalysisRun.objects.update_or_create(
@@ -151,7 +158,8 @@ def replace_parameters(source_filename, command_label, combined_sequencing_run_n
 		"INPUT_DATE": date_string,
 		"INPUT_DIRECTORY": scratch_illumina_directory,
 		"INPUT_NUM_SAMPLES": str(number_top_samples_to_demultiplex),
-		"INPUT_DJANGO_ANALYSIS_RUN": str(run_entry_id)
+		"INPUT_DJANGO_ANALYSIS_RUN": str(run_entry_id),
+		"INPUT_SCRATCH": get_scratch_directory() # used to build fastq file directory
 	}
 	replacement_dictionary.update(additional_replacements)
 	source_path = '{}/{}'.format(settings.RUN_FILES_DIRECTORY, source_filename)
