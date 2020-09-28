@@ -101,8 +101,9 @@ STATIC_ROOT = os.path.join(BASE_DIR, 'static')
 STATIC_URL = '/static/'
 
 # O2 specific settings
-COMMAND_HOST = "mym11@o2.hms.harvard.edu"
-TRANSFER_HOST = "mym11@transfer.rc.hms.harvard.edu"
+PIPELINE_USERS = ['mym11', 'adm515']
+COMMAND_HOST = "o2.hms.harvard.edu"
+TRANSFER_HOST = "transfer.rc.hms.harvard.edu"
 FILES_SERVER_DIRECTORY = "/files/Genetics/reichseq/reich/reichseq/reich"
 SCRATCH_PARENT_DIRECTORY = "/n/scratch3/users/m/mym11/automated_pipeline"
 

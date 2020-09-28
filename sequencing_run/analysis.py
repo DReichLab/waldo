@@ -175,7 +175,7 @@ def start_cromwell(date_string, run_name, command_label, hold=False):
 # acquire list of SLURM jobs that are running tied to a known sequencing run
 def query_job_status():
 	host = settings.COMMAND_HOST
-	command = 'squeue -u mym11 -o "%.18i %.9P %.45j %.8u %.8T %.10M %.9l %.6D %.3C %R"'
+	command = 'squeue -u {} -o "%.18i %.9P %.45j %.8u %.8T %.10M %.9l %.6D %.3C %R"'.format(','.join(settings.PIPELINE_USERS))
 	ssh_result = ssh_command(host, command)
 	
 	stdout_result = ssh_result.stdout.readlines()

@@ -1,6 +1,7 @@
 #!/usr/bin/python
 
 from __future__ import print_function
+import getpass
 import subprocess
 import sys
 import tempfile
@@ -9,7 +10,8 @@ import os
 from django.conf import settings
 
 def ssh_command(host, command, output_std=None, output_error=None):
-	ssh_result = subprocess.Popen(["ssh", "%s" % host, command],
+	user = getpass.getuser()
+	ssh_result = subprocess.Popen(["ssh", '{}@{}'.format(user, host), command],
 						shell=False,
 						stdout=subprocess.PIPE,
 						stderr=subprocess.PIPE,
@@ -36,11 +38,12 @@ def save_file_with_contents(contents, sequencing_date_string, sequencing_run_nam
 	save_file_base(contents, directory, filename, host)
 
 def save_file_base(contents, directory, filename, host):
+	user = getpass.getuser()
 	# using echo limits the file size
 	# save a temporary local file using a temporary directory, then copy this to run directory
 	with tempfile.TemporaryDirectory() as temp_directory:
 		filename_full_path = os.path.join(temp_directory, filename)
 		with open(filename_full_path, 'w') as f:
 			f.write(contents)
-		destination = "{0}:{1}/{2}".format(host, directory, filename)
+		destination = "{}@{}:{}/{}".format(user, host, directory, filename)
 		subprocess.check_output(['scp', filename_full_path, destination])
