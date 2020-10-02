@@ -11,6 +11,7 @@ class Command(BaseCommand):
 	def add_arguments(self, parser):
 		parser.add_argument('--date_string', required=True)
 		parser.add_argument('--name', required=True)
+		parser.add_argument('--ignore_barcodes', action='store_true')
 		
 	def handle(self, *args, **options):
 		date_string = options['date_string']
@@ -21,7 +22,7 @@ class Command(BaseCommand):
 		sequencing_run_ids = list(analysis_run.sample_set_names.all())
 		separate_sequencing_run_names = [run.name for run in sequencing_run_ids]
 		#print(names)
-		index_barcode_keys_used(date_string, name, separate_sequencing_run_names)
+		index_barcode_keys_used(date_string, name, separate_sequencing_run_names, ignore_barcodes)
 		
 		# create barcode file too
 		barcodes_set(date_string, name, separate_sequencing_run_names)
