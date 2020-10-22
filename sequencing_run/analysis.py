@@ -29,7 +29,7 @@ def get_scratch_directory():
 	return directory
 
 # additional_replacements is for string replacements in json and sh template files. These are used for i5 and i7 index labels for Broad shotgun sequencing. 
-def start_analysis(source_illumina_dir, combined_sequencing_run_name, sequencing_date, number_top_samples_to_demultiplex, sequencing_run_names, copy_illumina=True, hold=False, allow_new_sequencing_run_id=False, is_broad=False, is_broad_shotgun=False, library_ids=[], additional_replacements={}, query_names = None, ignore_barcodes=False):
+def start_analysis(source_illumina_dir, combined_sequencing_run_name, sequencing_date, number_top_samples_to_demultiplex, sequencing_run_names, copy_illumina=True, hold=False, allow_new_sequencing_run_id=False, is_broad=False, is_broad_shotgun=False, library_ids=[], additional_replacements={}, query_names = None, ignore_barcodes=False, threshold_reads=-1):
 	date_string = sequencing_date.strftime('%Y%m%d')
 	destination_directory = date_string + '_' + combined_sequencing_run_name
 	
@@ -80,6 +80,13 @@ def start_analysis(source_illumina_dir, combined_sequencing_run_name, sequencing
 			if 'I5_INDEX' in additional_replacements and 'I7_INDEX' in additional_replacements:
 				# insert index reads to end of json options file
 				additional_replacements['^}$'] = index_additions.format(additional_replacements['I5_INDEX'], additional_replacements['I7_INDEX'])
+		if threshold_reads > 0:
+			# insert new lines for threshold reads with other task parameter
+			search1 = '"demultiplex_align_bams.demultiplex_nuclear.barcodes"'
+			search2 = '"demultiplex_align_bams.demultiplex_rsrs.barcodes"'
+			additional_replacements[search1] = '{}: "{:d}",\n{}'.format(search1.replace('barcodes', 'threshold_reads'), threshold_reads, search1)
+			additional_replacements[search2] = '{}: "{:d}",\n{}'.format(search2.replace('barcodes', 'threshold_reads'), threshold_reads, search2)
+				
 		replace_parameters(json_source_file, DEMULTIPLEX_COMMAND_LABEL, combined_sequencing_run_name, date_string, scratch_illumina_directory_path, run_entry.id, number_top_samples_to_demultiplex, additional_replacements)
 		# generate SLURM script
 		run_entry.processing_state = SequencingAnalysisRun.PREPARING_RUN_SCRIPT

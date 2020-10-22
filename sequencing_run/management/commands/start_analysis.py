@@ -26,6 +26,7 @@ class Command(BaseCommand):
 		parser.add_argument('--query_name', help='This is the sequencing_id under which the indices are stored in sequenced_library')
 		parser.add_argument('--medium_priority', action='store_true')
 		parser.add_argument('--ignore_barcodes', action='store_true')
+		parser.add_argument('--threshold_reads', type=int, default=-1)
 		
 	def handle(self, *args, **options):
 		date_string = options['date_string']
@@ -67,4 +68,4 @@ class Command(BaseCommand):
 		if create_illumina_entry:
 			seq_run, created = SequencingRun.objects.get_or_create(illumina_directory=source_illumina_dir)
 		
-		start_analysis(source_illumina_dir, combined_sequencing_run_name, sequencing_date, number_top_samples_to_demultiplex, sequencing_run_names, copy, hold, allow_new_sequencing_run_id, is_broad, is_broad_shotgun, library_ids, additional_replacements, query_name, ignore_barcodes)
+		start_analysis(source_illumina_dir, combined_sequencing_run_name, sequencing_date, number_top_samples_to_demultiplex, sequencing_run_names, copy, hold, allow_new_sequencing_run_id, is_broad, is_broad_shotgun, library_ids, additional_replacements, query_name, ignore_barcodes, args.threshold_reads)

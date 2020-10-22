@@ -32,5 +32,7 @@ class Command(BaseCommand):
 			additional_replacements[settings.DEMULTIPLEXED_PARENT_DIRECTORY] = settings.DEMULTIPLEXED_BROAD_SHOTGUN_PARENT_DIRECTORY
 		#self.stderr.write(str(additional_replacements))
 		
+		# TODO this does not handle options for indices or threshold reads
+		
 		replace_parameters(source_filename, command_label, name, date_string, scratch_illumina_directory_path, analysis_run.id, analysis_run.top_samples_to_demultiplex, additional_replacements=additional_replacements)
 
