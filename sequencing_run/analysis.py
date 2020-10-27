@@ -207,14 +207,18 @@ def query_job_status():
 	# iterate over running sequencing analysis runs
 	# if the slurm job is not present
 	expectedRunningJobs = SequencingAnalysisRun.objects.filter(processing_state__gte=SequencingAnalysisRun.DEMULTIPLEXING).exclude(processing_state__gte=SequencingAnalysisRun.FINISHED)
+	
+	job_strings = [str(j.slurm_job_number) for j in expectedRunningJobs]
+	sacct_command = 'sacct -j ' + ','.join(job_strings) + ' -o "JobID,State"'
+	sacct_result = ssh_command(host, sacct_command)
+	sacct_stdout = sacct_result.stdout.readlines()
+	
 	for expectedRunningJob in expectedRunningJobs:
 		# query for sacct info and check for COMPLETED state
 		#sacct -j 5790362 -o "JobID,State"
 		jobID = str(expectedRunningJob.slurm_job_number)
 		print ('checking SLURM job state for job ' + jobID)
-		sacct_command = 'sacct -j ' + jobID + ' -o "JobID,State"'
-		sacct_result = ssh_command(host, sacct_command)
-		sacct_stdout = sacct_result.stdout.readlines()
+		
 		for line in sacct_stdout:			
 			fields = line.split()
 			#print('debugging: ', fields)
