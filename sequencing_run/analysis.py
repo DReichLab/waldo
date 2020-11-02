@@ -280,7 +280,8 @@ def index_barcode_keys_used(sequencing_date_string, combined_sequencing_run_name
 # One use is the replacement these indices in the JSON parameter file
 def single_indices_only(sequencing_run_names, library_id):
 	where_clauses = "({}) AND {}".format(" OR ".join(['sequencing_id="{}"'.format(name) for name in sequencing_run_names]), 'library_id="{}"'.format(library_id))
-	queryForIndices = 'SELECT UPPER(p5_index), UPPER(p7_index) FROM sequenced_library WHERE {};'.format(where_clauses)
+	# this query is DISTINCT because there have been duplicate entries in Zhao's database
+	queryForIndices = 'SELECT DISTINCT UPPER(p5_index), UPPER(p7_index) FROM sequenced_library WHERE {};'.format(where_clauses)
 	host = settings.COMMAND_HOST
 	command = "mysql devadna -N -e '{0}'".format(queryForIndices)
 	#print(command)
