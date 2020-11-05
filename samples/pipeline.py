@@ -280,28 +280,31 @@ def load_pulldown_stdout(pulldown_stdout, release_label, sequencing_run_name, da
 				if fields[2] != 'mean' or fields[3] != 'depth:' or fields[5] != 'coverage:' or fields[0] != fields[1]:
 					raise ValueError('Parse problem in pulldown stdout: {}'.format(line))
 				library_id = fields[0]
-				instance_id, library_id_obj = individual_from_library_id(library_id)
-				coverage = float(fields[4])
-				snps_hit = int(fields[6])
-				
-				results = Results.objects.get(library_id__exact=library_id, nuclear_seq_run__name__iexact=sequencing_run_name)
-				
-				nuclear, nuclear_created = NuclearAnalysis.objects.get_or_create(parent = results, version_release = release_label, damage_restricted = damage_restricted)
-				
-				nuclear.coverage_targeted_positions = coverage
-				nuclear.unique_snps_hit = snps_hit
-				nuclear.pulldown_logfile_location = Path(pulldown_stdout).resolve()
-				set_timestamps(nuclear, nuclear_created, timezone.now())
-				nuclear.save()
-				
-				analysis_files, analysis_files_created = AnalysisFiles.objects.get_or_create(parent = results)
-				analysis_files.bioinfo_processing_protocol = bioinfo_processing_protocol
-				# these are from pulldown, not report
-				analysis_files.pulldown_1st_column_nickdb = instance_id
-				#.pulldown_2nd_column_nickdb_alt_sample = 
-				#.pulldown_4th_column_nickdb_hetfa = models.CharField(max_length=100)
-				set_timestamps(analysis_files, analysis_files_created, timezone.now())
-				analysis_files.save()
+				try:
+					instance_id, library_id_obj = individual_from_library_id(library_id)
+					coverage = float(fields[4])
+					snps_hit = int(fields[6])
+					
+					results = Results.objects.get(library_id__exact=library_id, nuclear_seq_run__name__iexact=sequencing_run_name)
+					
+					nuclear, nuclear_created = NuclearAnalysis.objects.get_or_create(parent = results, version_release = release_label, damage_restricted = damage_restricted)
+					
+					nuclear.coverage_targeted_positions = coverage
+					nuclear.unique_snps_hit = snps_hit
+					nuclear.pulldown_logfile_location = Path(pulldown_stdout).resolve()
+					set_timestamps(nuclear, nuclear_created, timezone.now())
+					nuclear.save()
+					
+					analysis_files, analysis_files_created = AnalysisFiles.objects.get_or_create(parent = results)
+					analysis_files.bioinfo_processing_protocol = bioinfo_processing_protocol
+					# these are from pulldown, not report
+					analysis_files.pulldown_1st_column_nickdb = instance_id
+					#.pulldown_2nd_column_nickdb_alt_sample = 
+					#.pulldown_4th_column_nickdb_hetfa = models.CharField(max_length=100)
+					set_timestamps(analysis_files, analysis_files_created, timezone.now())
+					analysis_files.save()
+				except Exception as e:
+					print('WARNING: {}'.format(str(e)), file=sys.stderr)
 				
 
 # load bam location and read groups from pulldown dblist file
