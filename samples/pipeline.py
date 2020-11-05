@@ -320,15 +320,18 @@ def load_pulldown_dblist(dblist, release_label, sequencing_run_name):
 			bam_path = fields[2]
 			read_groups = fields[3]
 			
-			results = Results.objects.get(library_id__exact=library_id, nuclear_seq_run__name__iexact=sequencing_run_name)
+			if 'Contl' in library_id: # TODO
+				print('skipping {}'.format(library_id))
+			else:
+				results = Results.objects.get(library_id__exact=library_id, nuclear_seq_run__name__iexact=sequencing_run_name)
 			
-			analysis_files, analysis_files_created = AnalysisFiles.objects.get_or_create(parent = results)
+				analysis_files, analysis_files_created = AnalysisFiles.objects.get_or_create(parent = results)
 			
-			# TODO should be a more robust way of loading other paths
-			analysis_files.mt_bam = bam_path.replace('hg19', 'rsrs') 
-			analysis_files.nuclear_bam = bam_path
+				# TODO should be a more robust way of loading other paths
+				analysis_files.mt_bam = bam_path.replace('hg19', 'rsrs') 
+				analysis_files.nuclear_bam = bam_path
 			
-			analysis_files.pulldown_3rd_column_nickdb_bam = bam_path
-			analysis_files.pulldown_5th_column_nickdb_readgroup_diploid_source = read_groups
-			set_timestamps(analysis_files, analysis_files_created, timezone.now())
-			analysis_files.save()
+				analysis_files.pulldown_3rd_column_nickdb_bam = bam_path
+				analysis_files.pulldown_5th_column_nickdb_readgroup_diploid_source = read_groups
+				set_timestamps(analysis_files, analysis_files_created, timezone.now())
+				analysis_files.save()
