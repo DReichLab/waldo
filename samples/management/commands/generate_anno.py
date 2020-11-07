@@ -1,6 +1,8 @@
 from django.core.management.base import BaseCommand, CommandError
 from samples.anno import library_anno_line
 
+import sys
+
 class Command(BaseCommand):
 	help = "Generate David's anno file for a sequencing run"
 	
@@ -20,8 +22,15 @@ class Command(BaseCommand):
 				library_id_raw = fields[0]
 				sex = fields[1]
 				
-				fields = library_anno_line(library_id_raw, sequencing_run_name, release_version_label)
-				self.stdout.write('\t'.join(fields))
+				try:
+					if 'Contl' in library_id_raw: # TODO also handle control entries
+						print('ignoring {}'.format(library_id_raw))
+					else:
+						fields = library_anno_line(library_id_raw, sequencing_run_name, release_version_label)
+						self.stdout.write('\t'.join(fields))
+				except Exception as e:
+					print('Failure for {}'.format(library_id_raw), file=sys.stderr)
+					raise e
 				'''
 				try:
 					#self.stdout.write('\t'.join(fields))
