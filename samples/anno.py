@@ -74,7 +74,7 @@ def library_anno_line(instance_id_raw, sequencing_run_name, release_label, compo
 	is_merge = len(component_library_ids) > 0
 	if not is_merge: # single library
 		instance_id, library_id_obj = individual_from_library_id(instance_id_raw)
-		component_library_ids[0] = str(library_id_obj)
+		component_library_ids = [str(library_id_obj)]
 	else: # merge
 		instance_id = instance_id_raw
 		ignored, library_id_obj = individual_from_library_id(component_library_ids[0]) # assumes first library has sample number
