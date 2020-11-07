@@ -245,11 +245,13 @@ def load_pipeline_report(report_filename, desired_experiment, release_label, seq
 			experiment = fields[experiment_index]
 			if library_id.startswith('S'): # is not '' and library_id is not 'Contl.Capture':				
 				if len(fields) == len(headers): # no data will have fewer fields than headers
-					if desired_experiment in experiment:
+					if desired_experiment in lower(experiment):
 						load_mt_capture_fields(library_id, fields, headers, release_label, sequencing_run_name, damage_restricted)
 						load_nuclear_capture_fields(library_id, fields, headers, release_label, sequencing_run_name, damage_restricted)
 					elif 'Raw' in experiment:
 						load_shotgun_fields(library_id, fields, headers, release_label, sequencing_run_name, damage_restricted)
+					else:
+						print('experiment {} not loaded for {}'.format(experiment, library_id), file=sys.stderr)
 						
 # diagnostic check for results objects
 def test_results_exist(pulldown_stdout, sequencing_run_name):
