@@ -24,7 +24,7 @@ class Command(BaseCommand):
 				
 				try:
 					if 'Contl' in library_id_raw: # TODO also handle control entries
-						print('ignoring {}'.format(library_id_raw))
+						print('ignoring {}'.format(library_id_raw), file=sys.stderr)
 					else:
 						fields = library_anno_line(library_id_raw, sequencing_run_name, release_version_label)
 						self.stdout.write('\t'.join(fields))
