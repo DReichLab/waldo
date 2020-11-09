@@ -181,10 +181,10 @@ def load_nuclear_capture_fields(library_id, report_fields, report_headers, relea
 def load_shotgun_fields(library_id, report_fields, report_headers, release_label, sequencing_run_name, damage_restricted):
 	try:
 		results = Results.objects.get(library_id__exact=library_id, shotgun_seq_run__name__iexact=sequencing_run_name)
-	except Results.DoesNotExist as e:
+		library = Library.objects.get(reich_lab_library_id = library_id)
+	except (Results.DoesNotExist, Library.DoesNotExist) as e:
 		print('{} not found for load_shotgun_fields'.format(library_id), file=sys.stderr)
 		raise e
-	library = Library.objects.get(reich_lab_library_id = library_id)
 	udg, strandedness = udg_and_strandedness(library)
 	
 	now = timezone.now()
