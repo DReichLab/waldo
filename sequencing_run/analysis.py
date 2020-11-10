@@ -265,12 +265,12 @@ def get_demultiplex_report(sequencing_date_string, combined_sequencing_run_name)
 # This is designed for Broad shotgun sequencing, where the sample sheet has multiple libraries, but a lane is processed separately with only one library
 def index_barcode_keys_used(sequencing_date_string, combined_sequencing_run_name, sequencing_run_names, library_ids=[], ignore_barcodes=False):
 	where_clauses = " OR ".join(['sequencing_id="{}"'.format(name) for name in sequencing_run_names])
-	barcodes_for_concat = ', "_", UPPER(p5_barcode), "_", UPPER(p7_barcode)'
+	barcodes_for_concat = '"_", UPPER(p5_barcode), "_", UPPER(p7_barcode)'
 	if library_ids is not None and len(library_ids) > 0:
 		library_ids_as_strings = ['"{}"'.format(library_id) for library_id in library_ids]
 		where_clauses = '({}) AND library_id IN ({})'.format(where_clauses, ','.join(library_ids_as_strings) )
 
-	queryForKeys = 'SELECT CONCAT(UPPER(p5_index), "_", UPPER(p7_index){}), library_id, plate_id, experiment FROM sequenced_library WHERE {};'.format(barcodes_for_concat if not ignore_barcodes else "", where_clauses)
+	queryForKeys = 'SELECT DISTINCT CONCAT(UPPER(p5_index), "_", UPPER(p7_index), {}), library_id, plate_id, experiment FROM sequenced_library WHERE {};'.format(barcodes_for_concat if not ignore_barcodes else '"__"', where_clauses)
 	
 	host = settings.COMMAND_HOST
 	command = "mysql devadna -N -e '{0}' > {1}/{2}_{3}/{2}_{3}.index_barcode_keys".format(queryForKeys, settings.RUN_FILES_DIRECTORY, sequencing_date_string, combined_sequencing_run_name)
