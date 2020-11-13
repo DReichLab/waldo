@@ -20,8 +20,8 @@ class Command(BaseCommand):
 		parser.add_argument('--allow_new_sequencing_run_id', action='store_true')
 		parser.add_argument('--broad', action='store_true')
 		parser.add_argument('--broad_shotgun', action='store_true')
-		parser.add_argument('--i5', action='store_true')
-		parser.add_argument('--i7', action='store_true')
+		parser.add_argument('--i5', nargs='?', const=True, default=False)
+		parser.add_argument('--i7', nargs='?', const=True, default=False)
 		parser.add_argument('--library_id', nargs='*')
 		parser.add_argument('--query_name', help='This is the sequencing_id under which the indices are stored in sequenced_library')
 		parser.add_argument('--medium_priority', action='store_true')
@@ -51,8 +51,11 @@ class Command(BaseCommand):
 			ssh_result = ssh_command(settings.COMMAND_HOST, command, True, True)
 		
 		library_ids = options['library_id']
-		# read I5 and I7 indices from Zhao's MySQL database
+		# if there are command line options specified for i5 and i7, then use those
+		i5 = options['i5']
+		i7 = options['i7']
 		query_name = None
+		# if query options are set, read I5 and I7 indices from Zhao's MySQL database
 		if library_ids is not None and len(library_ids) == 1:
 			query_name = [options['query_name']]
 			i5, i7 = single_indices_only(query_name, library_ids[0]) 
