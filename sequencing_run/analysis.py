@@ -77,9 +77,9 @@ def start_analysis(source_illumina_dir, combined_sequencing_run_name, sequencing
 		if is_broad_shotgun:
 			additional_replacements[settings.HUMAN_REFERENCE] = settings.SHOTGUN_HUMAN_REFERENCE
 			additional_replacements[settings.DEMULTIPLEXED_PARENT_DIRECTORY] = settings.DEMULTIPLEXED_BROAD_SHOTGUN_PARENT_DIRECTORY
-			if 'I5_INDEX' in additional_replacements and 'I7_INDEX' in additional_replacements:
-				# insert index reads to end of json options file
-				additional_replacements['^}$'] = index_additions.format(additional_replacements['I5_INDEX'], additional_replacements['I7_INDEX'])
+		if 'I5_INDEX' in additional_replacements and 'I7_INDEX' in additional_replacements:
+			# insert index reads to end of json options file
+			additional_replacements['^}$'] = index_additions.format(additional_replacements['I5_INDEX'], additional_replacements['I7_INDEX'])
 		if threshold_reads > 0:
 			# insert new lines for threshold reads with other task parameter
 			search1 = '"demultiplex_align_bams.demultiplex_nuclear.barcodes"'
