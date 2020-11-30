@@ -262,6 +262,10 @@ def library_anno_line(instance_id_raw, sequencing_run_name, release_label, compo
 	for library_id_str in component_library_ids:
 		library_obj = Library.objects.get(reich_lab_library_id = library_id_str)
 		udg = library_obj.udg_treatment.lower()
+		# partial = double-stranded, UDG half
+		# USER = single-stranded, UDG half
+		if udg == 'partial' or udg == 'USER':
+			udg = 'half'
 		strandedness = library_obj.library_type.lower()
 		library_types += ['{}.{}'.format(strandedness, udg)]
 		#if 'ss.half' not in library_type:
@@ -310,25 +314,32 @@ def library_anno_line(instance_id_raw, sequencing_run_name, release_label, compo
 		assessment_reasons.append('2500.to.5000.SNPs')
 		
 	assessment_damage = 0
-	try:
+	if len(component_library_ids) == 1:
+		library_obj = Library.objects.get(reich_lab_library_id = library_id_str)
+		udg = library_obj.udg_treatment.lower()
+		library_type = library_obj.library_type.lower()
 		# single stranded damage has different thresholds than double stranded
-		if library_type == 'half': # double stranded
-			if nuclear.damage_last_base < 0.01:
-				assessment_damage = 3
-			elif nuclear.damage_last_base < 0.03:
-				assessment_damage = 1
+		if (library_type == 'ds') and (udg == 'partial') : # double stranded
+			try:
+				if nuclear.damage_last_base < 0.01:
+					assessment_damage = 3
+				elif nuclear.damage_last_base < 0.03:
+					assessment_damage = 1
+			except:
+				pass
 		elif 'ss' in library_type or 'minus' in library_type:
-			if nuclear.damage_last_base < 0.03:
-				assessment_damage = 3
-			elif nuclear.damage_last_base < 0.10:
-				assessment_damage = 1
+			try:
+				if nuclear.damage_last_base < 0.03:
+					assessment_damage = 3
+				elif nuclear.damage_last_base < 0.10:
+					assessment_damage = 1
+			except:
+				pass
 		else:
-			raise ValueError('unhandled library type: {}'.format(library_type))
+			raise ValueError('unhandled library type: {} {}'.format(library_type, udg))
 		
 		if assessment_damage > 0:
 			assessment_reasons.append('damage.{}={:.3f}'.format(library_type, nuclear.damage_last_base))
-	except:
-		pass
 		
 	assessment_sex_ratio = 0
 	try:
