@@ -63,6 +63,15 @@ class Collaborator(Timestamped):
 	
 	primary_collaborator = models.BooleanField(null=True, db_index=True, help_text='Is this person a Primary Collaborator? This field is used select collaborators for Harvard office of Academic Reasearch Integrity approval')
 	ora_approval = models.BooleanField(db_index=True, help_text='Has the Harvard office of Academic Research Integrity cleared this collaborator?', default=False)
+	
+class Publication(Timestamped):
+	title = models.CharField(max_length=200)
+	first_author = models.CharField(max_length=50, blank=True)
+	year = models.PositiveSmallIntegerField(null=True)
+	journal = models.CharField(max_length=100, blank=True)
+	pages = models.CharField(max_length=30, blank=True)
+	author_list = models.TextField(blank=True)
+	url = models.CharField(max_length=50, blank=True)
 
 class WetLabStaff(Timestamped):
 	first_name = models.CharField(max_length=30, db_index=True)
@@ -322,6 +331,11 @@ class RadiocarbonShipment(Timestamped):
 	ship_date = models.DateField(null=True)
 	analysis_lab = models.CharField(max_length=50, blank=True)
 	
+class RadiocarbonCalibration(Timestamped):
+	program = models.CharField(max_length=30, blank=True)
+	version = models.CharField(max_length=30, blank=True)
+	curve = models.CharField(max_length=30, blank=True)
+	
 class RadiocarbonDatingInvoice(Timestamped):
 	invoice_number = models.CharField(max_length=20, db_index=True, unique=True)
 	company_name = models.CharField(max_length=50, blank=True)
@@ -335,6 +349,8 @@ class RadiocarbonDatingInvoice(Timestamped):
 class RadiocarbonDatedSample(Timestamped):
 	sample = models.ForeignKey(Sample, on_delete=models.PROTECT)
 	radiocarbon_shipment = models.ForeignKey(RadiocarbonShipment, on_delete=models.PROTECT, null=True)
+	calibration = models.ForeignKey(RadiocarbonCalibration, on_delete=models.PROTECT, null=True)
+	first_publication = models.ForeignKey(Publication, on_delete=models.PROTECT, null=True)
 	notes = models.TextField(blank=True)
 	material = models.CharField(max_length=50, blank=True)
 	fraction_modern = models.FloatField(null=True)
@@ -350,17 +366,12 @@ class RadiocarbonDatedSample(Timestamped):
 	carbon_to_nitrogen_ratio = models.FloatField(null=True)
 	run_date = models.DateField(null=True)
 	lab_code = models.CharField(max_length=50, blank=True)
+	oxcal_mu = models.FloatField(null=True)
+	cal_from = models.IntegerField(null=True)
+	cal_to = models.IntegerField(null=True)
+	correction_applied = models.BooleanField(default=False)
 	payment_lab = models.CharField(max_length=50, blank=True)
 	invoice = models.ForeignKey(RadiocarbonDatingInvoice, on_delete=models.PROTECT, null=True)
-	
-class Publication(Timestamped):
-	title = models.CharField(max_length=200)
-	first_author = models.CharField(max_length=50, blank=True)
-	year = models.PositiveSmallIntegerField(null=True)
-	journal = models.CharField(max_length=100, blank=True)
-	pages = models.CharField(max_length=30, blank=True)
-	author_list = models.TextField(blank=True)
-	url = models.CharField(max_length=50, blank=True)
 	
 class DistributionsShipment(Timestamped):
 	collaborator = models.ForeignKey(Collaborator, on_delete=models.PROTECT)
