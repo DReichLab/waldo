@@ -101,6 +101,34 @@ class Return(Timestamped):
 	courier_delivery_date = models.DateField(null=True)
 	return_notes = models.TextField(blank=True)
 	
+class Country(Timestamped):
+	country_name = models.CharField(max_length=100, blank=True)
+	region = models.CharField(max_length=100, blank=True)
+	subregion = models.CharField(max_length=100, blank=True)
+	intermediate_region = models.CharField(max_length=100, blank=True)
+	m49_code = models.PositiveSmallIntegerField(null=True)
+	iso_alpha2_code = models.CharField(max_length=2, blank=True)
+	iso_alpha3_code = models.CharField(max_length=3, blank=True)
+
+class Location(Timestamped):
+	country = models.ForeignKey(Country, on_delete=models.PROTECT)
+	level_1 = models.CharField(max_length=100, blank=True) # coarsest
+	level_2 = models.CharField(max_length=100, blank=True)
+	level_3 = models.CharField(max_length=100, blank=True)
+	level_4 = models.CharField(max_length=100, blank=True)
+	level_5 = models.CharField(max_length=100, blank=True) # finest
+	site = models.TextField(blank=True)
+	latitude = models.CharField(max_length=20, blank=True) # TODO convert to spatial
+	longitude = models.CharField(max_length=20, blank=True) # TODO
+	
+class Period(Timestamped):
+	abbreviation = models.CharField(max_length=10)
+	text = models.TextField(blank=True)
+	
+class Culture(Timestamped):
+	abbreviation = models.CharField(max_length=10)
+	text = models.TextField(blank=True)
+	description = models.TextField(blank=True)
 
 class Sample(Timestamped):
 	reich_lab_id = models.PositiveIntegerField(db_index=True, null=True, help_text=' assigned when a sample is selected from the queue by the wetlab')
@@ -110,6 +138,12 @@ class Sample(Timestamped):
 	collaborator = models.ForeignKey(Collaborator, on_delete=models.PROTECT, null=True)
 	shipment = models.ForeignKey(Shipment, on_delete=models.PROTECT, null=True)
 	return_id = models.ForeignKey(Return, on_delete=models.PROTECT, null=True)
+	
+	country_fk = models.ForeignKey(Country, on_delete=models.SET_NULL, null=True)
+	location_fk = models.ForeignKey(Location, on_delete=models.SET_NULL, null=True)
+	period_fk = models.ForeignKey(Period, on_delete=models.SET_NULL, null=True)
+	culture_fk = models.ForeignKey(Culture, on_delete=models.SET_NULL, null=True)
+	publications = models.ManyToManyField(Publication)
 
 	individual_id = models.CharField(max_length=15, blank=True)
 	
@@ -137,6 +171,10 @@ class Sample(Timestamped):
 	morphological_age_range = models.CharField(max_length=15, blank=True, help_text='Age range in years as determined by skeletal remains') # TODO map to interval 
 	loan_expiration_date = models.DateField(null=True, help_text='Date by which samples need to be returned to collaborator')
 	dating_status = models.TextField(blank=True, help_text="David Reich's radiocarbon dating status as noted in his anno file") # TODO enumerate?
+	
+	burial_code = models.TextField(blank=True)
+	accession_number = models.TextField(blank=True)
+	pathology = models.TextField(blank=True)
 	
 	class Meta:
 		unique_together = ['reich_lab_id', 'control']
