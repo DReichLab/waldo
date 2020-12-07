@@ -187,7 +187,11 @@ def library_anno_line(instance_id_raw, sequencing_run_name, release_label, compo
 		nuclear_list += [nuclear]
 		mt_list += [mt]
 		shotgun_list += [shotgun]
-	analysis_files = AnalysisFiles.objects.get(parent = results) # TODO
+	try:
+		analysis_files = AnalysisFiles.objects.get(parent = results) # TODO
+	except AnalysisFiles.DoesNotExist as error:
+		print('{} AnalysisFiles not found'.format(library_id_str), file=sys.stderr)
+		raise error
 	
 	#Data: mtDNA bam
 	mod_append(fields, analysis_files.mt_bam)

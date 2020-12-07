@@ -57,7 +57,7 @@ def load_mt_capture_fields(library_id, report_fields, report_headers, release_la
 	try:
 		results = Results.objects.get(library_id__exact=library_id, mt_seq_run__name__iexact=sequencing_run_name)
 	except Results.DoesNotExist as e:
-		print('{} not found for load_mt_capture_fields'.format(library_id), file=sys.stderr)
+		print('{} not found for load_mt_capture_fields, sequencing_run_name: {}'.format(library_id, sequencing_run_name), file=sys.stderr)
 		raise e
 	library = Library.objects.get(reich_lab_library_id = library_id)
 	udg, strandedness = udg_and_strandedness(library)
@@ -287,7 +287,11 @@ def load_pulldown_stdout(pulldown_stdout, release_label, sequencing_run_name, da
 					coverage = float(fields[4])
 					snps_hit = int(fields[6])
 					
-					results = Results.objects.get(library_id__exact=library_id, nuclear_seq_run__name__iexact=sequencing_run_name)
+					try:
+						results = Results.objects.get(library_id__exact=library_id, nuclear_seq_run__name__iexact=sequencing_run_name)
+					except Results.DoesNotExist as error:
+						print('No Results object for {}' .format(library_id), file=sys.stderr)
+						raise error
 					
 					nuclear, nuclear_created = NuclearAnalysis.objects.get_or_create(parent = results, version_release = release_label, damage_restricted = damage_restricted)
 					
