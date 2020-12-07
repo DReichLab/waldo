@@ -331,7 +331,7 @@ def library_anno_line(instance_id_raw, sequencing_run_name, release_label, compo
 					assessment_damage = 1
 			except:
 				pass
-		elif 'ss' in library_type or 'minus' in library_type:
+		elif 'ss' in library_type or 'minus' in udg:
 			try:
 				if nuclear.damage_last_base < 0.03:
 					assessment_damage = 3
