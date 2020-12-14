@@ -405,6 +405,7 @@ class RadiocarbonDatedSample(Timestamped):
 	run_date = models.DateField(null=True)
 	lab_code = models.CharField(max_length=50, blank=True)
 	oxcal_mu = models.FloatField(null=True)
+	oxcal_sigma = models.FloatField(null=True)
 	cal_from = models.IntegerField(null=True)
 	cal_to = models.IntegerField(null=True)
 	correction_applied = models.BooleanField(default=False)
