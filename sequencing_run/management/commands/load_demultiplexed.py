@@ -67,7 +67,7 @@ class Command(BaseCommand):
 			start_result = start_cromwell(date_string, name, ANALYSIS_COMMAND_LABEL)
 			# retrieve SLURM job number from output
 			for line in start_result.stdout.readlines():
-				print(line)
+				self.stdout.write(line)
 				m = re.match('Submitted batch job[\s]+(\d+)', line)
 				if m is not None:
 					analysis_run.slurm_job_number = int(m.group(1))
@@ -91,6 +91,7 @@ class Command(BaseCommand):
 			for flowcell in flowcells:
 				sequenced.flowcells.add(flowcell)
 			sequenced.save()
+			self.stderr.write('{}\tcreated: {}'.format(bam_filename, str(created)))
 			
 	# Find the flowcell text id from a demultiplexed flowcell, using the contents of the Illumina fastq headers
 	def get_flowcell_text_ids(self, date_string, name, flowcell_by_lane):
