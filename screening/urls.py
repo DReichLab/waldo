@@ -20,5 +20,6 @@ from django.conf.urls.static import static
 
 urlpatterns = [
 	path('sequencing_run/', include('sequencing_run.urls')),
+	path('broad_download/', include('broad_download.urls')),
     path('admin/', admin.site.urls),
 ] + static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
