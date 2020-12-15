@@ -67,7 +67,7 @@ class Command(BaseCommand):
 			start_result = start_cromwell(date_string, name, ANALYSIS_COMMAND_LABEL)
 			# retrieve SLURM job number from output
 			for line in start_result.stdout.readlines():
-				print(line)
+				self.stdout.write(line)
 				m = re.match('Submitted batch job[\s]+(\d+)', line)
 				if m is not None:
 					analysis_run.slurm_job_number = int(m.group(1))
@@ -77,24 +77,21 @@ class Command(BaseCommand):
 
 	def load_demultiplexed_bams_into_database(self, date_string, name, flowcells, subdirectory, reference):
 		# read the list bam files
-		command = "ls {}/{}_{}/{}".format(settings.DEMULTIPLEXED_PARENT_DIRECTORY, date_string, name, subdirectory)
-		ssh_result = ssh_command(settings.COMMAND_HOST, command, None, self.stderr)
-		result = ssh_result.stdout.readlines()
-		for filename in result:
-			filename = filename.strip() # remove trailing newlines
-			# only process bam files
+		directory_str = "{}/{}_{}/{}".format(settings.DEMULTIPLEXED_PARENT_DIRECTORY, date_string, name, subdirectory)
+		pathlist = pathlib.Path(directory_str).glob("*.bam")
+		for filename in pathlist:
 			#print(filename)
-			if pathlib.Path(filename).suffix == '.bam':
-				bam_filename = pathlib.Path(filename).name
-				#print(bam_filename)
-				# filename contains index-barcode key
-				key = pathlib.Path(bam_filename).stem
-				i5, i7, p5, p7 = index_barcode_key_to_fields(key)
-				bam_path = "{}/{}_{}/{}/{}".format(settings.DEMULTIPLEXED_PARENT_DIRECTORY, date_string, name, subdirectory, bam_filename)
-				sequenced, created = DemultiplexedSequencing.objects.get_or_create(i5_index = i5, i7_index = i7, p5_barcode = p5, p7_barcode = p7, reference = reference, path = bam_path)
-				for flowcell in flowcells:
-					sequenced.flowcells.add(flowcell)
-				sequenced.save()
+			bam_filename = filename.name
+			#print(bam_filename)
+			# filename contains index-barcode key
+			key = filename.stem
+			i5, i7, p5, p7 = index_barcode_key_to_fields(key)
+			bam_path = "{}/{}_{}/{}/{}".format(settings.DEMULTIPLEXED_PARENT_DIRECTORY, date_string, name, subdirectory, bam_filename)
+			sequenced, created = DemultiplexedSequencing.objects.get_or_create(i5_index = i5, i7_index = i7, p5_barcode = p5, p7_barcode = p7, reference = reference, path = bam_path)
+			for flowcell in flowcells:
+				sequenced.flowcells.add(flowcell)
+			sequenced.save()
+			self.stderr.write('{}\tcreated: {}'.format(bam_filename, str(created)))
 			
 	# Find the flowcell text id from a demultiplexed flowcell, using the contents of the Illumina fastq headers
 	def get_flowcell_text_ids(self, date_string, name, flowcell_by_lane):
