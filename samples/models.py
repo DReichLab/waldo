@@ -122,11 +122,11 @@ class Location(Timestamped):
 	longitude = models.CharField(max_length=20, blank=True) # TODO
 	
 class Period(Timestamped):
-	abbreviation = models.CharField(max_length=10)
+	abbreviation = models.CharField(max_length=50)
 	text = models.TextField(blank=True)
 	
 class Culture(Timestamped):
-	abbreviation = models.CharField(max_length=10)
+	abbreviation = models.CharField(max_length=50)
 	text = models.TextField(blank=True)
 	description = models.TextField(blank=True)
 
