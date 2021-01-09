@@ -1,0 +1,27 @@
+{% load static %}
+<form action="" method="post" enctype="multipart/form-data">
+	{% csrf_token %}
+	<h1>Reich Lab MT Library ID Query</h1>
+	
+	{{ form.as_p }}
+	
+	<input type="submit" name="query" value="Query ID" />
+	
+	<table>
+		<tr>
+			<td> Coverage </td>
+			<td> MT Haplogroup </td>
+			<td> MT Haplogroup Confidence </td>
+		</tr>
+		
+		{% for library_mt in mt_results %}
+		<tr>
+			<td> {{ library_mt.coverage }} </td>
+			<td> {{ library_mt.haplogroup }} </td>
+			<td> {{ library_mt.haplogroup_confidence }} </td>
+		</tr>
+		{% endfor %}
+		
+	</table>
+</form>
+ 

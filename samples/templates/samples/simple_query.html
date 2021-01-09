@@ -1,0 +1,10 @@
+{% load static %}
+<form action="" method="post" enctype="multipart/form-data">
+	{% csrf_token %}
+	<h1>Reich Lab Individual ID Query</h1>
+	
+	{{ form.as_p }}
+	
+	<input type="submit" name="query" value="Query ID" />
+</form>
+ 
