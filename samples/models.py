@@ -124,11 +124,14 @@ class Location(Timestamped):
 class Period(Timestamped):
 	abbreviation = models.CharField(max_length=50)
 	text = models.TextField(blank=True)
+	description = models.TextField(blank=True)
+	date_range = models.CharField(max_length=50, blank=True)
 	
 class Culture(Timestamped):
 	abbreviation = models.CharField(max_length=50)
 	text = models.TextField(blank=True)
 	description = models.TextField(blank=True)
+	date_range = models.CharField(max_length=50, blank=True)
 
 class Sample(Timestamped):
 	reich_lab_id = models.PositiveIntegerField(db_index=True, null=True, help_text=' assigned when a sample is selected from the queue by the wetlab')
