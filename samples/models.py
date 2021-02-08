@@ -230,6 +230,7 @@ class ExtractBatch(Timestamped):
 
 class Lysate(Timestamped):
 	lysate_id = models.CharField(max_length=15, unique=True, null=False, db_index=True)
+	reich_lab_lysate_number = models.PositiveIntegerField(null=True, help_text='Starts at 1 for each sample.')
 	powder_sample = models.ForeignKey(PowderSample, null=True, on_delete=models.PROTECT)
 	powder_used_mg = models.FloatField(null=True, help_text='milligrams of bone powder used in lysis')
 	total_volume_produced = models.FloatField(null=True, help_text='Total microliters of lysate produced')
@@ -241,7 +242,9 @@ class Lysate(Timestamped):
 	
 class Extract(Timestamped):
 	extract_id = models.CharField(max_length=20, unique=True, db_index=True)
+	reich_lab_extract_number = models.PositiveIntegerField(null=True, help_text='Starts at 1 for each lysate or sample if no lysate exists.')
 	lysate_id = models.ForeignKey(Lysate, on_delete=models.PROTECT, null=True)
+	sample = models.ForeignKey(Sample, on_delete=models.PROTECT, null=True)
 	extract_batch_id = models.ForeignKey(ExtractBatch, null=True, on_delete=models.PROTECT)
 	lysis_volume_extracted = models.FloatField(null=True)
 	#extract_volume_remaining = models.FloatField(null=True)
@@ -269,9 +272,11 @@ class LibraryBatch(Timestamped):
 	technician_fk = models.ForeignKey(WetLabStaff, on_delete=models.SET_NULL, null=True)
 	
 class Library(Timestamped):
+	sample = models.ForeignKey(Sample, on_delete=models.PROTECT, null=True)
 	extract_id = models.ForeignKey(Extract, on_delete=models.PROTECT, null=True)
 	library_batch_id = models.ForeignKey(LibraryBatch, on_delete=models.PROTECT, null=True)
 	reich_lab_library_id = models.CharField(max_length=20, unique=True, db_index=True)
+	reich_lab_library_number = models.PositiveIntegerField(null=True, help_text='Starts at 1 for each extract or sample')
 	udg_treatment = models.CharField(max_length=10)
 	library_type = models.CharField(max_length=10, blank=True)
 	library_prep_lab = models.CharField(max_length=50, blank=True, help_text='Name of lab where library preparation was done')
@@ -466,3 +471,5 @@ class Instance(Timestamped):
 	data_type = models.CharField(max_length=20) # TODO enumerate this 1240k, shotgun, BigYoruba, etc.
 	family = models.TextField(blank=True, help_text='family id and position within family')
 	assessment = models.TextField(help_text='Xcontam listed if |Z|>2 standard errors from zero: 0.02-0.05="QUESTIONABLE", >0.05="QUESTIONABLE_CRITICAL" or "FAIL") (mtcontam 97.5th percentile estimates listed if coverage >2: <0.8 is "QUESTIONABLE_CRITICAL", 0.8-0.95 is "QUESTIONABLE", and 0.95-0.98 is recorded but "PASS", gets overriden by ANGSD')
+	
+
