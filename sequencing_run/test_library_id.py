@@ -1,4 +1,4 @@
-from django.test import TestCase
+from django.test import SimpleTestCase
 
 from django.conf import settings
 
@@ -6,7 +6,7 @@ from .library_id import LibraryID
 
 # Create your tests here.
 
-class LibraryIDTest(TestCase):
+class LibraryIDTest(SimpleTestCase):
 	def test_valid_lysis(self):
 		x = 'S0123.Y1.E2.L3'
 		

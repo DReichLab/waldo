@@ -1,10 +1,10 @@
-from django.test import TestCase
+from django.test import SimpleTestCase
 
 from django.conf import settings
 
 from .index_barcode_key import IndexBarcodeKey
 
-class IndexBarcodeKeyTest(TestCase):
+class IndexBarcodeKeyTest(SimpleTestCase):
 	def test_no_barcodes(self):
 		i5 = 'AGGTATT'
 		i7 = 'GCTTCAG'
