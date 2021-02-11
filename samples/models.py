@@ -144,8 +144,10 @@ class Sample(Timestamped):
 	
 	country_fk = models.ForeignKey(Country, on_delete=models.SET_NULL, null=True)
 	location_fk = models.ForeignKey(Location, on_delete=models.SET_NULL, null=True)
-	period_fk = models.ForeignKey(Period, on_delete=models.SET_NULL, null=True)
-	culture_fk = models.ForeignKey(Culture, on_delete=models.SET_NULL, null=True)
+	period_fk = models.ForeignKey(Period, on_delete=models.SET_NULL, null=True, related_name='period_single')
+	periods = models.ManyToManyField(Period)
+	culture_fk = models.ForeignKey(Culture, on_delete=models.SET_NULL, null=True, related_name='culture_single')
+	cultures = models.ManyToManyField(Culture)
 	publications = models.ManyToManyField(Publication)
 
 	individual_id = models.CharField(max_length=15, blank=True)
