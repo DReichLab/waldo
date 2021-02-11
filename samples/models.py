@@ -243,7 +243,7 @@ class Lysate(Timestamped):
 class Extract(Timestamped):
 	extract_id = models.CharField(max_length=20, unique=True, db_index=True)
 	reich_lab_extract_number = models.PositiveIntegerField(null=True, help_text='Starts at 1 for each lysate or sample if no lysate exists.')
-	lysate_id = models.ForeignKey(Lysate, on_delete=models.PROTECT, null=True)
+	lysate = models.ForeignKey(Lysate, on_delete=models.PROTECT, null=True)
 	sample = models.ForeignKey(Sample, on_delete=models.PROTECT, null=True)
 	extract_batch_id = models.ForeignKey(ExtractBatch, null=True, on_delete=models.PROTECT)
 	lysis_volume_extracted = models.FloatField(null=True)
@@ -273,8 +273,8 @@ class LibraryBatch(Timestamped):
 	
 class Library(Timestamped):
 	sample = models.ForeignKey(Sample, on_delete=models.PROTECT, null=True)
-	extract_id = models.ForeignKey(Extract, on_delete=models.PROTECT, null=True)
-	library_batch_id = models.ForeignKey(LibraryBatch, on_delete=models.PROTECT, null=True)
+	extract = models.ForeignKey(Extract, on_delete=models.PROTECT, null=True)
+	library_batch = models.ForeignKey(LibraryBatch, on_delete=models.PROTECT, null=True)
 	reich_lab_library_id = models.CharField(max_length=20, unique=True, db_index=True)
 	reich_lab_library_number = models.PositiveIntegerField(null=True, help_text='Starts at 1 for each extract or sample')
 	udg_treatment = models.CharField(max_length=10)
