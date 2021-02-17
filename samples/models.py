@@ -244,7 +244,7 @@ class Extract(Timestamped):
 	reich_lab_extract_number = models.PositiveIntegerField(null=True, help_text='Starts at 1 for each lysate or sample if no lysate exists.')
 	lysate = models.ForeignKey(Lysate, on_delete=models.PROTECT, null=True)
 	sample = models.ForeignKey(Sample, on_delete=models.PROTECT, null=True)
-	extract_batch_id = models.ForeignKey(ExtractBatch, null=True, on_delete=models.PROTECT)
+	extract_batch = models.ForeignKey(ExtractBatch, null=True, on_delete=models.PROTECT)
 	lysis_volume_extracted = models.FloatField(null=True)
 	#extract_volume_remaining = models.FloatField(null=True)
 	notes = models.TextField(blank=True)
