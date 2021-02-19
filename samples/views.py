@@ -73,3 +73,16 @@ def mt_query(request):
 	else:
 		form = LibraryIDForm()
 		return render(request, 'samples/library_mt.html', {'form': form})
+	
+def well(request):
+	#if request.method == 'POST':
+	library_id_list = ['S20000.Y1.E1.L1', 'S2234.E1.L1']
+	libraries_map = {}
+	counter = 1
+	for library_id in library_id_list:
+		joint = { 'position':f'A{counter}', 'widget_id':library_id.replace('.','') }
+		counter += 1
+		libraries_map[library_id] = joint
+		
+	return render(request, 'samples/well_plate.html', { 'rows':'ABCDEFGH', 'columns':range(1,13), 'libraries_map':libraries_map} )
+		

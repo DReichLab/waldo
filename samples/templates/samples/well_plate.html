@@ -1,0 +1,65 @@
+{% load static %}
+
+<link rel="stylesheet" href="{% static "jquery-ui/jquery-ui.min.css" %}" />
+<link rel="stylesheet" href="{% static "jquery-ui/themes/ui-lightness/theme.css" %}" />
+
+<script src="{% static "jquery-ui/external/jquery/jquery.js" %}"></script>
+<script src="{% static "jquery-ui/jquery-ui.min.js" %}"></script>
+
+<style>
+	{% for row in rows %}
+		{% for column in columns %}
+			#{{ row }}{{ column }} { width: 130px; height: 100px; padding: 0.0em; float: left; margin: 0px; }
+		{% endfor %}
+	{% endfor %}
+	
+	{% for library_id, position_and_widget_ui in libraries_map.items %}
+		#{{ position_and_widget_ui.widget_id }} { width: 110px; height: 30px; padding: 0.5em; float: left; margin: 10px 10px 10px 0; }
+	{% endfor %}
+</style>
+
+<script>
+	$( function() {
+		{% for row in rows %}
+			{% for column in columns %}
+				$( "#{{ row }}{{ column }}" ).droppable();
+			{% endfor %}
+		{% endfor %}
+		
+		function position_library(library_widget_id, position) {
+			$( "#" + library_widget_id ).position({
+				of: $( "#" + position ),
+				my: "left top",
+				at: "left center"
+			});
+		}
+	
+		{% for library_id, position_and_widget_ui in libraries_map.items %}
+			$( "#{{ position_and_widget_ui.widget_id }}" ).draggable( { snap: ".ui-widget-header", snapMode: "inner", snapTolerance:130, revert: "invalid" } );
+			position_library("{{ position_and_widget_ui.widget_id }}", "{{ position_and_widget_ui.position }}" );
+		{% endfor %}
+	} );
+</script>
+
+<body>
+<table id=well_plate_layout>
+{% for row in rows %}
+	<tr>
+	{% for column in columns %}
+		<td>
+			<div id="{{ row }}{{ column }}" class="ui-widget-header">
+				<p>{{ row }}{{ column }}</p>
+			</div>
+		</td>
+	{% endfor %}
+	</tr>
+{% endfor %}
+</table>
+
+{% for library_id, position_and_widget_ui in libraries_map.items %}
+	<div id="{{ position_and_widget_ui.widget_id }}" class="draggable ui-widget-content positionable">
+		<p>{{ library_id }}</p>
+	</div>
+{% endfor %}
+
+</body>
