@@ -19,26 +19,73 @@
 </style>
 
 <script>
+	// 
+	var libraries_map_js = {};
+	{% for library_id, position_and_widget_ui in libraries_map.items %}
+		libraries_map_js[ "{{ library_id }}" ] = {
+			widget_id:"{{ position_and_widget_ui.widget_id }}", 
+			position:"{{ position_and_widget_ui.position }}",
+			library_id:"{{ library_id }}"
+		};
+	{% endfor %}
+	var libraries_by_position = {}
+
+	function position_library(library_map_entry){
+		$( "#" + library_map_entry.widget_id ).position({
+			of: $( "#" + library_map_entry.position ),
+			my: "left top",
+			at: "left center"
+		});
+	}
+	
+	function position_all_libraries(libraries_map_js){
+		for(library_map_entry in libraries_map_js){
+			position_library(libraries_map_js[library_map_entry]);
+		}
+	}
+	
 	$( function() {
 		{% for row in rows %}
 			{% for column in columns %}
-				$( "#{{ row }}{{ column }}" ).droppable();
+				$( "#{{ row }}{{ column }}" ).droppable({
+					drop: function( event, ui ) {
+						$( this )
+						.addClass( "ui-state-highlight" )
+						.find( "p" )
+							.html( "Dropped!" );
+					}
+				});
 			{% endfor %}
 		{% endfor %}
-		
-		function position_library(library_widget_id, position) {
-			$( "#" + library_widget_id ).position({
-				of: $( "#" + position ),
-				my: "left top",
-				at: "left center"
-			});
-		}
 	
 		{% for library_id, position_and_widget_ui in libraries_map.items %}
 			$( "#{{ position_and_widget_ui.widget_id }}" ).draggable( { snap: ".ui-widget-header", snapMode: "inner", snapTolerance:130, revert: "invalid" } );
-			position_library("{{ position_and_widget_ui.widget_id }}", "{{ position_and_widget_ui.position }}" );
 		{% endfor %}
+		position_all_libraries(libraries_map_js);
 	} );
+</script>
+
+<script>
+	function library_position_callback(){
+		console.log('position callback')
+	}
+</script>
+
+<script>
+	function send_well_plate_layout(){
+		$.ajax({
+			method: 'POST',
+			url: 'samples/well',
+			dataType: 'json',
+			data: libraries_map
+		})
+		.done(function(data) {
+			alert(data);
+		})
+		.fail (function( jqXHR, textStatus ) {
+			console.log( "Request failed: " + textStatus );
+		});
+	}
 </script>
 
 <body>
