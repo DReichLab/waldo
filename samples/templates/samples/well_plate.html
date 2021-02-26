@@ -28,14 +28,40 @@
 			library_id:"{{ library_id }}"
 		};
 	{% endfor %}
-	var libraries_by_position = {}
+	var libraries_by_position = {}; // library ids contained in well location
+	
 
+	function remove_library_from_old_position(library_map_entry){
+		var position_list = libraries_by_position[library_map_entry.position]
+		if (position_list != null){
+			var index = position_list.indexOf(library_map_entry.library_id);
+			if (index >= 0){
+				position_list.splice(index, 1);
+			}
+		}
+	}
+	
 	function position_library(library_map_entry){
+		// put library in well position list
+		if (!libraries_by_position[library_map_entry.position]){
+			libraries_by_position[library_map_entry.position] = [];
+		}
+		libraries_by_position[library_map_entry.position].push(library_map_entry.library_id);
+		library_position_gui(library_map_entry);
+	}
+		
+	function library_position_gui(library_map_entry){
 		$( "#" + library_map_entry.widget_id ).position({
 			of: $( "#" + library_map_entry.position ),
 			my: "left top",
 			at: "left center"
 		});
+	}
+	
+	function library_dropped_in_well_position(library_map_entry, well_position){
+		remove_library_from_old_position(library_map_entry);
+		library_map_entry.position = well_position;
+		library_position_gui(library_map_entry, well_position);
 	}
 	
 	function position_all_libraries(libraries_map_js){
@@ -48,18 +74,21 @@
 		{% for row in rows %}
 			{% for column in columns %}
 				$( "#{{ row }}{{ column }}" ).droppable({
+					classes: {
+						"ui-droppable-hover": "ui-state-hover"
+					},
 					drop: function( event, ui ) {
-						$( this )
-						.addClass( "ui-state-highlight" )
-						.find( "p" )
-							.html( "Dropped!" );
+						var well_position = "{{ row }}{{ column }}"
+						var library_id = ui.draggable[0].getAttribute('library_id');
+						var library_map_entry = libraries_map_js[library_id];
+						library_dropped_in_well_position(library_map_entry, well_position);
 					}
 				});
 			{% endfor %}
 		{% endfor %}
 	
 		{% for library_id, position_and_widget_ui in libraries_map.items %}
-			$( "#{{ position_and_widget_ui.widget_id }}" ).draggable( { snap: ".ui-widget-header", snapMode: "inner", snapTolerance:130, revert: "invalid" } );
+			$( "#{{ position_and_widget_ui.widget_id }}" ).draggable( { snap: ".ui-widget-header", snapMode: "inner", revert: "invalid" } );
 		{% endfor %}
 		position_all_libraries(libraries_map_js);
 	} );
@@ -104,7 +133,7 @@
 </table>
 
 {% for library_id, position_and_widget_ui in libraries_map.items %}
-	<div id="{{ position_and_widget_ui.widget_id }}" class="draggable ui-widget-content positionable">
+	<div id="{{ position_and_widget_ui.widget_id }}" class="draggable ui-widget-content positionable" library_id="{{ library_id }}">
 		<p>{{ library_id }}</p>
 	</div>
 {% endfor %}
