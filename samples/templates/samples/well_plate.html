@@ -49,26 +49,48 @@
 			libraries_by_position[library_map_entry.position] = [];
 		}
 		libraries_by_position[library_map_entry.position].push(library_map_entry.library_id);
-		library_position_gui(library_map_entry);
 	}
-		
-	function library_position_gui(library_map_entry){
-		$( "#" + library_map_entry.widget_id ).position({
-			of: $( "#" + library_map_entry.position ),
-			my: "left top",
-			at: "left center"
-		});
+	
+	// render libraries in a well position without overlap
+	function layout_well(position){
+		var well_libraries = libraries_by_position[position];
+		if (well_libraries != null){
+			var prior_library_widget = null;
+			for (var i = 0; i < well_libraries.length; i++){
+				var library_id = well_libraries[i];
+				var library_map_entry = libraries_map_js[library_id];
+				var gui_position_arguments = {
+					of: $( "#" + position ),
+					my: "left bottom",
+					at: "left bottom"
+				};
+				if (prior_library_widget != null){
+					gui_position_arguments = {
+						of: $( "#" +  prior_library_widget ),
+						my: "left bottom",
+						at: "left top"
+					};
+				}
+				prior_library_widget = library_map_entry.widget_id;
+				
+				$( "#" + library_map_entry.widget_id ).position(gui_position_arguments);
+			}
+		}
 	}
 	
 	function library_dropped_in_well_position(library_map_entry, well_position){
 		remove_library_from_old_position(library_map_entry);
 		library_map_entry.position = well_position;
-		library_position_gui(library_map_entry, well_position);
+		position_library(library_map_entry);
+		layout_well(well_position);
 	}
 	
 	function position_all_libraries(libraries_map_js){
-		for(library_map_entry in libraries_map_js){
+		for(var library_map_entry in libraries_map_js){
 			position_library(libraries_map_js[library_map_entry]);
+		}
+		for(var position in libraries_by_position){
+			layout_well(position);
 		}
 	}
 	
