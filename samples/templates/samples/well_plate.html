@@ -14,12 +14,14 @@
 	{% endfor %}
 	
 	{% for library_id, position_and_widget_ui in libraries_map.items %}
-		#{{ position_and_widget_ui.widget_id }} { width: 110px; height: 30px; padding: 0.5em; float: left; margin: 10px 10px 10px 0; }
+		#{{ position_and_widget_ui.widget_id }} { width: 120px; height: 25px; display: flex;
+			justify-content: left;
+			align-items: center; }
 	{% endfor %}
 </style>
 
 <script>
-	// 
+	// build a javascript version of the python object defining layout of libraries into well positions
 	var libraries_map_js = {};
 	{% for library_id, position_and_widget_ui in libraries_map.items %}
 		libraries_map_js[ "{{ library_id }}" ] = {
