@@ -3,6 +3,7 @@ from django.shortcuts import render
 from django.http import HttpResponse
 
 import csv
+import json
 
 from samples.pipeline import udg_and_strandedness
 from samples.models import Results, Library
@@ -74,10 +75,17 @@ def mt_query(request):
 		form = LibraryIDForm()
 		return render(request, 'samples/library_mt.html', {'form': form})
 	
+# Handle the layout of a 96 well plate with libraries
+# This renders an interface allowing a technician to move libraries between wells
 def well(request):
-	if request.method == 'POST':
+	well_plate_rows = 'ABCDEFGH'
+	well_plate_columns = range(1,13)
+	
+	if request.method == 'POST' and request.is_ajax():
 		# JSON for a well plate layout
-		pass
+		libraries_map = json.loads(request.body)
+		
+		return render(request, 'samples/well_plate.html', { 'rows':well_plate_rows, 'columns':well_plate_columns, 'libraries_map':libraries_map} )
 	else:
 		library_id_list = ['S20000.Y1.E1.L1', 'S2234.E1.L1']
 		libraries_map = {}
@@ -87,5 +95,8 @@ def well(request):
 			counter += 1
 			libraries_map[library_id] = joint
 			
-		return render(request, 'samples/well_plate.html', { 'rows':'ABCDEFGH', 'columns':range(1,13), 'libraries_map':libraries_map} )
+		for key, value in libraries_map.items():
+			print(f'{key}\t{value}')
+			
+		return render(request, 'samples/well_plate.html', { 'rows':well_plate_rows, 'columns':well_plate_columns, 'libraries_map':libraries_map} )
 		
