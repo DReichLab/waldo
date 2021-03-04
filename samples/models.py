@@ -111,6 +111,7 @@ class Country(Timestamped):
 	iso_alpha3_code = models.CharField(max_length=3, blank=True)
 
 class Location(Timestamped):
+	country = models.ForeignKey(Country, on_delete=models.PROTECT, null=True)
 	level_1 = models.CharField(max_length=100, blank=True) # coarsest
 	level_2 = models.CharField(max_length=100, blank=True)
 	level_3 = models.CharField(max_length=100, blank=True)
