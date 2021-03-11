@@ -2,6 +2,8 @@ from django.shortcuts import render
 
 from django.http import HttpResponse
 
+from django.contrib.auth.decorators import login_required
+
 import csv
 import json
 
@@ -75,8 +77,13 @@ def mt_query(request):
 		form = LibraryIDForm()
 		return render(request, 'samples/library_mt.html', {'form': form})
 	
+@login_required
+def landing(request):
+	return render(request, 'samples/landing.html', {} )
+	
 # Handle the layout of a 96 well plate with libraries
 # This renders an interface allowing a technician to move libraries between wells
+@login_required
 def well(request):
 	well_plate_rows = 'ABCDEFGH'
 	well_plate_columns = range(1,13)

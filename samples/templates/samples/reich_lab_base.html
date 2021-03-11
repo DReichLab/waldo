@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+{% load static %}
+<link rel="stylesheet" type="text/css" href="{% static 'samples/style.css' %}" >
+<title>{% block title %}Reich Lab Ancient DNA{% endblock %}</title>
+</head>
+
+<body>
+	<div class="row">
+		<div id="sidebar" class="column side">
+			{% block sidebar %}
+			<ul>
+				<li><a href="/samples/landing">Home</a></li>
+				<li><a href="/samples/well">Well</a></li>
+			</ul>
+			{% endblock %}
+		</div>
+
+		<div id="content" class="column middle">
+			{% block content %}{% endblock %}
+		</div>
+	</div>
+</body>
+</html> 
