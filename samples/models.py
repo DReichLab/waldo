@@ -132,6 +132,16 @@ class Culture(Timestamped):
 	text = models.TextField(blank=True)
 	description = models.TextField(blank=True)
 	date_range = models.CharField(max_length=50, blank=True)
+	
+class Storage(Timestamped):
+	equipment_type = models.CharField(max_length=50, blank=True)
+	equipment_location = models.CharField(max_length=50, blank=True)
+	equipment_name = models.CharField(max_length=50, blank=True)
+	shelf = models.PositiveSmallIntegerField(null=True)
+	rack = models.PositiveSmallIntegerField(null=True)
+	drawer = models.PositiveSmallIntegerField(null=True)
+	unit_name = models.CharField(max_length=50, blank=True)
+	unit_type = models.CharField(max_length=50, blank=True)
 
 class Sample(Timestamped):
 	reich_lab_id = models.PositiveIntegerField(db_index=True, null=True, help_text=' assigned when a sample is selected from the queue by the wetlab')
@@ -199,6 +209,8 @@ class PowderSample(Timestamped):
 	powder_sample_id = models.CharField(max_length=15, unique=True, null=False, db_index=True)
 	sample = models.ForeignKey(Sample, on_delete=models.PROTECT, help_text='Powder was produced from this sample')
 	powder_batch = models.ForeignKey(PowderBatch, on_delete=models.PROTECT, help_text='powder belongs to this processing batch', null=True)
+	storage = models.ForeignKey(Storage, on_delete=models.PROTECT, null=True)
+	
 	sampling_tech = models.CharField(max_length=15, blank=True, help_text='Technique used to produce the bone powder')
 	sampling_notes = models.TextField(help_text='Notes from technician about sample quality, method used, mg of bone powder produced and storage location', blank=True)
 	total_powder_produced_mg = models.FloatField(null=True, help_text='Total miligrams of bone powder produced from the sample')
@@ -232,6 +244,8 @@ class Lysate(Timestamped):
 	lysate_id = models.CharField(max_length=15, unique=True, null=False, db_index=True)
 	reich_lab_lysate_number = models.PositiveIntegerField(null=True, help_text='Starts at 1 for each sample.')
 	powder_sample = models.ForeignKey(PowderSample, null=True, on_delete=models.PROTECT)
+	storage = models.ForeignKey(Storage, on_delete=models.PROTECT, null=True)
+	
 	powder_used_mg = models.FloatField(null=True, help_text='milligrams of bone powder used in lysis')
 	total_volume_produced = models.FloatField(null=True, help_text='Total microliters of lysate produced')
 	
@@ -246,6 +260,7 @@ class Extract(Timestamped):
 	lysate = models.ForeignKey(Lysate, on_delete=models.PROTECT, null=True)
 	sample = models.ForeignKey(Sample, on_delete=models.PROTECT, null=True)
 	extract_batch = models.ForeignKey(ExtractBatch, null=True, on_delete=models.PROTECT)
+	storage = models.ForeignKey(Storage, on_delete=models.PROTECT, null=True)
 	lysis_volume_extracted = models.FloatField(null=True)
 	#extract_volume_remaining = models.FloatField(null=True)
 	notes = models.TextField(blank=True)
