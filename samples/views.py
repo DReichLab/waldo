@@ -8,7 +8,7 @@ import csv
 import json
 
 from samples.pipeline import udg_and_strandedness
-from samples.models import Results, Library
+from samples.models import Results, Library, Sample
 from .forms import IndividualForm, LibraryIDForm
 from sequencing_run.models import MTAnalysis
 
@@ -80,6 +80,11 @@ def mt_query(request):
 @login_required
 def landing(request):
 	return render(request, 'samples/landing.html', {} )
+
+@login_required
+def sample_selection(request):
+	sample_queue = Sample.objects.filter(queue_id__isnull=False, reich_lab_id__isnull=True).order_by('queue_id')
+	return render(request, 'samples/sample_selection.html', { 'samples': sample_queue } )	
 	
 # Handle the layout of a 96 well plate with libraries
 # This renders an interface allowing a technician to move libraries between wells
