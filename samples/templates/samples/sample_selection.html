@@ -1,43 +1,54 @@
 {% load static %}
 
-<link rel="stylesheet" href="{% static "jquery-ui/jquery-ui.min.css" %}" />
-<link rel="stylesheet" href="{% static "jquery-ui/themes/ui-lightness/theme.css" %}" />
-
-<script src="{% static "jquery-ui/external/jquery/jquery.js" %}"></script>
-<script src="{% static "jquery-ui/jquery-ui.min.js" %}"></script>
 <script src="{% static "samples/list.js" %}"></script>
 
 <style>
 th {
 	position: sticky;
 	top: 0;
+	background: #eee;
 }
 </style>
 
+<script>
+	function update_count(){
+		var count = document.querySelectorAll('input[type="checkbox"]:checked').length;
+		document.getElementById('sample_count').innerHTML = count;
+	}
+</script>
+
 <body>
-{% if user.is_authenticated %} {{ user.username }} {% endif %}
-<div id='sample_count'>
-	
-</div>
+
 
 <fieldset>
 <legend>Samples</legend>
 <div id='sample_rows'>
-<input class="search" placeholder="Search" />
+
 <table>
-	<th>
-		<td><button class="sort" data-sort="checked">Selected</button></td>
-		<td><button class="sort" data-sort="queue_id">Queue ID</button></td>
-		<td><button class="sort" data-sort="collaborator">Collaborator</button></td>
-		<td><button class="sort" data-sort="skeletal_element">Skeletal Element</button></td>
-		<td><button class="sort" data-sort="skeletal_code">Skeletal Code</button></td>
-	</th>
+	<caption>
+		<input class="search" placeholder="Search" />
+	</caption>
+	<thead>
+	<tr>
+		<th><div id='sample_count'></div></th>
+		<th><button class="sort" data-sort="queue_id">Queue ID</button></th>
+		<th><button class="sort" data-sort="collaborator">Collaborator</button></th>
+		<th><button class="sort" data-sort="skeletal_element">Skeletal Element</button></th>
+		<th><button class="sort" data-sort="skeletal_code">Skeletal Code</button></th>
+		<th><button class="sort" data-sort="country">Country</button></th>
+		<th><button class="sort" data-sort="region">Region</button></th>
+		<th><button class="sort" data-sort="period">Period</button></th>
+		<th><button class="sort" data-sort="culture">Culture</button></th>
+		<th><button class="sort" data-sort="morphological_sex">Morphological Sex</button></th>
+		<th><button class="sort" data-sort="morphological_age">Morphological Age</button></th>
+	</tr>
+	</thead>
 	<tbody class="list">
 	{% for sample in samples %}
 	<tr>
 		<td class="checked">
 			<!-- <label for="checkbox{{sample.queue_id}}">{{sample.queue_id}}</label> -->
-			<input type="checkbox" name="checkbox{{sample.queue_id}}" id="checkbox{{sample.queue_id}}">
+			<input type="checkbox" name="checkbox{{sample.queue_id}}" id="checkbox{{sample.queue_id}}" onclick="update_count()">
 		</td>
 		<td class="queue_id">{{sample.queue_id}}</td>
 		<td class="collaborator">{{sample.collaborator.first_name}} {{sample.collaborator.last_name}}</td>
@@ -45,6 +56,9 @@ th {
 		<td class="skeletal_code">{{sample.skeletal_code}}</td>
 		<td class="country">{{sample.country_fk.country_name}}</td>
 		<td class="region">{{sample.country_fk.region}}</td>
+		<td class="peroid">{{sample.period}}</td>
+		<td class="morphological_sex">{{sample.morphological_sex}}</td>
+		<td class="morphological_age">{{sample.morphological_age}}</td>
 	</tr>
 	{% endfor %}
 	</tbody>
