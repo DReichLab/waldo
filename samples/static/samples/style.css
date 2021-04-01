@@ -36,12 +36,12 @@
 
 /* Left and right column */
 .column.side {
-  width: 50%;
+  width: 15%;
 }
 
 /* Middle column */
 .column.middle {
-  width: 50%;
+  width: 85%;
 }
 
 /* Clear floats after the columns */

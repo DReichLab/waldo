@@ -6,6 +6,9 @@
 <title>{% block title %}Reich Lab Ancient DNA{% endblock %}</title>
 </head>
 
+{% block js_script %}
+{% endblock %}
+
 <body>
 	<div class="row">
 		<div id="sidebar" class="column side">
@@ -14,7 +17,7 @@
 				<li><a href="/samples/landing">Home</a></li>
 				<li><a href="/samples/selection">Sample Selection</a></li>
 				<li><a href="/samples/well">Well</a></li>
-				<li>{{ user.username }}</li>
+				<li>{% if user.is_authenticated %} Logged in as: {{ user.username }} {% endif %}</li>
 			</ul>
 			{% endblock %}
 		</div>

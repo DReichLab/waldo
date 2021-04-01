@@ -1,5 +1,10 @@
+{% extends "samples/reich_lab_base.html" %}
+
 {% load static %}
 
+{% block title %}Reich Lab Ancient DNA Sample Selection{% endblock %}
+
+{% block content %}
 <script src="{% static "samples/list.js" %}"></script>
 
 <style>
@@ -17,17 +22,11 @@ th {
 	}
 </script>
 
-<body>
-
-
 <fieldset>
 <legend>Samples</legend>
 <div id='sample_rows'>
-
+<input class="search" placeholder="Search" />
 <table>
-	<caption>
-		<input class="search" placeholder="Search" />
-	</caption>
 	<thead>
 	<tr>
 		<th><div id='sample_count'></div></th>
@@ -56,7 +55,7 @@ th {
 		<td class="skeletal_code">{{sample.skeletal_code}}</td>
 		<td class="country">{{sample.country_fk.country_name}}</td>
 		<td class="region">{{sample.country_fk.region}}</td>
-		<td class="peroid">{{sample.period}}</td>
+		<td class="period">{{sample.period}}</td>
 		<td class="morphological_sex">{{sample.morphological_sex}}</td>
 		<td class="morphological_age">{{sample.morphological_age}}</td>
 	</tr>
@@ -65,7 +64,6 @@ th {
 </table>
 </div>
 </fieldset>
-</body>
 
 <script>
 	var list_options = {
@@ -73,3 +71,5 @@ th {
 	};
 	var sample_list = new List('sample_rows', list_options);
 </script>
+
+{% endblock %}
