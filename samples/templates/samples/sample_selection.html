@@ -14,10 +14,16 @@ th {
 	background: #eee;
 }
 
-table{
+#table_wrapper{
+	overflow-x: auto;
 	overflow-y: scroll;
 	height: 85vh;
-	display: block;
+}
+
+table{
+	border-collapse: collapse;
+	border-spacing: 0;
+	width: 100%;
 }
 </style>
 
@@ -28,18 +34,21 @@ table{
 	}
 </script>
 
-<fieldset>
 <legend>Samples</legend>
 <div id='sample_rows'>
 <div id='sample_count'></div>
 <script>document.addEventListener("load", update_count());</script>
 
 <input class="search" placeholder="Search" />
+<div id='table_wrapper'>
 <table>
 	<thead>
 	<tr>
 		<th><input type="checkbox" name="toggle_all_checkbox" id="toggle_all_checkbox" onclick="toggle_onscreen_all()"></th>
 		<th><button class="sort" data-sort="queue_id">Queue ID</button></th>
+		<th><button class="sort" data-sort="priority">Priority</button></th>
+		<th><button class="sort" data-sort="sampling_tech">Sampling Tech</button></th>
+		<th><button class="sort" data-sort="shipment_id">Shipment ID</button></th>
 		<th><button class="sort" data-sort="collaborator">Collaborator</button></th>
 		<th><button class="sort" data-sort="skeletal_element">Skeletal Element</button></th>
 		<th><button class="sort" data-sort="skeletal_code">Skeletal Code</button></th>
@@ -47,6 +56,8 @@ table{
 		<th><button class="sort" data-sort="region">Region</button></th>
 		<th><button class="sort" data-sort="period">Period</button></th>
 		<th><button class="sort" data-sort="culture">Culture</button></th>
+		<th><button class="sort" data-sort="notes">Notes</button></th>
+		<th><button class="sort" data-sort="notes_2">Notes 2</button></th>
 		<th><button class="sort" data-sort="morphological_sex">Morphological Sex</button></th>
 		<th><button class="sort" data-sort="morphological_age">Morphological Age</button></th>
 	</tr>
@@ -59,6 +70,9 @@ table{
 			<input class="sample_checkbox" type="checkbox" name="checkbox{{sample.queue_id}}" id="checkbox{{sample.queue_id}}" onclick="update_count()">
 		</td>
 		<td class="queue_id">{{sample.queue_id}}</td>
+		<td class="priority">TODO</td>
+		<td class="sampling_tech">TODO</td>
+		<td class="shipment_id">{{sample.shipment.shipment_name}}</td>
 		<td class="collaborator">{{sample.collaborator.first_name}} {{sample.collaborator.last_name}}</td>
 		<td class="skeletal_element">{{sample.skeletal_element}}</td>
 		<td class="skeletal_code">{{sample.skeletal_code}}</td>
@@ -66,6 +80,8 @@ table{
 		<td class="region">{{sample.country_fk.region}}</td>
 		<td class="period">{{sample.period}}</td>
 		<td class="culture">{{sample.culture}}</td>
+		<td class="notes">{{sample.notes}}</td>
+		<td class="notes_2">{{sample.notes_2}}</td>
 		<td class="morphological_sex">{{sample.morphological_sex}}</td>
 		<td class="morphological_age">{{sample.morphological_age}}</td>
 	</tr>
@@ -73,7 +89,7 @@ table{
 	</tbody>
 </table>
 </div>
-</fieldset>
+</div>
 
 <script>
 	var list_options = {
