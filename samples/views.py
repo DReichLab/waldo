@@ -2,10 +2,13 @@ from django.shortcuts import render
 
 from django.http import HttpResponse
 
+from django.contrib.auth.decorators import login_required
+
 import csv
+import json
 
 from samples.pipeline import udg_and_strandedness
-from samples.models import Results, Library
+from samples.models import Results, Library, Sample
 from .forms import IndividualForm, LibraryIDForm
 from sequencing_run.models import MTAnalysis
 
@@ -73,3 +76,39 @@ def mt_query(request):
 	else:
 		form = LibraryIDForm()
 		return render(request, 'samples/library_mt.html', {'form': form})
+	
+@login_required
+def landing(request):
+	return render(request, 'samples/landing.html', {} )
+
+@login_required
+def sample_selection(request):
+	sample_queue = Sample.objects.filter(queue_id__isnull=False, reich_lab_id__isnull=True).order_by('queue_id')
+	return render(request, 'samples/sample_selection.html', { 'samples': sample_queue } )	
+	
+# Handle the layout of a 96 well plate with libraries
+# This renders an interface allowing a technician to move libraries between wells
+@login_required
+def well(request):
+	well_plate_rows = 'ABCDEFGH'
+	well_plate_columns = range(1,13)
+	
+	if request.method == 'POST' and request.is_ajax():
+		# JSON for a well plate layout
+		libraries_map = json.loads(request.body)
+		
+		return render(request, 'samples/well_plate.html', { 'rows':well_plate_rows, 'columns':well_plate_columns, 'libraries_map':libraries_map} )
+	else:
+		library_id_list = ['S20000.Y1.E1.L1', 'S2234.E1.L1']
+		libraries_map = {}
+		counter = 1
+		for library_id in library_id_list:
+			joint = { 'position':f'A{counter}', 'widget_id':library_id.replace('.','') }
+			counter += 1
+			libraries_map[library_id] = joint
+			
+		for key, value in libraries_map.items():
+			print(f'{key}\t{value}')
+			
+		return render(request, 'samples/well_plate.html', { 'rows':well_plate_rows, 'columns':well_plate_columns, 'libraries_map':libraries_map} )
+		

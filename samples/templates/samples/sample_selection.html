@@ -1,0 +1,124 @@
+{% extends "samples/reich_lab_base.html" %}
+
+{% load static %}
+
+{% block title %}Reich Lab Ancient DNA Sample Selection{% endblock %}
+
+{% block content %}
+<script src="{% static "samples/list.js" %}"></script>
+
+<style>
+th {
+	position: sticky;
+	top: 0;
+	background: #eee;
+}
+
+#table_wrapper{
+	overflow-x: auto;
+	overflow-y: scroll;
+	height: 85vh;
+}
+
+table{
+	border-collapse: collapse;
+	border-spacing: 0;
+	width: 100%;
+}
+</style>
+
+<script>
+	function update_count(){
+		var count = document.querySelectorAll('input[type="checkbox"].sample_checkbox:checked').length;
+		document.getElementById('sample_count').innerHTML = String(count) + " sample" + (count != 1 ? "s" : "") + " selected";
+	}
+</script>
+
+<legend>Samples</legend>
+<div id='sample_rows'>
+<div id='sample_count'></div>
+<script>document.addEventListener("load", update_count());</script>
+
+<input class="search" placeholder="Search" />
+<div id='table_wrapper'>
+<table>
+	<thead>
+	<tr>
+		<th><input type="checkbox" name="toggle_all_checkbox" id="toggle_all_checkbox" onclick="toggle_onscreen_all()"></th>
+		<th><button class="sort" data-sort="queue_id">Queue ID</button></th>
+		<th><button class="sort" data-sort="priority">Priority</button></th>
+		<th><button class="sort" data-sort="sampling_tech">Sampling Tech</button></th>
+		<th><button class="sort" data-sort="shipment_id">Shipment ID</button></th>
+		<th><button class="sort" data-sort="collaborator">Collaborator</button></th>
+		<th><button class="sort" data-sort="skeletal_element">Skeletal Element</button></th>
+		<th><button class="sort" data-sort="skeletal_code">Skeletal Code</button></th>
+		<th><button class="sort" data-sort="country">Country</button></th>
+		<th><button class="sort" data-sort="region">Region</button></th>
+		<th><button class="sort" data-sort="period">Period</button></th>
+		<th><button class="sort" data-sort="culture">Culture</button></th>
+		<th><button class="sort" data-sort="notes">Notes</button></th>
+		<th><button class="sort" data-sort="notes_2">Notes 2</button></th>
+		<th><button class="sort" data-sort="morphological_sex">Morphological Sex</button></th>
+		<th><button class="sort" data-sort="morphological_age">Morphological Age</button></th>
+	</tr>
+	</thead>
+	<tbody class="list">
+	{% for sample in samples %}
+	<tr>
+		<td class="checked">
+			<!-- <label for="checkbox{{sample.queue_id}}">{{sample.queue_id}}</label> -->
+			<input class="sample_checkbox" type="checkbox" name="checkbox{{sample.queue_id}}" id="checkbox{{sample.queue_id}}" onclick="update_count()">
+		</td>
+		<td class="queue_id">{{sample.queue_id}}</td>
+		<td class="priority">TODO</td>
+		<td class="sampling_tech">TODO</td>
+		<td class="shipment_id">{{sample.shipment.shipment_name}}</td>
+		<td class="collaborator">{{sample.collaborator.first_name}} {{sample.collaborator.last_name}}</td>
+		<td class="skeletal_element">{{sample.skeletal_element}}</td>
+		<td class="skeletal_code">{{sample.skeletal_code}}</td>
+		<td class="country">{{sample.country_fk.country_name}}</td>
+		<td class="region">{{sample.country_fk.region}}</td>
+		<td class="period">{{sample.period}}</td>
+		<td class="culture">{{sample.culture}}</td>
+		<td class="notes">{{sample.notes}}</td>
+		<td class="notes_2">{{sample.notes_2}}</td>
+		<td class="morphological_sex">{{sample.morphological_sex}}</td>
+		<td class="morphological_age">{{sample.morphological_age}}</td>
+	</tr>
+	{% endfor %}
+	</tbody>
+</table>
+</div>
+</div>
+
+<script>
+	var list_options = {
+		valueNames: ['checked', 'queue_id', 'collaborator', 'skeletal_element', 'skeletal_code', 'country', 'region'],
+		searchDelay: 500
+	};
+	var sample_list = new List('sample_rows', list_options);
+	sample_list.on('updated', update_count);
+	
+	// toggle all checkboxes in current list, which may be search subset
+	function toggle_onscreen_all(){
+		var visible = sample_list.visibleItems;
+		var matching = sample_list.matchingItems;
+		let anybox_checked = false;
+		// first pass to see whether any checkbox in this set is checked
+		for (let i = 0; i < matching.length; i++) {
+			let checkbox_id = 'checkbox' + matching[i]._values['queue_id'];
+			let sample_checkbox = document.getElementById(checkbox_id);
+			anybox_checked ||= sample_checkbox.checked;
+		}
+		// second pass to set checkboxes
+		for (let i = 0; i < matching.length; i++) {
+			let checkbox_id = 'checkbox' + matching[i]._values['queue_id'];
+			let sample_checkbox = document.getElementById(checkbox_id);
+			sample_checkbox.checked = !anybox_checked;
+		}
+		update_count();
+		//alert('toggle ' + String(visible.length) + " " + String(matching.length));
+	}
+</script>
+
+{% endblock %}
