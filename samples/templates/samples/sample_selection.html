@@ -89,17 +89,18 @@ table{
 		searchDelay: 500
 	};
 	var sample_list = new List('sample_rows', list_options);
+	var overall_count = 0;
+	
+	document.querySelectorAll("input[type=checkbox]").forEach(input => {
+		input.addEventListener("click", (e) => {
+			e.target.checked ? overall_count += 1 : overall_count -= 1;
+			update_count();
+		})
+	})
 	
 	function update_count(){
 		let overall_total = sample_list.size();
-		let overall_count = 0;
-		for (let i = 0; i < overall_total; i++){
-			let checkbox_id = 'checkbox' + matching[i]._values['queue_id'];
-			let sample_checkbox = document.getElementById(checkbox_id);
-			if (sample_checkbox.checked){
-				overall_count += 1;
-			}
-		}
+		
 		let filtered_count = document.querySelectorAll('input[type="checkbox"].sample_checkbox:checked').length;
 		let filtered_total = document.querySelectorAll('input[type="checkbox"].sample_checkbox').length;
 		document.getElementById('sample_count').innerHTML = String(filtered_count) + " sample" + (filtered_count != 1 ? "s" : "") + " selected of " + String(filtered_total) + " filtered samples. " + String(overall_count) + " selected of " + String(overall_total) + " total samples.";
@@ -122,6 +123,14 @@ table{
 		for (let i = 0; i < matching.length; i++) {
 			let checkbox_id = 'checkbox' + matching[i]._values['queue_id'];
 			let sample_checkbox = document.getElementById(checkbox_id);
+			// box will be changed to unchecked
+			if (sample_checkbox.checked && anybox_checked){
+				overall_count -= 1;
+			}
+			// box will be changed to checked
+			else if (!sample_checkbox.checked && anybox_checked){
+				overall_count += 1;
+			} 
 			sample_checkbox.checked = !anybox_checked;
 		}
 		update_count();
