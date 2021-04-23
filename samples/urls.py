@@ -8,5 +8,6 @@ urlpatterns = [
 	re_path(r'^mt', views.mt_query, name='mt'),
 	path('landing', views.landing, name='landing'),
 	path('selection', views.sample_selection, name='selection'),
-	path('well', views.well, name='well')
+	path('well', views.well, name='well'),
+	path('logout', views.logout_user, name='logout')
 ]

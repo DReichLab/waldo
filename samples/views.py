@@ -3,6 +3,7 @@ from django.shortcuts import render
 from django.http import HttpResponse
 
 from django.contrib.auth.decorators import login_required
+from django.contrib.auth.views import logout_then_login
 
 import csv
 import json
@@ -112,3 +113,5 @@ def well(request):
 			
 		return render(request, 'samples/well_plate.html', { 'rows':well_plate_rows, 'columns':well_plate_columns, 'libraries_map':libraries_map} )
 		
+def logout_user(request):
+	return logout_then_login(request)
