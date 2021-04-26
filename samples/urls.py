@@ -1,5 +1,7 @@
 from django.urls import path, re_path
 
+from django.contrib.auth.views import PasswordChangeView
+
 from . import views
 
 urlpatterns = [
@@ -9,5 +11,8 @@ urlpatterns = [
 	path('landing', views.landing, name='landing'),
 	path('selection', views.sample_selection, name='selection'),
 	path('well', views.well, name='well'),
+	
+	path('password_change', PasswordChangeView.as_view(success_url='password_changed'), name='password_change'),
+	path('password_changed', views.password_changed, name='password_changed'),
 	path('logout', views.logout_user, name='logout')
 ]

@@ -115,3 +115,7 @@ def well(request):
 		
 def logout_user(request):
 	return logout_then_login(request)
+
+@login_required
+def password_changed(request):
+	return render(request, 'samples/password_changed.html', {} )
