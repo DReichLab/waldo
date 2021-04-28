@@ -472,6 +472,12 @@ class Results(Timestamped):
 	extract_control = models.ForeignKey(ControlsExtract, null=True, on_delete=models.SET_NULL)
 	library_control = models.ForeignKey(ControlsLibrary, null=True, on_delete=models.SET_NULL)
 
+# enumeration of assessment categories
+class AssessmentCategory(models.Model):
+	category = models.CharField(max_length=25, unique=True)
+	description = models.TextField(blank=True)
+	sort_order = models.SmallIntegerField()
+
 # David Reich's anno file is a series of instances
 class Instance(Timestamped):
 	instance_id = models.CharField(max_length=40, db_index=True)
@@ -485,6 +491,5 @@ class Instance(Timestamped):
 	
 	data_type = models.CharField(max_length=20) # TODO enumerate this 1240k, shotgun, BigYoruba, etc.
 	family = models.TextField(blank=True, help_text='family id and position within family')
-	assessment = models.TextField(help_text='Xcontam listed if |Z|>2 standard errors from zero: 0.02-0.05="QUESTIONABLE", >0.05="QUESTIONABLE_CRITICAL" or "FAIL") (mtcontam 97.5th percentile estimates listed if coverage >2: <0.8 is "QUESTIONABLE_CRITICAL", 0.8-0.95 is "QUESTIONABLE", and 0.95-0.98 is recorded but "PASS", gets overriden by ANGSD')
+	assessment_notes = models.TextField(help_text='Xcontam listed if |Z|>2 standard errors from zero: 0.02-0.05="QUESTIONABLE", >0.05="QUESTIONABLE_CRITICAL" or "FAIL") (mtcontam 97.5th percentile estimates listed if coverage >2: <0.8 is "QUESTIONABLE_CRITICAL", 0.8-0.95 is "QUESTIONABLE", and 0.95-0.98 is recorded but "PASS", gets overriden by ANGSD')
 	
-

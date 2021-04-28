@@ -1,6 +1,6 @@
 from django.db import models
 
-from samples.models import Timestamped, Results
+from samples.models import Timestamped, Results, AssessmentCategory
 
 # Create your models here.
 
@@ -208,7 +208,8 @@ class NuclearAnalysis(Timestamped):
 	angsd_snps = models.IntegerField(null=True)
 	angsd_mean = models.FloatField(null=True)
 	angsd_z = models.FloatField(null=True)
-	assessment = models.TextField(blank=True)
+	assessment = models.ForeignKey(AssessmentCategory, null=True, on_delete=models.SET_NULL)
+	assessment_notes = models.TextField(blank=True)
 	version_release = models.CharField(max_length=20)
 	results_note = models.TextField(blank=True)
 	find = models.TextField(blank=True)
