@@ -1,3 +1,4 @@
+from django.core.paginator import Paginator
 from django.shortcuts import render
 
 from django.http import HttpResponse
@@ -7,10 +8,11 @@ from django.contrib.auth.views import logout_then_login
 
 import csv
 import json
+from datetime import datetime
 
 from samples.pipeline import udg_and_strandedness
-from samples.models import Results, Library, Sample
-from .forms import IndividualForm, LibraryIDForm
+from samples.models import Results, Library, Sample, PowderBatch, WetLabStaff
+from .forms import IndividualForm, LibraryIDForm, PowderBatchForm
 from sequencing_run.models import MTAnalysis
 
 # Create your views here.
@@ -81,6 +83,35 @@ def mt_query(request):
 @login_required
 def landing(request):
 	return render(request, 'samples/landing.html', {} )
+
+@login_required
+def powder_batches(request):
+	form = PowderBatchForm()
+	
+	if request.method == 'POST':
+		form = PowderBatchForm(request.POST)
+		if form.is_valid():
+			name = form.cleaned_data['name']
+			notes = form.cleaned_data['notes']
+			
+			powder_batch, created = PowderBatch.objects.get_or_create(name=name)
+			if created:
+				powder_batch.date = datetime.today()
+				
+				wetlab_staff = WetLabStaff.objects.get(login_user=request.user)
+				powder_batch.technician_fk = wetlab_staff
+				powder_batch.technician = wetlab_staff.initials()
+			powder_batch.notes = notes
+			powder_batch.save()
+		else:
+			return HttpResponse("Invalid form")
+		
+	batches = PowderBatch.objects.all()
+	return render(request, 'samples/powder_batches.html', {'powder_batches' : batches, 'form' : form} )
+
+@login_required
+def powder_batch(request):
+	return sample_selection(request)
 
 @login_required
 def sample_selection(request):

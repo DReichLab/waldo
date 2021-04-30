@@ -2,6 +2,8 @@ from django.db import models
 from django.utils import timezone
 from datetime import date
 
+from django.contrib.auth.models import User
+
 import re
 
 def parse_sample_string(s):
@@ -82,6 +84,11 @@ class WetLabStaff(Timestamped):
 	email_1 = models.CharField(max_length=50, blank=True)
 	email_2 = models.CharField(max_length=50, blank=True)
 	phone_number = models.CharField(max_length=30, blank=True)
+	
+	login_user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
+	
+	def initials(self):
+		return self.first_name[0] + self.last_name[0]
 	
 class SupportStaff(Timestamped):
 	first_name = models.CharField(max_length=30, db_index=True)
