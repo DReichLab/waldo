@@ -92,15 +92,17 @@ def powder_batches(request):
 		form = PowderBatchForm(request.POST)
 		if form.is_valid():
 			name = form.cleaned_data['name']
+			date = form.cleaned_data['date']
+			status = form.cleaned_data['status']
 			notes = form.cleaned_data['notes']
 			
 			powder_batch, created = PowderBatch.objects.get_or_create(name=name)
+			powder_batch.date = date
 			if created:
-				powder_batch.date = datetime.today()
-				
 				wetlab_staff = WetLabStaff.objects.get(login_user=request.user)
 				powder_batch.technician_fk = wetlab_staff
 				powder_batch.technician = wetlab_staff.initials()
+			powder_batch.status = status
 			powder_batch.notes = notes
 			powder_batch.save()
 		else:
@@ -115,8 +117,33 @@ def powder_batch(request):
 
 @login_required
 def sample_selection(request):
+	if request.method == 'POST':
+		powder_batch_name = request.POST['name']
+		form = PowderBatchForm(request.POST)
+		if form.is_valid():
+			powder_batch = PowderBatch.objects.get(name=powder_batch_name)
+			
+			name = form.cleaned_data['name']
+			date = form.cleaned_data['date']
+			status = form.cleaned_data['status']
+			notes = form.cleaned_data['notes']
+			
+			powder_batch.name = name
+			powder_batch.date = date
+			powder_batch.status = status
+			powder_batch.notes = notes
+			powder_batch.save()
+		else:
+			return HttpResponse("Invalid form")
+		
+	elif request.method == 'GET':
+		powder_batch_name = request.GET['name']
+		powder_batch = PowderBatch.objects.get(name=powder_batch_name)
+		form = PowderBatchForm(initial={'name': powder_batch_name, 'date': powder_batch.date, 'status': powder_batch.status, 'notes': powder_batch.notes})
+	
+	# open can have new samples assigned
 	sample_queue = Sample.objects.filter(queue_id__isnull=False, reich_lab_id__isnull=True).order_by('queue_id')
-	return render(request, 'samples/sample_selection.html', { 'samples': sample_queue } )	
+	return render(request, 'samples/sample_selection.html', { 'samples': sample_queue, 'powder_batch_name': powder_batch_name, 'form': form } )
 	
 # Handle the layout of a 96 well plate with libraries
 # This renders an interface allowing a technician to move libraries between wells

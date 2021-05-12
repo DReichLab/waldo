@@ -1,0 +1,76 @@
+{% extends "samples/reich_lab_base.html" %}
+
+{% load static %}
+
+{% block title %}Reich Lab Ancient DNA Powder Batches{% endblock %}
+
+{% block content %}
+<script src="{% static "samples/list.js" %}"></script>
+
+<style>
+th {
+	position: sticky;
+	top: 0;
+	background: #eee;
+}
+
+#table_wrapper{
+	overflow-x: auto;
+	overflow-y: scroll;
+	height: 85vh;
+}
+
+table{
+	border-collapse: collapse;
+	border-spacing: 0;
+	width: 100%;
+}
+</style>
+
+<form action="" method='post'>
+	{% csrf_token %}
+	{{ form }}
+	<input type='submit' value='Create Powder Batch'>
+</form>
+
+<hr>
+
+<div id='powder_batch_rows'>
+
+<input class="search" placeholder="Search" />
+<div id='table_wrapper'>
+<table>
+	<thead>
+	<tr>
+		<th><button class="sort" data-sort="name" data-default-order='desc'>Name</button></th>
+		<th><button class="sort" data-sort="date">Date</button></th>
+		<th><button class="sort" data-sort="technician">Technician</button></th>
+		<th><button class="sort" data-sort="status">Status</button></th>
+		<th><button class="sort" data-sort="notes">Notes</button></th>
+	</tr>
+	</thead>
+	<tbody class="list">
+	{% for powder_batch in powder_batches %}
+	<tr>
+		<td class="name"><a href="powder_batch?name={{powder_batch.name}}">{{powder_batch.name}}</a></td>
+		<td class="date">{{powder_batch.date|date:'Y-m-d'}}</td>
+		<td class="technician">{{powder_batch.technician}}</td>
+		<td class="status">{{powder_batch.status.description}}</td>
+		<td class="notes">{{powder_batch.notes}}</td>
+	</tr>
+	{% endfor %}
+	</tbody>
+</table>
+</div>
+</div>
+
+<script>
+	var list_options = {
+		valueNames: ['name', 'date', 'technician', 'notes'],
+		searchDelay: 500
+	};
+	var powder_batch_list = new List('powder_batch_rows', list_options);
+	document.addEventListener("load", powder_batch_list.sort('date', { order: 'desc'}));
+</script>
+
+{% endblock %}

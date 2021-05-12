@@ -27,6 +27,16 @@ table{
 }
 </style>
 
+Powder Batch: {{powder_batch_name}}
+
+<form action="" method='post'>
+	{% csrf_token %}
+	{{ form }}
+	<input type='submit' value='Modify Powder Batch'>
+</form>
+
+<hr>
+
 <legend>Samples</legend>
 <div id='sample_rows'>
 <div id='sample_count'></div>
