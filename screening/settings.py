@@ -63,6 +63,7 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+                'django.template.context_processors.media',
             ],
         },
     },
@@ -119,6 +120,10 @@ USE_TZ = True
 
 STATIC_ROOT = os.path.join(BASE_DIR, 'static')
 STATIC_URL = '/static/'
+
+# for uploaded sample photos
+MEDIA_ROOT = '/n/www/dev.reichdna.hms.harvard.edu/docroot/E-photo/'
+MEDIA_URL = 'samples/sample_photos/'
 
 # O2 specific settings
 COMMAND_HOST = "mym11@o2.hms.harvard.edu"

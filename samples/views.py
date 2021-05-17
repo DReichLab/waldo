@@ -15,6 +15,8 @@ from samples.models import Results, Library, Sample, PowderBatch, WetLabStaff
 from .forms import IndividualForm, LibraryIDForm, PowderBatchForm
 from sequencing_run.models import MTAnalysis
 
+from samples.sample import photo_list
+
 # Create your views here.
 
 def query(request):
@@ -144,6 +146,18 @@ def sample_selection(request):
 	# open can have new samples assigned
 	sample_queue = Sample.objects.filter(queue_id__isnull=False, reich_lab_id__isnull=True).order_by('queue_id')
 	return render(request, 'samples/sample_selection.html', { 'samples': sample_queue, 'powder_batch_name': powder_batch_name, 'form': form } )
+
+@login_required
+def sample(request):
+	if request.method == 'POST':
+		pass
+		
+	elif request.method == 'GET':
+		# database, not Reich Lab ID
+		reich_lab_sample_number = int(request.GET['sample'])
+	
+	images = photo_list(reich_lab_sample_number)
+	return render(request, 'samples/sample.html', { 'reich_lab_sample_number': reich_lab_sample_number, 'images': images} )
 	
 # Handle the layout of a 96 well plate with libraries
 # This renders an interface allowing a technician to move libraries between wells
