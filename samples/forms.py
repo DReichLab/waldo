@@ -1,5 +1,5 @@
 from django import forms
-from django.forms import ModelChoiceField
+from django.forms import ModelChoiceField, ChoiceField, FileField
 
 from samples.models import PowderBatchStatus
 
@@ -20,3 +20,13 @@ class PowderBatchForm(forms.Form):
 	date = forms.DateField(initial=datetime.date.today)
 	status = PowderBatchStatusSelect(queryset=PowderBatchStatus.objects.all().order_by('sort_order'), empty_label=None)
 	notes = forms.CharField(required=False, widget=forms.Textarea(attrs={'rows': 2})) 
+
+IMAGE_TYPES = [
+		('Before', 'Before'),
+		('After', 'After'),
+		('C14', 'C14')
+	]
+
+class SampleImageForm(forms.Form):
+	image_type = forms.ChoiceField(choices=IMAGE_TYPES)
+	photo = forms.FileField()

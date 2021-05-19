@@ -19,6 +19,12 @@ figure{
 
 Sample {{reich_lab_sample_number}}
 
+<form action="" method='post' enctype="multipart/form-data">
+	{% csrf_token %}
+	{{ form }}
+	<input type='submit' value='Upload image'>
+</form>
+
 {% for image in images %}
 <figure>
 <img src="{{MEDIA_URL}}{{image}}" alt="{{image}}">

@@ -12,10 +12,10 @@ from datetime import datetime
 
 from samples.pipeline import udg_and_strandedness
 from samples.models import Results, Library, Sample, PowderBatch, WetLabStaff
-from .forms import IndividualForm, LibraryIDForm, PowderBatchForm
+from .forms import IndividualForm, LibraryIDForm, PowderBatchForm, SampleImageForm
 from sequencing_run.models import MTAnalysis
 
-from samples.sample import photo_list
+from samples.sample_photos import photo_list, save_sample_photo
 
 # Create your views here.
 
@@ -149,15 +149,24 @@ def sample_selection(request):
 
 @login_required
 def sample(request):
+	form = SampleImageForm()
 	if request.method == 'POST':
-		pass
+		form = SampleImageForm(request.POST, request.FILES)
+		if form.is_valid():
+			reich_lab_sample_number = int(request.GET['sample'])
+			print(reich_lab_sample_number)
+			photo = request.FILES.get('photo')
+			label = form.cleaned_data['image_type']
+			save_sample_photo(photo, reich_lab_sample_number, label)
+		else:
+			print('invalid sample photo form')
 		
 	elif request.method == 'GET':
 		# database, not Reich Lab ID
 		reich_lab_sample_number = int(request.GET['sample'])
 	
 	images = photo_list(reich_lab_sample_number)
-	return render(request, 'samples/sample.html', { 'reich_lab_sample_number': reich_lab_sample_number, 'images': images} )
+	return render(request, 'samples/sample.html', { 'reich_lab_sample_number': reich_lab_sample_number, 'images': images, 'form': form} )
 	
 # Handle the layout of a 96 well plate with libraries
 # This renders an interface allowing a technician to move libraries between wells
