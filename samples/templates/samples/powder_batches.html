@@ -52,7 +52,11 @@ table{
 	<tbody class="list">
 	{% for powder_batch in powder_batches %}
 	<tr>
-		<td class="name"><a href="powder_batch?name={{powder_batch.name}}">{{powder_batch.name}}</a></td>
+		{% if powder_batch.status.description == 'Open' %}
+		<td class="name"><a href="powder_batch_assign_samples?name={{powder_batch.name}}">{{powder_batch.name}}</a></td>
+		{% else %}
+		<td class="name"><a href="powder_samples?powder_batch={{powder_batch.name}}">{{powder_batch.name}}</a></td>
+		{% endif %}
 		<td class="date">{{powder_batch.date|date:'Y-m-d'}}</td>
 		<td class="technician">{{powder_batch.technician}}</td>
 		<td class="status">{{powder_batch.status.description}}</td>
