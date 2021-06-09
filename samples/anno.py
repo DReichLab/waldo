@@ -318,6 +318,7 @@ def library_anno_line(instance_id_raw, sequencing_run_name, release_label, compo
 		assessment_reasons.append('2500.to.5000.SNPs')
 		
 	assessment_damage = 0
+	damage_assessment_list_anyway = False
 	if len(component_library_ids) == 1:
 		library_obj = Library.objects.get(reich_lab_library_id = library_id_str)
 		udg = library_obj.udg_treatment.lower()
@@ -328,21 +329,25 @@ def library_anno_line(instance_id_raw, sequencing_run_name, release_label, compo
 				if nuclear.damage_last_base < 0.01:
 					assessment_damage = 3
 				elif nuclear.damage_last_base < 0.03:
-					assessment_damage = 1
+					assessment_damage = 0
+					damage_assessment_list_anyway = True
 			except:
 				pass
 		elif 'ss' in library_type or 'minus' in udg:
 			try:
-				if nuclear.damage_last_base < 0.03:
+				if nuclear.damage_last_base < 0.01:
 					assessment_damage = 3
-				elif nuclear.damage_last_base < 0.10:
+				elif nuclear.damage_last_base < 0.03:
 					assessment_damage = 1
+				elif nuclear.damage_last_base < 0.10:
+					assessment_damage = 0
+					damage_assessment_list_anyway = True
 			except:
 				pass
 		else:
 			raise ValueError('unhandled library type: {} {}'.format(library_type, udg))
 		
-		if assessment_damage > 0:
+		if assessment_damage > 0 or damage_assessment_list_anyway == True:
 			assessment_reasons.append('damage.{}={:.3f}'.format(library_type, nuclear.damage_last_base))
 		
 	assessment_sex_ratio = 0
@@ -363,6 +368,7 @@ def library_anno_line(instance_id_raw, sequencing_run_name, release_label, compo
 	# (mtcontam 97.5th percentile estimates listed if coverage >2: <0.8 is "QUESTIONABLE_CRITICAL", 0.8-0.95 is "QUESTIONABLE", and 0.95-0.98 is recorded but "PASS", gets overriden by ANGSD)
 	# TODO separate these lower and upper values so we do not have to reparse interval
 	assessment_contammix = 0
+	contammix_list_anyway = False
 	try:
 		if mt is not None and mt.coverage is not None and mt.coverage >= 2.0:
 			mtci = mt.consensus_match_95ci
@@ -371,9 +377,12 @@ def library_anno_line(instance_id_raw, sequencing_run_name, release_label, compo
 			mt_ci_upper = mtci_values[1]
 			if mt_ci_upper < 0.9:
 				assessment_contammix = 2
-			elif mt_ci_upper < 0.98:
+			elif mt_ci_upper < 0.95:
 				assessment_contammix = 1
-			if assessment_contammix > 0:
+			elif mt_ci_upper < 0.98:
+				assessment_contammix = 0
+				contammix_list_anyway = True
+			if assessment_contammix > 0 or contammix_list_anyway == True:
 				assessment_reasons.append('mtcontam=[{:.3f},{:.3f}]'.format(mt_ci_lower, mt_ci_upper))
 	except:
 		pass
@@ -382,12 +391,12 @@ def library_anno_line(instance_id_raw, sequencing_run_name, release_label, compo
 	assessment_angsd = 0
 	try:
 		if nuclear.sex == 'M' and nuclear.angsd_snps >= 200 and angsd_z > 2:
-			if angsd_min_range > 0.1:
+			if angsd_min_range > 0.02:
 				assessment_angsd = 3
-			elif angsd_min_range >= 0.05:
-				assessment_angsd = 2
-			elif angsd_min_range >= 0.02:
+			elif angsd_min_range >= 0.01:
 				assessment_angsd = 1
+			elif angsd_min_range >= 0.005:
+				assessment_angsd = 0
 			# always print 
 			assessment_reasons.append('Xcontam=[{:.3f},{:.3f}]'.format(angsd_min_range, angsd_max_range))
 			assessment_contammix = min(assessment_contammix, assessment_angsd) # angsd contamination will override mt contammix
