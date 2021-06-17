@@ -1,5 +1,5 @@
 from django import forms
-from django.forms import ModelChoiceField, ChoiceField, FileField, ModelForm, Textarea
+from django.forms import ModelChoiceField, ChoiceField, FileField, ModelForm, Textarea, CharField
 from django.forms import modelformset_factory
 
 from samples.models import PowderBatchStatus, PowderSample, Sample, SamplePrepProtocol
@@ -46,13 +46,20 @@ class SamplePrepProtocolSelect(ModelChoiceField):
 		return obj.preparation_method
 	
 class PowderSampleForm(ModelForm):
+	reich_lab_sample = CharField(disabled=True)
 	sample_prep_protocol = SamplePrepProtocolSelect(queryset=SamplePrepProtocol.objects.all(), empty_label=None)
 	class Meta:
 		model = PowderSample
-		fields = ['sampling_tech', 'sampling_notes', 'total_powder_produced_mg', 'storage_location', 'sample_prep_lab', 'sample_prep_protocol']
+		fields = ['reich_lab_sample', 'powder_sample_id', 'sampling_notes', 'total_powder_produced_mg', 'storage_location', 'sample_prep_lab', 'sample_prep_protocol']
 		widgets = {
             'sampling_notes': Textarea(attrs={'cols': 60, 'rows': 2}),
         }
+		
+	def __init__(self, *args, **kwargs):
+		super(PowderSampleForm, self).__init__(*args, **kwargs)
+		if self.instance.pk:
+			self.fields['reich_lab_sample'].initial = f'S{self.instance.sample.reich_lab_id}'
+			self.fields['powder_sample_id'].disabled = True
 		
 PowderSampleFormset = modelformset_factory(PowderSample, form=PowderSampleForm, extra=0, max_num=200)
 		
