@@ -81,7 +81,7 @@ def load_mt_capture_fields(library_id, report_fields, report_headers, release_la
 		elif strandedness == 'ss':
 			mt.damage_last_base = damage_rsrs_ct1
 		else:
-			raise ValueError('bad strandedness {}'.format(standedness))
+			raise ValueError('bad strandedness {}'.format(strandedness))
 	except:
 		mt.damage_last_base = None
 	
@@ -154,7 +154,7 @@ def load_nuclear_capture_fields(library_id, report_fields, report_headers, relea
 		elif strandedness == 'ss':
 			nuclear.damage_last_base = damage_nuclear_ct1
 		else:
-			raise ValueError('bad strandedness {}'.format(standedness))
+			raise ValueError('bad strandedness {}'.format(strandedness))
 	except:
 		pass
 	
@@ -218,7 +218,7 @@ def load_shotgun_fields(library_id, report_fields, report_headers, release_label
 		elif strandedness == 'ss':
 			shotgun.damage_last_base = damage_nuclear_ct1
 		else:
-			raise ValueError('bad strandedness {}'.format(standedness))
+			raise ValueError('bad strandedness {}'.format(strandedness))
 		
 	except:
 		pass
