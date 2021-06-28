@@ -4,6 +4,10 @@ from datetime import date
 
 from django.contrib.auth.models import User
 
+from django.core.exceptions import ValidationError
+from django.core.validators import MaxValueValidator, MinValueValidator
+from django.utils.translation import gettext_lazy as _
+
 import re
 
 def parse_sample_string(s):
@@ -22,6 +26,25 @@ class Timestamped(models.Model):
 	created_by = models.CharField(max_length=20, blank=True)
 	modification_timestamp = models.DateTimeField(default=timezone.now, null=True)
 	modified_by = models.CharField(max_length=20, blank=True)
+	
+	class Meta:
+		abstract = True
+		
+def validate_row_letter(letter):
+	if len(letter) != 1:
+		raise ValidationError(
+			_('Row letter %(letter)s must be 1 character.'),
+			params={'letter': letter},
+		)
+	if letter not in 'ABCDEFGH':
+		raise ValidationError(
+			_('Row letter %(letter)s is out of allowed A-H range.'),
+			params={'letter': letter},
+		)
+		
+class TimestampedWellPosition(Timestamped):
+	row = models.CharField(max_length=1, validators=[validate_row_letter])
+	column = models.PositiveSmallIntegerField(validators=[MinValueValidator(1), MaxValueValidator(12)])
 	
 	class Meta:
 		abstract = True
@@ -504,4 +527,13 @@ class Instance(Timestamped):
 	data_type = models.CharField(max_length=20) # TODO enumerate this 1240k, shotgun, BigYoruba, etc.
 	family = models.TextField(blank=True, help_text='family id and position within family')
 	assessment_notes = models.TextField(help_text='Xcontam listed if |Z|>2 standard errors from zero: 0.02-0.05="QUESTIONABLE", >0.05="QUESTIONABLE_CRITICAL" or "FAIL") (mtcontam 97.5th percentile estimates listed if coverage >2: <0.8 is "QUESTIONABLE_CRITICAL", 0.8-0.95 is "QUESTIONABLE", and 0.95-0.98 is recorded but "PASS", gets overriden by ANGSD')
-	
+
+# enumeration of the control types
+class ControlType(models.Model):
+	control_type = models.CharField(max_length=25, unique=True)
+
+# each control layout comprises rows with the same name
+class ControlLayout(TimestampedWellPosition):
+	layout_name = models.CharField(max_length=25, db_index=True)
+	control_type = models.ForeignKey(ControlType, on_delete=models.PROTECT)
+	active = models.BooleanField(default=True)

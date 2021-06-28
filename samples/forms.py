@@ -2,7 +2,7 @@ from django import forms
 from django.forms import ModelChoiceField, ChoiceField, FileField, ModelForm, Textarea, CharField
 from django.forms import modelformset_factory
 
-from samples.models import PowderBatchStatus, PowderSample, Sample, SamplePrepProtocol
+from samples.models import PowderBatchStatus, PowderSample, Sample, SamplePrepProtocol, ControlType, ControlLayout
 
 from crispy_forms.helper import FormHelper, Layout
 
@@ -69,3 +69,21 @@ class PowderSampleFormsetHelper(FormHelper):
 		super(PowderSampleFormsetHelper, self).__init__(*args, **kwargs)
 		self.layout = Layout('sampling_tech', 'sampling_notes', 'total_powder_produced_mg', 'storage_location', 'sample_prep_lab', 'sample_prep_protocol')
 		self.template = 'bootstrap/table_inline_formset.html'
+		
+class ControlTypeSelect(ModelChoiceField):
+	def label_from_instance(self, obj):
+		return obj.control_type
+		
+class ControlTypeForm(ModelForm):
+	class Meta:
+		fields = ['control_type']
+		
+ControlTypeFormset = modelformset_factory(ControlType, form=ControlTypeForm, max_num=20)
+
+class ControlLayoutForm(ModelForm):
+	control_type = ControlTypeSelect(queryset=ControlType.objects.all(), empty_label=None)
+	class Meta:
+		model = ControlLayout
+		fields = ['layout_name', 'row', 'column', 'control_type', 'active']
+
+ControlLayoutFormset = modelformset_factory(ControlLayout, form=ControlLayoutForm)

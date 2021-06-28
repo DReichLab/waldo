@@ -11,8 +11,8 @@ import json
 from datetime import datetime
 
 from samples.pipeline import udg_and_strandedness
-from samples.models import Results, Library, Sample, PowderBatch, WetLabStaff, PowderSample
-from .forms import IndividualForm, LibraryIDForm, PowderBatchForm, SampleImageForm, PowderSampleForm, PowderSampleFormset, PowderSampleFormsetHelper
+from samples.models import Results, Library, Sample, PowderBatch, WetLabStaff, PowderSample, ControlType, ControlLayout
+from .forms import IndividualForm, LibraryIDForm, PowderBatchForm, SampleImageForm, PowderSampleForm, PowderSampleFormset, ControlTypeFormset, ControlLayoutFormset
 from sequencing_run.models import MTAnalysis
 
 from samples.sample_photos import photo_list, save_sample_photo
@@ -87,6 +87,34 @@ def landing(request):
 	return render(request, 'samples/landing.html', {} )
 
 @login_required
+def control_types(request):
+	if request.method == 'POST':
+		formset = ControlTypeFormset(request.POST)
+		
+		if formset.is_valid():
+			formset.save()
+		
+	elif request.method == 'GET':
+		formset = ControlTypeFormset(queryset=ControlType.objects.all())
+	
+	# open can have new samples assigned
+	return render(request, 'samples/control_types.html', { 'formset': formset } )
+
+@login_required
+def control_layout(request):
+	if request.method == 'POST':
+		formset = ControlLayoutFormset(request.POST)
+		
+		if formset.is_valid():
+			formset.save()
+		
+	elif request.method == 'GET':
+		formset = ControlLayoutFormset(queryset=ControlLayout.objects.all())
+	
+	# open can have new samples assigned
+	return render(request, 'samples/control_layout.html', { 'formset': formset } )
+
+@login_required
 def powder_batches(request):
 	form = PowderBatchForm()
 	
@@ -158,10 +186,9 @@ def powder_samples(request):
 		powder_batch = PowderBatch.objects.get(name=powder_batch_name)
 		
 	powder_batch_sample_formset = PowderSampleFormset(queryset=PowderSample.objects.filter(powder_batch=powder_batch))
-	helper = PowderSampleFormsetHelper()
 	
 	# open can have new samples assigned
-	return render(request, 'samples/powder_samples.html', { 'powder_batch_name': powder_batch_name, 'formset': powder_batch_sample_formset, 'helper': helper } )
+	return render(request, 'samples/powder_samples.html', { 'powder_batch_name': powder_batch_name, 'formset': powder_batch_sample_formset} )
 
 @login_required
 def sample(request):
