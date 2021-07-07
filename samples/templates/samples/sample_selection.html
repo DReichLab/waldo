@@ -32,10 +32,7 @@ Powder Batch: {{powder_batch_name}}
 <form action="" method='post'>
 	{% csrf_token %}
 	{{ form }}
-	<input type='submit' value='Modify Powder Batch'>
-</form>
-
-<hr>
+	<input type='submit' value='Modify Powder Batch And Assign Samples'>
 
 <legend>Samples</legend>
 <div id='sample_rows'>
@@ -90,6 +87,7 @@ Powder Batch: {{powder_batch_name}}
 	{% endfor %}
 	</tbody>
 </table>
+</form>
 </div>
 </div>
 

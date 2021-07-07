@@ -2,7 +2,7 @@ from django import forms
 from django.forms import ModelChoiceField, ChoiceField, FileField, ModelForm, Textarea, CharField
 from django.forms import modelformset_factory
 
-from samples.models import PowderBatchStatus, PowderSample, Sample, SamplePrepProtocol, ControlType, ControlLayout
+from samples.models import PowderBatch, PowderBatchStatus, PowderSample, Sample, SamplePrepProtocol, ControlType, ControlLayout
 
 from crispy_forms.helper import FormHelper, Layout
 
@@ -19,11 +19,13 @@ class PowderBatchStatusSelect(ModelChoiceField):
 	def label_from_instance(self, obj):
 		return obj.description
 
-class PowderBatchForm(forms.Form):
-	name = forms.CharField(max_length=50)
+class PowderBatchForm(ModelForm):
 	date = forms.DateField(initial=datetime.date.today)
 	status = PowderBatchStatusSelect(queryset=PowderBatchStatus.objects.all().order_by('sort_order'), empty_label=None)
 	notes = forms.CharField(required=False, widget=forms.Textarea(attrs={'rows': 2})) 
+	class Meta:
+		model = PowderBatch
+		fields = ['name', 'date', 'status', 'notes']
 
 IMAGE_TYPES = [
 		('Before', 'Before'),

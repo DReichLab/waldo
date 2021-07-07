@@ -15,6 +15,8 @@ from samples.models import Results, Library, Sample, PowderBatch, WetLabStaff, P
 from .forms import IndividualForm, LibraryIDForm, PowderBatchForm, SampleImageForm, PowderSampleForm, PowderSampleFormset, ControlTypeFormset, ControlLayoutFormset
 from sequencing_run.models import MTAnalysis
 
+from .powder_samples import new_powder_sample
+
 from samples.sample_photos import photo_list, save_sample_photo
 
 # Create your views here.
@@ -143,29 +145,24 @@ def powder_batches(request):
 
 @login_required
 def powder_batch_assign_samples(request):
+	powder_batch_name = request.GET['name']
+	powder_batch = PowderBatch.objects.get(name=powder_batch_name)
 	if request.method == 'POST':
-		powder_batch_name = request.POST['name']
-		form = PowderBatchForm(request.POST)
+		form = PowderBatchForm(request.POST, instance=powder_batch)
+		
 		if form.is_valid():
-			powder_batch = PowderBatch.objects.get(name=powder_batch_name)
+			form.save()
 			
-			name = form.cleaned_data['name']
-			date = form.cleaned_data['date']
-			status = form.cleaned_data['status']
-			notes = form.cleaned_data['notes']
-			
-			powder_batch.name = name
-			powder_batch.date = date
-			powder_batch.status = status
-			powder_batch.notes = notes
-			powder_batch.save()
-		else:
-			return HttpResponse("Invalid form")
+			# iterate through the checkboxes and change states
+			input_checkbox_prefix = 'checkbox'
+			for checkbox_candidate in request.POST:
+				if checkbox_candidate.startswith(input_checkbox_prefix):
+					queue_id = int(checkbox_candidate[len(input_checkbox_prefix):])
+					print(queue_id)
+					print(new_powder_sample(queue_id, powder_batch))
 		
 	elif request.method == 'GET':
-		powder_batch_name = request.GET['name']
-		powder_batch = PowderBatch.objects.get(name=powder_batch_name)
-		form = PowderBatchForm(initial={'name': powder_batch_name, 'date': powder_batch.date, 'status': powder_batch.status, 'notes': powder_batch.notes})
+		form = PowderBatchForm(initial={'name': powder_batch_name, 'date': powder_batch.date, 'status': powder_batch.status, 'notes': powder_batch.notes}, instance=powder_batch)
 	
 	# open can have new samples assigned
 	sample_queue = Sample.objects.filter(queue_id__isnull=False, reich_lab_id__isnull=True).order_by('queue_id')
@@ -173,22 +170,22 @@ def powder_batch_assign_samples(request):
 
 @login_required
 def powder_samples(request):
+	powder_batch_name = request.GET['powder_batch']
+	powder_batch = PowderBatch.objects.get(name=powder_batch_name)
 	if request.method == 'POST':
-		powder_batch_name = request.POST['powder_batch']
+		powder_batch_form = PowderBatchForm(request.POST, instance=powder_batch)
+		powder_batch_sample_formset = PowderSampleFormset(request.POST, request.FILES)
 		
-		if form.is_valid():
-			powder_batch = PowderBatch.objects.get(name=powder_batch_name)
-		else:
-			return HttpResponse("Invalid form")
+		if powder_batch_form.is_valid() and powder_batch_sample_formset.is_valid():
+			powder_batch_form.save()
+			powder_batch_sample_formset.save()
 		
 	elif request.method == 'GET':
-		powder_batch_name = request.GET['powder_batch']
-		powder_batch = PowderBatch.objects.get(name=powder_batch_name)
-		
-	powder_batch_sample_formset = PowderSampleFormset(queryset=PowderSample.objects.filter(powder_batch=powder_batch))
+		powder_batch_form = PowderBatchForm(initial={'name': powder_batch_name, 'date': powder_batch.date, 'status': powder_batch.status, 'notes': powder_batch.notes}, instance=powder_batch)
+		powder_batch_sample_formset = PowderSampleFormset(queryset=PowderSample.objects.filter(powder_batch=powder_batch))
 	
 	# open can have new samples assigned
-	return render(request, 'samples/powder_samples.html', { 'powder_batch_name': powder_batch_name, 'formset': powder_batch_sample_formset} )
+	return render(request, 'samples/powder_samples.html', { 'powder_batch_name': powder_batch_name, 'powder_batch_form': powder_batch_form, 'formset': powder_batch_sample_formset} )
 
 @login_required
 def sample(request):
