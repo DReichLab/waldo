@@ -2,7 +2,7 @@ from django import forms
 from django.forms import ModelChoiceField, ChoiceField, FileField, ModelForm, Textarea, CharField
 from django.forms import modelformset_factory
 
-from samples.models import PowderBatch, PowderBatchStatus, PowderSample, Sample, SamplePrepProtocol, ControlType, ControlLayout
+from samples.models import PowderBatch, PowderBatchStatus, PowderSample, Sample, SamplePrepProtocol, ControlType, ControlLayout, ExtractBatch, ExtractionProtocol
 
 from crispy_forms.helper import FormHelper, Layout
 
@@ -71,6 +71,20 @@ class PowderSampleFormsetHelper(FormHelper):
 		super(PowderSampleFormsetHelper, self).__init__(*args, **kwargs)
 		self.layout = Layout('sampling_tech', 'sampling_notes', 'total_powder_produced_mg', 'storage_location', 'sample_prep_lab', 'sample_prep_protocol')
 		self.template = 'bootstrap/table_inline_formset.html'
+		
+# to display the sample prep protocol method instead of a primary key
+class ExtractionProtocolSelect(ModelChoiceField):
+	def label_from_instance(self, obj):
+		return obj.name
+		
+class ExtractBatchForm(ModelForm):
+	protocol = ExtractionProtocolSelect(queryset=ExtractionProtocol.objects.all())
+	class Meta:
+		model = ExtractBatch
+		fields = ['batch_name', 'protocol', 'date', 'robot', 'note']
+		widgets = {
+			'note': Textarea(attrs={'cols': 60, 'rows': 2}),
+		}
 		
 class ControlTypeSelect(ModelChoiceField):
 	def label_from_instance(self, obj):

@@ -16,6 +16,8 @@ urlpatterns = [
 	path('powder_batches', views.powder_batches, name='powder_batches'),
 	path('powder_samples', views.powder_samples, name='powder_samples'), # powder samples in a powder batch
 	path('powder_batch_assign_samples', views.powder_batch_assign_samples, name='powder_batch_assign_samples'),
+	path('extract_batch', views.extract_batch, name='extract_batch'),
+	path('extract_batch_assign_powder', views.extract_batch_assign_powder, name='extract_batch_assign_powder'),
 	path('sample', views.sample, name='sample'),
 	path('well', views.well, name='well'),
 	

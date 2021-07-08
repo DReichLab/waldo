@@ -11,8 +11,8 @@ import json
 from datetime import datetime
 
 from samples.pipeline import udg_and_strandedness
-from samples.models import Results, Library, Sample, PowderBatch, WetLabStaff, PowderSample, ControlType, ControlLayout
-from .forms import IndividualForm, LibraryIDForm, PowderBatchForm, SampleImageForm, PowderSampleForm, PowderSampleFormset, ControlTypeFormset, ControlLayoutFormset
+from samples.models import Results, Library, Sample, PowderBatch, WetLabStaff, PowderSample, ControlType, ControlLayout, ExtractBatch
+from .forms import IndividualForm, LibraryIDForm, PowderBatchForm, SampleImageForm, PowderSampleForm, PowderSampleFormset, ControlTypeFormset, ControlLayoutFormset, ExtractBatchForm
 from sequencing_run.models import MTAnalysis
 
 from .powder_samples import new_powder_sample
@@ -186,6 +186,30 @@ def powder_samples(request):
 	
 	# open can have new samples assigned
 	return render(request, 'samples/powder_samples.html', { 'powder_batch_name': powder_batch_name, 'powder_batch_form': powder_batch_form, 'formset': powder_batch_sample_formset} )
+
+@login_required
+def extract_batch (request):
+	extract_batch_name = request.GET.get('extract_batch', None)
+	if request.method == 'POST':
+		if extract_batch_form.is_valid():
+			extract_batch = ExtractBatch.objects.get_or_create(name=extract_batch_name)
+			extract_batch_form = ExtractBatchForm(request.POST, instance=extract_batch)
+			extract_batch_form.save()
+		
+	elif request.method == 'GET':
+		if extract_batch_name is not None:
+			extract_batch = ExtractBatch.objects.get(name=extract_batch_name)
+			extract_batch_form = ExtractBatchForm(instance=extract_batch)
+		else:
+			extract_batch_form = ExtractBatchForm()
+	
+	extract_batches = ExtractBatch.objects.all()
+	# open can have new samples assigned
+	return render(request, 'samples/extract_batch.html', { 'extract_batch_name': extract_batch_name, 'extract_batch_form': extract_batch_form, 'extract_batches': extract_batches } )
+
+@login_required
+def extract_batch_assign_powder(request):
+	pass # TODO
 
 @login_required
 def sample(request):

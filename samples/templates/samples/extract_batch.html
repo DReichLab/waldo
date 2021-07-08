@@ -1,0 +1,76 @@
+{% extends "samples/reich_lab_base.html" %}
+
+{% load static %}
+
+{% block title %}Extract Batches{% endblock %}
+
+{% block content %}
+<script src="{% static "samples/list.js" %}"></script>
+
+<style>
+th {
+	position: sticky;
+	top: 0;
+	background: #eee;
+}
+
+#table_wrapper{
+	overflow-x: auto;
+	overflow-y: scroll;
+	height: 85vh;
+}
+
+table{
+	border-collapse: collapse;
+	border-spacing: 0;
+	width: 100%;
+}
+</style>
+
+<form action="" method='post'>
+	{% csrf_token %}
+	{{ extract_batch_form }}
+	<input type='submit' value='Create Extract Batch'>
+</form>
+
+<hr>
+
+<div id='extract_batch_rows'>
+
+<input class="search" placeholder="Search" />
+<div id='table_wrapper'>
+<table>
+	<thead>
+	<tr>
+		<th><button class="sort" data-sort="name" data-default-order='desc'>Name</button></th>
+		<th><button class="sort" data-sort="date">Date</button></th>
+		<th><button class="sort" data-sort="technician">Technician</button></th>
+		<th><button class="sort" data-sort="robot">Robot</button></th>
+		<th><button class="sort" data-sort="notes">Notes</button></th>
+	</tr>
+	</thead>
+	<tbody class="list">
+	{% for extract_batch in extract_batches %}
+	<tr>
+		<td class="name"><a href="extract_batch_assign_powder?extract_batch={{extract_batch.batch_name}}">{{extract_batch.batch_name}}</a></td>
+		<td class="date">{{extract_batch.date|date:'Y-m-d'}}</td>
+		<td class="technician">{{extract_batch.technician}}</td>
+		<td class="robot">{{extract_batch.robot}}</td>
+		<td class="notes">{{extract_batch.note}}</td>
+	</tr>
+	{% endfor %}
+	</tbody>
+</table>
+</div>
+</div>
+
+<script>
+	var list_options = {
+		valueNames: ['name', 'date', 'technician', 'notes'],
+		searchDelay: 500
+	};
+	var extract_batch_list = new List('extract_batch_rows', list_options);
+	document.addEventListener("load", extract_batch_list.sort('date', { order: 'desc'}));
+</script>
+
+{% endblock %}
