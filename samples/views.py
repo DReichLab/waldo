@@ -11,8 +11,8 @@ import json
 from datetime import datetime
 
 from samples.pipeline import udg_and_strandedness
-from samples.models import Results, Library, Sample, PowderBatch, WetLabStaff
-from .forms import IndividualForm, LibraryIDForm, PowderBatchForm, SampleImageForm
+from samples.models import Results, Library, Sample, PowderBatch, WetLabStaff, PowderSample
+from .forms import IndividualForm, LibraryIDForm, PowderBatchForm, SampleImageForm, PowderSampleForm, PowderSampleFormset, PowderSampleFormsetHelper
 from sequencing_run.models import MTAnalysis
 
 from samples.sample_photos import photo_list, save_sample_photo
@@ -114,11 +114,7 @@ def powder_batches(request):
 	return render(request, 'samples/powder_batches.html', {'powder_batches' : batches, 'form' : form} )
 
 @login_required
-def powder_batch(request):
-	return sample_selection(request)
-
-@login_required
-def sample_selection(request):
+def powder_batch_assign_samples(request):
 	if request.method == 'POST':
 		powder_batch_name = request.POST['name']
 		form = PowderBatchForm(request.POST)
@@ -146,6 +142,26 @@ def sample_selection(request):
 	# open can have new samples assigned
 	sample_queue = Sample.objects.filter(queue_id__isnull=False, reich_lab_id__isnull=True).order_by('queue_id')
 	return render(request, 'samples/sample_selection.html', { 'samples': sample_queue, 'powder_batch_name': powder_batch_name, 'form': form } )
+
+@login_required
+def powder_samples(request):
+	if request.method == 'POST':
+		powder_batch_name = request.POST['powder_batch']
+		
+		if form.is_valid():
+			powder_batch = PowderBatch.objects.get(name=powder_batch_name)
+		else:
+			return HttpResponse("Invalid form")
+		
+	elif request.method == 'GET':
+		powder_batch_name = request.GET['powder_batch']
+		powder_batch = PowderBatch.objects.get(name=powder_batch_name)
+		
+	powder_batch_sample_formset = PowderSampleFormset(queryset=PowderSample.objects.filter(powder_batch=powder_batch))
+	helper = PowderSampleFormsetHelper()
+	
+	# open can have new samples assigned
+	return render(request, 'samples/powder_samples.html', { 'powder_batch_name': powder_batch_name, 'formset': powder_batch_sample_formset, 'helper': helper } )
 
 @login_required
 def sample(request):
