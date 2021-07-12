@@ -255,13 +255,13 @@ class PowderSample(Timestamped):
 	
 class ExtractionProtocol(Timestamped):
 	name = models.CharField(max_length=150)
-	start_date = models.DateField(null=True)
-	end_date = models.DateField(null=True)
+	start_date = models.DateField(null=True, blank=True)
+	end_date = models.DateField(null=True, blank=True)
 	description = models.TextField(blank=True)
 	manual_robotic = models.CharField(max_length=20, blank=True)
-	total_lysis_volume = models.FloatField(null=True)
-	lysate_fraction_extracted = models.FloatField(null=True)
-	final_extract_volume = models.FloatField(null=True)
+	total_lysis_volume = models.FloatField(null=True, blank=True)
+	lysate_fraction_extracted = models.FloatField(null=True, blank=True)
+	final_extract_volume = models.FloatField(null=True, blank=True)
 	binding_buffer = models.CharField(max_length=20, blank=True)
 	manuscript_summary = models.CharField(max_length=150, blank=True)
 	protocol_reference = models.TextField(blank=True)

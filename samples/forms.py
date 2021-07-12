@@ -72,6 +72,13 @@ class PowderSampleFormsetHelper(FormHelper):
 		self.layout = Layout('sampling_tech', 'sampling_notes', 'total_powder_produced_mg', 'storage_location', 'sample_prep_lab', 'sample_prep_protocol')
 		self.template = 'bootstrap/table_inline_formset.html'
 		
+class ExtractionProtocolForm(ModelForm):
+	class Meta:
+		model = ExtractionProtocol
+		fields = ['name', 'start_date', 'end_date', 'description', 'manual_robotic', 'total_lysis_volume', 'lysate_fraction_extracted', 'final_extract_volume', 'binding_buffer', 'manuscript_summary', 'protocol_reference']
+
+ExtractionProtocolFormset = modelformset_factory(ExtractionProtocol, form=ExtractionProtocolForm, extra=0, max_num=100)
+		
 # to display the sample prep protocol method instead of a primary key
 class ExtractionProtocolSelect(ModelChoiceField):
 	def label_from_instance(self, obj):

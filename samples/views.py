@@ -6,13 +6,15 @@ from django.http import HttpResponse
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.views import logout_then_login
 
+from django.db.models import Q
+
 import csv
 import json
 from datetime import datetime
 
 from samples.pipeline import udg_and_strandedness
-from samples.models import Results, Library, Sample, PowderBatch, WetLabStaff, PowderSample, ControlType, ControlLayout, ExtractBatch
-from .forms import IndividualForm, LibraryIDForm, PowderBatchForm, SampleImageForm, PowderSampleForm, PowderSampleFormset, ControlTypeFormset, ControlLayoutFormset, ExtractBatchForm
+from samples.models import Results, Library, Sample, PowderBatch, WetLabStaff, PowderSample, ControlType, ControlLayout, ExtractionProtocol, ExtractBatch
+from .forms import IndividualForm, LibraryIDForm, PowderBatchForm, SampleImageForm, PowderSampleForm, PowderSampleFormset, ControlTypeFormset, ControlLayoutFormset, ExtractionProtocolFormset, ExtractBatchForm
 from sequencing_run.models import MTAnalysis
 
 from .powder_samples import new_powder_sample
@@ -153,7 +155,7 @@ def powder_batch_assign_samples(request):
 		if form.is_valid():
 			form.save()
 			
-			# iterate through the checkboxes and change states
+			# iterate through the checkboxes and # TODO change states
 			input_checkbox_prefix = 'checkbox'
 			for checkbox_candidate in request.POST:
 				if checkbox_candidate.startswith(input_checkbox_prefix):
@@ -188,28 +190,62 @@ def powder_samples(request):
 	return render(request, 'samples/powder_samples.html', { 'powder_batch_name': powder_batch_name, 'powder_batch_form': powder_batch_form, 'formset': powder_batch_sample_formset} )
 
 @login_required
-def extract_batch (request):
-	extract_batch_name = request.GET.get('extract_batch', None)
+def extraction_protocols(request):
 	if request.method == 'POST':
+		extraction_protocol_formset = ExtractionProtocolFormset(request.POST, request.FILES)
+		if extraction_protocol_formset.is_valid():
+			print('valid extraction protocol formset')
+			extraction_protocol_formset.save()
+		else:
+			raise ValueError('failed validation')
+		
+	elif request.method == 'GET':
+		extraction_protocol_formset = ExtractionProtocolFormset(queryset=ExtractionProtocol.objects.all())
+	
+	# open can have new samples assigned
+	return render(request, 'samples/extraction_protocols.html', { 'formset': extraction_protocol_formset } )
+
+@login_required
+def extract_batch (request):
+	if request.method == 'POST':
+		extract_batch_form = ExtractBatchForm(request.POST)
 		if extract_batch_form.is_valid():
-			extract_batch = ExtractBatch.objects.get_or_create(name=extract_batch_name)
-			extract_batch_form = ExtractBatchForm(request.POST, instance=extract_batch)
 			extract_batch_form.save()
 		
 	elif request.method == 'GET':
-		if extract_batch_name is not None:
-			extract_batch = ExtractBatch.objects.get(name=extract_batch_name)
-			extract_batch_form = ExtractBatchForm(instance=extract_batch)
-		else:
-			extract_batch_form = ExtractBatchForm()
+		extract_batch_form = ExtractBatchForm()
 	
 	extract_batches = ExtractBatch.objects.all()
 	# open can have new samples assigned
-	return render(request, 'samples/extract_batch.html', { 'extract_batch_name': extract_batch_name, 'extract_batch_form': extract_batch_form, 'extract_batches': extract_batches } )
+	return render(request, 'samples/extract_batch.html', { 'extract_batch_form': extract_batch_form, 'extract_batches': extract_batches } )
 
 @login_required
 def extract_batch_assign_powder(request):
-	pass # TODO
+	extract_batch_name = request.GET['extract_batch']
+	extract_batch = ExtractBatch.objects.get(batch_name=extract_batch_name)
+	if request.method == 'POST':
+		extract_batch_form = ExtractBatchForm(request.POST, instance=extract_batch)
+		if extract_batch_form.is_valid():
+			extract_batch_form.save()
+			
+			# iterate through the checkboxes and change states
+			input_checkbox_prefix = 'checkbox'
+			for checkbox_candidate in request.POST:
+				if checkbox_candidate.startswith(input_checkbox_prefix):
+					powder_sample_id = int(checkbox_candidate[len(input_checkbox_prefix):])
+					print(powder_sample_id)
+		
+	elif request.method == 'GET':
+		extract_batch_form = ExtractBatchForm(instance=extract_batch)
+	
+	# TODO
+	powder_samples = PowderSample.objects.filter(Q(powder_batch__status__description='Ready For Plate')  )
+	# open can have new samples assigned
+	return render(request, 'samples/extract_batch_assign_powder.html', { 'powder_samples': powder_samples } )
+
+@login_required
+def extract_batch_plate_layout(request):
+	return render(request, 'samples/extract_batch_plate_layout.html', { 'powder_samples': powder_samples } )
 
 @login_required
 def sample(request):
