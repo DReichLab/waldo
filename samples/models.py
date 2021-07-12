@@ -219,6 +219,14 @@ class Sample(Timestamped):
 	accession_number = models.TextField(blank=True)
 	pathology = models.TextField(blank=True)
 	
+	storage = models.ForeignKey(Storage, on_delete=models.PROTECT, null=True)
+	plate_id = models.CharField(max_length=12, blank=True, help_text='FluidX rack barcode')
+	position = models.CharField(max_length=3, blank=True, help_text='well/tube position in plate/rack')
+	barcode = models.CharField(max_length=12, blank=True, help_text='Physical barcode on FluidX tube')
+	
+	nanodrop = models.FloatField(null=True)
+	qpcr = models.FloatField(null=True)
+	
 	class Meta:
 		unique_together = ['reich_lab_id', 'control']
 		
@@ -284,9 +292,9 @@ class Lysate(Timestamped):
 	powder_used_mg = models.FloatField(null=True, help_text='milligrams of bone powder used in lysis')
 	total_volume_produced = models.FloatField(null=True, help_text='Total microliters of lysate produced')
 	
-	plate_id = models.CharField(max_length=12, blank=True)
-	position = models.CharField(max_length=3, blank=True, help_text='Position on plate')
-	barcode = models.CharField(max_length=12, blank=True, help_text='Physical barcode on tube')
+	plate_id = models.CharField(max_length=12, blank=True, help_text='FluidX rack barcode')
+	position = models.CharField(max_length=3, blank=True, help_text='well/tube position in plate/rack')
+	barcode = models.CharField(max_length=12, blank=True, help_text='Physical barcode on FluidX tube')
 	notes = models.TextField(blank=True)
 	
 class Extract(Timestamped):
