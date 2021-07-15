@@ -227,6 +227,11 @@ class SamplePrepProtocol(Timestamped):
 	manuscript_summary = models.TextField(blank=True, help_text='Sampling method summary for manuscripts')
 	protocol_reference = models.TextField(blank=True, help_text='Protocol citation')
 	notes = models.TextField(blank=True, help_text='Notes about the method used to create bone powder')
+
+# Samples are sequenced in batches with similar expected complexity to prevent more complex samples from overwhelming less complex samples
+class ExpectedComplexity(models.Model):
+	description = models.CharField(max_length=50, unique=True)
+	sort_order = models.SmallIntegerField()
 	
 class PowderBatchStatus(models.Model):
 	description = models.CharField(max_length=50, unique=True)
@@ -239,6 +244,15 @@ class PowderBatch(Timestamped):
 	technician_fk = models.ForeignKey(WetLabStaff, on_delete=models.SET_NULL, null=True)
 	status = models.ForeignKey(PowderBatchStatus, null=True, on_delete=models.SET_NULL)
 	notes = models.TextField(blank=True)
+	
+# Wetlab consumes samples from this queue for powder batches
+class SamplePrepQueue(Timestamped):
+	priority = models.SmallIntegerField(help_text='Lower is higher priority')
+	sample = models.ForeignKey(Sample, on_delete=models.CASCADE)
+	expected_complexity = models.ForeignKey(ExpectedComplexity, on_delete=models.SET_NULL, null=True)
+	sample_prep_protocol = models.ForeignKey(SamplePrepProtocol, on_delete=models.SET_NULL, null=True)
+	udg_treatment = models.CharField(max_length=10)
+	powder_batch = models.ForeignKey(PowderBatch, null=True, on_delete=models.SET_NULL,)
 
 class PowderSample(Timestamped):
 	powder_sample_id = models.CharField(max_length=15, unique=True, null=False, db_index=True)

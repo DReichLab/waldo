@@ -13,8 +13,8 @@ import json
 from datetime import datetime
 
 from samples.pipeline import udg_and_strandedness
-from samples.models import Results, Library, Sample, PowderBatch, WetLabStaff, PowderSample, ControlType, ControlLayout, ExtractionProtocol, ExtractBatch
-from .forms import IndividualForm, LibraryIDForm, PowderBatchForm, SampleImageForm, PowderSampleForm, PowderSampleFormset, ControlTypeFormset, ControlLayoutFormset, ExtractionProtocolFormset, ExtractBatchForm
+from samples.models import Results, Library, Sample, PowderBatch, WetLabStaff, PowderSample, ControlType, ControlLayout, ExtractionProtocol, ExtractBatch, SamplePrepQueue
+from .forms import IndividualForm, LibraryIDForm, PowderBatchForm, SampleImageForm, PowderSampleForm, PowderSampleFormset, ControlTypeFormset, ControlLayoutFormset, ExtractionProtocolFormset, ExtractBatchForm, SamplePrepQueueFormset
 from sequencing_run.models import MTAnalysis
 
 from .powder_samples import new_powder_sample
@@ -91,6 +91,22 @@ def landing(request):
 	return render(request, 'samples/landing.html', {} )
 
 @login_required
+def sample_prep_queue(request):
+	if request.method == 'POST':
+		formset = SamplePrepQueueFormset(request.POST)
+		
+		if formset.is_valid():
+			formset.save()
+		
+	elif request.method == 'GET':
+		page_number = request.GET.get('page', 1)
+		page_size = request.GET.get('page_size', 25)
+		whole_queue = SamplePrepQueueFormset(queryset=SamplePrepQueue.objects.all())
+		paginator = Paginator(whole_queue, page_size)
+		formset = paginator.get_page(page_number)
+	return render(request, 'samples/generic_formset.html', { 'title': 'Sample Prep Queue', 'formset': formset, 'submit_button_text': 'Update queue entries' } )
+
+@login_required
 def control_types(request):
 	if request.method == 'POST':
 		formset = ControlTypeFormset(request.POST)
@@ -99,10 +115,14 @@ def control_types(request):
 			formset.save()
 		
 	elif request.method == 'GET':
-		formset = ControlTypeFormset(queryset=ControlType.objects.all())
+		page_number = request.GET.get('page', 1)
+		page_size = request.GET.get('page_size', 25)
+		whole_queue = ControlTypeFormset(queryset=ControlType.objects.all())
+		paginator = Paginator(whole_queue, page_size)
+		formset = paginator.get_page(page_number)
 	
 	# open can have new samples assigned
-	return render(request, 'samples/control_types.html', { 'formset': formset } )
+	return render(request, 'samples/generic_formset.html', { 'title': 'Control Types', 'formset': formset, 'submit_button_text': 'Update control types' } )
 
 @login_required
 def control_layout(request):
@@ -113,10 +133,14 @@ def control_layout(request):
 			formset.save()
 		
 	elif request.method == 'GET':
-		formset = ControlLayoutFormset(queryset=ControlLayout.objects.all())
+		page_number = request.GET.get('page', 1)
+		page_size = request.GET.get('page_size', 25)
+		whole_queue = ControlLayoutFormset(queryset=ControlLayout.objects.all())
+		paginator = Paginator(whole_queue, page_size)
+		formset = paginator.get_page(page_number)
 	
 	# open can have new samples assigned
-	return render(request, 'samples/control_layout.html', { 'formset': formset } )
+	return render(request, 'samples/generic_formset.html', { 'title': 'Control Layout', 'formset': formset, 'submit_button_text': 'Update control layout' } )
 
 @login_required
 def powder_batches(request):
@@ -167,6 +191,7 @@ def powder_batch_assign_samples(request):
 		form = PowderBatchForm(initial={'name': powder_batch_name, 'date': powder_batch.date, 'status': powder_batch.status, 'notes': powder_batch.notes}, instance=powder_batch)
 	
 	# open can have new samples assigned
+	# TODO show samples that have already been assigned to this powder batch
 	sample_queue = Sample.objects.filter(queue_id__isnull=False, reich_lab_id__isnull=True).order_by('queue_id')
 	return render(request, 'samples/sample_selection.html', { 'samples': sample_queue, 'powder_batch_name': powder_batch_name, 'form': form } )
 

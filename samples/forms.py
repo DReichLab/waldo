@@ -2,7 +2,7 @@ from django import forms
 from django.forms import ModelChoiceField, ChoiceField, FileField, ModelForm, Textarea, CharField
 from django.forms import modelformset_factory
 
-from samples.models import PowderBatch, PowderBatchStatus, PowderSample, Sample, SamplePrepProtocol, ControlType, ControlLayout, ExtractBatch, ExtractionProtocol
+from samples.models import PowderBatch, PowderBatchStatus, PowderSample, Sample, SamplePrepProtocol, ControlType, ControlLayout, ExtractBatch, ExtractionProtocol, ExpectedComplexity, SamplePrepQueue
 
 import datetime
 
@@ -44,6 +44,20 @@ class SampleSelect(ModelChoiceField):
 class SamplePrepProtocolSelect(ModelChoiceField):
 	def label_from_instance(self, obj):
 		return obj.preparation_method
+	
+class ExpectedComplexitySelect(ModelChoiceField):
+	def label_from_instance(self, obj):
+		return obj.description
+	
+class SamplePrepQueueForm(ModelForm):
+	sample = forms.IntegerField()
+	expected_complexity = ExpectedComplexitySelect(queryset=ExpectedComplexity.objects.all(), empty_label=None)
+	sample_prep_protocol = SamplePrepProtocolSelect(queryset=SamplePrepProtocol.objects.all(), empty_label=None)
+	class Meta:
+		model = SamplePrepQueue
+		fields = ['sample', 'priority', 'expected_complexity', 'sample_prep_protocol', 'udg_treatment']
+        
+SamplePrepQueueFormset = modelformset_factory(SamplePrepQueue, form=SamplePrepQueueForm)
 	
 class PowderSampleForm(ModelForm):
 	reich_lab_sample = CharField(disabled=True)

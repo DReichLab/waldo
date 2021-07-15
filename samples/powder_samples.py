@@ -2,6 +2,8 @@ from django.db.models import Max
 
 from .models import PowderSample, Sample
 
+import re
+
 # create a PowderSample and assign Reich Lab Sample Number
 def new_powder_sample(sample_queue_id, powder_batch):
 	sample = Sample.objects.get(queue_id=sample_queue_id)
@@ -10,7 +12,7 @@ def new_powder_sample(sample_queue_id, powder_batch):
 		max_sample_number = Sample.objects.all().aggregate(Max('reich_lab_id'))['reich_lab_id__max']
 		next_sample_number = max_sample_number + 1
 		sample.reich_lab_id = next_sample_number
-		#sample.save()
+		sample.save()
 		return max_sample_number
 	try:
 		PowderSample.objects.get(sample=sample, powder_batch=powder_batch)
@@ -20,4 +22,11 @@ def new_powder_sample(sample_queue_id, powder_batch):
 		powder_sample_int = len(existing_powder_samples) + 1
 		# TODO powder_sample_int should not be converted into a string. Model needs to be changed.
 		powder_sample_id = f'S{sample.reich_lab_id}.P{powder_sample_int}'
-		#PowderSample.objects.create(sample=sample, powder_batch=powder_batch, powder_sample_id=powder_sample_id)
+		PowderSample.objects.create(sample=sample, powder_batch=powder_batch, powder_sample_id=powder_sample_id)
+
+# TODO
+# update 
+def powder_samples_from_spreadsheet(spreadsheet_file):
+	with open(spreadsheet_file) as f:
+		header = f.readline()
+		headers = re.split('\t|\n', header)

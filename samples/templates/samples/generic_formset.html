@@ -2,11 +2,9 @@
 
 {% load static %}
 
-{% block title %}Control Layout{% endblock %}
+{% block title %}{{title}}{% endblock %}
 
 {% block content %}
-
-<li><a href="/samples/control_types">Control Types</a></li>
 
 <form action="" method='post'>
 	{% csrf_token %}
@@ -43,7 +41,25 @@
 	{% endfor %}
 	</table>
 	
-	<input type='submit' value='Update layout entries'>
+	<input type='submit' value='{{submit_button_text}}'>
 </form>
+
+<div class="pagination">
+	<span class="step-links">
+		{% if formset.has_previous %}
+			<a href="?page=1">&laquo; first</a>
+			<a href="?page={{ formset.previous_page_number }}">previous</a>
+		{% endif %}
+
+		<span class="current">
+			Page {{ formset.number }} of {{ formset.paginator.num_pages }}.
+		</span>
+
+		{% if formset.has_next %}
+			<a href="?page={{ formset.next_page_number }}">next</a>
+			<a href="?page={{ formset.paginator.num_pages }}">last &raquo;</a>
+		{% endif %}
+	</span>
+</div>
 
 {% endblock %}
