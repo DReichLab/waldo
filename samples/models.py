@@ -219,14 +219,6 @@ class Sample(Timestamped):
 	accession_number = models.TextField(blank=True)
 	pathology = models.TextField(blank=True)
 	
-	storage = models.ForeignKey(Storage, on_delete=models.PROTECT, null=True)
-	plate_id = models.CharField(max_length=12, blank=True, help_text='FluidX rack barcode')
-	position = models.CharField(max_length=3, blank=True, help_text='well/tube position in plate/rack')
-	barcode = models.CharField(max_length=12, blank=True, help_text='Physical barcode on FluidX tube')
-	
-	nanodrop = models.FloatField(null=True)
-	qpcr = models.FloatField(null=True)
-	
 	class Meta:
 		unique_together = ['reich_lab_id', 'control']
 		
@@ -343,6 +335,14 @@ class Library(Timestamped):
 	alt_category = models.CharField(max_length=20, blank=True)
 	notes = models.TextField(blank=True)
 	assessment = models.TextField(blank=True, help_text='Xcontam listed if |Z|>2 standard errors from zero: 0.02-0.05="QUESTIONABLE", >0.05="QUESTIONABLE_CRITICAL" or "FAIL") (mtcontam 97.5th percentile estimates listed if coverage >2: <0.8 is "QUESTIONABLE_CRITICAL", 0.8-0.95 is "QUESTIONABLE", and 0.95-0.98 is recorded but "PASS", gets overriden by ANGSD')
+	
+	storage = models.ForeignKey(Storage, on_delete=models.PROTECT, null=True)
+	plate_id = models.CharField(max_length=12, blank=True, help_text='FluidX rack barcode')
+	position = models.CharField(max_length=3, blank=True, help_text='well/tube position in plate/rack')
+	barcode = models.CharField(max_length=12, blank=True, help_text='Physical barcode on FluidX tube')
+	
+	nanodrop = models.FloatField(null=True)
+	qpcr = models.FloatField(null=True)
 	
 class MTCaptureProtocol(Timestamped):
 	name = models.CharField(max_length=150)
