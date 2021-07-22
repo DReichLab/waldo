@@ -1,5 +1,5 @@
 from django import forms
-from django.forms import ModelChoiceField, ChoiceField, FileField, ModelForm, Textarea, CharField
+from django.forms import ModelChoiceField, ChoiceField, FileField, ModelForm, Textarea, IntegerField, CharField, BoundField, ValidationError
 from django.forms import modelformset_factory
 
 from samples.models import PowderBatch, PowderBatchStatus, PowderSample, Sample, SamplePrepProtocol, ControlType, ControlLayout, ExtractBatch, ExtractionProtocol, ExpectedComplexity, SamplePrepQueue
@@ -48,16 +48,39 @@ class SamplePrepProtocolSelect(ModelChoiceField):
 class ExpectedComplexitySelect(ModelChoiceField):
 	def label_from_instance(self, obj):
 		return obj.description
+
+class SampleByQueueIDField(IntegerField):
+	def clean(self, value):
+		try:
+			return Sample.objects.get(queue_id=value)
+		except Sample.DoesNotExist:
+			raise ValidationError(f'Sample with queue id {value} does not exist')
 	
 class SamplePrepQueueForm(ModelForm):
-	sample = forms.IntegerField()
+	sample_queue_id = SampleByQueueIDField(label='Sample Queue ID')
 	expected_complexity = ExpectedComplexitySelect(queryset=ExpectedComplexity.objects.all(), empty_label=None)
 	sample_prep_protocol = SamplePrepProtocolSelect(queryset=SamplePrepProtocol.objects.all(), empty_label=None)
 	class Meta:
 		model = SamplePrepQueue
-		fields = ['sample', 'priority', 'expected_complexity', 'sample_prep_protocol', 'udg_treatment']
+		fields = ['sample_queue_id', 'priority', 'expected_complexity', 'sample_prep_protocol', 'udg_treatment']
+	def __init__(self, *args, **kwargs):
+		super(SamplePrepQueueForm, self).__init__(*args, **kwargs)
+		try:
+			#print(f'SamplePrepQueueForm {self.instance.sample.queue_id}')
+			self.fields['sample_queue_id'].initial = self.instance.sample.queue_id
+		except Sample.DoesNotExist:
+			self.fields['sample_queue_id'].initial = None
+			
+	def save(self, commit=True):
+		model = super(SamplePrepQueueForm, self).save(commit=False)
+		sample = self.cleaned_data['sample_queue_id']
+		if sample:
+			model.sample = sample
+		if commit:
+			model.save()
+		return model
         
-SamplePrepQueueFormset = modelformset_factory(SamplePrepQueue, form=SamplePrepQueueForm)
+SamplePrepQueueFormset = modelformset_factory(SamplePrepQueue, form=SamplePrepQueueForm,) # extra=0)
 	
 class PowderSampleForm(ModelForm):
 	reich_lab_sample = CharField(disabled=True)

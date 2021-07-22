@@ -46,18 +46,18 @@
 
 <div class="pagination">
 	<span class="step-links">
-		{% if formset.has_previous %}
+		{% if page_obj.has_previous %}
 			<a href="?page=1">&laquo; first</a>
-			<a href="?page={{ formset.previous_page_number }}">previous</a>
+			<a href="?page={{ page_obj.previous_page_number }}">previous</a>
 		{% endif %}
 
 		<span class="current">
-			Page {{ formset.number }} of {{ formset.paginator.num_pages }}.
+			Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}.
 		</span>
 
-		{% if formset.has_next %}
-			<a href="?page={{ formset.next_page_number }}">next</a>
-			<a href="?page={{ formset.paginator.num_pages }}">last &raquo;</a>
+		{% if page_obj.has_next %}
+			<a href="?page={{ page_obj.next_page_number }}">next</a>
+			<a href="?page={{ page_obj.paginator.num_pages }}">last &raquo;</a>
 		{% endif %}
 	</span>
 </div>

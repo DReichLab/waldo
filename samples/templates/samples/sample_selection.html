@@ -47,6 +47,7 @@ Powder Batch: {{powder_batch_name}}
 		<th><button class="sort" data-sort="queue_id">Queue ID</button></th>
 		<th><button class="sort" data-sort="priority">Priority</button></th>
 		<th><button class="sort" data-sort="sampling_tech">Sampling Tech</button></th>
+		<th><button class="sort" data-sort="sampling_tech">UDG</button></th>
 		<th><button class="sort" data-sort="shipment_id">Shipment ID</button></th>
 		<th><button class="sort" data-sort="collaborator">Collaborator</button></th>
 		<th><button class="sort" data-sort="skeletal_element">Skeletal Element</button></th>
@@ -57,32 +58,29 @@ Powder Batch: {{powder_batch_name}}
 		<th><button class="sort" data-sort="culture">Culture</button></th>
 		<th><button class="sort" data-sort="notes">Notes</button></th>
 		<th><button class="sort" data-sort="notes_2">Notes 2</button></th>
-		<th><button class="sort" data-sort="morphological_sex">Morphological Sex</button></th>
-		<th><button class="sort" data-sort="morphological_age">Morphological Age</button></th>
 	</tr>
 	</thead>
 	<tbody class="list">
-	{% for sample in samples %}
+	{% for queued in queued_samples %}
 	<tr>
 		<td class="checked">
 			<!-- <label for="checkbox{{sample.queue_id}}">{{sample.queue_id}}</label> -->
-			<input class="sample_checkbox" type="checkbox" name="checkbox{{sample.queue_id}}" id="checkbox{{sample.queue_id}}" onclick="update_count()">
+			<input class="sample_checkbox" type="checkbox" name="sample_checkboxes[]" id="checkbox{{queued.sample.queue_id}}" value="{{queued.id}}" onclick="update_count()" {% if queued.powder_batch != None %}checked{% endif %}>
 		</td>
-		<td class="queue_id">{{sample.queue_id}}</td>
-		<td class="priority">TODO</td>
-		<td class="sampling_tech">TODO</td>
-		<td class="shipment_id">{{sample.shipment.shipment_name}}</td>
-		<td class="collaborator">{{sample.collaborator.first_name}} {{sample.collaborator.last_name}}</td>
-		<td class="skeletal_element">{{sample.skeletal_element}}</td>
-		<td class="skeletal_code">{{sample.skeletal_code}}</td>
-		<td class="country">{{sample.country_fk.country_name}}</td>
-		<td class="region">{{sample.country_fk.region}}</td>
-		<td class="period">{{sample.period}}</td>
-		<td class="culture">{{sample.culture}}</td>
-		<td class="notes">{{sample.notes}}</td>
-		<td class="notes_2">{{sample.notes_2}}</td>
-		<td class="morphological_sex">{{sample.morphological_sex}}</td>
-		<td class="morphological_age">{{sample.morphological_age}}</td>
+		<td class="queue_id">{{queued.sample.queue_id}}</td>
+		<td class="priority">{{queued.priority}}</td>
+		<td class="sampling_tech">{{queued.sample_prep_protocol.preparation_method}}</td>
+		<td class="udg">{{queued.udg_treatment}}</td>
+		<td class="shipment_id">{{queued.sample.shipment.shipment_name}}</td>
+		<td class="collaborator">{{queued.sample.collaborator.first_name}} {{sample.collaborator.last_name}}</td>
+		<td class="skeletal_element">{{queued.sample.skeletal_element}}</td>
+		<td class="skeletal_code">{{queued.sample.skeletal_code}}</td>
+		<td class="country">{{queued.sample.country_fk.country_name}}</td>
+		<td class="region">{{queued.sample.country_fk.region}}</td>
+		<td class="period">{{queued.sample.period}}</td>
+		<td class="culture">{{queued.sample.culture}}</td>
+		<td class="notes">{{queued.sample.notes}}</td>
+		<td class="notes_2">{{queued.sample.notes_2}}</td>
 	</tr>
 	{% endfor %}
 	</tbody>
@@ -111,7 +109,8 @@ Powder Batch: {{powder_batch_name}}
 		
 		let filtered_count = document.querySelectorAll('input[type="checkbox"].sample_checkbox:checked').length;
 		let filtered_total = document.querySelectorAll('input[type="checkbox"].sample_checkbox').length;
-		document.getElementById('sample_count').innerHTML = String(filtered_count) + " sample" + (filtered_count != 1 ? "s" : "") + " selected of " + String(filtered_total) + " filtered samples. " + String(overall_count) + " selected of " + String(overall_total) + " total samples.";
+		document.getElementById('sample_count').innerHTML = String(filtered_count) + " sample" + (filtered_count != 1 ? "s" : "") + " selected of " + String(filtered_total) + " filtered samples. "
+		// + String(overall_count) + " selected of " + String(overall_total) + " total samples.";
 	}
 	
 	sample_list.on('updated', update_count);

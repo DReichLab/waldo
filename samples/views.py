@@ -1,5 +1,5 @@
 from django.core.paginator import Paginator
-from django.shortcuts import render
+from django.shortcuts import redirect, render, reverse
 
 from django.http import HttpResponse
 
@@ -17,7 +17,7 @@ from samples.models import Results, Library, Sample, PowderBatch, WetLabStaff, P
 from .forms import IndividualForm, LibraryIDForm, PowderBatchForm, SampleImageForm, PowderSampleForm, PowderSampleFormset, ControlTypeFormset, ControlLayoutFormset, ExtractionProtocolFormset, ExtractBatchForm, SamplePrepQueueFormset
 from sequencing_run.models import MTAnalysis
 
-from .powder_samples import new_powder_sample
+from .powder_samples import new_reich_lab_powder_sample
 
 from samples.sample_photos import photo_list, save_sample_photo
 
@@ -92,19 +92,22 @@ def landing(request):
 
 @login_required
 def sample_prep_queue(request):
+	page_number = request.GET.get('page', 1)
+	page_size = request.GET.get('page_size', 25)
+	whole_queue = SamplePrepQueue.objects.filter(powder_batch=None).order_by('-priority')
+	paginator = Paginator(whole_queue, page_size)
+	page_obj = paginator.get_page(page_number)
+	page_obj.ordered = True
+	
 	if request.method == 'POST':
-		formset = SamplePrepQueueFormset(request.POST)
+		formset = SamplePrepQueueFormset(request.POST, request.FILES)
 		
 		if formset.is_valid():
 			formset.save()
-		
 	elif request.method == 'GET':
-		page_number = request.GET.get('page', 1)
-		page_size = request.GET.get('page_size', 25)
-		whole_queue = SamplePrepQueueFormset(queryset=SamplePrepQueue.objects.all())
-		paginator = Paginator(whole_queue, page_size)
-		formset = paginator.get_page(page_number)
-	return render(request, 'samples/generic_formset.html', { 'title': 'Sample Prep Queue', 'formset': formset, 'submit_button_text': 'Update queue entries' } )
+		formset = SamplePrepQueueFormset(queryset=page_obj)
+	
+	return render(request, 'samples/generic_formset.html', { 'title': 'Sample Prep Queue', 'page_obj': page_obj, 'formset': formset, 'submit_button_text': 'Update queue entries' } )
 
 @login_required
 def control_types(request):
@@ -117,12 +120,12 @@ def control_types(request):
 	elif request.method == 'GET':
 		page_number = request.GET.get('page', 1)
 		page_size = request.GET.get('page_size', 25)
-		whole_queue = ControlTypeFormset(queryset=ControlType.objects.all())
+		whole_queue = ControlType.objects.all()
 		paginator = Paginator(whole_queue, page_size)
-		formset = paginator.get_page(page_number)
-	
-	# open can have new samples assigned
-	return render(request, 'samples/generic_formset.html', { 'title': 'Control Types', 'formset': formset, 'submit_button_text': 'Update control types' } )
+		page_obj = paginator.get_page(page_number)
+		page_obj.ordered = True
+		formset = ControlTypeFormset(queryset=page_obj)
+	return render(request, 'samples/generic_formset.html', { 'title': 'Control Types', 'page_obj': page_obj, 'formset': formset, 'submit_button_text': 'Update control types' } )
 
 @login_required
 def control_layout(request):
@@ -135,13 +138,14 @@ def control_layout(request):
 	elif request.method == 'GET':
 		page_number = request.GET.get('page', 1)
 		page_size = request.GET.get('page_size', 25)
-		whole_queue = ControlLayoutFormset(queryset=ControlLayout.objects.all())
+		whole_queue = ControlLayout.objects.all()
 		paginator = Paginator(whole_queue, page_size)
-		formset = paginator.get_page(page_number)
-	
-	# open can have new samples assigned
-	return render(request, 'samples/generic_formset.html', { 'title': 'Control Layout', 'formset': formset, 'submit_button_text': 'Update control layout' } )
+		page_obj = paginator.get_page(page_number)
+		page_obj.ordered = True
+		formset = ControlLayoutFormset(queryset=page_obj)
+	return render(request, 'samples/generic_formset.html', { 'title': 'Control Layout', 'page_obj': page_obj, 'formset': formset, 'submit_button_text': 'Update control layout' } )
 
+# show all powder batches
 @login_required
 def powder_batches(request):
 	form = PowderBatchForm()
@@ -179,21 +183,30 @@ def powder_batch_assign_samples(request):
 		if form.is_valid():
 			form.save()
 			
-			# iterate through the checkboxes and # TODO change states
-			input_checkbox_prefix = 'checkbox'
-			for checkbox_candidate in request.POST:
-				if checkbox_candidate.startswith(input_checkbox_prefix):
-					queue_id = int(checkbox_candidate[len(input_checkbox_prefix):])
-					print(queue_id)
-					print(new_powder_sample(queue_id, powder_batch))
+			# these are the ticked checkboxes. Values are the ids of SamplePrepQueue objects
+			ticked_checkboxes = request.POST.getlist('sample_checkboxes[]')
+			# first clear powder batch
+			to_clear = SamplePrepQueue.objects.filter(powder_batch=powder_batch).exclude(id__in=ticked_checkboxes)
+			for sample_prep_entry in to_clear:
+				sample_prep_entry.powder_batch = None
+				sample_prep_entry.save()
+			# add ticked samples to powder batch
+			for sample_prep_entry in SamplePrepQueue.objects.filter(id__in=ticked_checkboxes):
+				if sample_prep_entry.powder_batch == None:
+					sample_prep_entry.powder_batch = powder_batch
+					sample_prep_entry.save()
+			# assign reich lab sample number
+			if powder_batch.status.description != 'Open':
+				for sample_prep_entry in SamplePrepQueue.objects.filter(powder_batch=powder_batch):
+					new_reich_lab_powder_sample(sample_prep_entry.sample.queue_id, powder_batch, sample_prep_entry)
+				return redirect(f'{reverse("powder_samples")}?powder_batch={powder_batch_name}')
 		
 	elif request.method == 'GET':
 		form = PowderBatchForm(initial={'name': powder_batch_name, 'date': powder_batch.date, 'status': powder_batch.status, 'notes': powder_batch.notes}, instance=powder_batch)
 	
-	# open can have new samples assigned
-	# TODO show samples that have already been assigned to this powder batch
-	sample_queue = Sample.objects.filter(queue_id__isnull=False, reich_lab_id__isnull=True).order_by('queue_id')
-	return render(request, 'samples/sample_selection.html', { 'samples': sample_queue, 'powder_batch_name': powder_batch_name, 'form': form } )
+	# show samples assigned to this powder batch and unassigned samples
+	sample_queue = SamplePrepQueue.objects.filter(Q(powder_batch=None) | Q(powder_batch=powder_batch)).select_related('sample').select_related('expected_complexity').select_related('sample_prep_protocol').order_by('-priority')
+	return render(request, 'samples/sample_selection.html', { 'queued_samples': sample_queue, 'powder_batch_name': powder_batch_name, 'form': form } )
 
 @login_required
 def powder_samples(request):
@@ -203,9 +216,13 @@ def powder_samples(request):
 		powder_batch_form = PowderBatchForm(request.POST, instance=powder_batch)
 		powder_batch_sample_formset = PowderSampleFormset(request.POST, request.FILES)
 		
-		if powder_batch_form.is_valid() and powder_batch_sample_formset.is_valid():
+		if powder_batch_form.is_valid():
 			powder_batch_form.save()
+		if powder_batch_sample_formset.is_valid():
 			powder_batch_sample_formset.save()
+		if powder_batch_form.is_valid() and powder_batch_sample_formset.is_valid():
+			if powder_batch.status.description == 'Open':
+				return redirect(f'{reverse("powder_batch_assign_samples")}?name={powder_batch_name}')
 		
 	elif request.method == 'GET':
 		powder_batch_form = PowderBatchForm(initial={'name': powder_batch_name, 'date': powder_batch.date, 'status': powder_batch.status, 'notes': powder_batch.notes}, instance=powder_batch)
@@ -254,11 +271,8 @@ def extract_batch_assign_powder(request):
 			extract_batch_form.save()
 			
 			# iterate through the checkboxes and change states
-			input_checkbox_prefix = 'checkbox'
-			for checkbox_candidate in request.POST:
-				if checkbox_candidate.startswith(input_checkbox_prefix):
-					powder_sample_id = int(checkbox_candidate[len(input_checkbox_prefix):])
-					print(powder_sample_id)
+			ticked_checkboxes = request.POST.getlist('checkboxes[]')
+			#TODO
 		
 	elif request.method == 'GET':
 		extract_batch_form = ExtractBatchForm(instance=extract_batch)
@@ -267,6 +281,27 @@ def extract_batch_assign_powder(request):
 	powder_samples = PowderSample.objects.filter(Q(powder_batch__status__description='Ready For Plate')  )
 	# open can have new samples assigned
 	return render(request, 'samples/extract_batch_assign_powder.html', { 'powder_samples': powder_samples } )
+
+@login_required
+def extract_batch_assign_powder_batches(request):
+	extract_batch_name = request.GET['extract_batch']
+	extract_batch = ExtractBatch.objects.get(batch_name=extract_batch_name)
+	if request.method == 'POST':
+		extract_batch_form = ExtractBatchForm(request.POST, instance=extract_batch)
+		if extract_batch_form.is_valid():
+			extract_batch_form.save()
+			
+			# iterate through the checkboxes and change states
+			ticked_checkboxes = request.POST.getlist('checkboxes[]')
+			# TODO
+		
+	elif request.method == 'GET':
+		extract_batch_form = ExtractBatchForm(instance=extract_batch)
+	num_powder_samples_assigned = PowderSample.objects.filter(extract_batch=extract_batch).count()
+	# TODO
+	powder_samples = PowderSample.objects.filter(Q(powder_batch__status__description='Ready For Plate')  )
+	# open can have new samples assigned
+	return render(request, 'samples/extract_batch_assign_powder.html', { 'extract_batch_name': extract_batch_name,  'num_powder_samples_assigned': num_powder_samples_assigned, 'powder_samples': powder_samples } )
 
 @login_required
 def extract_batch_plate_layout(request):
