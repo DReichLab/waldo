@@ -288,6 +288,7 @@ class ExtractBatch(Timestamped):
 	date = models.DateField(null=True)
 	robot = models.CharField(max_length=20, blank=True)
 	note = models.TextField(blank=True)
+	powder_batches = models.ManyToManyField(PowderBatch)
 
 class Lysate(Timestamped):
 	lysate_id = models.CharField(max_length=15, unique=True, null=False, db_index=True)
