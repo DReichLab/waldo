@@ -6,7 +6,7 @@ from django.http import HttpResponse
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.views import logout_then_login
 
-from django.db.models import Q
+from django.db.models import Q, Count
 
 import csv
 import json
@@ -291,17 +291,23 @@ def extract_batch_assign_powder_batches(request):
 		if extract_batch_form.is_valid():
 			extract_batch_form.save()
 			
-			# iterate through the checkboxes and change states
+			# assign powder batches to ManyToMany field
 			ticked_checkboxes = request.POST.getlist('checkboxes[]')
-			# TODO
+			print(ticked_checkboxes)
+			selected_powder_batches = PowderBatch.objects.filter(name__in=ticked_checkboxes)
+			extract_batch.powder_batches.set(selected_powder_batches)
 		
 	elif request.method == 'GET':
 		extract_batch_form = ExtractBatchForm(instance=extract_batch)
-	num_powder_samples_assigned = PowderSample.objects.filter(extract_batch=extract_batch).count()
-	# TODO
-	powder_samples = PowderSample.objects.filter(Q(powder_batch__status__description='Ready For Plate')  )
-	# open can have new samples assigned
-	return render(request, 'samples/extract_batch_assign_powder.html', { 'extract_batch_name': extract_batch_name,  'num_powder_samples_assigned': num_powder_samples_assigned, 'powder_samples': powder_samples } )
+	# count the number of samples in powder batches for this extract batch
+	num_powder_samples_assigned = 0
+	for powder_batch in extract_batch.powder_batches.all():
+		num_powder_samples_assigned += PowderSample.objects.filter(powder_batch=powder_batch).count()
+	
+	# provide template with how many powder samples in each powder batch and indicate whether powder batch is associated with this extract batch
+	powder_batches = PowderBatch.objects.annotate(Count('powdersample'), checked=Count('extractbatch', filter=Q(extractbatch=extract_batch))).filter(Q(status__description='Ready For Plate') | Q(extractbatch=extract_batch))
+	#print(f'num powder batches {len(powder_batches)}')
+	return render(request, 'samples/extract_batch_assign_powder_batches.html', { 'extract_batch_name': extract_batch_name,  'num_powder_samples_assigned': num_powder_samples_assigned, 'powder_batches': powder_batches, 'form': extract_batch_form } )
 
 @login_required
 def extract_batch_plate_layout(request):
