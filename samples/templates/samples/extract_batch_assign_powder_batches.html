@@ -32,7 +32,7 @@ Extract Batch: {{extract_batch_name}} currently has {{num_powder_samples_assigne
 <form action="" method='post'>
 	{% csrf_token %}
 	{{ form }}
-	<input type='submit' value='Assign Powder Samples'>
+	<input type='submit' value='Assign Powder Batches'>
 
 <legend>Samples</legend>
 <div id='sample_rows'>
@@ -44,9 +44,10 @@ Extract Batch: {{extract_batch_name}} currently has {{num_powder_samples_assigne
 	<thead>
 	<tr>
 		<th><input type="checkbox" name="toggle_all_checkbox" id="toggle_all_checkbox" onclick="toggle_onscreen_all()"></th>
-		<th><button class="sort" data-sort="powder_batch_id">Powder Batch</button></th>
+		<th><button class="sort" data-sort="powder_batch">Powder Batch</button></th>
 		<th><button class="sort" data-sort="num_samples">Number of Samples</button></th>
-		<th><button class="sort" data-sort="sampling_tech">Sampling Tech</button></th>
+		<th><button class="sort" data-sort="low_complexity">Low complexity</button></th>
+		<th><button class="sort" data-sort="high_complexity">High complexity</button></th>
 		<th><button class="sort" data-sort="sampling_prep_protocol">Sampling Prep Protocol</button></th>
 	</tr>
 	</thead>
@@ -54,12 +55,12 @@ Extract Batch: {{extract_batch_name}} currently has {{num_powder_samples_assigne
 	{% for powder_batch in powder_batches %}
 	<tr>
 		<td class="checked">
-			<input class="sample_checkbox" type="checkbox" name="checkboxes[]" id="checkbox_{{powder_batch.name}}" value="{{powder_batch.name}}" onclick="update_count()" {% if powder_batch.checked >= 1 %}checked{% endif %}>
+			<input class="sample_checkbox" type="checkbox" name="checkboxes[]" id="checkbox_{{powder_batch.name}}" value="{{powder_batch.name}}" {% if powder_batch.checked >= 1 %}checked{% endif %}>
 		</td>
-		<td class="powder_batch">{{powder_batch.name}}</td>
+		<td class="powder_batch"><a href="powder_samples?powder_batch={{powder_batch.name}}">{{powder_batch.name}}</a></td>
 		<td class="num_samples">{{powder_batch.powdersample__count}}</td>
-		
-		<td class="sampling_tech">{{powder_sample.sampling_tech}}</td>
+		<td class="low_complexity_count">{{powder_batch.low_complexity_count}}</td>
+		<td class="high_complexity_count">{{powder_batch.high_complexity_count}}</td>
 		<td class="sampling_prep_protocol">{{powder_sample.sample_prep_protocol.preparation_method}}</td>
 	</tr>
 	{% endfor %}
@@ -71,57 +72,10 @@ Extract Batch: {{extract_batch_name}} currently has {{num_powder_samples_assigne
 
 <script>
 	var list_options = {
-		valueNames: ['checked', 'queue_id', 'collaborator', 'skeletal_element', 'skeletal_code', 'country', 'region'],
+		valueNames: ['checked', 'powder_batch', 'num_samples', 'low_complexity_count', 'high_complexity_count', 'sampling_prep_protocol'],
 		searchDelay: 500
 	};
 	var sample_list = new List('sample_rows', list_options);
-	var overall_count = 0;
-	
-	document.querySelectorAll("input[type=checkbox]").forEach(input => {
-		input.addEventListener("click", (e) => {
-			e.target.checked ? overall_count += 1 : overall_count -= 1;
-			update_count();
-		})
-	})
-	
-	function update_count(){
-		let overall_total = sample_list.size();
-		
-		let filtered_count = document.querySelectorAll('input[type="checkbox"].sample_checkbox:checked').length;
-		let filtered_total = document.querySelectorAll('input[type="checkbox"].sample_checkbox').length;
-		document.getElementById('sample_count').innerHTML = String(filtered_count) + " sample" + (filtered_count != 1 ? "s" : "") + " selected of " + String(filtered_total) + " filtered samples. " + String(overall_count) + " selected of " + String(overall_total) + " total samples.";
-	}
-	
-	sample_list.on('updated', update_count);
-	
-	// toggle all checkboxes in current list, which may be search subset
-	function toggle_onscreen_all(){
-		var visible = sample_list.visibleItems;
-		var matching = sample_list.matchingItems;
-		let anybox_checked = false;
-		// first pass to see whether any checkbox in this set is checked
-		for (let i = 0; i < matching.length; i++) {
-			let checkbox_id = 'checkbox' + matching[i]._values['queue_id'];
-			let sample_checkbox = document.getElementById(checkbox_id);
-			anybox_checked ||= sample_checkbox.checked;
-		}
-		// second pass to set checkboxes
-		for (let i = 0; i < matching.length; i++) {
-			let checkbox_id = 'checkbox' + matching[i]._values['queue_id'];
-			let sample_checkbox = document.getElementById(checkbox_id);
-			// box will be changed to unchecked
-			if (sample_checkbox.checked && anybox_checked){
-				overall_count -= 1;
-			}
-			// box will be changed to checked
-			else if (!sample_checkbox.checked && anybox_checked){
-				overall_count += 1;
-			} 
-			sample_checkbox.checked = !anybox_checked;
-		}
-		update_count();
-		//alert('toggle ' + String(visible.length) + " " + String(matching.length));
-	}
 </script>
 
 {% endblock %}
