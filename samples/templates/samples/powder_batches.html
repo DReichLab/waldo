@@ -46,7 +46,7 @@ table{
 		<th><button class="sort" data-sort="date">Date</button></th>
 		<th><button class="sort" data-sort="technician">Technician</button></th>
 		<th><button class="sort" data-sort="status">Status</button></th>
-		<th><button class="sort" data-sort="num_samples">Number of Samples</button></th>
+		<th><button class="sort" data-sort="num_samples">Num Sample Prep Entries</button></th>
 		<th><button class="sort" data-sort="low_complexity">Low complexity</button></th>
 		<th><button class="sort" data-sort="high_complexity">High complexity</button></th>
 		<th><button class="sort" data-sort="extract_batch">Extract Batch</button></th>
@@ -64,7 +64,7 @@ table{
 		<td class="date">{{powder_batch.date|date:'Y-m-d'}}</td>
 		<td class="technician">{{powder_batch.technician}}</td>
 		<td class="status">{{powder_batch.status.description}}</td>
-		<td class="num_samples">{{powder_batch.powdersample__count}}</td>
+		<td class="num_samples">{{powder_batch.sampleprepqueue__count}}</td>
 		<td class="low_complexity_count">{{powder_batch.low_complexity_count}}</td>
 		<td class="high_complexity_count">{{powder_batch.high_complexity_count}}</td>
 		<td class="extract_batch">

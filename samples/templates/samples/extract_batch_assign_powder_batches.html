@@ -35,8 +35,7 @@ Extract Batch: {{extract_batch_name}} currently has {{num_powder_samples_assigne
 	<input type='submit' value='Assign Powder Batches'>
 
 <legend>Samples</legend>
-<div id='sample_rows'>
-<div id='sample_count'></div>
+<div id='powder_batch_rows'>
 
 <input class="search" placeholder="Search" />
 <div id='table_wrapper'>
@@ -45,9 +44,10 @@ Extract Batch: {{extract_batch_name}} currently has {{num_powder_samples_assigne
 	<tr>
 		<th><input type="checkbox" name="toggle_all_checkbox" id="toggle_all_checkbox" onclick="toggle_onscreen_all()"></th>
 		<th><button class="sort" data-sort="powder_batch">Powder Batch</button></th>
-		<th><button class="sort" data-sort="num_samples">Number of Samples</button></th>
+		<th><button class="sort" data-sort="num_samples">Num Sample Prep Entries</button></th>
 		<th><button class="sort" data-sort="low_complexity">Low complexity</button></th>
 		<th><button class="sort" data-sort="high_complexity">High complexity</button></th>
+		<th><button class="sort" data-sort="udg">UDG Treatment</button></th>
 		<th><button class="sort" data-sort="sampling_prep_protocol">Sampling Prep Protocol</button></th>
 	</tr>
 	</thead>
@@ -58,9 +58,10 @@ Extract Batch: {{extract_batch_name}} currently has {{num_powder_samples_assigne
 			<input class="sample_checkbox" type="checkbox" name="checkboxes[]" id="checkbox_{{powder_batch.name}}" value="{{powder_batch.name}}" {% if powder_batch.checked >= 1 %}checked{% endif %}>
 		</td>
 		<td class="powder_batch"><a href="powder_samples?powder_batch={{powder_batch.name}}">{{powder_batch.name}}</a></td>
-		<td class="num_samples">{{powder_batch.powdersample__count}}</td>
+		<td class="num_samples">{{powder_batch.sampleprepqueue__count}}</td>
 		<td class="low_complexity_count">{{powder_batch.low_complexity_count}}</td>
 		<td class="high_complexity_count">{{powder_batch.high_complexity_count}}</td>
+		<td class="udg">{{powder_batch.high_complexity_count}}</td>
 		<td class="sampling_prep_protocol">{{powder_sample.sample_prep_protocol.preparation_method}}</td>
 	</tr>
 	{% endfor %}
@@ -72,10 +73,10 @@ Extract Batch: {{extract_batch_name}} currently has {{num_powder_samples_assigne
 
 <script>
 	var list_options = {
-		valueNames: ['checked', 'powder_batch', 'num_samples', 'low_complexity_count', 'high_complexity_count', 'sampling_prep_protocol'],
+		valueNames: ['checked', 'powder_batch', 'num_samples', 'low_complexity_count', 'high_complexity_count', 'udg', 'sampling_prep_protocol'],
 		searchDelay: 500
 	};
-	var sample_list = new List('sample_rows', list_options);
+	var sample_list = new List('powder_batch_rows', list_options);
 </script>
 
 {% endblock %}

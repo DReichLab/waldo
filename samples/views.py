@@ -170,7 +170,7 @@ def powder_batches(request):
 		else:
 			return HttpResponse("Invalid form")
 		
-	batches = PowderBatch.objects.all().annotate(Count('powdersample'),
+	batches = PowderBatch.objects.all().annotate(Count('sampleprepqueue'),
 					low_complexity_count=Count('sampleprepqueue', filter=Q(sampleprepqueue__expected_complexity__description__iexact='low')),
 					high_complexity_count=Count('sampleprepqueue', filter=Q(sampleprepqueue__expected_complexity__description__iexact='high')),
 					).prefetch_related('extractbatch_set')
@@ -314,7 +314,7 @@ def extract_batch_assign_powder_batches(request):
 		num_powder_samples_assigned += PowderSample.objects.filter(powder_batch=powder_batch).count()
 	
 	# provide template with how many powder samples in each powder batch and indicate whether powder batch is associated with this extract batch
-	powder_batches = PowderBatch.objects.annotate(Count('powdersample'),
+	powder_batches = PowderBatch.objects.annotate(Count('sampleprepqueue'),
 					checked=Count('extractbatch', filter=Q(extractbatch=extract_batch)),
 					low_complexity_count=Count('sampleprepqueue', filter=Q(sampleprepqueue__expected_complexity__description__iexact='low')),
 					high_complexity_count=Count('sampleprepqueue', filter=Q(sampleprepqueue__expected_complexity__description__iexact='high')),
