@@ -170,7 +170,10 @@ def powder_batches(request):
 		else:
 			return HttpResponse("Invalid form")
 		
-	batches = PowderBatch.objects.all()
+	batches = PowderBatch.objects.all().annotate(Count('powdersample'),
+					low_complexity_count=Count('sampleprepqueue', filter=Q(sampleprepqueue__expected_complexity__description__iexact='low')),
+					high_complexity_count=Count('sampleprepqueue', filter=Q(sampleprepqueue__expected_complexity__description__iexact='high')),
+					).prefetch_related('extractbatch_set')
 	return render(request, 'samples/powder_batches.html', {'powder_batches' : batches, 'form' : form} )
 
 @login_required

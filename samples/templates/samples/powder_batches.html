@@ -46,6 +46,10 @@ table{
 		<th><button class="sort" data-sort="date">Date</button></th>
 		<th><button class="sort" data-sort="technician">Technician</button></th>
 		<th><button class="sort" data-sort="status">Status</button></th>
+		<th><button class="sort" data-sort="num_samples">Number of Samples</button></th>
+		<th><button class="sort" data-sort="low_complexity">Low complexity</button></th>
+		<th><button class="sort" data-sort="high_complexity">High complexity</button></th>
+		<th><button class="sort" data-sort="extract_batch">Extract Batch</button></th>
 		<th><button class="sort" data-sort="notes">Notes</button></th>
 	</tr>
 	</thead>
@@ -60,6 +64,15 @@ table{
 		<td class="date">{{powder_batch.date|date:'Y-m-d'}}</td>
 		<td class="technician">{{powder_batch.technician}}</td>
 		<td class="status">{{powder_batch.status.description}}</td>
+		<td class="num_samples">{{powder_batch.powdersample__count}}</td>
+		<td class="low_complexity_count">{{powder_batch.low_complexity_count}}</td>
+		<td class="high_complexity_count">{{powder_batch.high_complexity_count}}</td>
+		<td class="extract_batch">
+			{% for extract_batch in powder_batch.extractbatch_set.all %}
+				{{extract_batch.}}
+				<a href="extract_batch_assign_powder_batches?extract_batch={{extract_batch.batch_name}}">{{extract_batch.batch_name}}</a>
+			{% endfor %}
+		</td>
 		<td class="notes">{{powder_batch.notes}}</td>
 	</tr>
 	{% endfor %}
@@ -70,7 +83,7 @@ table{
 
 <script>
 	var list_options = {
-		valueNames: ['name', 'date', 'technician', 'notes'],
+		valueNames: ['name', 'date', 'technician', 'status', 'num_samples', 'extract_batch', 'notes'],
 		searchDelay: 500
 	};
 	var powder_batch_list = new List('powder_batch_rows', list_options);
