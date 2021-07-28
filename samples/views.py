@@ -308,11 +308,8 @@ def extract_batch_assign_powder_batches(request):
 		
 	elif request.method == 'GET':
 		extract_batch_form = ExtractBatchForm(instance=extract_batch)
-	# count the number of samples in powder batches for this extract batch
-	num_powder_samples_assigned = 0
-	for powder_batch in extract_batch.powder_batches.all():
-		num_powder_samples_assigned += PowderSample.objects.filter(powder_batch=powder_batch).count()
 	
+	num_powder_samples_assigned = extract_batch.num_powder_samples()
 	# provide template with how many powder samples in each powder batch and indicate whether powder batch is associated with this extract batch
 	powder_batches = PowderBatch.objects.annotate(Count('sampleprepqueue'),
 					checked=Count('extractbatch', filter=Q(extractbatch=extract_batch)),
