@@ -94,7 +94,7 @@ def landing(request):
 def sample_prep_queue(request):
 	page_number = request.GET.get('page', 1)
 	page_size = request.GET.get('page_size', 25)
-	whole_queue = SamplePrepQueue.objects.filter(powder_batch=None).order_by('-priority')
+	whole_queue = SamplePrepQueue.objects.filter(powder_batch=None).order_by('priority')
 	paginator = Paginator(whole_queue, page_size)
 	page_obj = paginator.get_page(page_number)
 	page_obj.ordered = True
@@ -208,7 +208,7 @@ def powder_batch_assign_samples(request):
 		form = PowderBatchForm(initial={'name': powder_batch_name, 'date': powder_batch.date, 'status': powder_batch.status, 'notes': powder_batch.notes}, instance=powder_batch)
 	
 	# show samples assigned to this powder batch and unassigned samples
-	sample_queue = SamplePrepQueue.objects.filter(Q(powder_batch=None) | Q(powder_batch=powder_batch)).select_related('sample').select_related('expected_complexity').select_related('sample_prep_protocol').order_by('-priority')
+	sample_queue = SamplePrepQueue.objects.filter(Q(powder_batch=None) | Q(powder_batch=powder_batch)).select_related('sample').select_related('expected_complexity').select_related('sample_prep_protocol').order_by('priority')
 	return render(request, 'samples/sample_selection.html', { 'queued_samples': sample_queue, 'powder_batch_name': powder_batch_name, 'form': form } )
 
 @login_required
