@@ -300,10 +300,10 @@ def extract_batch_assign_powder_batches(request):
 	
 	num_powder_samples_assigned = extract_batch.num_powder_samples()
 	# provide template with how many powder samples in each powder batch and indicate whether powder batch is associated with this extract batch
-	powder_batches = PowderBatch.objects.annotate(Count('sampleprepqueue'),
+	powder_batches = PowderBatch.objects.annotate(Count('sampleprepqueue', distinct=True),
 					checked=Count('extractbatch', filter=Q(extractbatch=extract_batch)),
-					low_complexity_count=Count('sampleprepqueue', filter=Q(sampleprepqueue__expected_complexity__description__iexact='low')),
-					high_complexity_count=Count('sampleprepqueue', filter=Q(sampleprepqueue__expected_complexity__description__iexact='high')),
+					low_complexity_count=Count('sampleprepqueue', distinct=True, filter=Q(sampleprepqueue__expected_complexity__description__iexact='low')),
+					high_complexity_count=Count('sampleprepqueue', distinct=True, filter=Q(sampleprepqueue__expected_complexity__description__iexact='high')),
 					).filter(Q(status__description='Ready For Plate') & (Q(extractbatch=None) | Q(extractbatch=extract_batch)))
 	
 	#print(f'num powder batches {len(powder_batches)}')
