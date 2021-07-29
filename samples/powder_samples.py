@@ -1,13 +1,13 @@
 from django.db.models import Max
 
-from .models import PowderSample, Sample
+from .models import PowderSample, Sample, SamplePrepQueue
 
 import re
 
 # create a PowderSample and assign Reich Lab Sample Number
-def new_reich_lab_powder_sample(sample_queue_id, powder_batch, sample_prep_entry):
+def new_reich_lab_powder_sample(sample_prep_entry, powder_batch):
 	SAMPLE_PREP_LAB = 'Reich Lab'
-	sample = Sample.objects.get(queue_id=sample_queue_id)
+	sample = Sample.objects.get(queue_id=sample_prep_entry.sample.queue_id)
 	# if the corresponding sample does not have Reich Lab sample number, then assign it the next one
 	if sample.reich_lab_id is None:
 		max_sample_number = Sample.objects.all().aggregate(Max('reich_lab_id'))['reich_lab_id__max']
@@ -16,7 +16,10 @@ def new_reich_lab_powder_sample(sample_queue_id, powder_batch, sample_prep_entry
 		sample.save()
 		return max_sample_number
 	try:
-		powder_sample = PowderSample.objects.get(sample=sample, powder_batch=powder_batch)
+		if sample_prep_entry.powder_sample != None:
+			powder_sample = sample_prep_entry.powder_sample
+		else:
+			powder_sample = PowderSample.objects.get(sample=sample, powder_batch=powder_batch)
 	except PowderSample.DoesNotExist:
 		# count how many powder samples there for this sample
 		existing_powder_samples = PowderSample.objects.filter(sample=sample)
@@ -27,6 +30,34 @@ def new_reich_lab_powder_sample(sample_queue_id, powder_batch, sample_prep_entry
 	powder_sample.sample_prep_protocol=sample_prep_entry.sample_prep_protocol
 	powder_sample.sample_prep_lab=SAMPLE_PREP_LAB
 	powder_sample.save()
+	
+	sample_prep_entry.powder_sample = powder_sample
+	sample_prep_entry.save()
+
+def assign_prep_queue_entries_to_powder_batch(powder_batch, sample_prep_ids):
+	# first clear powder batch
+	to_clear = SamplePrepQueue.objects.filter(powder_batch=powder_batch).exclude(id__in=sample_prep_ids)
+	for sample_prep_entry in to_clear:
+		sample_prep_entry.powder_batch = None
+		if sample_prep_entry.powder_sample != None:
+			powder_sample = sample_prep_entry.powder_sample
+			powder_sample.powder_batch = None
+			powder_sample.save()
+		sample_prep_entry.save()
+	# add samples prep queue entries to powder batch
+	for sample_prep_entry in SamplePrepQueue.objects.filter(id__in=sample_prep_ids):
+		if sample_prep_entry.powder_batch == None:
+			sample_prep_entry.powder_batch = powder_batch
+			sample_prep_entry.save()
+		if sample_prep_entry.powder_sample != None:
+			powder_sample = sample_prep_entry.powder_sample
+			powder_sample.powder_batch = powder_batch
+			powder_sample.save()
+	# assign reich lab sample number
+	# Open is the state where samples can be added. If it is not open, then create the powder sample and assign Reich lab sample number
+	if powder_batch.status.description != 'Open':
+		for sample_prep_entry in SamplePrepQueue.objects.filter(powder_batch=powder_batch):
+			new_reich_lab_powder_sample(sample_prep_entry, powder_batch)
 
 # TODO
 # update 

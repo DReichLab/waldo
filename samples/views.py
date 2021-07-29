@@ -17,7 +17,7 @@ from samples.models import Results, Library, Sample, PowderBatch, WetLabStaff, P
 from .forms import IndividualForm, LibraryIDForm, PowderBatchForm, SampleImageForm, PowderSampleForm, PowderSampleFormset, ControlTypeFormset, ControlLayoutFormset, ExtractionProtocolFormset, ExtractBatchForm, SamplePrepQueueFormset
 from sequencing_run.models import MTAnalysis
 
-from .powder_samples import new_reich_lab_powder_sample
+from .powder_samples import new_reich_lab_powder_sample, assign_prep_queue_entries_to_powder_batch
 
 from samples.sample_photos import photo_list, save_sample_photo
 
@@ -167,12 +167,11 @@ def powder_batches(request):
 			powder_batch.status = status
 			powder_batch.notes = notes
 			powder_batch.save()
-		else:
-			return HttpResponse("Invalid form")
 		
-	batches = PowderBatch.objects.all().annotate(Count('sampleprepqueue'),
-					low_complexity_count=Count('sampleprepqueue', filter=Q(sampleprepqueue__expected_complexity__description__iexact='low')),
-					high_complexity_count=Count('sampleprepqueue', filter=Q(sampleprepqueue__expected_complexity__description__iexact='high')),
+	batches = PowderBatch.objects.all().annotate(Count('sampleprepqueue', distinct=True),
+					Count('powdersample', distinct=True),
+					low_complexity_count=Count('sampleprepqueue', distinct=True, filter=Q(sampleprepqueue__expected_complexity__description__iexact='low')),
+					high_complexity_count=Count('sampleprepqueue', distinct=True, filter=Q(sampleprepqueue__expected_complexity__description__iexact='high')),
 					).prefetch_related('extractbatch_set')
 	return render(request, 'samples/powder_batches.html', {'powder_batches' : batches, 'form' : form} )
 
@@ -187,21 +186,11 @@ def powder_batch_assign_samples(request):
 			form.save()
 			
 			# these are the ticked checkboxes. Values are the ids of SamplePrepQueue objects
-			ticked_checkboxes = request.POST.getlist('sample_checkboxes[]')
-			# first clear powder batch
-			to_clear = SamplePrepQueue.objects.filter(powder_batch=powder_batch).exclude(id__in=ticked_checkboxes)
-			for sample_prep_entry in to_clear:
-				sample_prep_entry.powder_batch = None
-				sample_prep_entry.save()
-			# add ticked samples to powder batch
-			for sample_prep_entry in SamplePrepQueue.objects.filter(id__in=ticked_checkboxes):
-				if sample_prep_entry.powder_batch == None:
-					sample_prep_entry.powder_batch = powder_batch
-					sample_prep_entry.save()
-			# assign reich lab sample number
+			sample_prep_ids = request.POST.getlist('sample_checkboxes[]')
+			# accounting for sample prep queue and samples, including assigning Reich Lab sample ID
+			assign_prep_queue_entries_to_powder_batch(powder_batch, sample_prep_ids)
+			
 			if powder_batch.status.description != 'Open':
-				for sample_prep_entry in SamplePrepQueue.objects.filter(powder_batch=powder_batch):
-					new_reich_lab_powder_sample(sample_prep_entry.sample.queue_id, powder_batch, sample_prep_entry)
 				return redirect(f'{reverse("powder_samples")}?powder_batch={powder_batch_name}')
 		
 	elif request.method == 'GET':

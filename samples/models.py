@@ -244,15 +244,6 @@ class PowderBatch(Timestamped):
 	technician_fk = models.ForeignKey(WetLabStaff, on_delete=models.SET_NULL, null=True)
 	status = models.ForeignKey(PowderBatchStatus, null=True, on_delete=models.SET_NULL)
 	notes = models.TextField(blank=True)
-	
-# Wetlab consumes samples from this queue for powder batches
-class SamplePrepQueue(Timestamped):
-	priority = models.SmallIntegerField(help_text='Lower is higher priority')
-	sample = models.ForeignKey(Sample, on_delete=models.CASCADE)
-	expected_complexity = models.ForeignKey(ExpectedComplexity, on_delete=models.SET_NULL, null=True)
-	sample_prep_protocol = models.ForeignKey(SamplePrepProtocol, on_delete=models.SET_NULL, null=True)
-	udg_treatment = models.CharField(max_length=10)
-	powder_batch = models.ForeignKey(PowderBatch, null=True, on_delete=models.SET_NULL,)
 
 class PowderSample(Timestamped):
 	powder_sample_id = models.CharField(max_length=15, unique=True, null=False, db_index=True)
@@ -266,6 +257,16 @@ class PowderSample(Timestamped):
 	storage_location = models.CharField(max_length=50, blank=True, help_text='Storage location of remaining bone powder')
 	sample_prep_lab = models.CharField(max_length=50, blank=True, help_text='Name of lab where bone powder was produced')
 	sample_prep_protocol = models.ForeignKey(SamplePrepProtocol, on_delete=models.SET_NULL, null=True)
+	
+# Wetlab consumes samples from this queue for powder batches
+class SamplePrepQueue(Timestamped):
+	priority = models.SmallIntegerField(help_text='Lower is higher priority')
+	sample = models.ForeignKey(Sample, on_delete=models.CASCADE)
+	expected_complexity = models.ForeignKey(ExpectedComplexity, on_delete=models.SET_NULL, null=True)
+	sample_prep_protocol = models.ForeignKey(SamplePrepProtocol, on_delete=models.SET_NULL, null=True)
+	udg_treatment = models.CharField(max_length=10)
+	powder_batch = models.ForeignKey(PowderBatch, null=True, on_delete=models.SET_NULL,)
+	powder_sample = models.ForeignKey(PowderSample, null=True, on_delete=models.SET_NULL) # needed to unassign
 	
 class ExtractionProtocol(Timestamped):
 	name = models.CharField(max_length=150)
