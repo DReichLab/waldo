@@ -290,6 +290,7 @@ class ExtractBatch(Timestamped):
 	robot = models.CharField(max_length=20, blank=True)
 	note = models.TextField(blank=True)
 	powder_batches = models.ManyToManyField(PowderBatch)
+	layout = models.ManyToManyField(PowderSample, through='ExtractBatchLayout')
 	
 	# count the number of samples in powder batches for this extract batch
 	def num_powder_samples(self):
@@ -297,6 +298,10 @@ class ExtractBatch(Timestamped):
 		for powder_batch in self.powder_batches.all():
 			num_powder_samples_assigned += PowderSample.objects.filter(powder_batch=powder_batch).count()
 		return num_powder_samples_assigned
+	
+class ExtractBatchLayout(TimestampedWellPosition):
+	extract_batch = models.ForeignKey(ExtractBatch, on_delete=models.CASCADE)
+	powder_sample = models.ForeignKey(PowderSample, on_delete=models.CASCADE)
 
 class Lysate(Timestamped):
 	lysate_id = models.CharField(max_length=15, unique=True, null=False, db_index=True)
