@@ -282,7 +282,7 @@ class ExtractionProtocol(Timestamped):
 	protocol_reference = models.TextField(blank=True)
 	
 class ExtractBatch(Timestamped):
-	batch_name = models.CharField(max_length=50)
+	batch_name = models.CharField(max_length=50, unique=True)
 	protocol = models.ForeignKey(ExtractionProtocol, on_delete=models.PROTECT, null=True)
 	technician = models.CharField(max_length=50, blank=True)
 	technician_fk = models.ForeignKey(WetLabStaff, on_delete=models.SET_NULL, null=True)
