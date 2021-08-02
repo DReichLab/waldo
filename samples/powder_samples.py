@@ -10,11 +10,7 @@ def new_reich_lab_powder_sample(sample_prep_entry, powder_batch):
 	sample = Sample.objects.get(queue_id=sample_prep_entry.sample.queue_id)
 	# if the corresponding sample does not have Reich Lab sample number, then assign it the next one
 	if sample.reich_lab_id is None:
-		max_sample_number = Sample.objects.all().aggregate(Max('reich_lab_id'))['reich_lab_id__max']
-		next_sample_number = max_sample_number + 1
-		sample.reich_lab_id = next_sample_number
-		sample.save()
-		return max_sample_number
+		sample.assign_reich_lab_sample_number()
 	try:
 		if sample_prep_entry.powder_sample != None:
 			powder_sample = sample_prep_entry.powder_sample

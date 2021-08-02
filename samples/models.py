@@ -222,6 +222,13 @@ class Sample(Timestamped):
 	class Meta:
 		unique_together = ['reich_lab_id', 'control']
 		
+	def assign_reich_lab_sample_number(self):
+		if self.reich_lab_id is None:
+			max_sample_number = Sample.objects.all().aggregate(Max('reich_lab_id'))['reich_lab_id__max']
+			next_sample_number = max_sample_number + 1
+			self.reich_lab_id = next_sample_number
+			self.save()
+		
 class SamplePrepProtocol(Timestamped):
 	preparation_method = models.CharField(max_length=50, help_text='Method used to produce bone powder')
 	manuscript_summary = models.TextField(blank=True, help_text='Sampling method summary for manuscripts')
