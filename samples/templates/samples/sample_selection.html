@@ -31,7 +31,7 @@ Powder Batch: {{powder_batch_name}}
 
 <form action="" method='post'>
 	{% csrf_token %}
-	{{ form }}
+	{{ form.as_p }}
 	<input type='submit' value='Modify Powder Batch And Assign Samples'>
 
 <legend>Samples</legend>

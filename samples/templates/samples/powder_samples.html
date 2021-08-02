@@ -8,7 +8,7 @@
 
 <form action="" method='post'>
 	{% csrf_token %}
-	{{ powder_batch_form }}
+	{{ powder_batch_form.as_p }}
 
 <hr>
 

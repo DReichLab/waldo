@@ -18,7 +18,7 @@ class PowderBatchStatusSelect(ModelChoiceField):
 		return obj.description
 
 class PowderBatchForm(ModelForm):
-	date = forms.DateField(initial=datetime.date.today)
+	date = forms.DateField(initial=datetime.date.today, help_text='YYYY-MM-DD')
 	status = PowderBatchStatusSelect(queryset=PowderBatchStatus.objects.all().order_by('sort_order'), empty_label=None)
 	notes = forms.CharField(required=False, widget=forms.Textarea(attrs={'rows': 2})) 
 	class Meta:
