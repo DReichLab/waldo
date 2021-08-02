@@ -167,6 +167,7 @@ def powder_batches(request):
 			powder_batch.status = status
 			powder_batch.notes = notes
 			powder_batch.save()
+			return redirect(f'{reverse("powder_batch_assign_samples")}?name={powder_batch.name}')
 		
 	batches = PowderBatch.objects.all().annotate(Count('sampleprepqueue', distinct=True),
 					Count('powdersample', distinct=True),
