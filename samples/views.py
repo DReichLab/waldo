@@ -88,6 +88,7 @@ def mt_query(request):
 	
 @login_required
 def landing(request):
+	# TODO display recently changed batches
 	return render(request, 'samples/landing.html', {} )
 
 @login_required
@@ -100,19 +101,19 @@ def sample_prep_queue(request):
 	page_obj.ordered = True
 	
 	if request.method == 'POST':
-		formset = SamplePrepQueueFormset(request.POST, request.FILES)
+		formset = SamplePrepQueueFormset(request.POST, request.FILES, form_kwargs={'user': request.user})
 		
 		if formset.is_valid():
 			formset.save()
 	elif request.method == 'GET':
-		formset = SamplePrepQueueFormset(queryset=page_obj)
+		formset = SamplePrepQueueFormset(queryset=page_obj, form_kwargs={'user': request.user})
 	
 	return render(request, 'samples/generic_formset.html', { 'title': 'Sample Prep Queue', 'page_obj': page_obj, 'formset': formset, 'submit_button_text': 'Update queue entries' } )
 
 @login_required
 def control_types(request):
 	if request.method == 'POST':
-		formset = ControlTypeFormset(request.POST)
+		formset = ControlTypeFormset(request.POST, form_kwargs={'user': request.user})
 		
 		if formset.is_valid():
 			formset.save()
@@ -124,13 +125,13 @@ def control_types(request):
 		paginator = Paginator(whole_queue, page_size)
 		page_obj = paginator.get_page(page_number)
 		page_obj.ordered = True
-		formset = ControlTypeFormset(queryset=page_obj)
+		formset = ControlTypeFormset(queryset=page_obj, form_kwargs={'user': request.user})
 	return render(request, 'samples/generic_formset.html', { 'title': 'Control Types', 'page_obj': page_obj, 'formset': formset, 'submit_button_text': 'Update control types' } )
 
 @login_required
 def control_layout(request):
 	if request.method == 'POST':
-		formset = ControlLayoutFormset(request.POST)
+		formset = ControlLayoutFormset(request.POST, form_kwargs={'user': request.user})
 		
 		if formset.is_valid():
 			formset.save()
@@ -142,16 +143,16 @@ def control_layout(request):
 		paginator = Paginator(whole_queue, page_size)
 		page_obj = paginator.get_page(page_number)
 		page_obj.ordered = True
-		formset = ControlLayoutFormset(queryset=page_obj)
+		formset = ControlLayoutFormset(queryset=page_obj, form_kwargs={'user': request.user})
 	return render(request, 'samples/generic_formset.html', { 'title': 'Control Layout', 'page_obj': page_obj, 'formset': formset, 'submit_button_text': 'Update control layout' } )
 
 # show all powder batches
 @login_required
 def powder_batches(request):
-	form = PowderBatchForm()
+	form = PowderBatchForm(user=request.user)
 	
 	if request.method == 'POST':
-		form = PowderBatchForm(request.POST)
+		form = PowderBatchForm(request.POST, user=request.user)
 		if form.is_valid():
 			name = form.cleaned_data['name']
 			date = form.cleaned_data['date']
@@ -181,7 +182,7 @@ def powder_batch_assign_samples(request):
 	powder_batch_name = request.GET['name']
 	powder_batch = PowderBatch.objects.get(name=powder_batch_name)
 	if request.method == 'POST':
-		form = PowderBatchForm(request.POST, instance=powder_batch)
+		form = PowderBatchForm(request.POST, user=request.user, instance=powder_batch)
 		
 		if form.is_valid():
 			form.save()
@@ -195,7 +196,7 @@ def powder_batch_assign_samples(request):
 				return redirect(f'{reverse("powder_samples")}?powder_batch={powder_batch_name}')
 		
 	elif request.method == 'GET':
-		form = PowderBatchForm(initial={'name': powder_batch_name, 'date': powder_batch.date, 'status': powder_batch.status, 'notes': powder_batch.notes}, instance=powder_batch)
+		form = PowderBatchForm(user=request.user, initial={'name': powder_batch_name, 'date': powder_batch.date, 'status': powder_batch.status, 'notes': powder_batch.notes}, instance=powder_batch)
 	
 	# show samples assigned to this powder batch and unassigned samples
 	sample_queue = SamplePrepQueue.objects.filter(Q(powder_batch=None) | Q(powder_batch=powder_batch)).select_related('sample').select_related('expected_complexity').select_related('sample_prep_protocol').order_by('priority')
@@ -209,8 +210,8 @@ def powder_samples(request):
 	powder_batch_name = request.GET['powder_batch']
 	powder_batch = PowderBatch.objects.get(name=powder_batch_name)
 	if request.method == 'POST':
-		powder_batch_form = PowderBatchForm(request.POST, instance=powder_batch)
-		powder_batch_sample_formset = PowderSampleFormset(request.POST, request.FILES)
+		powder_batch_form = PowderBatchForm(request.POST, instance=powder_batch, user=request.user)
+		powder_batch_sample_formset = PowderSampleFormset(request.POST, request.FILES, form_kwargs={'user': request.user})
 		
 		if powder_batch_form.is_valid():
 			powder_batch_form.save()
@@ -221,8 +222,8 @@ def powder_samples(request):
 				return redirect(f'{reverse("powder_batch_assign_samples")}?name={powder_batch_name}')
 		
 	elif request.method == 'GET':
-		powder_batch_form = PowderBatchForm(initial={'name': powder_batch_name, 'date': powder_batch.date, 'status': powder_batch.status, 'notes': powder_batch.notes}, instance=powder_batch)
-		powder_batch_sample_formset = PowderSampleFormset(queryset=PowderSample.objects.filter(powder_batch=powder_batch))
+		powder_batch_form = PowderBatchForm(initial={'name': powder_batch_name, 'date': powder_batch.date, 'status': powder_batch.status, 'notes': powder_batch.notes}, instance=powder_batch, user=request.user)
+		powder_batch_sample_formset = PowderSampleFormset(queryset=PowderSample.objects.filter(powder_batch=powder_batch), form_kwargs={'user': request.user})
 	
 	# open can have new samples assigned
 	return render(request, 'samples/powder_samples.html', { 'powder_batch_name': powder_batch_name, 'powder_batch_form': powder_batch_form, 'formset': powder_batch_sample_formset} )
@@ -230,7 +231,7 @@ def powder_samples(request):
 @login_required
 def extraction_protocols(request):
 	if request.method == 'POST':
-		extraction_protocol_formset = ExtractionProtocolFormset(request.POST, request.FILES)
+		extraction_protocol_formset = ExtractionProtocolFormset(request.POST, request.FILES, form_kwargs={'user': request.user})
 		if extraction_protocol_formset.is_valid():
 			print('valid extraction protocol formset')
 			extraction_protocol_formset.save()
@@ -238,7 +239,7 @@ def extraction_protocols(request):
 			raise ValueError('failed validation')
 		
 	elif request.method == 'GET':
-		extraction_protocol_formset = ExtractionProtocolFormset(queryset=ExtractionProtocol.objects.all())
+		extraction_protocol_formset = ExtractionProtocolFormset(queryset=ExtractionProtocol.objects.all(), form_kwargs={'user': request.user})
 	
 	# open can have new samples assigned
 	return render(request, 'samples/extraction_protocols.html', { 'formset': extraction_protocol_formset } )
@@ -246,7 +247,7 @@ def extraction_protocols(request):
 @login_required
 def extract_batch (request):
 	if request.method == 'POST':
-		extract_batch_form = ExtractBatchForm(request.POST)
+		extract_batch_form = ExtractBatchForm(request.POST, user=request.user)
 		if extract_batch_form.is_valid():
 			extract_batch_instance = extract_batch_form.save(commit=False)
 			if not ExtractBatch.objects.filter(pk=extract_batch_instance.pk).exists():
@@ -257,7 +258,7 @@ def extract_batch (request):
 			extract_batch_instance.save()
 		
 	elif request.method == 'GET':
-		extract_batch_form = ExtractBatchForm()
+		extract_batch_form = ExtractBatchForm(user=request.user)
 	
 	extract_batches = ExtractBatch.objects.all()
 	# open can have new samples assigned
@@ -289,7 +290,7 @@ def extract_batch_assign_powder_batches(request):
 	extract_batch_name = request.GET['extract_batch']
 	extract_batch = ExtractBatch.objects.get(batch_name=extract_batch_name)
 	if request.method == 'POST':
-		extract_batch_form = ExtractBatchForm(request.POST, instance=extract_batch)
+		extract_batch_form = ExtractBatchForm(request.POST, instance=extract_batch, user=request.user)
 		if extract_batch_form.is_valid():
 			extract_batch_form.save()
 			
@@ -300,7 +301,7 @@ def extract_batch_assign_powder_batches(request):
 			extract_batch.powder_batches.set(selected_powder_batches)
 		
 	elif request.method == 'GET':
-		extract_batch_form = ExtractBatchForm(instance=extract_batch)
+		extract_batch_form = ExtractBatchForm(instance=extract_batch, user=request.user)
 	
 	num_powder_samples_assigned = extract_batch.num_powder_samples()
 	# provide template with how many powder samples in each powder batch and indicate whether powder batch is associated with this extract batch

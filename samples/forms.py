@@ -17,7 +17,23 @@ class PowderBatchStatusSelect(ModelChoiceField):
 	def label_from_instance(self, obj):
 		return obj.description
 
-class PowderBatchForm(ModelForm):
+# This is basically a ModelForm with an additional user (Django login object) field for tracking who has modified objects in the save method
+class UserModelForm(ModelForm):
+	def __init__(self, *args, user, **kwargs):
+		self.user = user
+		super().__init__(*args, **kwargs)
+		
+	def save(self, commit=True):
+		m = super().save(commit=False)
+		m.save_user = self.user
+		if commit:
+			m.save()
+		return m
+	
+	class Meta:
+		abstract = True
+
+class PowderBatchForm(UserModelForm):
 	date = forms.DateField(initial=datetime.date.today, help_text='YYYY-MM-DD')
 	status = PowderBatchStatusSelect(queryset=PowderBatchStatus.objects.all().order_by('sort_order'), empty_label=None)
 	notes = forms.CharField(required=False, widget=forms.Textarea(attrs={'rows': 2})) 
@@ -56,7 +72,7 @@ class SampleByQueueIDField(IntegerField):
 		except Sample.DoesNotExist:
 			raise ValidationError(f'Sample with queue id {value} does not exist')
 	
-class SamplePrepQueueForm(ModelForm):
+class SamplePrepQueueForm(UserModelForm):
 	sample_queue_id = SampleByQueueIDField(label='Sample Queue ID')
 	expected_complexity = ExpectedComplexitySelect(queryset=ExpectedComplexity.objects.all(), empty_label=None)
 	sample_prep_protocol = SamplePrepProtocolSelect(queryset=SamplePrepProtocol.objects.all(), empty_label=None)
@@ -80,9 +96,9 @@ class SamplePrepQueueForm(ModelForm):
 			model.save()
 		return model
         
-SamplePrepQueueFormset = modelformset_factory(SamplePrepQueue, form=SamplePrepQueueForm,) # extra=0)
+SamplePrepQueueFormset = modelformset_factory(SamplePrepQueue, form=SamplePrepQueueForm, extra=0)
 	
-class PowderSampleForm(ModelForm):
+class PowderSampleForm(UserModelForm):
 	reich_lab_sample = CharField(disabled=True)
 	sample_prep_protocol = SamplePrepProtocolSelect(queryset=SamplePrepProtocol.objects.all(), empty_label=None)
 	class Meta:
@@ -101,7 +117,7 @@ class PowderSampleForm(ModelForm):
 		
 PowderSampleFormset = modelformset_factory(PowderSample, form=PowderSampleForm, extra=0, max_num=200)
 		
-class ExtractionProtocolForm(ModelForm):
+class ExtractionProtocolForm(UserModelForm):
 	class Meta:
 		model = ExtractionProtocol
 		fields = ['name', 'start_date', 'end_date', 'description', 'manual_robotic', 'total_lysis_volume', 'lysate_fraction_extracted', 'final_extract_volume', 'binding_buffer', 'manuscript_summary', 'protocol_reference']
@@ -113,7 +129,7 @@ class ExtractionProtocolSelect(ModelChoiceField):
 	def label_from_instance(self, obj):
 		return obj.name
 		
-class ExtractBatchForm(ModelForm):
+class ExtractBatchForm(UserModelForm):
 	protocol = ExtractionProtocolSelect(queryset=ExtractionProtocol.objects.all())
 	class Meta:
 		model = ExtractBatch
@@ -126,13 +142,13 @@ class ControlTypeSelect(ModelChoiceField):
 	def label_from_instance(self, obj):
 		return obj.control_type
 		
-class ControlTypeForm(ModelForm):
+class ControlTypeForm(UserModelForm):
 	class Meta:
 		fields = ['control_type']
 		
 ControlTypeFormset = modelformset_factory(ControlType, form=ControlTypeForm, max_num=20)
 
-class ControlLayoutForm(ModelForm):
+class ControlLayoutForm(UserModelForm):
 	control_type = ControlTypeSelect(queryset=ControlType.objects.all(), empty_label=None)
 	class Meta:
 		model = ControlLayout
