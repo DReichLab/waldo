@@ -30,6 +30,13 @@ class Timestamped(models.Model):
 	class Meta:
 		abstract = True
 		
+	def save(self, *args, **kwargs):
+		save_user = getattr(self, 'save_user', None)
+		if save_user is not None:
+			self.modified_by = save_user.username
+		self.modification_timestamp = timezone.now()
+		super(Timestamped, self).save(*args, **kwargs)
+		
 def validate_row_letter(letter):
 	if len(letter) != 1:
 		raise ValidationError(
