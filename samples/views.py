@@ -199,7 +199,10 @@ def powder_batch_assign_samples(request):
 	
 	# show samples assigned to this powder batch and unassigned samples
 	sample_queue = SamplePrepQueue.objects.filter(Q(powder_batch=None) | Q(powder_batch=powder_batch)).select_related('sample').select_related('expected_complexity').select_related('sample_prep_protocol').order_by('priority')
-	return render(request, 'samples/sample_selection.html', { 'queued_samples': sample_queue, 'powder_batch_name': powder_batch_name, 'form': form } )
+	# count for feedback
+	num_sample_prep = SamplePrepQueue.objects.filter(powder_batch=powder_batch).count()
+	num_powder_samples = PowderSample.objects.filter(powder_batch=powder_batch).count()
+	return render(request, 'samples/sample_selection.html', { 'queued_samples': sample_queue, 'powder_batch_name': powder_batch_name, 'form': form, 'num_sample_prep': num_sample_prep, 'num_powder_samples': num_powder_samples } )
 
 @login_required
 def powder_samples(request):
