@@ -235,12 +235,14 @@ def load_pipeline_report(report_filename, desired_experiment, release_label, seq
 		
 		report_library_id_index = headers.index('library_id')
 		experiment_index = headers.index('experiment')
+		index_barcode_key_index = headers.index('Index-Barcode Key')
 		
 		# each line is one library
 		# iterate through report libraries and update corresponding library info
 		for line in f:
 			fields = re.split('\t|\n', line)
 			
+			damage_restricted = (fields[index_barcode_key_index][-2:] == "_d")
 			library_id = fields[report_library_id_index]
 			experiment = fields[experiment_index]
 			if library_id.startswith('S'): # is not '' and library_id is not 'Contl.Capture':				
