@@ -149,24 +149,15 @@ def control_layout(request):
 # show all powder batches
 @login_required
 def powder_batches(request):
-	form = PowderBatchForm(user=request.user)
+	wetlab_staff = WetLabStaff.objects.get(login_user=request.user)
+	form = PowderBatchForm(user=request.user, initial={'technician': wetlab_staff.initials()})
 	
 	if request.method == 'POST':
 		form = PowderBatchForm(request.POST, user=request.user)
 		if form.is_valid():
-			name = form.cleaned_data['name']
-			date = form.cleaned_data['date']
-			status = form.cleaned_data['status']
-			notes = form.cleaned_data['notes']
-			
-			powder_batch, created = PowderBatch.objects.get_or_create(name=name)
-			powder_batch.date = date
-			if created:
-				wetlab_staff = WetLabStaff.objects.get(login_user=request.user)
+			powder_batch = form.save(commit=False)
+			if not PowderBatch.objects.filter(pk=powder_batch.pk).exists():
 				powder_batch.technician_fk = wetlab_staff
-				powder_batch.technician = wetlab_staff.initials()
-			powder_batch.status = status
-			powder_batch.notes = notes
 			powder_batch.save()
 			return redirect(f'{reverse("powder_batch_assign_samples")}?name={powder_batch.name}')
 		

@@ -39,7 +39,7 @@ class PowderBatchForm(UserModelForm):
 	notes = forms.CharField(required=False, widget=forms.Textarea(attrs={'rows': 2})) 
 	class Meta:
 		model = PowderBatch
-		fields = ['name', 'date', 'status', 'notes']
+		fields = ['name', 'date', 'technician', 'status', 'notes']
 
 IMAGE_TYPES = [
 		('Before', 'Before'),
