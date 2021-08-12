@@ -33,11 +33,13 @@ class Timestamped(models.Model):
 	# save_user is a Django User object
 	def save(self, *args, **kwargs):
 		save_user = getattr(self, 'save_user', None)
+		current_time = timezone.now()
 		if save_user is not None:
 			self.modified_by = save_user.username
 			if self.pk is None:
-				created_by = save_user.username
-		self.modification_timestamp = timezone.now()
+				self.created_by = save_user.username
+				self.creation_timestamp = current_time
+		self.modification_timestamp = current_time
 		super(Timestamped, self).save(*args, **kwargs)
 
 

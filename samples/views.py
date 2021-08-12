@@ -17,7 +17,7 @@ from samples.models import Results, Library, Sample, PowderBatch, WetLabStaff, P
 from .forms import IndividualForm, LibraryIDForm, PowderBatchForm, SampleImageForm, PowderSampleForm, PowderSampleFormset, ControlTypeFormset, ControlLayoutFormset, ExtractionProtocolFormset, ExtractBatchForm, SamplePrepQueueFormset
 from sequencing_run.models import MTAnalysis
 
-from .powder_samples import new_reich_lab_powder_sample, assign_prep_queue_entries_to_powder_batch
+from .powder_samples import new_reich_lab_powder_sample, assign_prep_queue_entries_to_powder_batch, assign_powder_samples_to_extract_batch
 
 from samples.sample_photos import photo_list, save_sample_photo
 
@@ -262,13 +262,15 @@ def extract_batch_assign_powder(request):
 	if request.method == 'POST':
 		extract_batch_form = ExtractBatchForm(request.POST, instance=extract_batch, user=request.user)
 		if extract_batch_form.is_valid():
+			print('valid extract_batch form')
 			extract_batch_form.save()
 			
 			# iterate through the checkboxes and change states
-			ticked_checkboxes = request.POST.getlist('checkboxes[]')
+			ticked_checkboxes = request.POST.getlist('powder_sample_checkboxes[]')
 			# tickbox name is powder sample id
-			for powder_sample_id in ticked_checkboxes:
-				pass
+			assign_powder_samples_to_extract_batch(extract_batch, ticked_checkboxes, request.user)
+			#for powder_sample_id in ticked_checkboxes:
+			#	print(f'powder sample: {powder_sample_id}')
 		
 	elif request.method == 'GET':
 		extract_batch_form = ExtractBatchForm(instance=extract_batch, user=request.user)
@@ -279,7 +281,7 @@ def extract_batch_assign_powder(request):
 		| Q(powder_batch__status__description='Ready For Plate', num_assignments=0)
 	)
 	# open can have new samples assigned
-	return render(request, 'samples/extract_batch_assign_powder.html', { 'powder_samples': powder_samples } )
+	return render(request, 'samples/extract_batch_assign_powder.html', { 'extract_batch_name': extract_batch_name, 'powder_samples': powder_samples, 'form': extract_batch_form  } )
 
 @login_required
 def extract_batch_assign_powder_batches(request):

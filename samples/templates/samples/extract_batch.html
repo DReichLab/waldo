@@ -52,7 +52,7 @@ table{
 	<tbody class="list">
 	{% for extract_batch in extract_batches %}
 	<tr>
-		<td class="name"><a href="extract_batch_assign_powder_batches?extract_batch={{extract_batch.batch_name}}">{{extract_batch.batch_name}}</a></td>
+		<td class="name"><a href="extract_batch_assign_powder?extract_batch={{extract_batch.batch_name}}">{{extract_batch.batch_name}}</a></td>
 		<td class="date">{{extract_batch.date|date:'Y-m-d'}}</td>
 		<td class="technician">{{extract_batch.technician}}</td>
 		<td class="robot">{{extract_batch.robot}}</td>
