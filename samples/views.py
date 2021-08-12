@@ -13,7 +13,7 @@ import json
 from datetime import datetime
 
 from samples.pipeline import udg_and_strandedness
-from samples.models import Results, Library, Sample, PowderBatch, WetLabStaff, PowderSample, ControlType, ControlLayout, ExtractionProtocol, ExtractBatch, SamplePrepQueue
+from samples.models import Results, Library, Sample, PowderBatch, WetLabStaff, PowderSample, ControlType, ControlLayout, ExtractionProtocol, ExtractBatch, SamplePrepQueue, PLATE_ROWS, ExtractBatchLayout
 from .forms import IndividualForm, LibraryIDForm, PowderBatchForm, SampleImageForm, PowderSampleForm, PowderSampleFormset, ControlTypeFormset, ControlLayoutFormset, ExtractionProtocolFormset, ExtractBatchForm, SamplePrepQueueFormset
 from sequencing_run.models import MTAnalysis
 
@@ -139,7 +139,7 @@ def control_layout(request):
 	elif request.method == 'GET':
 		page_number = request.GET.get('page', 1)
 		page_size = request.GET.get('page_size', 25)
-		whole_queue = ControlLayout.objects.all()
+		whole_queue = ControlLayout.objects.all().order_by('layout_name')
 		paginator = Paginator(whole_queue, page_size)
 		page_obj = paginator.get_page(page_number)
 		page_obj.ordered = True
@@ -181,7 +181,7 @@ def powder_batch_assign_samples(request):
 			# these are the ticked checkboxes. Values are the ids of SamplePrepQueue objects
 			sample_prep_ids = request.POST.getlist('sample_checkboxes[]')
 			# accounting for sample prep queue and samples, including assigning Reich Lab sample ID
-			assign_prep_queue_entries_to_powder_batch(powder_batch, sample_prep_ids)
+			assign_prep_queue_entries_to_powder_batch(powder_batch, sample_prep_ids, request.user)
 			
 			if powder_batch.status.description != 'Open':
 				return redirect(f'{reverse("powder_samples")}?powder_batch={powder_batch_name}')
@@ -260,19 +260,24 @@ def extract_batch_assign_powder(request):
 	extract_batch_name = request.GET['extract_batch']
 	extract_batch = ExtractBatch.objects.get(batch_name=extract_batch_name)
 	if request.method == 'POST':
-		extract_batch_form = ExtractBatchForm(request.POST, instance=extract_batch)
+		extract_batch_form = ExtractBatchForm(request.POST, instance=extract_batch, user=request.user)
 		if extract_batch_form.is_valid():
 			extract_batch_form.save()
 			
 			# iterate through the checkboxes and change states
 			ticked_checkboxes = request.POST.getlist('checkboxes[]')
-			#TODO
+			# tickbox name is powder sample id
+			for powder_sample_id in ticked_checkboxes:
+				pass
 		
 	elif request.method == 'GET':
-		extract_batch_form = ExtractBatchForm(instance=extract_batch)
+		extract_batch_form = ExtractBatchForm(instance=extract_batch, user=request.user)
 	
-	# TODO
-	powder_samples = PowderSample.objects.filter(Q(powder_batch__status__description='Ready For Plate')  )
+	already_selected_powder_sample_ids = ExtractBatchLayout.objects.filter(extract_batch=extract_batch).values_list('powder_sample', flat=True)
+	powder_samples = PowderSample.objects.annotate(num_assignments=Count('extractbatchlayout')).annotate(assigned_to_extract_batch=Count('extractbatchlayout', filter=Q(extractbatchlayout__extract_batch=extract_batch))).filter(
+		Q(id__in=already_selected_powder_sample_ids)
+		| Q(powder_batch__status__description='Ready For Plate', num_assignments=0)
+	)
 	# open can have new samples assigned
 	return render(request, 'samples/extract_batch_assign_powder.html', { 'powder_samples': powder_samples } )
 
@@ -287,7 +292,7 @@ def extract_batch_assign_powder_batches(request):
 			
 			# assign powder batches to ManyToMany field
 			ticked_checkboxes = request.POST.getlist('checkboxes[]')
-			print(ticked_checkboxes)
+			#print(ticked_checkboxes)
 			selected_powder_batches = PowderBatch.objects.filter(name__in=ticked_checkboxes)
 			extract_batch.powder_batches.set(selected_powder_batches)
 		
@@ -304,10 +309,6 @@ def extract_batch_assign_powder_batches(request):
 	
 	#print(f'num powder batches {len(powder_batches)}')
 	return render(request, 'samples/extract_batch_assign_powder_batches.html', { 'extract_batch_name': extract_batch_name,  'num_powder_samples_assigned': num_powder_samples_assigned, 'powder_batches': powder_batches, 'form': extract_batch_form } )
-
-@login_required
-def extract_batch_plate_layout(request):
-	return render(request, 'samples/extract_batch_plate_layout.html', { 'powder_samples': powder_samples } )
 
 @login_required
 def sample(request):
@@ -329,19 +330,48 @@ def sample(request):
 	
 	images = photo_list(reich_lab_sample_number)
 	return render(request, 'samples/sample.html', { 'reich_lab_sample_number': reich_lab_sample_number, 'images': images, 'form': form} )
+
+PLATE_ROWS = 'ABCDEFGH'
+WELL_PLATE_COLUMNS = range(1,13)
+
+@login_required
+def extract_batch_plate_layout(request):
+	extract_batch_name = request.GET['extract_batch_name']
+	extract_batch = ExtractBatch.objects.get(batch_name=extract_batch_name)
+	
+	if request.method == 'POST' and request.is_ajax():
+		# JSON for a well plate layout
+		objects_map = json.loads(request.body)
+		# TODO propagate changes to database
+	elif request.method == 'POST':
+		control_layout_name = request.POST['control_layout_name']
+		extract_batch.assign_layout(control_layout_name)
+		
+	layout_elements = ExtractBatchLayout.objects.filter(extract_batch=extract_batch).select_related('powder_sample').select_related('control_type')
+		
+	objects_map = {}
+	for layout_element in layout_elements:
+		if layout_element.powder_sample != None:
+			identifier = layout_element.powder_sample.powder_sample_id
+		elif layout_element.control_type != None:
+			identifier = layout_element.control_type.control_type
+		else:
+			raise ValueError('ExtractBatchLayout with neither powder sample nor control content f{layout_element.pk}')
+		# remove spaces and periods for HTML widget
+		joint = { 'position':f'{str(layout_element)}', 'widget_id':identifier.replace(' ','').replace('.','') }
+		objects_map[identifier] = joint
+		
+	return render(request, 'samples/extract_batch_plate_layout.html', { 'rows':PLATE_ROWS, 'columns':WELL_PLATE_COLUMNS, 'objects_map': objects_map } )
 	
 # Handle the layout of a 96 well plate with libraries
 # This renders an interface allowing a technician to move libraries between wells
 @login_required
 def well(request):
-	well_plate_rows = 'ABCDEFGH'
-	well_plate_columns = range(1,13)
-	
 	if request.method == 'POST' and request.is_ajax():
 		# JSON for a well plate layout
 		libraries_map = json.loads(request.body)
 		
-		return render(request, 'samples/well_plate.html', { 'rows':well_plate_rows, 'columns':well_plate_columns, 'libraries_map':libraries_map} )
+		return render(request, 'samples/well_plate.html', { 'rows':PLATE_ROWS, 'columns':WELL_PLATE_COLUMNS, 'libraries_map':libraries_map} )
 	else:
 		library_id_list = ['S20000.Y1.E1.L1', 'S2234.E1.L1']
 		libraries_map = {}
@@ -354,7 +384,7 @@ def well(request):
 		for key, value in libraries_map.items():
 			print(f'{key}\t{value}')
 			
-		return render(request, 'samples/well_plate.html', { 'rows':well_plate_rows, 'columns':well_plate_columns, 'libraries_map':libraries_map} )
+		return render(request, 'samples/well_plate.html', { 'rows':PLATE_ROWS, 'columns':WELL_PLATE_COLUMNS, 'libraries_map':libraries_map} )
 		
 def logout_user(request):
 	return logout_then_login(request)

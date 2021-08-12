@@ -1,11 +1,12 @@
 from django.db.models import Max
 
 from .models import PowderSample, Sample, SamplePrepQueue
+from .models import ExtractBatchLayout
 
 import re
 
 # create a PowderSample and assign Reich Lab Sample Number
-def new_reich_lab_powder_sample(sample_prep_entry, powder_batch):
+def new_reich_lab_powder_sample(sample_prep_entry, powder_batch, user):
 	SAMPLE_PREP_LAB = 'Reich Lab'
 	sample = Sample.objects.get(queue_id=sample_prep_entry.sample.queue_id)
 	# if the corresponding sample does not have Reich Lab sample number, then assign it the next one
@@ -25,12 +26,14 @@ def new_reich_lab_powder_sample(sample_prep_entry, powder_batch):
 		powder_sample = PowderSample.objects.create(sample=sample, powder_batch=powder_batch, powder_sample_id=powder_sample_id)
 	powder_sample.sample_prep_protocol=sample_prep_entry.sample_prep_protocol
 	powder_sample.sample_prep_lab=SAMPLE_PREP_LAB
+	powder_sample.save_user = user
 	powder_sample.save()
 	
 	sample_prep_entry.powder_sample = powder_sample
+	sample_prep_entry.save_user = user
 	sample_prep_entry.save()
 
-def assign_prep_queue_entries_to_powder_batch(powder_batch, sample_prep_ids):
+def assign_prep_queue_entries_to_powder_batch(powder_batch, sample_prep_ids, user):
 	# first clear powder batch
 	to_clear = SamplePrepQueue.objects.filter(powder_batch=powder_batch).exclude(id__in=sample_prep_ids)
 	for sample_prep_entry in to_clear:
@@ -38,22 +41,25 @@ def assign_prep_queue_entries_to_powder_batch(powder_batch, sample_prep_ids):
 		if sample_prep_entry.powder_sample != None:
 			powder_sample = sample_prep_entry.powder_sample
 			powder_sample.powder_batch = None
+			powder_sample.save_user = user
 			powder_sample.save()
 		sample_prep_entry.save()
 	# add samples prep queue entries to powder batch
 	for sample_prep_entry in SamplePrepQueue.objects.filter(id__in=sample_prep_ids):
 		if sample_prep_entry.powder_batch == None:
 			sample_prep_entry.powder_batch = powder_batch
+			sample_prep_entry.save_user = user
 			sample_prep_entry.save()
 		if sample_prep_entry.powder_sample != None:
 			powder_sample = sample_prep_entry.powder_sample
 			powder_sample.powder_batch = powder_batch
+			powder_sample.save_user = user
 			powder_sample.save()
 	# assign reich lab sample number
 	# Open is the state where samples can be added. If it is not open, then create the powder sample and assign Reich lab sample number
 	if powder_batch.status.description != 'Open':
 		for sample_prep_entry in SamplePrepQueue.objects.filter(powder_batch=powder_batch):
-			new_reich_lab_powder_sample(sample_prep_entry, powder_batch)
+			new_reich_lab_powder_sample(sample_prep_entry, powder_batch, user)
 
 # TODO
 # update 
@@ -61,3 +67,15 @@ def powder_samples_from_spreadsheet(spreadsheet_file):
 	with open(spreadsheet_file) as f:
 		header = f.readline()
 		headers = re.split('\t|\n', header)
+
+def assign_powder_samples_to_extract_batch(extract_batch, powder_sample_ids, user):
+	# remove powder samples that are not assigned
+	to_clear = ExtractBatchLayout.objects.filter(extract_batch=extract_batch).exclude( powder_sample__in=powder_sample_ids)
+	to_clear.delete()
+	# add ExtractBatchLayout for powder samples
+	for powder_sample_id in powder_sample_ids:
+		powder_sample = PowderSample.get(id=powder_sample_id)
+		powder_sample_mass_for_extract = powder_sample.powder_for_extract
+		# well position is set after all powder samples are added
+		default_values = {'row': 'A', 'column': 1, 'save_user': user, 'powder_used_mg': powder_sample_mass_for_extract }
+		ExtractBatchLayout.objects.get_or_create(extract_batch=extract_batch, powder_sample=powder_sample, defaults=default_values)

@@ -30,12 +30,18 @@ class Timestamped(models.Model):
 	class Meta:
 		abstract = True
 		
+	# save_user is a Django User object
 	def save(self, *args, **kwargs):
 		save_user = getattr(self, 'save_user', None)
 		if save_user is not None:
 			self.modified_by = save_user.username
+			if self.pk is None:
+				created_by = save_user.username
 		self.modification_timestamp = timezone.now()
 		super(Timestamped, self).save(*args, **kwargs)
+
+
+PLATE_ROWS = 'ABCDEFGH'
 		
 def validate_row_letter(letter):
 	if len(letter) != 1:
@@ -43,11 +49,16 @@ def validate_row_letter(letter):
 			_('Row letter %(letter)s must be 1 character.'),
 			params={'letter': letter},
 		)
-	if letter not in 'ABCDEFGH':
+	if letter not in PLATE_ROWS:
 		raise ValidationError(
 			_('Row letter %(letter)s is out of allowed A-H range.'),
 			params={'letter': letter},
 		)
+
+def plate_location(int_val):
+	row_index = int_val / 12
+	column_index = int_val % 12 + 1
+	return PLATE_ROWS[row_index], column_index
 		
 class TimestampedWellPosition(Timestamped):
 	row = models.CharField(max_length=1, validators=[validate_row_letter])
@@ -55,6 +66,12 @@ class TimestampedWellPosition(Timestamped):
 	
 	class Meta:
 		abstract = True
+		
+	def same_position(self, other_position):
+		return self.row == other_position.row and self.column == other_position.column
+	
+	def __str__(self):
+		return f'{row}{column}'
 
 class Shipment(Timestamped):
 	shipment_name = models.CharField(max_length=30, db_index=True, unique=True)
@@ -267,7 +284,8 @@ class PowderSample(Timestamped):
 	
 	sampling_tech = models.CharField(max_length=15, blank=True, help_text='Technique used to produce the bone powder')
 	sampling_notes = models.TextField(help_text='Notes from technician about sample quality, method used, mg of bone powder produced and storage location', blank=True)
-	total_powder_produced_mg = models.FloatField(null=True, help_text='Total miligrams of bone powder produced from the sample')
+	total_powder_produced_mg = models.FloatField(null=True, help_text='Total milligrams of bone powder produced from the sample')
+	powder_for_extract = models.FloatField(default=0, help_text='Milligrams of powder used for extract') # This is stored here temporarily as it is more properly a property of the extract.
 	storage_location = models.CharField(max_length=50, blank=True, help_text='Storage location of remaining bone powder')
 	sample_prep_lab = models.CharField(max_length=50, blank=True, help_text='Name of lab where bone powder was produced')
 	sample_prep_protocol = models.ForeignKey(SamplePrepProtocol, on_delete=models.SET_NULL, null=True)
@@ -295,6 +313,18 @@ class ExtractionProtocol(Timestamped):
 	manuscript_summary = models.CharField(max_length=150, blank=True)
 	protocol_reference = models.TextField(blank=True)
 	
+	
+# enumeration of the control types
+class ControlType(models.Model):
+	control_type = models.CharField(max_length=25, unique=True)
+
+# each control layout comprises rows with the same name
+# a control layout is applied to batch layouts to add controls
+class ControlLayout(TimestampedWellPosition):
+	layout_name = models.CharField(max_length=25, db_index=True)
+	control_type = models.ForeignKey(ControlType, on_delete=models.PROTECT)
+	active = models.BooleanField(default=True)
+	
 class ExtractBatch(Timestamped):
 	batch_name = models.CharField(max_length=50, unique=True)
 	protocol = models.ForeignKey(ExtractionProtocol, on_delete=models.PROTECT, null=True)
@@ -304,7 +334,7 @@ class ExtractBatch(Timestamped):
 	robot = models.CharField(max_length=20, blank=True)
 	note = models.TextField(blank=True)
 	powder_batches = models.ManyToManyField(PowderBatch)
-	layout = models.ManyToManyField(PowderSample, through='ExtractBatchLayout')
+	layout = models.ManyToManyField(PowderSample, through='ExtractBatchLayout', related_name='powder_sample_assignment')
 	
 	# count the number of samples in powder batches for this extract batch
 	def num_powder_samples(self):
@@ -313,9 +343,53 @@ class ExtractBatch(Timestamped):
 			num_powder_samples_assigned += PowderSample.objects.filter(powder_batch=powder_batch).count()
 		return num_powder_samples_assigned
 	
+	# assign a layout, one powder sample or control per position
+	def assign_layout(self, control_layout_name):
+		# check that PowderBatches are in proper state
+		threshold_status = PowderBatchStatus.objects.get(description='Ready For Plate')
+		for powder_batch in powder_batches.all():
+			if powder_batch.status.sort_order < threshold_status.sort_order:
+				raise ValueError(f'Powder batch {powder_batch.name} is not ready for plate')
+		
+		powders = PowderSample.objects.filter(powder_batch__in=powder_batches)
+		controls = ControlLayout.objects.filter(layout_name=control_layout_name, control_type__control_type='Extract Negative', active=True)
+		# check count
+		if powders.count + controls.count > 96:
+			raise ValueError(f'Too many items for extract layout: {powders.count} powders and {controls.count} controls')
+		
+		count = 0
+		for control in controls:
+			layout_element, created = ExtractBatchLayout.get_or_create(extract_batch=self, control_type=control.control_type, row=control.row, column=control.column)
+		for powder_sample in powders:
+			# check positions until there is no control
+			while True:
+				row, column = plate_location(count)
+				position = {'row': row, 'column': column}
+				layout_element, created = ExtractBatchLayout.objects.get_or_create(extract_batch=self, powder_sample=powder_sample, defaults=position)
+				if not created:
+					layout_element.row = row
+					layout_element.column = column
+				count += 1
+				# if this position is occupied by a control, then move to the next position
+				control_free_position = True
+				for control in controls:
+					if control.same_position(layout_element):
+						control_free_position = False
+						break
+				# if there is no control in this position, we are done with this powder
+				if control_free_position:
+					break
+			layout_element.save()
+	
+	def layout_export(self):
+		pass
+		
+	
 class ExtractBatchLayout(TimestampedWellPosition):
 	extract_batch = models.ForeignKey(ExtractBatch, on_delete=models.CASCADE)
-	powder_sample = models.ForeignKey(PowderSample, on_delete=models.CASCADE)
+	powder_sample = models.ForeignKey(PowderSample, on_delete=models.CASCADE, null=True)
+	control_type = models.ForeignKey(ControlType, on_delete=models.PROTECT, null=True)
+	powder_used_mg = models.FloatField()
 
 class Lysate(Timestamped):
 	lysate_id = models.CharField(max_length=15, unique=True, null=False, db_index=True)
@@ -533,7 +607,7 @@ class DistributionsShipment(Timestamped):
 class DistributionsPowder(Timestamped):
 	distribution_shipment = models.ForeignKey(DistributionsShipment, on_delete=models.PROTECT)
 	powder_sample = models.ForeignKey(PowderSample, on_delete=models.PROTECT)
-	powder_sent_mg = models.FloatField(help_text='Total miligrams of bone powder distributed')
+	powder_sent_mg = models.FloatField(help_text='Total milligrams of bone powder distributed')
 	
 class DistributionsLysate(Timestamped):
 	distribution_shipment = models.ForeignKey(DistributionsShipment, on_delete=models.PROTECT)
@@ -577,13 +651,3 @@ class Instance(Timestamped):
 	data_type = models.CharField(max_length=20) # TODO enumerate this 1240k, shotgun, BigYoruba, etc.
 	family = models.TextField(blank=True, help_text='family id and position within family')
 	assessment_notes = models.TextField(help_text='Xcontam listed if |Z|>2 standard errors from zero: 0.02-0.05="QUESTIONABLE", >0.05="QUESTIONABLE_CRITICAL" or "FAIL") (mtcontam 97.5th percentile estimates listed if coverage >2: <0.8 is "QUESTIONABLE_CRITICAL", 0.8-0.95 is "QUESTIONABLE", and 0.95-0.98 is recorded but "PASS", gets overriden by ANGSD')
-
-# enumeration of the control types
-class ControlType(models.Model):
-	control_type = models.CharField(max_length=25, unique=True)
-
-# each control layout comprises rows with the same name
-class ControlLayout(TimestampedWellPosition):
-	layout_name = models.CharField(max_length=25, db_index=True)
-	control_type = models.ForeignKey(ControlType, on_delete=models.PROTECT)
-	active = models.BooleanField(default=True)
