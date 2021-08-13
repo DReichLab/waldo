@@ -332,7 +332,7 @@ class ExtractBatch(Timestamped):
 	protocol = models.ForeignKey(ExtractionProtocol, on_delete=models.PROTECT, null=True)
 	technician = models.CharField(max_length=50, blank=True)
 	technician_fk = models.ForeignKey(WetLabStaff, on_delete=models.SET_NULL, null=True)
-	date = models.DateField(null=True)
+	date = models.DateField(null=True, help_text='YYYY-MM-DD')
 	robot = models.CharField(max_length=20, blank=True)
 	note = models.TextField(blank=True)
 	powder_batches = models.ManyToManyField(PowderBatch)

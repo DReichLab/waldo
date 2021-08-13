@@ -111,6 +111,12 @@ def sample_prep_queue(request):
 	return render(request, 'samples/generic_formset.html', { 'title': 'Sample Prep Queue', 'page_obj': page_obj, 'formset': formset, 'submit_button_text': 'Update queue entries' } )
 
 @login_required
+def sample_prep_queue_view(request):
+	# show unassigned samples
+	sample_queue = SamplePrepQueue.objects.filter(Q(powder_batch=None)).select_related('sample').select_related('expected_complexity').select_related('sample_prep_protocol').order_by('priority')
+	return render(request, 'samples/sample_prep_queue_view.html', { 'queued_samples': sample_queue } )
+
+@login_required
 def control_types(request):
 	if request.method == 'POST':
 		formset = ControlTypeFormset(request.POST, form_kwargs={'user': request.user})

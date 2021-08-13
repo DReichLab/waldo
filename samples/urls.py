@@ -12,6 +12,7 @@ urlpatterns = [
 	re_path(r'^mt', views.mt_query, name='mt'),
 	path('landing', views.landing, name='landing'),
 	path('sample_prep_queue', views.sample_prep_queue, name='sample_prep_queue'),
+	path('sample_prep_queue_view', views.sample_prep_queue_view, name='sample_prep_queue_view'),
 	path('control_types', views.control_types, name='control_types'),
 	path('control_layout', views.control_layout, name='control_layout'),
 	path('powder_batches', views.powder_batches, name='powder_batches'),
