@@ -27,11 +27,11 @@ table{
 }
 </style>
 
-Extract Batch: {{extract_batch_name}}
+Extract Batch: {{extract_batch_name}} has {{assigned_powder_samples_count}} powder samples assigned
 
 <form action="" method='post'>
 	{% csrf_token %}
-	{{ form }}
+	{{ form.as_p }}
 	<input type='submit' value='Assign Powder Samples'>
 
 <legend>Samples</legend>
@@ -72,7 +72,7 @@ Extract Batch: {{extract_batch_name}}
 
 <script>
 	var list_options = {
-		valueNames: ['checked', 'queue_id', 'collaborator', 'skeletal_element', 'skeletal_code', 'country', 'region'],
+		valueNames: ['checked', 'powder_sample_id', 'sample', 'powder_batch', 'sampling_tech', 'sampling_prep_protocol'],
 		searchDelay: 500
 	};
 	var sample_list = new List('sample_rows', list_options);
@@ -90,7 +90,7 @@ Extract Batch: {{extract_batch_name}}
 		
 		let filtered_count = document.querySelectorAll('input[type="checkbox"].sample_checkbox:checked').length;
 		let filtered_total = document.querySelectorAll('input[type="checkbox"].sample_checkbox').length;
-		document.getElementById('sample_count').innerHTML = String(filtered_count) + " sample" + (filtered_count != 1 ? "s" : "") + " selected of " + String(filtered_total) + " filtered samples. " + String(overall_count) + " selected of " + String(overall_total) + " total samples.";
+		document.getElementById('sample_count').innerHTML = String(filtered_count) + " sample" + (filtered_count != 1 ? "s" : "") + " selected of " + String(filtered_total) + " filtered samples."
 	}
 	
 	sample_list.on('updated', update_count);

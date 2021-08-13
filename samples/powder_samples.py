@@ -88,4 +88,9 @@ def assign_powder_samples_to_extract_batch(extract_batch, powder_sample_ids, use
 		extract_batch_layout.powder_used_mg = powder_sample_mass_for_extract
 		extract_batch_layout.save_user = user
 		extract_batch_layout.save()
-			
+		
+def ensure_powder_sample_reich_lab_sample_ids(extract_batch):
+	for extract_batch_layout in extract_batch.layout:
+		powder_sample = extract_batch_layout.powder_sample
+		sample = powder_sample.sample
+		sample.assign_reich_lab_sample_number()
