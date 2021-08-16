@@ -320,13 +320,19 @@ def extract_batch_assign_powder_batches(request):
 	#print(f'num powder batches {len(powder_batches)}')
 	return render(request, 'samples/extract_batch_assign_powder_batches.html', { 'extract_batch_name': extract_batch_name,  'num_powder_samples_assigned': num_powder_samples_assigned, 'powder_batches': powder_batches, 'form': extract_batch_form } )
 
+def reich_lab_sample_number_from_string(s):
+	if s.startswith('S'):
+		return int(s[1:])
+	else:
+		return int(s)
+
 @login_required
 def sample(request):
 	form = SampleImageForm()
 	if request.method == 'POST':
 		form = SampleImageForm(request.POST, request.FILES)
 		if form.is_valid():
-			reich_lab_sample_number = int(request.GET['sample'])
+			reich_lab_sample_number = reich_lab_sample_number_from_string(request.GET['sample'])
 			print(reich_lab_sample_number)
 			photo = request.FILES.get('photo')
 			label = form.cleaned_data['image_type']
@@ -336,7 +342,7 @@ def sample(request):
 		
 	elif request.method == 'GET':
 		# database, not Reich Lab ID
-		reich_lab_sample_number = int(request.GET['sample'])
+		reich_lab_sample_number = reich_lab_sample_number_from_string(request.GET['sample'])
 	
 	images = photo_list(reich_lab_sample_number)
 	return render(request, 'samples/sample.html', { 'reich_lab_sample_number': reich_lab_sample_number, 'images': images, 'form': form} )

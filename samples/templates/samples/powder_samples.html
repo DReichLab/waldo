@@ -18,6 +18,7 @@
 	<table>
 	<thead>
 	<tr>
+		<th>Photos</th>
 		{% for field in formset.0.visible_fields %}
 			<th>{{ field.label_tag }}</th>
 		{% endfor %}
@@ -25,6 +26,7 @@
 	</thead>
 	
 	<tr>
+		<td></td>
 		{% for field in formset.0.visible_fields %}
 			<td>
 				{{ field.help_text }}
@@ -35,6 +37,7 @@
 	{% for form in formset %}
 	<tr>
 		{{ form.id }}
+		<td><a href="sample?sample={{form.reich_lab_sample.value}}">{{form.reich_lab_sample.value}}</a></td>
 		{% for field in form.visible_fields %}
 			<td>
 			{{ field.errors }}

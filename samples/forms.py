@@ -104,7 +104,7 @@ class PowderSampleForm(UserModelForm):
 	class Meta:
 		model = PowderSample
 		#'powder_sample_id', 
-		fields = ['reich_lab_sample', 'sampling_notes', 'total_powder_produced_mg', 'storage_location', 'sample_prep_lab', 'sample_prep_protocol']
+		fields = ['reich_lab_sample', 'sampling_notes', 'total_powder_produced_mg', 'powder_for_extract', 'storage_location', 'sample_prep_lab', 'sample_prep_protocol']
 		widgets = {
             'sampling_notes': Textarea(attrs={'cols': 60, 'rows': 2}),
         }
@@ -155,3 +155,8 @@ class ControlLayoutForm(UserModelForm):
 		fields = ['layout_name', 'row', 'column', 'control_type', 'active']
 
 ControlLayoutFormset = modelformset_factory(ControlLayout, form=ControlLayoutForm)
+
+class ExtractBatchLayoutForm(forms.Form):
+	extraction_protocol = ExtractionProtocolSelect(queryset=ExtractBatch.objects.all())
+	layout_names = ControlLayout.objects.values('layout_name').distinct('layout_name')
+	control_layout = ChoiceField(choices=zip(layout_names, layout_names))
