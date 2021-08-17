@@ -198,6 +198,11 @@ class Storage(Timestamped):
 	drawer = models.PositiveSmallIntegerField(null=True)
 	unit_name = models.CharField(max_length=50, blank=True)
 	unit_type = models.CharField(max_length=50, blank=True)
+	
+# Samples are sequenced in batches with similar expected complexity to prevent more complex samples from overwhelming less complex samples
+class ExpectedComplexity(models.Model):
+	description = models.CharField(max_length=50, unique=True)
+	sort_order = models.SmallIntegerField()
 
 class Sample(Timestamped):
 	reich_lab_id = models.PositiveIntegerField(db_index=True, null=True, help_text=' assigned when a sample is selected from the queue by the wetlab')
@@ -245,6 +250,8 @@ class Sample(Timestamped):
 	accession_number = models.TextField(blank=True)
 	pathology = models.TextField(blank=True)
 	
+	expected_complexity = models.ForeignKey(ExpectedComplexity, on_delete=models.SET_NULL, null=True)
+	
 	class Meta:
 		unique_together = ['reich_lab_id', 'control']
 		
@@ -260,11 +267,6 @@ class SamplePrepProtocol(Timestamped):
 	manuscript_summary = models.TextField(blank=True, help_text='Sampling method summary for manuscripts')
 	protocol_reference = models.TextField(blank=True, help_text='Protocol citation')
 	notes = models.TextField(blank=True, help_text='Notes about the method used to create bone powder')
-
-# Samples are sequenced in batches with similar expected complexity to prevent more complex samples from overwhelming less complex samples
-class ExpectedComplexity(models.Model):
-	description = models.CharField(max_length=50, unique=True)
-	sort_order = models.SmallIntegerField()
 	
 class PowderBatchStatus(models.Model):
 	description = models.CharField(max_length=50, unique=True)
