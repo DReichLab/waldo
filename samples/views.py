@@ -113,7 +113,7 @@ def sample_prep_queue(request):
 @login_required
 def sample_prep_queue_view(request):
 	# show unassigned samples
-	sample_queue = SamplePrepQueue.objects.filter(Q(powder_batch=None)).select_related('sample').select_related('expected_complexity').select_related('sample_prep_protocol').order_by('priority')
+	sample_queue = SamplePrepQueue.objects.filter(Q(powder_batch=None)).select_related('sample').select_related('sample_prep_protocol').order_by('priority')
 	return render(request, 'samples/sample_prep_queue_view.html', { 'queued_samples': sample_queue } )
 
 @login_required
@@ -169,8 +169,8 @@ def powder_batches(request):
 		
 	batches = PowderBatch.objects.all().annotate(Count('sampleprepqueue', distinct=True),
 					Count('powdersample', distinct=True),
-					low_complexity_count=Count('sampleprepqueue', distinct=True, filter=Q(sampleprepqueue__expected_complexity__description__iexact='low')),
-					high_complexity_count=Count('sampleprepqueue', distinct=True, filter=Q(sampleprepqueue__expected_complexity__description__iexact='high')),
+					low_complexity_count=Count('sampleprepqueue', distinct=True, filter=Q(sampleprepqueue__sample__expected_complexity__description__iexact='low')),
+					high_complexity_count=Count('sampleprepqueue', distinct=True, filter=Q(sampleprepqueue__sample__expected_complexity__description__iexact='high')),
 					).prefetch_related('extractbatch_set')
 	return render(request, 'samples/powder_batches.html', {'powder_batches' : batches, 'form' : form} )
 
@@ -196,7 +196,7 @@ def powder_batch_assign_samples(request):
 		form = PowderBatchForm(user=request.user, initial={'name': powder_batch_name, 'date': powder_batch.date, 'status': powder_batch.status, 'notes': powder_batch.notes}, instance=powder_batch)
 	
 	# show samples assigned to this powder batch and unassigned samples
-	sample_queue = SamplePrepQueue.objects.filter(Q(powder_batch=None, powder_sample=None) | Q(powder_batch=powder_batch)).select_related('sample').select_related('expected_complexity').select_related('sample_prep_protocol').order_by('priority')
+	sample_queue = SamplePrepQueue.objects.filter(Q(powder_batch=None, powder_sample=None) | Q(powder_batch=powder_batch)).select_related('sample').select_related('sample_prep_protocol').order_by('priority')
 	# count for feedback
 	num_sample_prep = SamplePrepQueue.objects.filter(powder_batch=powder_batch).count()
 	num_powder_samples = PowderSample.objects.filter(powder_batch=powder_batch).count()
@@ -313,8 +313,8 @@ def extract_batch_assign_powder_batches(request):
 	# provide template with how many powder samples in each powder batch and indicate whether powder batch is associated with this extract batch
 	powder_batches = PowderBatch.objects.annotate(Count('sampleprepqueue', distinct=True),
 					checked=Count('extractbatch', filter=Q(extractbatch=extract_batch)),
-					low_complexity_count=Count('sampleprepqueue', distinct=True, filter=Q(sampleprepqueue__expected_complexity__description__iexact='low')),
-					high_complexity_count=Count('sampleprepqueue', distinct=True, filter=Q(sampleprepqueue__expected_complexity__description__iexact='high')),
+					low_complexity_count=Count('sampleprepqueue', distinct=True, filter=Q(sampleprepqueue__sample__expected_complexity__description__iexact='low')),
+					high_complexity_count=Count('sampleprepqueue', distinct=True, filter=Q(sampleprepqueue__sample__expected_complexity__description__iexact='high')),
 					).filter(Q(status__description='Ready For Plate') & (Q(extractbatch=None) | Q(extractbatch=extract_batch)))
 	
 	#print(f'num powder batches {len(powder_batches)}')

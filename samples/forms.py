@@ -74,11 +74,10 @@ class SampleByQueueIDField(IntegerField):
 	
 class SamplePrepQueueForm(UserModelForm):
 	sample_queue_id = SampleByQueueIDField(label='Sample Queue ID')
-	expected_complexity = ExpectedComplexitySelect(queryset=ExpectedComplexity.objects.all(), empty_label=None)
 	sample_prep_protocol = SamplePrepProtocolSelect(queryset=SamplePrepProtocol.objects.all(), empty_label=None)
 	class Meta:
 		model = SamplePrepQueue
-		fields = ['sample_queue_id', 'priority', 'expected_complexity', 'sample_prep_protocol', 'udg_treatment']
+		fields = ['sample_queue_id', 'priority', 'sample_prep_protocol', 'udg_treatment']
 	def __init__(self, *args, **kwargs):
 		super(SamplePrepQueueForm, self).__init__(*args, **kwargs)
 		try:

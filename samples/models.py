@@ -298,7 +298,6 @@ class PowderSample(Timestamped):
 class SamplePrepQueue(Timestamped):
 	priority = models.SmallIntegerField(help_text='Lower is higher priority')
 	sample = models.ForeignKey(Sample, on_delete=models.CASCADE)
-	expected_complexity = models.ForeignKey(ExpectedComplexity, on_delete=models.SET_NULL, null=True)
 	sample_prep_protocol = models.ForeignKey(SamplePrepProtocol, on_delete=models.SET_NULL, null=True)
 	udg_treatment = models.CharField(max_length=10)
 	powder_batch = models.ForeignKey(PowderBatch, null=True, on_delete=models.SET_NULL,)
