@@ -282,11 +282,15 @@ def extract_batch_assign_powder(request):
 		extract_batch_form = ExtractBatchForm(instance=extract_batch, user=request.user)
 	
 	already_selected_powder_sample_ids = ExtractBatchLayout.objects.filter(extract_batch=extract_batch).values_list('powder_sample', flat=True)
-	powder_samples = PowderSample.objects.annotate(num_assignments=Count('extractbatchlayout')).annotate(assigned_to_extract_batch=Count('extractbatchlayout', filter=Q(extractbatchlayout__extract_batch=extract_batch))).filter(
+	powder_samples_already_selected = PowderSample.objects.annotate(num_assignments=Count('extractbatchlayout')).annotate(assigned_to_extract_batch=Count('extractbatchlayout', filter=Q(extractbatchlayout__extract_batch=extract_batch))).filter(
 		Q(id__in=already_selected_powder_sample_ids)
-		| Q(powder_batch__status__description='Ready For Plate', num_assignments=0)
+	)
+	powder_samples_unselected = PowderSample.objects.annotate(num_assignments=Count('extractbatchlayout')).annotate(assigned_to_extract_batch=Count('extractbatchlayout', filter=Q(extractbatchlayout__extract_batch=extract_batch))).filter(
+		Q(powder_batch__status__description='Ready For Plate', num_assignments=0)
 		| (Q(powder_batch=None) & ~Q(powder_sample_id__endswith='NP'))# powder samples directly from collaborators will not have powder batch. Exclude controls. 
 	)
+	powder_samples = powder_samples_already_selected.union(powder_samples_unselected).order_by('id')
+	
 	assigned_powder_samples_count = already_selected_powder_sample_ids.count()
 	
 	return render(request, 'samples/extract_batch_assign_powder.html', { 'extract_batch_name': extract_batch_name, 'powder_samples': powder_samples, 'assigned_powder_samples_count': assigned_powder_samples_count, 'form': extract_batch_form  } )
