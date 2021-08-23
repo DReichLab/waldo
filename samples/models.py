@@ -29,10 +29,13 @@ class Timestamped(models.Model):
 	
 	class Meta:
 		abstract = True
-		
+	
 	# save_user is a Django User object
 	def save(self, *args, **kwargs):
-		save_user = getattr(self, 'save_user', None)
+		if 'save_user' in kwargs:
+			save_user = kwargs.pop('save_user')
+		else:
+			save_user = getattr(self, 'save_user', None)
 		current_time = timezone.now()
 		if save_user is not None:
 			self.modified_by = save_user.username
@@ -57,9 +60,10 @@ def validate_row_letter(letter):
 			params={'letter': letter},
 		)
 
+# column first, then row (A1, B1, ..., H1, A2)
 def plate_location(int_val):
-	row_index = int_val / 12
-	column_index = int_val % 12 + 1
+	row_index = int_val % 8
+	column_index = int_val / 8 + 1
 	return PLATE_ROWS[row_index], column_index
 		
 class TimestampedWellPosition(Timestamped):
@@ -73,7 +77,7 @@ class TimestampedWellPosition(Timestamped):
 		return self.row == other_position.row and self.column == other_position.column
 	
 	def __str__(self):
-		return f'{row}{column}'
+		return f'{self.row}{self.column}'
 
 class Shipment(Timestamped):
 	shipment_name = models.CharField(max_length=30, db_index=True, unique=True)
@@ -347,31 +351,28 @@ class ExtractBatch(Timestamped):
 		return num_powder_samples_assigned
 	
 	# assign a layout, one powder sample or control per position
-	def assign_layout(self, control_layout_name):
-		# check that PowderBatches are in proper state
-		threshold_status = PowderBatchStatus.objects.get(description='Ready For Plate')
-		for powder_batch in powder_batches.all():
-			if powder_batch.status.sort_order < threshold_status.sort_order:
-				raise ValueError(f'Powder batch {powder_batch.name} is not ready for plate')
-		
-		powders = PowderSample.objects.filter(powder_batch__in=powder_batches)
-		controls = ControlLayout.objects.filter(layout_name=control_layout_name, control_type__control_type='Extract Negative', active=True)
+	def assign_layout(self, control_layout_name, user):
+		control_types = ['Extract Negative', 'Library Negative', 'Library Positive']
+		powders = ExtractBatchLayout.objects.filter(extract_batch=self, control_type=None)
+		controls = ControlLayout.objects.filter(layout_name=control_layout_name, control_type__control_type__in=control_types, active=True)
 		# check count
-		if powders.count + controls.count > 96:
+		if powders.count() + controls.count() > 96:
 			raise ValueError(f'Too many items for extract layout: {powders.count} powders and {controls.count} controls')
 		
 		count = 0
 		for control in controls:
-			layout_element, created = ExtractBatchLayout.get_or_create(extract_batch=self, control_type=control.control_type, row=control.row, column=control.column)
-		for powder_sample in powders:
+			try:
+				layout_element = ExtractBatchLayout.objects.get(extract_batch=self, control_type=control.control_type, row=control.row, column=control.column)
+			except ExtractBatchLayout.DoesNotExist:
+				layout_element = ExtractBatchLayout.objects.create(extract_batch=self, control_type=control.control_type, row=control.row, column=control.column, powder_used_mg=0)
+			layout_element.save(save_user=user)
+		for layout_element in powders:
 			# check positions until there is no control
 			while True:
 				row, column = plate_location(count)
 				position = {'row': row, 'column': column}
-				layout_element, created = ExtractBatchLayout.objects.get_or_create(extract_batch=self, powder_sample=powder_sample, defaults=position)
-				if not created:
-					layout_element.row = row
-					layout_element.column = column
+				layout_element.row = row
+				layout_element.column = column
 				count += 1
 				# if this position is occupied by a control, then move to the next position
 				control_free_position = True
@@ -382,11 +383,7 @@ class ExtractBatch(Timestamped):
 				# if there is no control in this position, we are done with this powder
 				if control_free_position:
 					break
-			layout_element.save()
-	
-	def layout_export(self):
-		pass
-		
+			layout_element.save(save_user=user)
 	
 class ExtractBatchLayout(TimestampedWellPosition):
 	extract_batch = models.ForeignKey(ExtractBatch, on_delete=models.CASCADE)

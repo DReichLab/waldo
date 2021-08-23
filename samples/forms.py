@@ -156,6 +156,5 @@ class ControlLayoutForm(UserModelForm):
 ControlLayoutFormset = modelformset_factory(ControlLayout, form=ControlLayoutForm)
 
 class ExtractBatchLayoutForm(forms.Form):
-	extraction_protocol = ExtractionProtocolSelect(queryset=ExtractBatch.objects.all())
-	layout_names = ControlLayout.objects.values('layout_name').distinct('layout_name')
+	layout_names = ControlLayout.objects.values_list('layout_name', flat=True).order_by('layout_name').distinct('layout_name')
 	control_layout = ChoiceField(choices=zip(layout_names, layout_names))

@@ -14,7 +14,7 @@ from datetime import datetime
 
 from samples.pipeline import udg_and_strandedness
 from samples.models import Results, Library, Sample, PowderBatch, WetLabStaff, PowderSample, ControlType, ControlLayout, ExtractionProtocol, ExtractBatch, SamplePrepQueue, PLATE_ROWS, ExtractBatchLayout
-from .forms import IndividualForm, LibraryIDForm, PowderBatchForm, SampleImageForm, PowderSampleForm, PowderSampleFormset, ControlTypeFormset, ControlLayoutFormset, ExtractionProtocolFormset, ExtractBatchForm, SamplePrepQueueFormset
+from .forms import IndividualForm, LibraryIDForm, PowderBatchForm, SampleImageForm, PowderSampleForm, PowderSampleFormset, ControlTypeFormset, ControlLayoutFormset, ExtractionProtocolFormset, ExtractBatchForm, SamplePrepQueueFormset, ExtractBatchLayoutForm
 from sequencing_run.models import MTAnalysis
 
 from .powder_samples import new_reich_lab_powder_sample, assign_prep_queue_entries_to_powder_batch, assign_powder_samples_to_extract_batch
@@ -354,6 +354,26 @@ def sample(request):
 PLATE_ROWS = 'ABCDEFGH'
 WELL_PLATE_COLUMNS = range(1,13)
 
+# Assign well locations to powder samples
+@login_required
+def extract_batch_plate_layout_initial(request):
+	extract_batch_name = request.GET['extract_batch_name']
+	
+	if request.method == 'POST':
+		form = ExtractBatchLayoutForm(request.POST)
+		if form.is_valid():
+			extract_batch = ExtractBatch.objects.get(batch_name=extract_batch_name)
+			control_layout_name = form.cleaned_data['control_layout']
+			print(f'layout {extract_batch_name} {control_layout_name}')
+			extract_batch.assign_layout(control_layout_name, request.user)
+			return redirect(f'{reverse("extract_batch_plate_layout")}?extract_batch_name={extract_batch_name}')
+	else:
+		form = ExtractBatchLayoutForm()
+		form.name = extract_batch_name
+		
+	return render(request, 'samples/extract_batch_plate_layout_initial.html', {'extract_batch_name': extract_batch_name, 'form': form})
+		
+
 @login_required
 def extract_batch_plate_layout(request):
 	extract_batch_name = request.GET['extract_batch_name']
@@ -365,7 +385,7 @@ def extract_batch_plate_layout(request):
 		# TODO propagate changes to database
 	elif request.method == 'POST':
 		control_layout_name = request.POST['control_layout_name']
-		extract_batch.assign_layout(control_layout_name)
+		extract_batch.assign_layout(control_layout_name, request.user)
 		
 	layout_elements = ExtractBatchLayout.objects.filter(extract_batch=extract_batch).select_related('powder_sample').select_related('control_type')
 		
@@ -374,7 +394,8 @@ def extract_batch_plate_layout(request):
 		if layout_element.powder_sample != None:
 			identifier = layout_element.powder_sample.powder_sample_id
 		elif layout_element.control_type != None:
-			identifier = layout_element.control_type.control_type
+			# label with location to distinguish between controls
+			identifier = f'{layout_element.control_type.control_type} {str(layout_element)}'
 		else:
 			raise ValueError('ExtractBatchLayout with neither powder sample nor control content f{layout_element.pk}')
 		# remove spaces and periods for HTML widget

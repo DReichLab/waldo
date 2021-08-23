@@ -33,6 +33,8 @@ Extract Batch: {{extract_batch_name}} has {{assigned_powder_samples_count}} powd
 	{% csrf_token %}
 	{{ form.as_p }}
 	<input type='submit' value='Assign Powder Samples'>
+	<a href='extract_batch_plate_layout_initial?extract_batch_name={{extract_batch_name}}'>Start layout</a>
+	<a href='extract_batch_plate_layout?extract_batch_name={{extract_batch_name}}'>Layout</a>
 
 <legend>Samples</legend>
 <div id='sample_rows'>
