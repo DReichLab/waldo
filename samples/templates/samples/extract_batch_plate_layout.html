@@ -1,0 +1,203 @@
+{% load static %}
+
+<link rel="stylesheet" href="{% static "jquery-ui/jquery-ui.min.css" %}" />
+<link rel="stylesheet" href="{% static "jquery-ui/themes/ui-lightness/theme.css" %}" />
+
+<script src="{% static "jquery-ui/external/jquery/jquery.js" %}"></script>
+<script src="{% static "jquery-ui/jquery-ui.min.js" %}"></script>
+
+<style>
+	{% for row in rows %}
+		{% for column in columns %}
+			#{{ row }}{{ column }} { width: 130px; height: 100px; padding: 0.0em; float: left; margin: 0px; }
+		{% endfor %}
+	{% endfor %}
+	
+	{% for object_id, position_and_widget_ui in objects_map.items %}
+		#{{ position_and_widget_ui.widget_id }} { width: 120px; height: 25px; display: flex;
+			justify-content: left;
+			align-items: center; }
+	{% endfor %}
+</style>
+
+<script>
+	// build a javascript version of the python object defining layout of objects into well positions
+	var objects_map_js = {};
+	{% for object_id, position_and_widget_ui in objects_map.items %}
+		objects_map_js[ "{{ object_id }}" ] = {
+			widget_id:"{{ position_and_widget_ui.widget_id }}", 
+			position:"{{ position_and_widget_ui.position }}",
+			object_id:"{{ object_id }}"
+		};
+	{% endfor %}
+	var objects_by_position = {}; // object ids contained in well location
+	
+
+	function remove_object_from_old_position(object_map_entry){
+		var position_list = objects_by_position[object_map_entry.position]
+		if (position_list != null){
+			var index = position_list.indexOf(object_map_entry.object_id);
+			if (index >= 0){
+				position_list.splice(index, 1);
+			}
+		}
+	}
+	
+	function position_object(object_map_entry){
+		// put object in well position list
+		if (!objects_by_position[object_map_entry.position]){
+			objects_by_position[object_map_entry.position] = [];
+		}
+		objects_by_position[object_map_entry.position].push(object_map_entry.object_id);
+	}
+	
+	// render objects in a well position without overlap
+	function layout_well(position){
+		var well_objects = objects_by_position[position];
+		if (well_objects != null){
+			var prior_object_widget = null;
+			for (var i = 0; i < well_objects.length; i++){
+				var object_id = well_objects[i];
+				var object_map_entry = objects_map_js[object_id];
+				var gui_position_arguments = {
+					of: $( "#" + position ),
+					my: "left bottom",
+					at: "left bottom"
+				};
+				if (prior_object_widget != null){
+					gui_position_arguments = {
+						of: $( "#" +  prior_object_widget ),
+						my: "left bottom",
+						at: "left top"
+					};
+				}
+				prior_object_widget = object_map_entry.widget_id;
+				
+				$( "#" + object_map_entry.widget_id ).position(gui_position_arguments);
+			}
+		}
+	}
+	
+	function object_dropped_in_well_position(object_map_entry, well_position){
+		remove_object_from_old_position(object_map_entry);
+		object_map_entry.position = well_position;
+		position_object(object_map_entry);
+		layout_well(well_position);
+		
+		// TODO remove
+		send_well_plate_layout(objects_map_js);
+	}
+	
+	function position_all_objects(objects_map_js){
+		for(var object_map_entry in objects_map_js){
+			position_object(objects_map_js[object_map_entry]);
+		}
+		for(var position in objects_by_position){
+			layout_well(position);
+		}
+	}
+	
+	$( function() {
+		{% for row in rows %}
+			{% for column in columns %}
+				$( "#{{ row }}{{ column }}" ).droppable({
+					classes: {
+						"ui-droppable-hover": "ui-state-hover"
+					},
+					drop: function( event, ui ) {
+						var well_position = "{{ row }}{{ column }}"
+						var object_id = ui.draggable[0].getAttribute('object_id');
+						var object_map_entry = objects_map_js[object_id];
+						object_dropped_in_well_position(object_map_entry, well_position);
+					}
+				});
+			{% endfor %}
+		{% endfor %}
+	
+		{% for object_id, position_and_widget_ui in objects_map.items %}
+			$( "#{{ position_and_widget_ui.widget_id }}" ).draggable( { snap: ".ui-widget-header", snapMode: "inner", revert: "invalid" } );
+		{% endfor %}
+		position_all_objects(objects_map_js);
+	} );
+</script>
+
+<script>
+	function object_position_callback(){
+		console.log('position callback')
+	}
+</script>
+
+<body>
+
+<div id=''>
+	<form id="" method="POST">
+		{% csrf_token %}
+		<input type="submit" name="test_button" />
+	</form>
+</div>
+
+<script>
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            // Does this cookie string begin with the name we want?
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+const csrftoken = getCookie('csrftoken');
+</script>
+
+<script>
+	function send_well_plate_layout(objects_map){
+		$.ajax({
+			method: 'POST',
+			url: 'extract_batch_plate_layout',
+			headers: {
+				'X-CSRFToken': csrftoken
+			},
+			
+			data: {'extract_batch_name': '{{extract_batch_name}}',
+				layout: JSON.stringify(objects_map)
+			}
+		})
+		//.done(function(data) {
+		//	alert(data);
+		//})
+		.fail (function( jqXHR, textStatus ) {
+			console.log( "Request failed: " + textStatus );
+			console.log('{{extract_batch_name}}');
+		});
+	}
+</script>
+
+<h> Extract Batch: {{extract_batch_name}} </h>
+
+<table id=well_plate_layout>
+{% for row in rows %}
+	<tr>
+	{% for column in columns %}
+		<td>
+			<div id="{{ row }}{{ column }}" class="ui-widget-header">
+				<p>{{ row }}{{ column }}</p>
+			</div>
+		</td>
+	{% endfor %}
+	</tr>
+{% endfor %}
+</table>
+
+{% for object_id, position_and_widget_ui in objects_map.items %}
+	<div id="{{ position_and_widget_ui.widget_id }}" class="draggable ui-widget-content positionable" object_id="{{ object_id }}">
+		<p>{{ object_id }}</p>
+	</div>
+{% endfor %}
+
+</body>

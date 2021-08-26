@@ -376,16 +376,23 @@ def extract_batch_plate_layout_initial(request):
 
 @login_required
 def extract_batch_plate_layout(request):
-	extract_batch_name = request.GET['extract_batch_name']
+	try:
+		extract_batch_name = request.GET['extract_batch_name']
+	except:
+		extract_batch_name = request.POST['extract_batch_name']
 	extract_batch = ExtractBatch.objects.get(batch_name=extract_batch_name)
 	
 	if request.method == 'POST' and request.is_ajax():
 		# JSON for a well plate layout
-		objects_map = json.loads(request.body)
+		print(request.body)
+		layout = request.POST['layout']
+		objects_map = json.loads(layout)
 		# TODO propagate changes to database
+		print('ajax submission')
 	elif request.method == 'POST':
-		control_layout_name = request.POST['control_layout_name']
-		extract_batch.assign_layout(control_layout_name, request.user)
+		#control_layout_name = request.POST['control_layout_name']
+		#extract_batch.assign_layout(control_layout_name, request.user)
+		print('POST {extract_batch_name}')
 		
 	layout_elements = ExtractBatchLayout.objects.filter(extract_batch=extract_batch).select_related('powder_sample').select_related('control_type')
 		
@@ -402,7 +409,7 @@ def extract_batch_plate_layout(request):
 		joint = { 'position':f'{str(layout_element)}', 'widget_id':identifier.replace(' ','').replace('.','') }
 		objects_map[identifier] = joint
 		
-	return render(request, 'samples/extract_batch_plate_layout.html', { 'rows':PLATE_ROWS, 'columns':WELL_PLATE_COLUMNS, 'objects_map': objects_map } )
+	return render(request, 'samples/extract_batch_plate_layout.html', { 'extract_batch_name': extract_batch_name, 'rows':PLATE_ROWS, 'columns':WELL_PLATE_COLUMNS, 'objects_map': objects_map } )
 	
 # Handle the layout of a 96 well plate with libraries
 # This renders an interface allowing a technician to move libraries between wells

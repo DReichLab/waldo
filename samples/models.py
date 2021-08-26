@@ -265,6 +265,10 @@ class Sample(Timestamped):
 			next_sample_number = max_sample_number + 1
 			self.reich_lab_id = next_sample_number
 			self.save()
+		return self.reich_lab_id
+	
+	def is_control(self):
+		return len(self.control) > 0
 		
 class SamplePrepProtocol(Timestamped):
 	preparation_method = models.CharField(max_length=50, help_text='Method used to produce bone powder')
@@ -342,6 +346,7 @@ class ExtractBatch(Timestamped):
 	note = models.TextField(blank=True)
 	powder_batches = models.ManyToManyField(PowderBatch)
 	layout = models.ManyToManyField(PowderSample, through='ExtractBatchLayout', related_name='powder_sample_assignment')
+	# TODO control_layout = models.ForeignKey(ControlLayout, null=True, on_delete=models.SET_NULL)
 	
 	# count the number of samples in powder batches for this extract batch
 	def num_powder_samples(self):
@@ -353,7 +358,7 @@ class ExtractBatch(Timestamped):
 	# assign a layout, one powder sample or control per position
 	def assign_layout(self, control_layout_name, user):
 		control_types = ['Extract Negative', 'Library Negative', 'Library Positive']
-		powders = ExtractBatchLayout.objects.filter(extract_batch=self, control_type=None)
+		powders = ExtractBatchLayout.objects.filter(extract_batch=self, control_type=None).order_by('powder_sample__powder_batch', 'powder_sample__sample__reich_lab_id')
 		controls = ControlLayout.objects.filter(layout_name=control_layout_name, control_type__control_type__in=control_types, active=True)
 		# check count
 		if powders.count() + controls.count() > 96:
