@@ -1,4 +1,10 @@
+{% extends "samples/reich_lab_base.html" %}
+
 {% load static %}
+
+{% block title %}{{layout_title}}: {{layout_name}}{% endblock %}
+
+{% block content %}
 
 <link rel="stylesheet" href="{% static "jquery-ui/jquery-ui.min.css" %}" />
 <link rel="stylesheet" href="{% static "jquery-ui/themes/ui-lightness/theme.css" %}" />
@@ -9,12 +15,12 @@
 <style>
 	{% for row in rows %}
 		{% for column in columns %}
-			#{{ row }}{{ column }} { width: 130px; height: 100px; padding: 0.0em; float: left; margin: 0px; }
+			#{{ row }}{{ column }} { width: 100px; height: 90px; padding: 0.0em; float: left; margin: 0px; }
 		{% endfor %}
 	{% endfor %}
 	
 	{% for object_id, position_and_widget_ui in objects_map.items %}
-		#{{ position_and_widget_ui.widget_id }} { width: 120px; height: 25px; display: flex;
+		#{{ position_and_widget_ui.widget_id }} { width: 100px; height: 20px; display: flex;
 			justify-content: left;
 			align-items: center; }
 	{% endfor %}
@@ -156,12 +162,12 @@ const csrftoken = getCookie('csrftoken');
 	function send_well_plate_layout(objects_map){
 		$.ajax({
 			method: 'POST',
-			url: 'extract_batch_plate_layout',
+			url: '{{submit_url}}',
 			headers: {
 				'X-CSRFToken': csrftoken
 			},
 			
-			data: {'extract_batch_name': '{{extract_batch_name}}',
+			data: {'layout_name': '{{layout_name}}',
 				layout: JSON.stringify(objects_map)
 			}
 		})
@@ -171,12 +177,10 @@ const csrftoken = getCookie('csrftoken');
 		.fail (function( jqXHR, textStatus ) {
 			alert('Update failed');
 			console.log( "Request failed: " + textStatus );
-			console.log('{{extract_batch_name}}');
+			console.log('{{layout_name}}');
 		});
 	}
 </script>
-
-<h> Extract Batch: {{extract_batch_name}} </h>
 
 <table id=well_plate_layout>
 {% for row in rows %}
@@ -199,3 +203,4 @@ const csrftoken = getCookie('csrftoken');
 {% endfor %}
 
 </body>
+{% endblock %}

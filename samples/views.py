@@ -384,11 +384,15 @@ def extract_batch_plate_layout(request):
 	
 	if request.method == 'POST' and request.is_ajax():
 		# JSON for a well plate layout
-		print(request.body)
+		#print(request.body)
 		layout = request.POST['layout']
 		objects_map = json.loads(layout)
 		# TODO propagate changes to database
-		print('ajax submission')
+		for powder_sample_id_string in objects_map:
+			x = objects_map[powder_sample_id_string]
+			position = x['position']
+			print(powder_sample_id_string, position)
+		#print('ajax submission')
 	elif request.method == 'POST':
 		#control_layout_name = request.POST['control_layout_name']
 		#extract_batch.assign_layout(control_layout_name, request.user)
@@ -409,7 +413,7 @@ def extract_batch_plate_layout(request):
 		joint = { 'position':f'{str(layout_element)}', 'widget_id':identifier.replace(' ','').replace('.','') }
 		objects_map[identifier] = joint
 		
-	return render(request, 'samples/extract_batch_plate_layout.html', { 'extract_batch_name': extract_batch_name, 'rows':PLATE_ROWS, 'columns':WELL_PLATE_COLUMNS, 'objects_map': objects_map } )
+	return render(request, 'samples/generic_layout.html', { 'layout_title': 'Powder Sample Layout For Extract Batch', 'layout_name': extract_batch_name, 'rows':PLATE_ROWS, 'columns':WELL_PLATE_COLUMNS, 'objects_map': objects_map } )
 	
 # Handle the layout of a 96 well plate with libraries
 # This renders an interface allowing a technician to move libraries between wells
