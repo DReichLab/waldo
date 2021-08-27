@@ -280,8 +280,10 @@ def extract_batch_assign_powder(request):
 		
 	elif request.method == 'GET':
 		extract_batch_form = ExtractBatchForm(instance=extract_batch, user=request.user)
+		
+	existing_controls = ExtractBatchLayout.objects.filter(extract_batch=extract_batch, control_type__isnull=False)
 	
-	already_selected_powder_sample_ids = ExtractBatchLayout.objects.filter(extract_batch=extract_batch).values_list('powder_sample', flat=True)
+	already_selected_powder_sample_ids = ExtractBatchLayout.objects.filter(extract_batch=extract_batch, control_type=None).values_list('powder_sample', flat=True)
 	powder_samples_already_selected = PowderSample.objects.annotate(num_assignments=Count('extractbatchlayout')).annotate(assigned_to_extract_batch=Count('extractbatchlayout', filter=Q(extractbatchlayout__extract_batch=extract_batch))).filter(
 		Q(id__in=already_selected_powder_sample_ids)
 	)
@@ -293,7 +295,7 @@ def extract_batch_assign_powder(request):
 	
 	assigned_powder_samples_count = already_selected_powder_sample_ids.count()
 	
-	return render(request, 'samples/extract_batch_assign_powder.html', { 'extract_batch_name': extract_batch_name, 'powder_samples': powder_samples, 'assigned_powder_samples_count': assigned_powder_samples_count, 'form': extract_batch_form  } )
+	return render(request, 'samples/extract_batch_assign_powder.html', { 'extract_batch_name': extract_batch_name, 'powder_samples': powder_samples, 'assigned_powder_samples_count': assigned_powder_samples_count, 'control_count': len(existing_controls), 'form': extract_batch_form  } )
 
 @login_required
 def extract_batch_assign_powder_batches(request):
