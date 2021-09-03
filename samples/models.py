@@ -80,7 +80,7 @@ class TimestampedWellPosition(Timestamped):
 	
 	def set_position(self, position_string):
 		self.row = position_string[0]
-		self.column = int(position_string[1])
+		self.column = int(position_string[1:])
 	
 	def __str__(self):
 		return f'{self.row}{self.column}'

@@ -344,6 +344,7 @@ def extract_batch_plate_layout(request):
 		#print(request.body)
 		layout = request.POST['layout']
 		objects_map = json.loads(layout)
+		#print(objects_map)
 		# propagate changes to database
 		for identifier in objects_map:
 			x = objects_map[identifier]
@@ -355,7 +356,7 @@ def extract_batch_plate_layout(request):
 			except ExtractBatchLayout.DoesNotExist:
 				control_type, start_position = identifier.split()
 				row = start_position[0]
-				column = int(start_position[1])
+				column = int(start_position[1:])
 				layout_element = ExtractBatchLayout.objects.get(extract_batch=extract_batch, control_type__control_type=control_type, row=row, column=column)
 			layout_element.set_position(position)
 			layout_element.save(save_user=request.user)
