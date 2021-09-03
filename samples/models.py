@@ -8,7 +8,9 @@ from django.core.exceptions import ValidationError
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.utils.translation import gettext_lazy as _
 
-import re
+from django.db.models import Max
+
+import re, string
 
 def parse_sample_string(s):
 	# we expect a sample number to start with 'S'
@@ -75,6 +77,10 @@ class TimestampedWellPosition(Timestamped):
 		
 	def same_position(self, other_position):
 		return self.row == other_position.row and self.column == other_position.column
+	
+	def set_position(self, position_string):
+		self.row = position_string[0]
+		self.column = int(position_string[1])
 	
 	def __str__(self):
 		return f'{self.row}{self.column}'
@@ -207,6 +213,8 @@ class Storage(Timestamped):
 class ExpectedComplexity(models.Model):
 	description = models.CharField(max_length=50, unique=True)
 	sort_order = models.SmallIntegerField()
+	
+CONTROL_CHARACTERS = string.ascii_lowercase
 
 class Sample(Timestamped):
 	reich_lab_id = models.PositiveIntegerField(db_index=True, null=True, help_text=' assigned when a sample is selected from the queue by the wetlab')
@@ -259,16 +267,19 @@ class Sample(Timestamped):
 	class Meta:
 		unique_together = ['reich_lab_id', 'control']
 		
-	def assign_reich_lab_sample_number(self):
+	def assign_reich_lab_sample_number(self, **kwargs):
 		if self.reich_lab_id is None:
 			max_sample_number = Sample.objects.all().aggregate(Max('reich_lab_id'))['reich_lab_id__max']
 			next_sample_number = max_sample_number + 1
 			self.reich_lab_id = next_sample_number
-			self.save()
+			self.save(**kwargs)
 		return self.reich_lab_id
 	
 	def is_control(self):
 		return len(self.control) > 0
+	
+	def __str__(self):
+		return f'S{self.reich_lab_id:04d}{self.control}'
 		
 class SamplePrepProtocol(Timestamped):
 	preparation_method = models.CharField(max_length=50, help_text='Method used to produce bone powder')
@@ -301,6 +312,9 @@ class PowderSample(Timestamped):
 	storage_location = models.CharField(max_length=50, blank=True, help_text='Storage location of remaining bone powder')
 	sample_prep_lab = models.CharField(max_length=50, blank=True, help_text='Name of lab where bone powder was produced')
 	sample_prep_protocol = models.ForeignKey(SamplePrepProtocol, on_delete=models.SET_NULL, null=True)
+	
+	def is_control(self):
+		return powder_sample_id.endswith('NP')
 	
 # Wetlab consumes samples from this queue for powder batches
 class SamplePrepQueue(Timestamped):
@@ -335,7 +349,11 @@ class ControlLayout(TimestampedWellPosition):
 	layout_name = models.CharField(max_length=25, db_index=True)
 	control_type = models.ForeignKey(ControlType, on_delete=models.PROTECT)
 	active = models.BooleanField(default=True)
-	
+
+EXTRACT_NEGATIVE = 'Extract Negative'
+LIBRARY_NEGATIVE = 'Library Negative'
+LIBRARY_POSITIVE = 'Library Positive'
+
 class ExtractBatch(Timestamped):
 	batch_name = models.CharField(max_length=50, unique=True)
 	protocol = models.ForeignKey(ExtractionProtocol, on_delete=models.PROTECT, null=True)
@@ -346,7 +364,7 @@ class ExtractBatch(Timestamped):
 	note = models.TextField(blank=True)
 	powder_batches = models.ManyToManyField(PowderBatch)
 	layout = models.ManyToManyField(PowderSample, through='ExtractBatchLayout', related_name='powder_sample_assignment')
-	# TODO control_layout = models.ForeignKey(ControlLayout, null=True, on_delete=models.SET_NULL)
+	control_layout_name = models.CharField(max_length=25, blank=True, help_text='When applying a layout, use this set of controls.  The control entries are stored in layout.')
 	
 	# count the number of samples in powder batches for this extract batch
 	def num_powder_samples(self):
@@ -356,20 +374,78 @@ class ExtractBatch(Timestamped):
 		return num_powder_samples_assigned
 	
 	# assign a layout, one powder sample or control per position
-	def assign_layout(self, control_layout_name, user):
-		control_types = ['Extract Negative', 'Library Negative', 'Library Positive']
+	# this is the layout to produce lysate
+	def assign_layout(self, user):
+		control_types = [EXTRACT_NEGATIVE, LIBRARY_NEGATIVE, LIBRARY_POSITIVE]
 		powders = ExtractBatchLayout.objects.filter(extract_batch=self, control_type=None).order_by('powder_sample__powder_batch', 'powder_sample__sample__reich_lab_id')
-		controls = ControlLayout.objects.filter(layout_name=control_layout_name, control_type__control_type__in=control_types, active=True)
+		controls = ControlLayout.objects.filter(layout_name=self.control_layout_name, control_type__control_type__in=control_types, active=True)
 		# check count
 		if powders.count() + controls.count() > 96:
 			raise ValueError(f'Too many items for extract layout: {powders.count} powders and {controls.count} controls')
 		
 		count = 0
+		# get existing controls
+		existing_controls = ExtractBatchLayout.objects.filter(extract_batch=self, control_type__isnull=False).order_by('row', 'column')
+		# we should check the existing controls for sample ids
+		# Extract Negative: find the Reich lab sample ID used for extract negatives for this extract batch
+		extract_negative_sample_id = None
+		extract_negative_controls = existing_controls.filter(control_type__control_type=EXTRACT_NEGATIVE)
+		for extract_negative_layout in extract_negative_controls:
+			if extract_negative_sample_id is None:
+				extract_negative_sample_id = extract_negative_layout.powder_sample.sample.reich_lab_id
+			elif extract_negative_sample_id != extract_negative_layout.powder_sample.sample.reich_lab_id:
+				raise ValueError(f'Multiple extract negative control sample ids: {extract_negative_sample_id} {extract_negative_layout.powder_sample.sample.reich_lab_id:}')
+		# Library Negative: find the Reich lab sample ID used for library negatives for this extract batch
+		library_negative_sample_id = None
+		library_negative_controls = existing_controls.filter(control_type__control_type=LIBRARY_NEGATIVE)
+		for library_negative_layout in library_negative_controls:
+			if library_negative_sample_id is None:
+				library_negative_sample_id = library_negative_layout.powder_sample.sample.reich_lab_id
+			elif library_negative_sample_id != library_negative_layout.powder_sample.sample.reich_lab_id:
+				raise ValueError(f'Multiple library negative control sample ids: {library_negative_sample_id} {library_negative_layout.powder_sample.sample.reich_lab_id:}')
+		# remove existing control layout entries
+		for existing_control in existing_controls:
+			existing_control.destroy_control(user)
+			existing_control.delete()
+		# create new control layout entries
+		extract_negative_control_count = 0
+		library_negative_control_count = 0
 		for control in controls:
-			try:
-				layout_element = ExtractBatchLayout.objects.get(extract_batch=self, control_type=control.control_type, row=control.row, column=control.column)
-			except ExtractBatchLayout.DoesNotExist:
-				layout_element = ExtractBatchLayout.objects.create(extract_batch=self, control_type=control.control_type, row=control.row, column=control.column, powder_used_mg=0)
+			layout_element = ExtractBatchLayout(extract_batch=self, control_type=control.control_type, row=control.row, column=control.column, powder_used_mg=0)
+			# create sample and powder sample
+			control_type = control.control_type.control_type
+			if layout_element.powder_sample is None and control_type != LIBRARY_POSITIVE:
+				control_sample_id = None
+				if control_type == EXTRACT_NEGATIVE:
+					control_character = CONTROL_CHARACTERS[extract_negative_control_count]
+					extract_negative_control_count += 1
+					if extract_negative_sample_id is not None:
+						control_sample_id = extract_negative_sample_id
+				elif control_type == LIBRARY_NEGATIVE:
+					control_character = CONTROL_CHARACTERS[library_negative_control_count]
+					library_negative_control_count += 1
+					if library_negative_sample_id is not None:
+						control_sample_id = library_negative_sample_id
+				else:
+					raise ValueError(f'{control_type}')
+				control_sample = Sample(control=control_character)
+				if control_sample_id is not None:
+					control_sample.reich_lab_id = control_sample_id
+					control_sample.save(save_user=user)
+				else:
+					reich_lab_sample_id = control_sample.assign_reich_lab_sample_number(save_user=user)
+					# use this sample ID for later controls of same type
+					if control_type == EXTRACT_NEGATIVE:
+						extract_negative_sample_id = reich_lab_sample_id
+					elif control_type == LIBRARY_NEGATIVE:
+						library_negative_sample_id = reich_lab_sample_id
+					else:
+						raise ValueError(f'{control_type}')
+				
+				powder_sample_control = PowderSample(sample=control_sample, powder_sample_id=f'{str(control_sample)}.NP')
+				powder_sample_control.save(save_user=user)
+				layout_element.powder_sample = powder_sample_control
+					
 			layout_element.save(save_user=user)
 		for layout_element in powders:
 			# check positions until there is no control
@@ -389,12 +465,27 @@ class ExtractBatch(Timestamped):
 				if control_free_position:
 					break
 			layout_element.save(save_user=user)
-	
+
+# 
 class ExtractBatchLayout(TimestampedWellPosition):
-	extract_batch = models.ForeignKey(ExtractBatch, on_delete=models.CASCADE)
+	extract_batch = models.ForeignKey(ExtractBatch, on_delete=models.CASCADE, null=True) # use a null extract batch to mark lost powder
 	powder_sample = models.ForeignKey(PowderSample, on_delete=models.CASCADE, null=True)
 	control_type = models.ForeignKey(ControlType, on_delete=models.PROTECT, null=True)
 	powder_used_mg = models.FloatField()
+	
+	def destroy_control(self, user):
+		if self.control_type is not None:
+			if self.powder_sample is not None:
+				to_delete_powder_sample = self.powder_sample
+				self.powder_sample = None
+				to_delete_sample = to_delete_powder_sample.sample
+				if not to_delete_powder_sample.is_control():
+					raise ValueError(f'{to_delete_powder_sample.powder_sample_id} does not appear to be a control')
+				if not to_delete_sample.is_control():
+					raise ValueError(f'{to_delete_sample.powder_sample_id} does not appear to be a control')
+				to_delete_powder_sample.delete()
+				to_delete_sample.delete()
+				self.save(save_user=user)
 
 class Lysate(Timestamped):
 	lysate_id = models.CharField(max_length=15, unique=True, null=False, db_index=True)

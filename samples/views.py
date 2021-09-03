@@ -277,6 +277,10 @@ def extract_batch_assign_powder(request):
 			assign_powder_samples_to_extract_batch(extract_batch, ticked_checkboxes, request.user)
 			#for powder_sample_id in ticked_checkboxes:
 			#	print(f'powder sample: {powder_sample_id}')
+			if 'assign_and_layout' in request.POST:
+				print(f'extract batch layout {extract_batch_name}')
+				extract_batch.assign_layout(request.user)
+				return redirect(f'{reverse("extract_batch_plate_layout")}?extract_batch_name={extract_batch_name}')
 		
 	elif request.method == 'GET':
 		extract_batch_form = ExtractBatchForm(instance=extract_batch, user=request.user)
@@ -296,35 +300,6 @@ def extract_batch_assign_powder(request):
 	assigned_powder_samples_count = already_selected_powder_sample_ids.count()
 	
 	return render(request, 'samples/extract_batch_assign_powder.html', { 'extract_batch_name': extract_batch_name, 'powder_samples': powder_samples, 'assigned_powder_samples_count': assigned_powder_samples_count, 'control_count': len(existing_controls), 'form': extract_batch_form  } )
-
-@login_required
-def extract_batch_assign_powder_batches(request):
-	extract_batch_name = request.GET['extract_batch']
-	extract_batch = ExtractBatch.objects.get(batch_name=extract_batch_name)
-	if request.method == 'POST':
-		extract_batch_form = ExtractBatchForm(request.POST, instance=extract_batch, user=request.user)
-		if extract_batch_form.is_valid():
-			extract_batch_form.save()
-			
-			# assign powder batches to ManyToMany field
-			ticked_checkboxes = request.POST.getlist('checkboxes[]')
-			#print(ticked_checkboxes)
-			selected_powder_batches = PowderBatch.objects.filter(name__in=ticked_checkboxes)
-			extract_batch.powder_batches.set(selected_powder_batches)
-		
-	elif request.method == 'GET':
-		extract_batch_form = ExtractBatchForm(instance=extract_batch, user=request.user)
-	
-	num_powder_samples_assigned = extract_batch.num_powder_samples()
-	# provide template with how many powder samples in each powder batch and indicate whether powder batch is associated with this extract batch
-	powder_batches = PowderBatch.objects.annotate(Count('sampleprepqueue', distinct=True),
-					checked=Count('extractbatch', filter=Q(extractbatch=extract_batch)),
-					low_complexity_count=Count('sampleprepqueue', distinct=True, filter=Q(sampleprepqueue__sample__expected_complexity__description__iexact='low')),
-					high_complexity_count=Count('sampleprepqueue', distinct=True, filter=Q(sampleprepqueue__sample__expected_complexity__description__iexact='high')),
-					).filter(Q(status__description='Ready For Plate') & (Q(extractbatch=None) | Q(extractbatch=extract_batch)))
-	
-	#print(f'num powder batches {len(powder_batches)}')
-	return render(request, 'samples/extract_batch_assign_powder_batches.html', { 'extract_batch_name': extract_batch_name,  'num_powder_samples_assigned': num_powder_samples_assigned, 'powder_batches': powder_batches, 'form': extract_batch_form } )
 
 def reich_lab_sample_number_from_string(s):
 	if s.startswith('S'):
@@ -356,26 +331,6 @@ def sample(request):
 PLATE_ROWS = 'ABCDEFGH'
 WELL_PLATE_COLUMNS = range(1,13)
 
-# Assign well locations to powder samples
-@login_required
-def extract_batch_plate_layout_initial(request):
-	extract_batch_name = request.GET['extract_batch_name']
-	
-	if request.method == 'POST':
-		form = ExtractBatchLayoutForm(request.POST)
-		if form.is_valid():
-			extract_batch = ExtractBatch.objects.get(batch_name=extract_batch_name)
-			control_layout_name = form.cleaned_data['control_layout']
-			print(f'layout {extract_batch_name} {control_layout_name}')
-			extract_batch.assign_layout(control_layout_name, request.user)
-			return redirect(f'{reverse("extract_batch_plate_layout")}?extract_batch_name={extract_batch_name}')
-	else:
-		form = ExtractBatchLayoutForm()
-		form.name = extract_batch_name
-		
-	return render(request, 'samples/extract_batch_plate_layout_initial.html', {'extract_batch_name': extract_batch_name, 'form': form})
-		
-
 @login_required
 def extract_batch_plate_layout(request):
 	try:
@@ -389,16 +344,27 @@ def extract_batch_plate_layout(request):
 		#print(request.body)
 		layout = request.POST['layout']
 		objects_map = json.loads(layout)
-		# TODO propagate changes to database
-		for powder_sample_id_string in objects_map:
-			x = objects_map[powder_sample_id_string]
+		# propagate changes to database
+		for identifier in objects_map:
+			x = objects_map[identifier]
 			position = x['position']
-			print(powder_sample_id_string, position)
+			#print(identifier, position)
+			try:
+				powder_sample_id_string = identifier
+				layout_element = ExtractBatchLayout.objects.get(extract_batch=extract_batch, powder_sample__powder_sample_id=powder_sample_id_string)
+			except ExtractBatchLayout.DoesNotExist:
+				control_type, start_position = identifier.split()
+				row = start_position[0]
+				column = int(start_position[1])
+				layout_element = ExtractBatchLayout.objects.get(extract_batch=extract_batch, control_type__control_type=control_type, row=row, column=column)
+			layout_element.set_position(position)
+			layout_element.save(save_user=request.user)
 		#print('ajax submission')
 	elif request.method == 'POST':
 		#control_layout_name = request.POST['control_layout_name']
 		#extract_batch.assign_layout(control_layout_name, request.user)
 		print('POST {extract_batch_name}')
+		raise ValueError('unexpected')
 		
 	layout_elements = ExtractBatchLayout.objects.filter(extract_batch=extract_batch).select_related('powder_sample').select_related('control_type')
 		
@@ -414,6 +380,7 @@ def extract_batch_plate_layout(request):
 		# remove spaces and periods for HTML widget
 		joint = { 'position':f'{str(layout_element)}', 'widget_id':identifier.replace(' ','').replace('.','') }
 		objects_map[identifier] = joint
+		print(identifier, joint)
 		
 	return render(request, 'samples/generic_layout.html', { 'layout_title': 'Powder Sample Layout For Extract Batch', 'layout_name': extract_batch_name, 'rows':PLATE_ROWS, 'columns':WELL_PLATE_COLUMNS, 'objects_map': objects_map } )
 	

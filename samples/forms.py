@@ -130,9 +130,13 @@ class ExtractionProtocolSelect(ModelChoiceField):
 		
 class ExtractBatchForm(UserModelForm):
 	protocol = ExtractionProtocolSelect(queryset=ExtractionProtocol.objects.all())
+	
+	layout_names = ControlLayout.objects.values_list('layout_name', flat=True).order_by('layout_name').distinct('layout_name')
+	control_layout_name = ChoiceField(choices=zip(layout_names, layout_names))
+	
 	class Meta:
 		model = ExtractBatch
-		fields = ['batch_name', 'protocol', 'date', 'robot', 'note']
+		fields = ['batch_name', 'protocol', 'control_layout_name', 'date', 'robot', 'note']
 		widgets = {
 			'note': Textarea(attrs={'cols': 60, 'rows': 2}),
 		}
