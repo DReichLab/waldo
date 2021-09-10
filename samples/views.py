@@ -14,7 +14,7 @@ from datetime import datetime
 
 from samples.pipeline import udg_and_strandedness
 from samples.models import Results, Library, Sample, PowderBatch, WetLabStaff, PowderSample, ControlType, ControlLayout, ExtractionProtocol, ExtractBatch, SamplePrepQueue, PLATE_ROWS, ExtractBatchLayout
-from .forms import IndividualForm, LibraryIDForm, PowderBatchForm, SampleImageForm, PowderSampleForm, PowderSampleFormset, ControlTypeFormset, ControlLayoutFormset, ExtractionProtocolFormset, ExtractBatchForm, SamplePrepQueueFormset, ExtractBatchLayoutForm
+from .forms import IndividualForm, LibraryIDForm, PowderBatchForm, SampleImageForm, PowderSampleForm, PowderSampleFormset, ControlTypeFormset, ControlLayoutFormset, ExtractionProtocolFormset, ExtractBatchForm, SamplePrepQueueFormset, ExtractBatchLayoutForm, LostPowderFormset
 from sequencing_run.models import MTAnalysis
 
 from .powder_samples import new_reich_lab_powder_sample, assign_prep_queue_entries_to_powder_batch, assign_powder_samples_to_extract_batch
@@ -384,29 +384,28 @@ def extract_batch_plate_layout(request):
 		print(identifier, joint)
 		
 	return render(request, 'samples/generic_layout.html', { 'layout_title': 'Powder Sample Layout For Extract Batch', 'layout_name': extract_batch_name, 'rows':PLATE_ROWS, 'columns':WELL_PLATE_COLUMNS, 'objects_map': objects_map } )
+
+@login_required
+def lost_powder(request):
+	page_number = request.GET.get('page', 1)
+	page_size = request.GET.get('page_size', 25)
+	whole_queue = ExtractBatchLayout.objects.filter(extract_batch=None).order_by('-modification_timestamp')
+	paginator = Paginator(whole_queue, page_size)
+	page_obj = paginator.get_page(page_number)
+	page_obj.ordered = True
+		
+	if request.method == 'POST':
+		formset = LostPowderFormset(request.POST, form_kwargs={'user': request.user})
+		
+		if formset.is_valid():
+			formset.save()
+		
+	elif request.method == 'GET':
+		formset = LostPowderFormset(queryset=page_obj, form_kwargs={'user': request.user})
+	return render(request, 'samples/generic_formset.html', { 'title': 'Lost Powder', 'page_obj': page_obj, 'formset': formset, 'submit_button_text': 'Update lost powder' } )
 	
 # Handle the layout of a 96 well plate with libraries
 # This renders an interface allowing a technician to move libraries between wells
-@login_required
-def well(request):
-	if request.method == 'POST' and request.is_ajax():
-		# JSON for a well plate layout
-		libraries_map = json.loads(request.body)
-		
-		return render(request, 'samples/well_plate.html', { 'rows':PLATE_ROWS, 'columns':WELL_PLATE_COLUMNS, 'libraries_map':libraries_map} )
-	else:
-		library_id_list = ['S20000.Y1.E1.L1', 'S2234.E1.L1']
-		libraries_map = {}
-		counter = 1
-		for library_id in library_id_list:
-			joint = { 'position':f'A{counter}', 'widget_id':library_id.replace('.','') }
-			counter += 1
-			libraries_map[library_id] = joint
-			
-		for key, value in libraries_map.items():
-			print(f'{key}\t{value}')
-			
-		return render(request, 'samples/well_plate.html', { 'rows':PLATE_ROWS, 'columns':WELL_PLATE_COLUMNS, 'libraries_map':libraries_map} )
 		
 def logout_user(request):
 	return logout_then_login(request)

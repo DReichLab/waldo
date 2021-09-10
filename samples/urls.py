@@ -22,8 +22,8 @@ urlpatterns = [
 	path('extract_batch', views.extract_batch, name='extract_batch'),
 	path('extract_batch_assign_powder', views.extract_batch_assign_powder, name='extract_batch_assign_powder'),
 	path('extract_batch_plate_layout', views.extract_batch_plate_layout, name='extract_batch_plate_layout'),
+	path('lost_powder', views.lost_powder, name='lost_powder'),
 	path('sample', views.sample, name='sample'),
-	path('well', views.well, name='well'),
 	
 	path('password_change', PasswordChangeView.as_view(success_url='password_changed'), name='password_change'),
 	path('password_changed', views.password_changed, name='password_changed'),

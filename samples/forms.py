@@ -2,7 +2,7 @@ from django import forms
 from django.forms import ModelChoiceField, ChoiceField, FileField, ModelForm, Textarea, IntegerField, CharField, BoundField, ValidationError
 from django.forms import modelformset_factory
 
-from samples.models import PowderBatch, PowderBatchStatus, PowderSample, Sample, SamplePrepProtocol, ControlType, ControlLayout, ExtractBatch, ExtractionProtocol, ExpectedComplexity, SamplePrepQueue
+from samples.models import PowderBatch, PowderBatchStatus, PowderSample, Sample, SamplePrepProtocol, ControlType, ControlLayout, ExtractBatch, ExtractionProtocol, ExpectedComplexity, SamplePrepQueue, ExtractBatchLayout
 
 import datetime
 
@@ -162,3 +162,26 @@ ControlLayoutFormset = modelformset_factory(ControlLayout, form=ControlLayoutFor
 class ExtractBatchLayoutForm(forms.Form):
 	layout_names = ControlLayout.objects.values_list('layout_name', flat=True).order_by('layout_name').distinct('layout_name')
 	control_layout = ChoiceField(choices=zip(layout_names, layout_names))
+	
+class PowderSampleByStringField(CharField):
+	def clean(self, value):
+		try:
+			return PowderSample.objects.get(powder_sample_id=value)
+		except PowderSample.DoesNotExist:
+			raise ValidationError(f'Powder Sample with queue id {value} does not exist')
+
+class LostPowderForm(UserModelForm):
+	powder_sample_id = PowderSampleByStringField(label='Powder Sample ID')
+	
+	class Meta:
+		model = ExtractBatchLayout
+		fields = ['powder_sample_id', 'powder_used_mg']
+		
+	def __init__(self, *args, **kwargs):
+		super().__init__(*args, **kwargs)
+		if self.instance.pk:
+			self.fields['powder_sample_id'].initial = self.instance.powder_sample.powder_sample_id
+		else:
+			self.fields['powder_sample_id'].initial = None
+		
+LostPowderFormset = modelformset_factory(ExtractBatchLayout, form=LostPowderForm)
