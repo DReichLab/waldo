@@ -1,6 +1,8 @@
 from django import forms
 from django.forms import ModelChoiceField, ChoiceField, FileField, ModelForm, Textarea, IntegerField, CharField, BoundField, ValidationError
 from django.forms import modelformset_factory
+from django.forms.widgets import TextInput
+from django.utils.translation import gettext_lazy as _
 
 from samples.models import PowderBatch, PowderBatchStatus, PowderSample, Sample, SamplePrepProtocol, ControlType, ControlLayout, ExtractBatch, ExtractionProtocol, ExpectedComplexity, SamplePrepQueue, ExtractBatchLayout
 
@@ -70,7 +72,7 @@ class SampleByQueueIDField(IntegerField):
 		try:
 			return Sample.objects.get(queue_id=value)
 		except Sample.DoesNotExist:
-			raise ValidationError(f'Sample with queue id {value} does not exist')
+			raise ValidationError(_('Sample with queue id {value} does not exist'), code='exist')
 	
 class SamplePrepQueueForm(UserModelForm):
 	sample_queue_id = SampleByQueueIDField(label='Sample Queue ID')
@@ -162,26 +164,27 @@ ControlLayoutFormset = modelformset_factory(ControlLayout, form=ControlLayoutFor
 class ExtractBatchLayoutForm(forms.Form):
 	layout_names = ControlLayout.objects.values_list('layout_name', flat=True).order_by('layout_name').distinct('layout_name')
 	control_layout = ChoiceField(choices=zip(layout_names, layout_names))
-	
-class PowderSampleByStringField(CharField):
-	def clean(self, value):
-		try:
-			return PowderSample.objects.get(powder_sample_id=value)
-		except PowderSample.DoesNotExist:
-			raise ValidationError(f'Powder Sample with queue id {value} does not exist')
 
 class LostPowderForm(UserModelForm):
-	powder_sample_id = PowderSampleByStringField(label='Powder Sample ID')
+	powder_sample = ModelChoiceField(queryset=PowderSample.objects.all(), widget=TextInput, help_text='Powder Sample ID string', to_field_name='powder_sample_id')
 	
 	class Meta:
 		model = ExtractBatchLayout
-		fields = ['powder_sample_id', 'powder_used_mg']
+		fields = ['powder_sample', 'powder_used_mg']
 		
 	def __init__(self, *args, **kwargs):
 		super().__init__(*args, **kwargs)
 		if self.instance.pk:
-			self.fields['powder_sample_id'].initial = self.instance.powder_sample.powder_sample_id
+			print(self.instance.powder_sample.powder_sample_id)
+			self.initial.update({'powder_sample': self.instance.powder_sample.powder_sample_id})
 		else:
-			self.fields['powder_sample_id'].initial = None
+			self.fields['powder_sample'].initial = None
+			
+	def save(self, commit=True):
+		lost_powder = super().save(commit=False)
+		lost_powder.row = 'H'
+		lost_powder.column = 6
+		lost_powder.save()
+		return lost_powder
 		
 LostPowderFormset = modelformset_factory(ExtractBatchLayout, form=LostPowderForm)

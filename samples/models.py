@@ -486,6 +486,12 @@ class ExtractBatchLayout(TimestampedWellPosition):
 				to_delete_powder_sample.delete()
 				to_delete_sample.delete()
 				self.save(save_user=user)
+				
+	def clean(self):
+		super(ExtractBatchLayout, self).clean()
+		if self.powder_sample is None and (self.extract_batch is None or self.control_type is None):
+			print('Null powder samples must be extract batch controls')
+			raise ValidationError(_('Null powder samples must be extract batch controls'))
 
 class Lysate(Timestamped):
 	lysate_id = models.CharField(max_length=15, unique=True, null=False, db_index=True)
