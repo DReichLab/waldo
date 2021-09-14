@@ -175,7 +175,7 @@ const csrftoken = getCookie('csrftoken');
 			alert('Updated');
 		})
 		.fail (function( jqXHR, textStatus ) {
-			alert('Update failed');
+			alert('Update failed ' + jqXHR.responseText);
 			console.log( "Request failed: " + textStatus );
 			console.log('{{layout_name}}');
 		});

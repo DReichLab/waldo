@@ -1,7 +1,7 @@
 from django.core.paginator import Paginator
 from django.shortcuts import redirect, render, reverse
 
-from django.http import HttpResponse
+from django.http import HttpResponse, HttpResponseBadRequest
 
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.views import logout_then_login
@@ -331,6 +331,22 @@ def sample(request):
 PLATE_ROWS = 'ABCDEFGH'
 WELL_PLATE_COLUMNS = range(1,13)
 
+def duplicate_positions_check(objects_map):
+	ids_in_position = {} # store list of ids in this position
+	for identifier in objects_map:
+		x = objects_map[identifier]
+		position = x['position']
+		ids_in_position[position] = ids_in_position.get(position, []) +  [identifier]
+	
+	position_error_messages = []
+	for position in ids_in_position:
+		if len(ids_in_position[position]) > 1:
+			 position_error_messages += [f'{position}: {", ".join(ids_in_position[position])}']
+	if len(position_error_messages) > 0:
+		error_message = f'too many items in position\n' + '\n'.join(position_error_messages)
+		return error_message
+	return None
+
 @login_required
 def extract_batch_plate_layout(request):
 	try:
@@ -343,8 +359,16 @@ def extract_batch_plate_layout(request):
 		# JSON for a well plate layout
 		#print(request.body)
 		layout = request.POST['layout']
+		# objects map is a dictionary where each entry has keys:
+		#	widget_id: modified object id to avoid HTML issues
+		#	position: for example A1 or H12
+		#	object_id
 		objects_map = json.loads(layout)
 		#print(objects_map)
+		# Cannot have more than one powder per well
+		duplicate_error_message = duplicate_positions_check(objects_map)
+		if duplicate_error_message is not None:
+			return HttpResponseBadRequest(duplicate_error_message)
 		# propagate changes to database
 		for identifier in objects_map:
 			x = objects_map[identifier]
