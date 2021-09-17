@@ -154,7 +154,7 @@ class ControlTypeForm(UserModelForm):
 ControlTypeFormset = modelformset_factory(ControlType, form=ControlTypeForm, max_num=20)
 
 class ControlLayoutForm(UserModelForm):
-	control_type = ControlTypeSelect(queryset=ControlType.objects.all(), empty_label=None)
+	control_type = ControlTypeSelect(queryset=ControlType.objects.all())
 	class Meta:
 		model = ControlLayout
 		fields = ['layout_name', 'row', 'column', 'control_type', 'active']
