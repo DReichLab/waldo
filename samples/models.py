@@ -378,14 +378,14 @@ class ExtractBatch(Timestamped):
 	def assign_layout(self, user):
 		control_types = [EXTRACT_NEGATIVE, LIBRARY_NEGATIVE, LIBRARY_POSITIVE]
 		powders = ExtractBatchLayout.objects.filter(extract_batch=self, control_type=None).order_by('powder_sample__powder_batch', 'powder_sample__sample__reich_lab_id')
-		controls = ControlLayout.objects.filter(layout_name=self.control_layout_name, control_type__control_type__in=control_types, active=True)
+		controls = ControlLayout.objects.filter(layout_name=self.control_layout_name, control_type__control_type__in=control_types, active=True).order_by('column', 'row')
 		# check count
 		if powders.count() + controls.count() > 96:
 			raise ValueError(f'Too many items for extract layout: {powders.count} powders and {controls.count} controls')
 		
 		count = 0
 		# get existing controls
-		existing_controls = ExtractBatchLayout.objects.filter(extract_batch=self, control_type__isnull=False).order_by('row', 'column')
+		existing_controls = ExtractBatchLayout.objects.filter(extract_batch=self, control_type__isnull=False).order_by('column', 'row')
 		# we should check the existing controls for sample ids
 		# Extract Negative: find the Reich lab sample ID used for extract negatives for this extract batch
 		extract_negative_sample_id = None
@@ -447,6 +447,8 @@ class ExtractBatch(Timestamped):
 				layout_element.powder_sample = powder_sample_control
 					
 			layout_element.save(save_user=user)
+			
+		completed_controls = ExtractBatchLayout.objects.filter(extract_batch=self, control_type__isnull=False).order_by('column', 'row')
 		for layout_element in powders:
 			# check positions until there is no control
 			while True:
@@ -457,7 +459,7 @@ class ExtractBatch(Timestamped):
 				count += 1
 				# if this position is occupied by a control, then move to the next position
 				control_free_position = True
-				for control in controls:
+				for control in completed_controls:
 					if control.same_position(layout_element):
 						control_free_position = False
 						break
