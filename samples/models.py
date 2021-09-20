@@ -314,7 +314,7 @@ class PowderSample(Timestamped):
 	sample_prep_protocol = models.ForeignKey(SamplePrepProtocol, on_delete=models.SET_NULL, null=True)
 	
 	def is_control(self):
-		return powder_sample_id.endswith('NP')
+		return self.powder_sample_id.endswith('NP')
 	
 # Wetlab consumes samples from this queue for powder batches
 class SamplePrepQueue(Timestamped):
@@ -354,6 +354,8 @@ EXTRACT_NEGATIVE = 'Extract Negative'
 LIBRARY_NEGATIVE = 'Library Negative'
 LIBRARY_POSITIVE = 'Library Positive'
 
+EXTRACT_AND_LIBRARY_CONTROLS = [EXTRACT_NEGATIVE, LIBRARY_NEGATIVE, LIBRARY_POSITIVE]
+
 class ExtractBatch(Timestamped):
 	batch_name = models.CharField(max_length=50, unique=True)
 	protocol = models.ForeignKey(ExtractionProtocol, on_delete=models.PROTECT, null=True)
@@ -376,7 +378,7 @@ class ExtractBatch(Timestamped):
 	# assign a layout, one powder sample or control per position
 	# this is the layout to produce lysate
 	def assign_layout(self, user):
-		control_types = [EXTRACT_NEGATIVE, LIBRARY_NEGATIVE, LIBRARY_POSITIVE]
+		control_types = EXTRACT_AND_LIBRARY_CONTROLS
 		powders = ExtractBatchLayout.objects.filter(extract_batch=self, control_type=None).order_by('powder_sample__powder_batch', 'powder_sample__sample__reich_lab_id')
 		controls = ControlLayout.objects.filter(layout_name=self.control_layout_name, control_type__control_type__in=control_types, active=True).order_by('column', 'row')
 		# check count
@@ -386,7 +388,7 @@ class ExtractBatch(Timestamped):
 		count = 0
 		# get existing controls
 		existing_controls = ExtractBatchLayout.objects.filter(extract_batch=self, control_type__isnull=False).order_by('column', 'row')
-		# we should check the existing controls for sample ids
+		# we check the existing controls for sample ids
 		# Extract Negative: find the Reich lab sample ID used for extract negatives for this extract batch
 		extract_negative_sample_id = None
 		extract_negative_controls = existing_controls.filter(control_type__control_type=EXTRACT_NEGATIVE)
@@ -403,6 +405,7 @@ class ExtractBatch(Timestamped):
 				library_negative_sample_id = library_negative_layout.powder_sample.sample.reich_lab_id
 			elif library_negative_sample_id != library_negative_layout.powder_sample.sample.reich_lab_id:
 				raise ValueError(f'Multiple library negative control sample ids: {library_negative_sample_id} {library_negative_layout.powder_sample.sample.reich_lab_id:}')
+		
 		# remove existing control layout entries
 		for existing_control in existing_controls:
 			existing_control.destroy_control(user)
@@ -467,7 +470,7 @@ class ExtractBatch(Timestamped):
 				if control_free_position:
 					break
 			layout_element.save(save_user=user)
-
+	
 # 
 class ExtractBatchLayout(TimestampedWellPosition):
 	extract_batch = models.ForeignKey(ExtractBatch, on_delete=models.CASCADE, null=True) # use a null extract batch to mark lost powder
@@ -484,7 +487,7 @@ class ExtractBatchLayout(TimestampedWellPosition):
 				if not to_delete_powder_sample.is_control():
 					raise ValueError(f'{to_delete_powder_sample.powder_sample_id} does not appear to be a control')
 				if not to_delete_sample.is_control():
-					raise ValueError(f'{to_delete_sample.powder_sample_id} does not appear to be a control')
+					raise ValueError(f'{to_delete_sample.reich_lab_id} does not appear to be a control')
 				to_delete_powder_sample.delete()
 				to_delete_sample.delete()
 				self.save(save_user=user)

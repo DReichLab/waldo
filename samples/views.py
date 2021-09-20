@@ -379,7 +379,7 @@ def extract_batch_plate_layout(request):
 				powder_sample_id_string = identifier
 				layout_element = ExtractBatchLayout.objects.get(extract_batch=extract_batch, powder_sample__powder_sample_id=powder_sample_id_string)
 			except ExtractBatchLayout.DoesNotExist:
-				control_type, start_position = identifier.split()
+				control_type, start_position = identifier.rsplit(' ', 1)
 				row = start_position[0]
 				column = int(start_position[1:])
 				layout_element = ExtractBatchLayout.objects.get(extract_batch=extract_batch, control_type__control_type=control_type, row=row, column=column)

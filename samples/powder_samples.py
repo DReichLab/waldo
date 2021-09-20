@@ -69,8 +69,8 @@ def powder_samples_from_spreadsheet(spreadsheet_file):
 		headers = re.split('\t|\n', header)
 
 def assign_powder_samples_to_extract_batch(extract_batch, powder_sample_ids, user):
-	# remove powder samples that are not assigned
-	to_clear = ExtractBatchLayout.objects.filter(extract_batch=extract_batch).exclude( powder_sample__in=powder_sample_ids)
+	# remove powder samples that are not assigned but preserve controls
+	to_clear = ExtractBatchLayout.objects.filter(extract_batch=extract_batch).exclude(powder_sample__in=powder_sample_ids).exclude(control_type__isnull=False)
 	to_clear.delete()
 	# add ExtractBatchLayout for powder samples
 	for powder_sample_id in powder_sample_ids:
