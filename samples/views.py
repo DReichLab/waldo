@@ -274,7 +274,7 @@ def extract_batch_assign_powder(request):
 			
 			# iterate through the checkboxes and change states
 			ticked_checkboxes = request.POST.getlist('powder_sample_checkboxes[]')
-			# tickbox name is powder sample id
+			# tickbox name is powder sample object id (int)
 			assign_powder_samples_to_extract_batch(extract_batch, ticked_checkboxes, request.user)
 			#for powder_sample_id in ticked_checkboxes:
 			#	print(f'powder sample: {powder_sample_id}')

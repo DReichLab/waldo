@@ -57,7 +57,7 @@ Extract Batch: {{extract_batch_name}} has {{assigned_powder_samples_count}} powd
 	{% for powder_sample in powder_samples %}
 	<tr>
 		<td class="checked">
-			<input class="sample_checkbox" type="checkbox" name="powder_sample_checkboxes[]" id="checkbox{{powder_sample.id}}" value="{{powder_sample.id}}" onclick="update_count()" {% if powder_sample.assigned_to_extract_batch > 0 %}checked{% endif %}>
+			<input class="sample_checkbox" type="checkbox" name="powder_sample_checkboxes[]" id="checkbox{{powder_sample.powder_sample_id}}" value="{{powder_sample.id}}" onclick="update_count()" {% if powder_sample.assigned_to_extract_batch > 0 %}checked{% endif %}>
 		</td>
 		<td class="powder_sample_id">{{powder_sample.powder_sample_id}}</td>
 		<td class="sample">S{{powder_sample.sample.reich_lab_id}}</td>
@@ -104,13 +104,13 @@ Extract Batch: {{extract_batch_name}} has {{assigned_powder_samples_count}} powd
 		let anybox_checked = false;
 		// first pass to see whether any checkbox in this set is checked
 		for (let i = 0; i < matching.length; i++) {
-			let checkbox_id = 'checkbox' + matching[i]._values['queue_id'];
+			let checkbox_id = 'checkbox' + matching[i]._values['powder_sample_id'];
 			let sample_checkbox = document.getElementById(checkbox_id);
 			anybox_checked ||= sample_checkbox.checked;
 		}
 		// second pass to set checkboxes
 		for (let i = 0; i < matching.length; i++) {
-			let checkbox_id = 'checkbox' + matching[i]._values['queue_id'];
+			let checkbox_id = 'checkbox' + matching[i]._values['powder_sample_id'];
 			let sample_checkbox = document.getElementById(checkbox_id);
 			// box will be changed to unchecked
 			if (sample_checkbox.checked && anybox_checked){
