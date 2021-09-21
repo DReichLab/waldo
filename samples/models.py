@@ -356,6 +356,17 @@ LIBRARY_POSITIVE = 'Library Positive'
 
 EXTRACT_AND_LIBRARY_CONTROLS = [EXTRACT_NEGATIVE, LIBRARY_NEGATIVE, LIBRARY_POSITIVE]
 
+# extract negative and library negative controls get Reich lab sample numbers
+# find the sample number for one of these types from extract batch layout elements
+def control_sample_number(control_element_queryset):
+	reich_lab_sample_number = None
+	for control_layout_element in control_element_queryset:
+		if reich_lab_sample_number is None:
+			reich_lab_sample_number = control_layout_element.powder_sample.sample.reich_lab_id
+		elif reich_lab_sample_number != control_layout_element.powder_sample.sample.reich_lab_id:
+			raise ValueError(f'Multiple control sample ids: {reich_lab_sample_number} {control_layout_element.powder_sample.sample.reich_lab_id:}')
+	return reich_lab_sample_number
+
 class ExtractBatch(Timestamped):
 	batch_name = models.CharField(max_length=50, unique=True)
 	protocol = models.ForeignKey(ExtractionProtocol, on_delete=models.PROTECT, null=True)
@@ -382,7 +393,7 @@ class ExtractBatch(Timestamped):
 		powders = ExtractBatchLayout.objects.filter(extract_batch=self, control_type=None).order_by('powder_sample__powder_batch', 'powder_sample__sample__reich_lab_id')
 		controls = ControlLayout.objects.filter(layout_name=self.control_layout_name, control_type__control_type__in=control_types, active=True).order_by('column', 'row')
 		# check count
-		if powders.count() + controls.count() > 96:
+		if powders.count() + controls.count() > 96: # assume 96 well plate
 			raise ValueError(f'Too many items for extract layout: {powders.count} powders and {controls.count} controls')
 		
 		count = 0
@@ -390,21 +401,11 @@ class ExtractBatch(Timestamped):
 		existing_controls = ExtractBatchLayout.objects.filter(extract_batch=self, control_type__isnull=False).order_by('column', 'row')
 		# we check the existing controls for sample ids
 		# Extract Negative: find the Reich lab sample ID used for extract negatives for this extract batch
-		extract_negative_sample_id = None
 		extract_negative_controls = existing_controls.filter(control_type__control_type=EXTRACT_NEGATIVE)
-		for extract_negative_layout in extract_negative_controls:
-			if extract_negative_sample_id is None:
-				extract_negative_sample_id = extract_negative_layout.powder_sample.sample.reich_lab_id
-			elif extract_negative_sample_id != extract_negative_layout.powder_sample.sample.reich_lab_id:
-				raise ValueError(f'Multiple extract negative control sample ids: {extract_negative_sample_id} {extract_negative_layout.powder_sample.sample.reich_lab_id:}')
+		extract_negative_sample_id = control_sample_number(extract_negative_controls)
 		# Library Negative: find the Reich lab sample ID used for library negatives for this extract batch
-		library_negative_sample_id = None
 		library_negative_controls = existing_controls.filter(control_type__control_type=LIBRARY_NEGATIVE)
-		for library_negative_layout in library_negative_controls:
-			if library_negative_sample_id is None:
-				library_negative_sample_id = library_negative_layout.powder_sample.sample.reich_lab_id
-			elif library_negative_sample_id != library_negative_layout.powder_sample.sample.reich_lab_id:
-				raise ValueError(f'Multiple library negative control sample ids: {library_negative_sample_id} {library_negative_layout.powder_sample.sample.reich_lab_id:}')
+		library_negative_sample_id = control_sample_number(library_negative_controls)
 		
 		# remove existing control layout entries
 		for existing_control in existing_controls:
