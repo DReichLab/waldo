@@ -70,7 +70,7 @@ def powder_samples_from_spreadsheet(spreadsheet_file):
 
 def assign_powder_samples_to_extract_batch(extract_batch, powder_sample_ids, user):
 	# remove powder samples that are not assigned but preserve controls
-	to_clear = ExtractBatchLayout.objects.filter(extract_batch=extract_batch).exclude(powder_sample__in=powder_sample_ids).exclude(control_type__isnull=False)
+	to_clear = ExtractBatchLayout.objects.filter(extract_batch=extract_batch).exclude(powder_sample_id__in=powder_sample_ids).exclude(control_type__isnull=False)
 	to_clear.delete()
 	# add ExtractBatchLayout for powder samples
 	for powder_sample_id in powder_sample_ids:
@@ -82,9 +82,11 @@ def assign_powder_samples_to_extract_batch(extract_batch, powder_sample_ids, use
 			extract_batch_layout = ExtractBatchLayout.objects.get(extract_batch=extract_batch, powder_sample=powder_sample)
 		except ExtractBatchLayout.DoesNotExist:
 			extract_batch_layout = ExtractBatchLayout(extract_batch=extract_batch, powder_sample=powder_sample)
-		# well position is set after all powder samples are added, this is just a placeholder
-		extract_batch_layout.row = 'A'
-		extract_batch_layout.column = 1
+			# well position is set after all powder samples are added, this is just a placeholder
+			# existing entries are unchanged
+			extract_batch_layout.row = 'A'
+			extract_batch_layout.column = 1
+		
 		extract_batch_layout.powder_used_mg = powder_sample_mass_for_extract
 		extract_batch_layout.save_user = user
 		extract_batch_layout.save()

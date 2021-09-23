@@ -15,7 +15,7 @@ import re, string
 def parse_sample_string(s):
 	# we expect a sample number to start with 'S'
 	# S1234a
-	match = re.fullmatch('S([\d]+)([a-z]?)', s)
+	match = re.fullmatch('S([\d]+)([a-z]{0,2})', s)
 	if match:
 		sample_number = int(match.group(1))
 		control = match.group(2)
@@ -49,6 +49,7 @@ class Timestamped(models.Model):
 
 
 PLATE_ROWS = 'ABCDEFGH'
+PLATE_WELL_COUNT = 96
 		
 def validate_row_letter(letter):
 	if len(letter) != 1:
@@ -63,10 +64,26 @@ def validate_row_letter(letter):
 		)
 
 # column first, then row (A1, B1, ..., H1, A2)
+# domain is [0,95]
 def plate_location(int_val):
-	row_index = int_val % 8
-	column_index = int_val / 8 + 1
+	if int_val < 0 or int_val >= PLATE_WELL_COUNT:
+		raise ValueError(f'{int_val} is out of range for a plate location')
+	row_index = int_val % len(PLATE_ROWS)
+	column_index = int_val // len(PLATE_ROWS) + 1
 	return PLATE_ROWS[row_index], column_index
+
+# map a plate location (A1, H12) back to an integer in [0,95]
+def reverse_plate_location_coordinate(row, column):
+	row_int = PLATE_ROWS.index(row)
+	int_val = row_int + (column - 1) * len(PLATE_ROWS)
+	if int_val < 0 or int_val >= PLATE_WELL_COUNT:
+		raise ValueError(f'{int_val} is out of range for a plate location')
+	return int_val
+	
+def reverse_plate_location(plate_location):
+	row = plate_location[0]
+	column = int(plate_location[1:])
+	return reverse_plate_location_coordinate(row, column)
 		
 class TimestampedWellPosition(Timestamped):
 	row = models.CharField(max_length=1, validators=[validate_row_letter])
@@ -213,12 +230,21 @@ class Storage(Timestamped):
 class ExpectedComplexity(models.Model):
 	description = models.CharField(max_length=50, unique=True)
 	sort_order = models.SmallIntegerField()
-	
-CONTROL_CHARACTERS = string.ascii_lowercase
+
+single_controls = []
+a_controls = []
+b_controls = []
+c_controls = []
+for c in string.ascii_lowercase:
+	single_controls += [c]
+	a_controls += [f'a{c}']
+	b_controls += [f'b{c}']
+	c_controls += [f'c{c}']
+CONTROL_CHARACTERS = single_controls + a_controls + b_controls + c_controls
 
 class Sample(Timestamped):
 	reich_lab_id = models.PositiveIntegerField(db_index=True, null=True, help_text=' assigned when a sample is selected from the queue by the wetlab')
-	control = models.CharField(max_length=1, blank=True, help_text='Non-empty value indicates this is a control')
+	control = models.CharField(max_length=2, blank=True, help_text='Non-empty value indicates this is a control')
 	queue_id = models.PositiveIntegerField(db_index=True, unique=True, null=True)
 	
 	collaborator = models.ForeignKey(Collaborator, on_delete=models.PROTECT, null=True)
@@ -393,10 +419,9 @@ class ExtractBatch(Timestamped):
 		powders = ExtractBatchLayout.objects.filter(extract_batch=self, control_type=None).order_by('powder_sample__powder_batch', 'powder_sample__sample__reich_lab_id')
 		controls = ControlLayout.objects.filter(layout_name=self.control_layout_name, control_type__control_type__in=control_types, active=True).order_by('column', 'row')
 		# check count
-		if powders.count() + controls.count() > 96: # assume 96 well plate
+		if powders.count() + controls.count() > PLATE_WELL_COUNT:
 			raise ValueError(f'Too many items for extract layout: {powders.count} powders and {controls.count} controls')
 		
-		count = 0
 		# get existing controls
 		existing_controls = ExtractBatchLayout.objects.filter(extract_batch=self, control_type__isnull=False).order_by('column', 'row')
 		# we check the existing controls for sample ids
@@ -451,8 +476,9 @@ class ExtractBatch(Timestamped):
 				layout_element.powder_sample = powder_sample_control
 					
 			layout_element.save(save_user=user)
-			
+
 		completed_controls = ExtractBatchLayout.objects.filter(extract_batch=self, control_type__isnull=False).order_by('column', 'row')
+		count = 0
 		for layout_element in powders:
 			# check positions until there is no control
 			while True:
@@ -472,6 +498,40 @@ class ExtractBatch(Timestamped):
 					break
 			layout_element.save(save_user=user)
 	
+	# Empty wells become library negatives
+	def fill_empty_wells_with_library_negatives(self, user):
+		# order consistent with plate_location
+		existing_layout = ExtractBatchLayout.objects.filter(extract_batch=self).order_by('column', 'row')
+		library_negatives = existing_layout.filter(control_type__control_type=LIBRARY_NEGATIVE)
+		num_library_negatives = len(library_negatives)
+		control_type = library_negatives[0].control_type
+		library_negative_sample_id = library_negatives[0].powder_sample.sample.reich_lab_id
+		
+		# well positions are in [0,95], fill these one per loop pass
+		layout_iterator = existing_layout.iterator()
+		current_existing = -1
+		has_remaining_elements = True
+		for next_to_fill in range(PLATE_WELL_COUNT):
+			while current_existing < next_to_fill and has_remaining_elements:
+				try:
+					layout_element = next(layout_iterator)
+					current_existing = reverse_plate_location_coordinate(layout_element.row, layout_element.column)
+				except StopIteration:
+					has_remaining_elements = False
+			# this well position is occupied, so proceed to next position
+			if current_existing == next_to_fill:
+				pass
+			else: # this well position is unoccupied, so fill with new library negative
+				row, column = plate_location(next_to_fill)
+				control_character = CONTROL_CHARACTERS[num_library_negatives]
+				num_library_negatives += 1
+				control_sample = Sample(reich_lab_id=library_negative_sample_id, control=control_character)
+				control_sample.save(save_user=user)
+				powder_sample_control = PowderSample(sample=control_sample, powder_sample_id=f'{str(control_sample)}.NP')
+				powder_sample_control.save(save_user=user)
+				layout_element = ExtractBatchLayout(extract_batch=self, control_type=control_type, row=row, column=column, powder_used_mg=0, powder_sample=powder_sample_control)
+				layout_element.save(save_user=user)
+
 # 
 class ExtractBatchLayout(TimestampedWellPosition):
 	extract_batch = models.ForeignKey(ExtractBatch, on_delete=models.CASCADE, null=True) # use a null extract batch to mark lost powder

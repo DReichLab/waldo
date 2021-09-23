@@ -275,12 +275,16 @@ def extract_batch_assign_powder(request):
 			# iterate through the checkboxes and change states
 			ticked_checkboxes = request.POST.getlist('powder_sample_checkboxes[]')
 			# tickbox name is powder sample object id (int)
-			assign_powder_samples_to_extract_batch(extract_batch, ticked_checkboxes, request.user)
 			#for powder_sample_id in ticked_checkboxes:
 			#	print(f'powder sample: {powder_sample_id}')
+			assign_powder_samples_to_extract_batch(extract_batch, ticked_checkboxes, request.user)
 			if 'assign_and_layout' in request.POST:
 				print(f'extract batch layout {extract_batch_name}')
 				extract_batch.assign_layout(request.user)
+				return redirect(f'{reverse("extract_batch_plate_layout")}?extract_batch_name={extract_batch_name}')
+			elif 'assign_and_fill_empty_with_library_controls' in request.POST:
+				print(f'extract batch layout {extract_batch_name}')
+				extract_batch.fill_empty_wells_with_library_negatives(request.user)
 				return redirect(f'{reverse("extract_batch_plate_layout")}?extract_batch_name={extract_batch_name}')
 		
 	elif request.method == 'GET':
