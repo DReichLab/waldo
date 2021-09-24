@@ -170,7 +170,7 @@ class LostPowderForm(UserModelForm):
 	
 	class Meta:
 		model = ExtractBatchLayout
-		fields = ['powder_sample', 'powder_used_mg']
+		fields = ['powder_sample', 'powder_used_mg', 'created_by']
 		
 	def __init__(self, *args, **kwargs):
 		super().__init__(*args, **kwargs)
@@ -179,6 +179,7 @@ class LostPowderForm(UserModelForm):
 			self.initial.update({'powder_sample': self.instance.powder_sample.powder_sample_id})
 		else:
 			self.fields['powder_sample'].initial = None
+		self.fields['created_by'].disabled = True
 			
 	def save(self, commit=True):
 		lost_powder = super().save(commit=False)
