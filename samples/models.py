@@ -8,7 +8,7 @@ from django.core.exceptions import ValidationError
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.utils.translation import gettext_lazy as _
 
-from django.db.models import Max
+from django.db.models import Max, Min
 
 import re, string
 
@@ -447,7 +447,9 @@ class ExtractBatch(Timestamped):
 	# this is the layout to produce lysate
 	def assign_layout(self, user):
 		control_types = EXTRACT_AND_LIBRARY_CONTROLS
-		powders = ExtractBatchLayout.objects.filter(extract_batch=self, control_type=None).order_by('powder_sample__powder_batch', 'powder_sample__sample__reich_lab_id')
+		# sort powder batches by lowest sample ID, then powder batch by reich lab id
+		# powder batches are grouped together, and sample numbers are ascending
+		powders = ExtractBatchLayout.objects.annotate(powder_batch_order=Min('powder_sample__powder_batch__powdersample__sample__reich_lab_id')).filter(extract_batch=self, control_type=None).order_by('powder_batch_order', 'powder_sample__powder_batch', 'powder_sample__sample__reich_lab_id')
 		controls = ControlLayout.objects.filter(layout_name=self.control_layout_name, control_type__control_type__in=control_types, active=True).order_by('column', 'row')
 		# check count
 		if powders.count() + controls.count() > PLATE_WELL_COUNT:
