@@ -189,3 +189,6 @@ class LostPowderForm(UserModelForm):
 		return lost_powder
 		
 LostPowderFormset = modelformset_factory(ExtractBatchLayout, form=LostPowderForm)
+
+class SpreadsheetForm(forms.Form):
+	spreadsheet = forms.FileField()

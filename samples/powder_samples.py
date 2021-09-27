@@ -1,6 +1,6 @@
 from django.db.models import Max
 
-from .models import PowderSample, Sample, SamplePrepQueue
+from .models import PowderSample, Sample, SamplePrepQueue, PowderBatch
 from .models import ExtractBatchLayout
 
 import re
@@ -61,12 +61,24 @@ def assign_prep_queue_entries_to_powder_batch(powder_batch, sample_prep_ids, use
 		for sample_prep_entry in SamplePrepQueue.objects.filter(powder_batch=powder_batch):
 			new_reich_lab_powder_sample(sample_prep_entry, powder_batch, user)
 
-# TODO
-# update 
-def powder_samples_from_spreadsheet(spreadsheet_file):
-	with open(spreadsheet_file) as f:
-		header = f.readline()
-		headers = re.split('\t|\n', header)
+# it would be better to reuse form validation
+def powder_samples_from_spreadsheet(powder_batch_name, spreadsheet_file, user):
+	s = spreadsheet_file.read().decode("utf-8")
+	powder_batch = PowderBatch.objects.get(name=powder_batch_name)
+	powder_samples = PowderSample.objects.filter(powder_batch=powder_batch)
+	lines = s.split('\n')
+	header = lines[0]
+	headers = re.split('\t|\n', header)
+	if headers[0] != 'powder_sample_id':
+		raise ValueError('powder_sample_id is not first')
+		
+	for line in lines[1:]:
+		fields = re.split('\t|\n', line)
+		powder_sample_id = fields[0]
+		if len(powder_sample_id) > 0:
+			print(powder_sample_id)
+			powder_sample = powder_samples.get(powder_sample_id=powder_sample_id)
+			powder_sample.from_spreadsheet_row(headers[1:], fields[1:], user)
 
 def assign_powder_samples_to_extract_batch(extract_batch, powder_sample_ids, user):
 	# remove powder samples that are not assigned but preserve controls

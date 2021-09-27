@@ -14,10 +14,10 @@ from datetime import datetime
 
 from samples.pipeline import udg_and_strandedness
 from samples.models import Results, Library, Sample, PowderBatch, WetLabStaff, PowderSample, ControlType, ControlLayout, ExtractionProtocol, ExtractBatch, SamplePrepQueue, PLATE_ROWS, ExtractBatchLayout
-from .forms import IndividualForm, LibraryIDForm, PowderBatchForm, SampleImageForm, PowderSampleForm, PowderSampleFormset, ControlTypeFormset, ControlLayoutFormset, ExtractionProtocolFormset, ExtractBatchForm, SamplePrepQueueFormset, ExtractBatchLayoutForm, LostPowderFormset
+from .forms import IndividualForm, LibraryIDForm, PowderBatchForm, SampleImageForm, PowderSampleForm, PowderSampleFormset, ControlTypeFormset, ControlLayoutFormset, ExtractionProtocolFormset, ExtractBatchForm, SamplePrepQueueFormset, ExtractBatchLayoutForm, LostPowderFormset, SpreadsheetForm
 from sequencing_run.models import MTAnalysis
 
-from .powder_samples import new_reich_lab_powder_sample, assign_prep_queue_entries_to_powder_batch, assign_powder_samples_to_extract_batch
+from .powder_samples import new_reich_lab_powder_sample, assign_prep_queue_entries_to_powder_batch, assign_powder_samples_to_extract_batch, powder_samples_from_spreadsheet
 
 from samples.sample_photos import photo_list, save_sample_photo
 
@@ -203,6 +203,7 @@ def powder_batch_assign_samples(request):
 	num_powder_samples = PowderSample.objects.filter(powder_batch=powder_batch).count()
 	return render(request, 'samples/sample_selection.html', { 'queued_samples': sample_queue, 'powder_batch_name': powder_batch_name, 'form': form, 'num_sample_prep': num_sample_prep, 'num_powder_samples': num_powder_samples } )
 
+# Edit the powder samples in a powder batch
 @login_required
 def powder_samples(request):
 	powder_batch_name = request.GET['powder_batch']
@@ -225,6 +226,38 @@ def powder_samples(request):
 	
 	# open can have new samples assigned
 	return render(request, 'samples/powder_samples.html', { 'powder_batch_name': powder_batch_name, 'powder_batch_form': powder_batch_form, 'formset': powder_batch_sample_formset} )
+	
+# return a spreadsheet version of data for offline editing
+@login_required
+def powder_samples_spreadsheet(request):
+	powder_batch_name = request.GET['powder_batch_name']
+	powder_batch = PowderBatch.objects.get(name=powder_batch_name)
+	
+	response = HttpResponse(content_type='text/csv')
+	response['Content-Disposition'] = f'attachment; filename="powder_batch_{powder_batch_name}.csv"'
+
+	writer = csv.writer(response, delimiter='\t')
+	# header
+	writer.writerow(PowderSample.spreadsheet_header())
+	powder_samples = PowderSample.objects.filter(powder_batch=powder_batch)
+	for powder_sample in powder_samples:
+		writer.writerow(powder_sample.to_spreadsheet_row())
+	return response
+	
+@login_required
+def powder_samples_spreadsheet_upload(request):
+	powder_batch_name = request.GET['powder_batch_name']
+	if request.method == 'POST':
+		spreadsheet_form = SpreadsheetForm(request.POST, request.FILES)
+		print(f'powder sample spreadsheet {powder_batch_name}')
+		if spreadsheet_form.is_valid():
+			spreadsheet = request.FILES.get('spreadsheet')
+			powder_samples_from_spreadsheet(powder_batch_name, spreadsheet, request.user)
+			message = 'Values updated'
+	else:
+		spreadsheet_form = SpreadsheetForm()
+		message = ''
+	return render(request, 'samples/spreadsheet_upload.html', { 'title': f'Powder batch samples for {powder_batch_name}', 'form': spreadsheet_form, 'message': message} )
 
 @login_required
 def extraction_protocols(request):

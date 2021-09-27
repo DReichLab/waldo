@@ -341,6 +341,37 @@ class PowderSample(Timestamped):
 	
 	def is_control(self):
 		return self.powder_sample_id.endswith('NP')
+		
+	@staticmethod
+	def spreadsheet_header():
+		return ['powder_sample_id',
+			'sampling_notes',
+			'total_powder_produced_mg',
+			'powder_for_extract',
+			'storage_location',
+			'sample_prep_lab',
+			'sample_prep_protocol']
+		
+	# for wetlab spreadsheet, return array to output as tsv
+	# order corresponds to the spreadsheet header
+	def to_spreadsheet_row(self):
+		return [self.powder_sample_id,
+			self.sampling_notes,
+			self.total_powder_produced_mg,
+			self.powder_for_extract,
+			self.storage_location,
+			self.sample_prep_lab,
+			self.sample_prep_protocol.preparation_method
+		]
+	# from wetlab spreadsheet
+	def from_spreadsheet_row(self, headers, arg_array, user):
+		self.sampling_notes = arg_array[headers.index('sampling_notes')]
+		self.total_powder_produced_mg = float( arg_array[headers.index('total_powder_produced_mg')])
+		self.powder_for_extract = float(arg_array[headers.index('powder_for_extract')])
+		self.storage_location = arg_array[headers.index('storage_location')]
+		self.sample_prep_lab = arg_array[headers.index('sample_prep_lab')]
+		self.sample_prep_protocol = SamplePrepProtocol.objects.get(preparation_method=arg_array[headers.index('sample_prep_protocol')])
+		self.save(save_user=user)
 	
 # Wetlab consumes samples from this queue for powder batches
 class SamplePrepQueue(Timestamped):
