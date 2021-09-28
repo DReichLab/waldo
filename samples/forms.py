@@ -36,7 +36,7 @@ class UserModelForm(ModelForm):
 		abstract = True
 
 class PowderBatchForm(UserModelForm):
-	date = forms.DateField(help_text='YYYY-MM-DD')
+	date = forms.DateField(help_text='YYYY-MM-DD', required=False)
 	status = PowderBatchStatusSelect(queryset=PowderBatchStatus.objects.all().order_by('sort_order'), empty_label=None)
 	notes = forms.CharField(required=False, widget=forms.Textarea(attrs={'rows': 2})) 
 	class Meta:
