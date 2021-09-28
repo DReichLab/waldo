@@ -13,7 +13,10 @@
 	
 	{{ form }}
 	
-	<input type='submit' value='Upload Spreadsheet'>
+	<input type='submit' value='Upload Spreadsheet modifications only'>
+	{% if allow_new %}
+		<input type='submit' name='allow_new' value='Upload Spreadsheet allow new'>
+	{% endif %}
 </form>
 
 {% endblock %}
