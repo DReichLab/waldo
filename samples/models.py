@@ -432,16 +432,8 @@ class ExtractBatch(Timestamped):
 	date = models.DateField(null=True, help_text='YYYY-MM-DD')
 	robot = models.CharField(max_length=20, blank=True)
 	note = models.TextField(blank=True)
-	powder_batches = models.ManyToManyField(PowderBatch)
 	layout = models.ManyToManyField(PowderSample, through='ExtractBatchLayout', related_name='powder_sample_assignment')
 	control_layout_name = models.CharField(max_length=25, blank=True, help_text='When applying a layout, use this set of controls.  The control entries are stored in layout.')
-	
-	# count the number of samples in powder batches for this extract batch
-	def num_powder_samples(self):
-		num_powder_samples_assigned = 0
-		for powder_batch in self.powder_batches.all():
-			num_powder_samples_assigned += PowderSample.objects.filter(powder_batch=powder_batch).count()
-		return num_powder_samples_assigned
 	
 	# assign a layout, one powder sample or control per position
 	# this is the layout to produce lysate
