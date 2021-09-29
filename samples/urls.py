@@ -24,6 +24,8 @@ urlpatterns = [
 	path('extract_batch', views.extract_batch, name='extract_batch'),
 	path('extract_batch_assign_powder', views.extract_batch_assign_powder, name='extract_batch_assign_powder'),
 	path('extract_batch_plate_layout', views.extract_batch_plate_layout, name='extract_batch_plate_layout'),
+	path('extract_batch_assign_lysate', views.extract_batch_assign_lysate, name='extract_batch_assign_lysate'),
+	path('extract_batch_add_lysate', views.extract_batch_add_lysate, name='extract_batch_add_lysate'),
 	path('lost_powder', views.lost_powder, name='lost_powder'),
 	path('sample', views.sample, name='sample'),
 	

@@ -21,7 +21,7 @@ def new_reich_lab_powder_sample(sample_prep_entry, powder_batch, user):
 		# count how many powder samples there for this sample
 		existing_powder_samples = PowderSample.objects.filter(sample=sample)
 		powder_sample_int = len(existing_powder_samples) + 1
-		# TODO powder_sample_int should not be converted into a string. Model needs to be changed.
+		
 		powder_sample_id = f'S{sample.reich_lab_id}.P{powder_sample_int}'
 		powder_sample = PowderSample.objects.create(sample=sample, powder_batch=powder_batch, powder_sample_id=powder_sample_id)
 	powder_sample.sample_prep_protocol=sample_prep_entry.sample_prep_protocol

@@ -338,6 +338,13 @@ def extract_batch_assign_powder(request):
 	assigned_powder_samples_count = already_selected_powder_sample_ids.count()
 	
 	return render(request, 'samples/extract_batch_assign_powder.html', { 'extract_batch_name': extract_batch_name, 'powder_samples': powder_samples, 'assigned_powder_samples_count': assigned_powder_samples_count, 'control_count': len(existing_controls), 'form': extract_batch_form  } )
+	
+def extract_batch_assign_lysate(request):
+	pass
+	
+# allow adding any lysate to this batch, free form
+def extract_batch_add_lysate(request):
+	pass
 
 def reich_lab_sample_number_from_string(s):
 	if s.startswith('S'):
