@@ -2,7 +2,7 @@
 
 {% load static %}
 
-{% block title %}Extract Batches{% endblock %}
+{% block title %}Lysate Batches{% endblock %}
 
 {% block content %}
 <script src="{% static "samples/list.js" %}"></script>
@@ -29,13 +29,13 @@ table{
 
 <form action="" method='post'>
 	{% csrf_token %}
-	{{ extract_batch_form.as_p }}
-	<input type='submit' value='Create Extract Batch'>
+	{{ lysate_batch_form.as_p }}
+	<input type='submit' value='Create Lysate Batch'>
 </form>
 
 <hr>
 
-<div id='extract_batch_rows'>
+<div id='lysate_batch_rows'>
 
 <input class="search" placeholder="Search" />
 <div id='table_wrapper'>
@@ -50,13 +50,13 @@ table{
 	</tr>
 	</thead>
 	<tbody class="list">
-	{% for extract_batch in extract_batches %}
+	{% for lysate_batch in lysate_batches %}
 	<tr>
-		<td class="name"><a href="extract_batch_assign_powder?extract_batch={{extract_batch.batch_name}}">{{extract_batch.batch_name}}</a></td>
-		<td class="date">{{extract_batch.date|date:'Y-m-d'}}</td>
-		<td class="technician">{{extract_batch.technician}}</td>
-		<td class="robot">{{extract_batch.robot}}</td>
-		<td class="notes">{{extract_batch.note}}</td>
+		<td class="name"><a href="lysate_batch_assign_powder?lysate_batch={{lysate_batch.batch_name}}">{{lysate_batch.batch_name}}</a></td>
+		<td class="date">{{lysate_batch.date|date:'Y-m-d'}}</td>
+		<td class="technician">{{lysate_batch.technician}}</td>
+		<td class="robot">{{lysate_batch.robot}}</td>
+		<td class="notes">{{lysate_batch.note}}</td>
 	</tr>
 	{% endfor %}
 	</tbody>
@@ -69,8 +69,8 @@ table{
 		valueNames: ['name', 'date', 'technician', 'robot', 'notes'],
 		searchDelay: 500
 	};
-	var extract_batch_list = new List('extract_batch_rows', list_options);
-	document.addEventListener("load", extract_batch_list.sort('date', { order: 'desc'}));
+	var lysate_batch_list = new List('lysate_batch_rows', list_options);
+	document.addEventListener("load", lysate_batch_list.sort('date', { order: 'desc'}));
 </script>
 
 {% endblock %}

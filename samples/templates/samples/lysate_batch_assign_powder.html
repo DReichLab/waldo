@@ -27,14 +27,14 @@ table{
 }
 </style>
 
-Extract Batch: {{extract_batch_name}} has {{assigned_powder_samples_count}} powder samples assigned and {{control_count}} extract and library controls.
+Extract Batch: {{lysate_batch_name}} has {{assigned_powder_samples_count}} powder samples assigned and {{control_count}} extract and library controls.
 
 <form action="" method='post'>
 	{% csrf_token %}
 	{{ form.as_p }}
 	<input type='submit' name='assign_only' value='Assign Powder Samples Only'>
 	<input type='submit' name='assign_and_layout' value='Assign Powder Samples and Perform Initial Layout'>
-	<a href='extract_batch_plate_layout?extract_batch_name={{extract_batch_name}}'>Modify Layout</a>
+	<a href='lysate_batch_plate_layout?lysate_batch_name={{lysate_batch_name}}'>Modify Layout</a>
 	<input type='submit' name='assign_and_fill_empty_with_library_controls' value='Assign Powder Samples Fill Empty With Library Controls'>
 
 <legend>Samples</legend>
@@ -58,7 +58,7 @@ Extract Batch: {{extract_batch_name}} has {{assigned_powder_samples_count}} powd
 	{% for powder_sample in powder_samples %}
 	<tr>
 		<td class="checked">
-			<input class="sample_checkbox" type="checkbox" name="powder_sample_checkboxes[]" id="checkbox{{powder_sample.powder_sample_id}}" value="{{powder_sample.id}}" onclick="update_count()" {% if powder_sample.assigned_to_extract_batch > 0 %}checked{% endif %}>
+			<input class="sample_checkbox" type="checkbox" name="powder_sample_checkboxes[]" id="checkbox{{powder_sample.powder_sample_id}}" value="{{powder_sample.id}}" onclick="update_count()" {% if powder_sample.assigned_to_lysate_batch > 0 %}checked{% endif %}>
 		</td>
 		<td class="powder_sample_id">{{powder_sample.powder_sample_id}}</td>
 		<td class="sample">S{{powder_sample.sample.reich_lab_id}}</td>

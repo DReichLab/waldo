@@ -3,7 +3,7 @@ from django.conf import settings
 from datetime import datetime, timedelta, timezone, date
 import pandas
 from pandas import ExcelFile
-from samples.models import Shipment, Collaborator, Return, Sample, PowderBatch, PowderSample, Lysate, ExtractionProtocol, ExtractBatch, Extract, Library, ControlsExtract, ControlsLibrary, LibraryProtocol, LibraryBatch, MTCaptureProtocol, NuclearCaptureProtocol, MTCapturePlate, MTSequencingRun, ShotgunPool, ShotgunSequencingRun, NuclearCapturePlate, NuclearSequencingRun, RadiocarbonShipment, RadiocarbonDatingInvoice, RadiocarbonDatedSample, DistributionsShipment, DistributionsLysate, parse_sample_string, Results
+from samples.models import Shipment, Collaborator, Return, Sample, PowderBatch, PowderSample, Lysate, ExtractionProtocol, LysateBatch, Extract, Library, ControlsExtract, ControlsLibrary, LibraryProtocol, LibraryBatch, MTCaptureProtocol, NuclearCaptureProtocol, MTCapturePlate, MTSequencingRun, ShotgunPool, ShotgunSequencingRun, NuclearCapturePlate, NuclearSequencingRun, RadiocarbonShipment, RadiocarbonDatingInvoice, RadiocarbonDatedSample, DistributionsShipment, DistributionsLysate, parse_sample_string, Results
 from sequencing_run.models import MTAnalysis, SpikeAnalysis, ShotgunAnalysis, NuclearAnalysis
 import sys
 from decimal import *
@@ -310,7 +310,7 @@ class Command(BaseCommand):
 		except (ExtractionProtocol.DoesNotExist, ValueError) as e:
 			extraction_protocol_foreign = None
 		
-		ExtractBatch.objects.create(
+		LysateBatch.objects.create(
 			id = int(row['Extract_Batch_pk'][2:]),
 			batch_name = row['Extract_Batch_Name'],
 			protocol = extraction_protocol_foreign,
@@ -327,8 +327,8 @@ class Command(BaseCommand):
 		
 	def extract(self, row):
 		try:
-			extract_batch_id_foreign = ExtractBatch.objects.get(id=int(row['Extract_Batch_ID_fk'][2:]))
-		except (ExtractBatch.DoesNotExist, ValueError) as e:
+			extract_batch_id_foreign = LysateBatch.objects.get(id=int(row['Extract_Batch_ID_fk'][2:]))
+		except (LysateBatch.DoesNotExist, ValueError) as e:
 			extract_batch_id_foreign = None
 		try:
 			lysate_id_foreign = Lysate.objects.get(lysate_id=row['Lysate_ID_fk'])
@@ -372,7 +372,7 @@ class Command(BaseCommand):
 		
 		ControlsExtract.objects.create(
 			id = int(row['EC_Group_ID_pk'][2:]),
-			extract_batch = ExtractBatch.objects.get(id=int(row['Extract_Batch_fk'][2:])),
+			extract_batch = LysateBatch.objects.get(id=int(row['Extract_Batch_fk'][2:])),
 			nuclear_sequencing_run = nuclear_sequencing_run_foreign,
 			ec_count = int(row['EC_Count']),
 			ec_median = float(row['EC_Median']),

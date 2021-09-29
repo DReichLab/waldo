@@ -4,7 +4,7 @@ from django.forms import modelformset_factory
 from django.forms.widgets import TextInput
 from django.utils.translation import gettext_lazy as _
 
-from samples.models import PowderBatch, PowderBatchStatus, PowderSample, Sample, SamplePrepProtocol, ControlType, ControlLayout, ExtractBatch, ExtractionProtocol, ExpectedComplexity, SamplePrepQueue, ExtractBatchLayout
+from samples.models import PowderBatch, PowderBatchStatus, PowderSample, Sample, SamplePrepProtocol, ControlType, ControlLayout, LysateBatch, ExtractionProtocol, ExpectedComplexity, SamplePrepQueue, LysateBatchLayout
 
 import datetime
 
@@ -130,14 +130,14 @@ class ExtractionProtocolSelect(ModelChoiceField):
 	def label_from_instance(self, obj):
 		return obj.name
 		
-class ExtractBatchForm(UserModelForm):
+class LysateBatchForm(UserModelForm):
 	protocol = ExtractionProtocolSelect(queryset=ExtractionProtocol.objects.all())
 	
 	layout_names = ControlLayout.objects.values_list('layout_name', flat=True).order_by('layout_name').distinct('layout_name')
 	control_layout_name = ChoiceField(choices=zip(layout_names, layout_names))
 	
 	class Meta:
-		model = ExtractBatch
+		model = LysateBatch
 		fields = ['batch_name', 'protocol', 'control_layout_name', 'date', 'robot', 'note', 'technician']
 		widgets = {
 			'note': Textarea(attrs={'cols': 60, 'rows': 2}),
@@ -161,7 +161,7 @@ class ControlLayoutForm(UserModelForm):
 
 ControlLayoutFormset = modelformset_factory(ControlLayout, form=ControlLayoutForm)
 
-class ExtractBatchLayoutForm(forms.Form):
+class LysateBatchLayoutForm(forms.Form):
 	layout_names = ControlLayout.objects.values_list('layout_name', flat=True).order_by('layout_name').distinct('layout_name')
 	control_layout = ChoiceField(choices=zip(layout_names, layout_names))
 
@@ -169,7 +169,7 @@ class LostPowderForm(UserModelForm):
 	powder_sample = ModelChoiceField(queryset=PowderSample.objects.all(), widget=TextInput, help_text='Powder Sample ID string', to_field_name='powder_sample_id')
 	
 	class Meta:
-		model = ExtractBatchLayout
+		model = LysateBatchLayout
 		fields = ['powder_sample', 'powder_used_mg', 'created_by']
 		
 	def __init__(self, *args, **kwargs):
@@ -188,7 +188,7 @@ class LostPowderForm(UserModelForm):
 		lost_powder.save()
 		return lost_powder
 		
-LostPowderFormset = modelformset_factory(ExtractBatchLayout, form=LostPowderForm)
+LostPowderFormset = modelformset_factory(LysateBatchLayout, form=LostPowderForm)
 
 class SpreadsheetForm(forms.Form):
 	spreadsheet = forms.FileField()

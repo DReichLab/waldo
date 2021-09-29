@@ -13,11 +13,11 @@ import json
 from datetime import datetime
 
 from samples.pipeline import udg_and_strandedness
-from samples.models import Results, Library, Sample, PowderBatch, WetLabStaff, PowderSample, ControlType, ControlLayout, ExtractionProtocol, ExtractBatch, SamplePrepQueue, PLATE_ROWS, ExtractBatchLayout
-from .forms import IndividualForm, LibraryIDForm, PowderBatchForm, SampleImageForm, PowderSampleForm, PowderSampleFormset, ControlTypeFormset, ControlLayoutFormset, ExtractionProtocolFormset, ExtractBatchForm, SamplePrepQueueFormset, ExtractBatchLayoutForm, LostPowderFormset, SpreadsheetForm
+from samples.models import Results, Library, Sample, PowderBatch, WetLabStaff, PowderSample, ControlType, ControlLayout, ExtractionProtocol, LysateBatch, SamplePrepQueue, PLATE_ROWS, LysateBatchLayout
+from .forms import IndividualForm, LibraryIDForm, PowderBatchForm, SampleImageForm, PowderSampleForm, PowderSampleFormset, ControlTypeFormset, ControlLayoutFormset, ExtractionProtocolFormset, LysateBatchForm, SamplePrepQueueFormset, LysateBatchLayoutForm, LostPowderFormset, SpreadsheetForm
 from sequencing_run.models import MTAnalysis
 
-from .powder_samples import new_reich_lab_powder_sample, assign_prep_queue_entries_to_powder_batch, assign_powder_samples_to_extract_batch, powder_samples_from_spreadsheet
+from .powder_samples import new_reich_lab_powder_sample, assign_prep_queue_entries_to_powder_batch, assign_powder_samples_to_lysate_batch, powder_samples_from_spreadsheet
 
 from samples.sample_photos import photo_list, save_sample_photo
 
@@ -172,7 +172,7 @@ def powder_batches(request):
 					Count('powdersample', distinct=True),
 					low_complexity_count=Count('sampleprepqueue', distinct=True, filter=Q(sampleprepqueue__sample__expected_complexity__description__iexact='low')),
 					high_complexity_count=Count('sampleprepqueue', distinct=True, filter=Q(sampleprepqueue__sample__expected_complexity__description__iexact='high')),
-					).prefetch_related('extractbatch_set')
+					)
 	return render(request, 'samples/powder_batches.html', {'powder_batches' : batches, 'form' : form} )
 
 @login_required
@@ -276,60 +276,60 @@ def extraction_protocols(request):
 	return render(request, 'samples/extraction_protocols.html', { 'formset': extraction_protocol_formset } )
 
 @login_required
-def extract_batch (request):
+def lysate_batch (request):
 	if request.method == 'POST':
-		extract_batch_form = ExtractBatchForm(request.POST, user=request.user)
-		if extract_batch_form.is_valid():
-			extract_batch_instance = extract_batch_form.save(commit=False)
-			if not ExtractBatch.objects.filter(pk=extract_batch_instance.pk).exists():
-				if extract_batch_instance.technician_fk == None:
+		lysate_batch_form = LysateBatchForm(request.POST, user=request.user)
+		if lysate_batch_form.is_valid():
+			lysate_batch_instance = lysate_batch_form.save(commit=False)
+			if not LysateBatch.objects.filter(pk=lysate_batch_instance.pk).exists():
+				if lysate_batch_instance.technician_fk == None:
 					wetlab_staff = WetLabStaff.objects.get(login_user=request.user)
-					extract_batch_instance.technician_fk = wetlab_staff
-					extract_batch_instance.technician = wetlab_staff.initials()
-			extract_batch_instance.save()
+					lysate_batch_instance.technician_fk = wetlab_staff
+					lysate_batch_instance.technician = wetlab_staff.initials()
+			lysate_batch_instance.save()
 		
 	elif request.method == 'GET':
-		extract_batch_form = ExtractBatchForm(user=request.user)
+		lysate_batch_form = LysateBatchForm(user=request.user)
 	
-	extract_batches = ExtractBatch.objects.all()
+	lysate_batches = LysateBatch.objects.all()
 	# open can have new samples assigned
-	return render(request, 'samples/extract_batch.html', { 'extract_batch_form': extract_batch_form, 'extract_batches': extract_batches } )
+	return render(request, 'samples/lysate_batch.html', { 'lysate_batch_form': lysate_batch_form, 'lysate_batches': lysate_batches } )
 
 @login_required
-def extract_batch_assign_powder(request):
-	extract_batch_name = request.GET['extract_batch']
-	extract_batch = ExtractBatch.objects.get(batch_name=extract_batch_name)
+def lysate_batch_assign_powder(request):
+	lysate_batch_name = request.GET['lysate_batch']
+	lysate_batch = LysateBatch.objects.get(batch_name=lysate_batch_name)
 	if request.method == 'POST':
-		extract_batch_form = ExtractBatchForm(request.POST, instance=extract_batch, user=request.user)
-		if extract_batch_form.is_valid():
-			print('valid extract_batch form')
-			extract_batch_form.save()
+		lysate_batch_form = LysateBatchForm(request.POST, instance=lysate_batch, user=request.user)
+		if lysate_batch_form.is_valid():
+			print('valid lysate_batch form')
+			lysate_batch_form.save()
 			
 			# iterate through the checkboxes and change states
 			ticked_checkboxes = request.POST.getlist('powder_sample_checkboxes[]')
 			# tickbox name is powder sample object id (int)
 			#for powder_sample_id in ticked_checkboxes:
 			#	print(f'powder sample: {powder_sample_id}')
-			assign_powder_samples_to_extract_batch(extract_batch, ticked_checkboxes, request.user)
+			assign_powder_samples_to_lysate_batch(lysate_batch, ticked_checkboxes, request.user)
 			if 'assign_and_layout' in request.POST:
-				print(f'extract batch layout {extract_batch_name}')
-				extract_batch.assign_layout(request.user)
-				return redirect(f'{reverse("extract_batch_plate_layout")}?extract_batch_name={extract_batch_name}')
+				print(f'lysate batch layout {lysate_batch_name}')
+				lysate_batch.assign_layout(request.user)
+				return redirect(f'{reverse("lysate_batch_plate_layout")}?lysate_batch_name={lysate_batch_name}')
 			elif 'assign_and_fill_empty_with_library_controls' in request.POST:
-				print(f'extract batch layout {extract_batch_name}')
-				extract_batch.fill_empty_wells_with_library_negatives(request.user)
-				return redirect(f'{reverse("extract_batch_plate_layout")}?extract_batch_name={extract_batch_name}')
+				print(f'lysate batch layout {lysate_batch_name}')
+				lysate_batch.fill_empty_wells_with_library_negatives(request.user)
+				return redirect(f'{reverse("lysate_batch_plate_layout")}?lysate_batch_name={lysate_batch_name}')
 		
 	elif request.method == 'GET':
-		extract_batch_form = ExtractBatchForm(instance=extract_batch, user=request.user)
+		lysate_batch_form = LysateBatchForm(instance=lysate_batch, user=request.user)
 		
-	existing_controls = ExtractBatchLayout.objects.filter(extract_batch=extract_batch, control_type__isnull=False)
+	existing_controls = LysateBatchLayout.objects.filter(lysate_batch=lysate_batch, control_type__isnull=False)
 	
-	already_selected_powder_sample_ids = ExtractBatchLayout.objects.filter(extract_batch=extract_batch, control_type=None).values_list('powder_sample', flat=True)
-	powder_samples_already_selected = PowderSample.objects.annotate(num_assignments=Count('extractbatchlayout')).annotate(assigned_to_extract_batch=Count('extractbatchlayout', filter=Q(extractbatchlayout__extract_batch=extract_batch))).filter(
+	already_selected_powder_sample_ids = LysateBatchLayout.objects.filter(lysate_batch=lysate_batch, control_type=None).values_list('powder_sample', flat=True)
+	powder_samples_already_selected = PowderSample.objects.annotate(num_assignments=Count('lysatebatchlayout')).annotate(assigned_to_lysate_batch=Count('lysatebatchlayout', filter=Q(lysatebatchlayout__lysate_batch=lysate_batch))).filter(
 		Q(id__in=already_selected_powder_sample_ids)
 	)
-	powder_samples_unselected = PowderSample.objects.annotate(num_assignments=Count('extractbatchlayout')).annotate(assigned_to_extract_batch=Count('extractbatchlayout', filter=Q(extractbatchlayout__extract_batch=extract_batch))).filter(
+	powder_samples_unselected = PowderSample.objects.annotate(num_assignments=Count('lysatebatchlayout')).annotate(assigned_to_lysate_batch=Count('lysatebatchlayout', filter=Q(lysatebatchlayout__lysate_batch=lysate_batch))).filter(
 		Q(powder_batch__status__description='Ready For Plate', num_assignments=0)
 		| (Q(powder_batch=None) & ~Q(powder_sample_id__endswith='NP'))# powder samples directly from collaborators will not have powder batch. Exclude controls. 
 	)
@@ -337,7 +337,7 @@ def extract_batch_assign_powder(request):
 	
 	assigned_powder_samples_count = already_selected_powder_sample_ids.count()
 	
-	return render(request, 'samples/extract_batch_assign_powder.html', { 'extract_batch_name': extract_batch_name, 'powder_samples': powder_samples, 'assigned_powder_samples_count': assigned_powder_samples_count, 'control_count': len(existing_controls), 'form': extract_batch_form  } )
+	return render(request, 'samples/lysate_batch_assign_powder.html', { 'lysate_batch_name': lysate_batch_name, 'powder_samples': powder_samples, 'assigned_powder_samples_count': assigned_powder_samples_count, 'control_count': len(existing_controls), 'form': lysate_batch_form  } )
 	
 def extract_batch_assign_lysate(request):
 	pass
@@ -393,12 +393,12 @@ def duplicate_positions_check(objects_map):
 	return None
 
 @login_required
-def extract_batch_plate_layout(request):
+def lysate_batch_plate_layout(request):
 	try:
-		extract_batch_name = request.GET['extract_batch_name']
+		lysate_batch_name = request.GET['lysate_batch_name']
 	except:
-		extract_batch_name = request.POST['extract_batch_name']
-	extract_batch = ExtractBatch.objects.get(batch_name=extract_batch_name)
+		lysate_batch_name = request.POST['lysate_batch_name']
+	lysate_batch = LysateBatch.objects.get(batch_name=lysate_batch_name)
 	
 	if request.method == 'POST' and request.is_ajax():
 		# JSON for a well plate layout
@@ -421,22 +421,20 @@ def extract_batch_plate_layout(request):
 			#print(identifier, position)
 			try:
 				powder_sample_id_string = identifier
-				layout_element = ExtractBatchLayout.objects.get(extract_batch=extract_batch, powder_sample__powder_sample_id=powder_sample_id_string)
-			except ExtractBatchLayout.DoesNotExist:
+				layout_element = LysateBatchLayout.objects.get(lysate_batch=lysate_batch, powder_sample__powder_sample_id=powder_sample_id_string)
+			except LysateBatchLayout.DoesNotExist:
 				control_type, start_position = identifier.rsplit(' ', 1)
 				row = start_position[0]
 				column = int(start_position[1:])
-				layout_element = ExtractBatchLayout.objects.get(extract_batch=extract_batch, control_type__control_type=control_type, row=row, column=column)
+				layout_element = LysateBatchLayout.objects.get(lysate_batch=lysate_batch, control_type__control_type=control_type, row=row, column=column)
 			layout_element.set_position(position)
 			layout_element.save(save_user=request.user)
 		#print('ajax submission')
 	elif request.method == 'POST':
-		#control_layout_name = request.POST['control_layout_name']
-		#extract_batch.assign_layout(control_layout_name, request.user)
-		print('POST {extract_batch_name}')
+		print('POST {lysate_batch_name}')
 		raise ValueError('unexpected')
 		
-	layout_elements = ExtractBatchLayout.objects.filter(extract_batch=extract_batch).select_related('powder_sample').select_related('control_type')
+	layout_elements = LysateBatchLayout.objects.filter(lysate_batch=lysate_batch).select_related('powder_sample').select_related('control_type')
 		
 	objects_map = {}
 	for layout_element in layout_elements:
@@ -446,19 +444,19 @@ def extract_batch_plate_layout(request):
 			# label with location to distinguish between controls
 			identifier = f'{layout_element.control_type.control_type} {str(layout_element)}'
 		else:
-			raise ValueError('ExtractBatchLayout with neither powder sample nor control content f{layout_element.pk}')
+			raise ValueError('LysateBatchLayout with neither powder sample nor control content f{layout_element.pk}')
 		# remove spaces and periods for HTML widget
 		joint = { 'position':f'{str(layout_element)}', 'widget_id':identifier.replace(' ','').replace('.','') }
 		objects_map[identifier] = joint
 		print(identifier, joint)
 		
-	return render(request, 'samples/generic_layout.html', { 'layout_title': 'Powder Sample Layout For Extract Batch', 'layout_name': extract_batch_name, 'rows':PLATE_ROWS, 'columns':WELL_PLATE_COLUMNS, 'objects_map': objects_map } )
+	return render(request, 'samples/generic_layout.html', { 'layout_title': 'Powder Sample Layout For Lysate Batch', 'layout_name': lysate_batch_name, 'rows':PLATE_ROWS, 'columns':WELL_PLATE_COLUMNS, 'objects_map': objects_map } )
 
 @login_required
 def lost_powder(request):
 	page_number = request.GET.get('page', 1)
 	page_size = request.GET.get('page_size', 25)
-	whole_queue = ExtractBatchLayout.objects.filter(extract_batch=None).order_by('-modification_timestamp')
+	whole_queue = LysateBatchLayout.objects.filter(lysate_batch=None).order_by('-modification_timestamp')
 	paginator = Paginator(whole_queue, page_size)
 	page_obj = paginator.get_page(page_number)
 	page_obj.ordered = True

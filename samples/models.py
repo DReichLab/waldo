@@ -424,7 +424,7 @@ def control_sample_number(control_element_queryset):
 			raise ValueError(f'Multiple control sample ids: {reich_lab_sample_number} {control_layout_element.powder_sample.sample.reich_lab_id:}')
 	return reich_lab_sample_number
 
-class ExtractBatch(Timestamped):
+class LysateBatch(Timestamped):
 	batch_name = models.CharField(max_length=50, unique=True)
 	protocol = models.ForeignKey(ExtractionProtocol, on_delete=models.PROTECT, null=True)
 	technician = models.CharField(max_length=50, blank=True)
@@ -432,7 +432,7 @@ class ExtractBatch(Timestamped):
 	date = models.DateField(null=True, help_text='YYYY-MM-DD')
 	robot = models.CharField(max_length=20, blank=True)
 	note = models.TextField(blank=True)
-	layout = models.ManyToManyField(PowderSample, through='ExtractBatchLayout', related_name='powder_sample_assignment')
+	layout = models.ManyToManyField(PowderSample, through='LysateBatchLayout', related_name='powder_sample_assignment')
 	control_layout_name = models.CharField(max_length=25, blank=True, help_text='When applying a layout, use this set of controls.  The control entries are stored in layout.')
 	
 	# assign a layout, one powder sample or control per position
@@ -441,14 +441,14 @@ class ExtractBatch(Timestamped):
 		control_types = EXTRACT_AND_LIBRARY_CONTROLS
 		# sort powder batches by lowest sample ID, then powder batch by reich lab id
 		# powder batches are grouped together, and sample numbers are ascending
-		powders = ExtractBatchLayout.objects.annotate(powder_batch_order=Min('powder_sample__powder_batch__powdersample__sample__reich_lab_id')).filter(extract_batch=self, control_type=None).order_by('powder_batch_order', 'powder_sample__powder_batch', 'powder_sample__sample__reich_lab_id')
+		powders = LysateBatchLayout.objects.annotate(powder_batch_order=Min('powder_sample__powder_batch__powdersample__sample__reich_lab_id')).filter(lysate_batch=self, control_type=None).order_by('powder_batch_order', 'powder_sample__powder_batch', 'powder_sample__sample__reich_lab_id')
 		controls = ControlLayout.objects.filter(layout_name=self.control_layout_name, control_type__control_type__in=control_types, active=True).order_by('column', 'row')
 		# check count
 		if powders.count() + controls.count() > PLATE_WELL_COUNT:
 			raise ValueError(f'Too many items for extract layout: {powders.count} powders and {controls.count} controls')
 		
 		# get existing controls
-		existing_controls = ExtractBatchLayout.objects.filter(extract_batch=self, control_type__isnull=False).order_by('column', 'row')
+		existing_controls = LysateBatchLayout.objects.filter(lysate_batch=self, control_type__isnull=False).order_by('column', 'row')
 		# we check the existing controls for sample ids
 		# Extract Negative: find the Reich lab sample ID used for extract negatives for this extract batch
 		extract_negative_controls = existing_controls.filter(control_type__control_type=EXTRACT_NEGATIVE)
@@ -465,7 +465,7 @@ class ExtractBatch(Timestamped):
 		extract_negative_control_count = 0
 		library_negative_control_count = 0
 		for control in controls:
-			layout_element = ExtractBatchLayout(extract_batch=self, control_type=control.control_type, row=control.row, column=control.column, powder_used_mg=0)
+			layout_element = LysateBatchLayout(lysate_batch=self, control_type=control.control_type, row=control.row, column=control.column, powder_used_mg=0)
 			# create sample and powder sample
 			control_type = control.control_type.control_type
 			if layout_element.powder_sample is None and control_type != LIBRARY_POSITIVE:
@@ -502,7 +502,7 @@ class ExtractBatch(Timestamped):
 					
 			layout_element.save(save_user=user)
 
-		completed_controls = ExtractBatchLayout.objects.filter(extract_batch=self, control_type__isnull=False).order_by('column', 'row')
+		completed_controls = LysateBatchLayout.objects.filter(lysate_batch=self, control_type__isnull=False).order_by('column', 'row')
 		count = 0
 		for layout_element in powders:
 			# check positions until there is no control
@@ -526,7 +526,7 @@ class ExtractBatch(Timestamped):
 	# Empty wells become library negatives
 	def fill_empty_wells_with_library_negatives(self, user):
 		# order consistent with plate_location
-		existing_layout = ExtractBatchLayout.objects.filter(extract_batch=self).order_by('column', 'row')
+		existing_layout = LysateBatchLayout.objects.filter(lysate_batch=self).order_by('column', 'row')
 		library_negatives = existing_layout.filter(control_type__control_type=LIBRARY_NEGATIVE)
 		num_library_negatives = len(library_negatives)
 		control_type = library_negatives[0].control_type
@@ -554,12 +554,12 @@ class ExtractBatch(Timestamped):
 				control_sample.save(save_user=user)
 				powder_sample_control = PowderSample(sample=control_sample, powder_sample_id=f'{str(control_sample)}.NP')
 				powder_sample_control.save(save_user=user)
-				layout_element = ExtractBatchLayout(extract_batch=self, control_type=control_type, row=row, column=column, powder_used_mg=0, powder_sample=powder_sample_control)
+				layout_element = LysateBatchLayout(lysate_batch=self, control_type=control_type, row=row, column=column, powder_used_mg=0, powder_sample=powder_sample_control)
 				layout_element.save(save_user=user)
 
 # 
-class ExtractBatchLayout(TimestampedWellPosition):
-	extract_batch = models.ForeignKey(ExtractBatch, on_delete=models.CASCADE, null=True) # use a null extract batch to mark lost powder
+class LysateBatchLayout(TimestampedWellPosition):
+	lysate_batch = models.ForeignKey(LysateBatch, on_delete=models.CASCADE, null=True) # use a null extract batch to mark lost powder
 	powder_sample = models.ForeignKey(PowderSample, on_delete=models.CASCADE, null=True)
 	control_type = models.ForeignKey(ControlType, on_delete=models.PROTECT, null=True)
 	powder_used_mg = models.FloatField()
@@ -579,8 +579,8 @@ class ExtractBatchLayout(TimestampedWellPosition):
 				self.save(save_user=user)
 				
 	def clean(self):
-		super(ExtractBatchLayout, self).clean()
-		if self.powder_sample is None and (self.extract_batch is None or self.control_type is None):
+		super(LysateBatchLayout, self).clean()
+		if self.powder_sample is None and (self.lysate_batch is None or self.control_type is None):
 			print('Null powder samples must be extract batch controls')
 			raise ValidationError(_('Null powder samples must be extract batch controls'))
 
@@ -603,7 +603,7 @@ class Extract(Timestamped):
 	reich_lab_extract_number = models.PositiveIntegerField(null=True, help_text='Starts at 1 for each lysate or sample if no lysate exists.')
 	lysate = models.ForeignKey(Lysate, on_delete=models.PROTECT, null=True)
 	sample = models.ForeignKey(Sample, on_delete=models.PROTECT, null=True)
-	extract_batch = models.ForeignKey(ExtractBatch, null=True, on_delete=models.PROTECT)
+	lysate_batch = models.ForeignKey(LysateBatch, null=True, on_delete=models.PROTECT)
 	storage = models.ForeignKey(Storage, on_delete=models.PROTECT, null=True)
 	lysis_volume_extracted = models.FloatField(null=True)
 	#extract_volume_remaining = models.FloatField(null=True)
@@ -728,7 +728,7 @@ class NuclearSequencingRun(Timestamped):
 	notes = models.TextField(blank=True)
 	
 class ControlsExtract(Timestamped):
-	extract_batch = models.ForeignKey(ExtractBatch, on_delete=models.PROTECT)
+	lysate_batch = models.ForeignKey(LysateBatch, on_delete=models.PROTECT)
 	ec_count = models.PositiveSmallIntegerField(null=True)
 	ec_median = models.FloatField(null=True)
 	ec_max = models.FloatField(null=True)
