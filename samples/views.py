@@ -13,7 +13,7 @@ import json
 from datetime import datetime
 
 from samples.pipeline import udg_and_strandedness
-from samples.models import Results, Library, Sample, PowderBatch, WetLabStaff, PowderSample, ControlType, ControlLayout, ExtractionProtocol, LysateBatch, SamplePrepQueue, PLATE_ROWS, LysateBatchLayout
+from samples.models import Results, Library, Sample, PowderBatch, WetLabStaff, PowderSample, ControlType, ControlLayout, ExtractionProtocol, LysateBatch, SamplePrepQueue, PLATE_ROWS, LysateBatchLayout, ExtractBatch, ExtractBatchLayout
 from .forms import IndividualForm, LibraryIDForm, PowderBatchForm, SampleImageForm, PowderSampleForm, PowderSampleFormset, ControlTypeFormset, ControlLayoutFormset, ExtractionProtocolFormset, LysateBatchForm, SamplePrepQueueFormset, LysateBatchLayoutForm, LostPowderFormset, SpreadsheetForm
 from sequencing_run.models import MTAnalysis
 
@@ -338,6 +338,25 @@ def lysate_batch_assign_powder(request):
 	assigned_powder_samples_count = already_selected_powder_sample_ids.count()
 	
 	return render(request, 'samples/lysate_batch_assign_powder.html', { 'lysate_batch_name': lysate_batch_name, 'powder_samples': powder_samples, 'assigned_powder_samples_count': assigned_powder_samples_count, 'control_count': len(existing_controls), 'form': lysate_batch_form  } )
+	
+def extract_batch(request):
+	if request.method == 'POST':
+		extract_batch_form = ExtractBatchForm(request.POST, user=request.user)
+		if extract_batch_form.is_valid():
+			extract_batch_instance = extract_batch_form.save(commit=False)
+			if not ExtractBatch.objects.filter(pk=extract_batch_instance.pk).exists():
+				if extract_batch_instance.technician_fk == None:
+					wetlab_staff = WetLabStaff.objects.get(login_user=request.user)
+					extract_batch_instance.technician_fk = wetlab_staff
+					extract_batch_instance.technician = wetlab_staff.initials()
+			extract_batch_instance.save()
+		
+	elif request.method == 'GET':
+		extract_batch_form = LysateBatchForm(user=request.user)
+	
+	extract_batches = ExtractBatch.objects.all()
+	# open can have new samples assigned
+	return render(request, 'samples/extract_batch.html', { 'extract_batch_form': extract_batch_form, 'extract_batches': extract_batches } )
 	
 def extract_batch_assign_lysate(request):
 	pass
