@@ -13,7 +13,7 @@ import json
 from datetime import datetime
 
 from samples.pipeline import udg_and_strandedness
-from samples.models import Results, Library, Sample, PowderBatch, WetLabStaff, PowderSample, ControlType, ControlLayout, ExtractionProtocol, LysateBatch, SamplePrepQueue, PLATE_ROWS, LysateBatchLayout, ExtractBatch, ExtractBatchLayout
+from samples.models import Results, Library, Sample, PowderBatch, WetLabStaff, PowderSample, ControlType, ControlLayout, ExtractionProtocol, LysateBatch, SamplePrepQueue, PLATE_ROWS, LysateBatchLayout, ExtractionBatch, ExtractionBatchLayout
 from .forms import IndividualForm, LibraryIDForm, PowderBatchForm, SampleImageForm, PowderSampleForm, PowderSampleFormset, ControlTypeFormset, ControlLayoutFormset, ExtractionProtocolFormset, LysateBatchForm, SamplePrepQueueFormset, LysateBatchLayoutForm, LostPowderFormset, SpreadsheetForm
 from sequencing_run.models import MTAnalysis
 
@@ -341,10 +341,10 @@ def lysate_batch_assign_powder(request):
 	
 def extract_batch(request):
 	if request.method == 'POST':
-		extract_batch_form = ExtractBatchForm(request.POST, user=request.user)
+		extract_batch_form = ExtractionBatchForm(request.POST, user=request.user)
 		if extract_batch_form.is_valid():
 			extract_batch_instance = extract_batch_form.save(commit=False)
-			if not ExtractBatch.objects.filter(pk=extract_batch_instance.pk).exists():
+			if not ExtractionBatch.objects.filter(pk=extract_batch_instance.pk).exists():
 				if extract_batch_instance.technician_fk == None:
 					wetlab_staff = WetLabStaff.objects.get(login_user=request.user)
 					extract_batch_instance.technician_fk = wetlab_staff
@@ -354,7 +354,7 @@ def extract_batch(request):
 	elif request.method == 'GET':
 		extract_batch_form = LysateBatchForm(user=request.user)
 	
-	extract_batches = ExtractBatch.objects.all()
+	extract_batches = ExtractionBatch.objects.all()
 	# open can have new samples assigned
 	return render(request, 'samples/extract_batch.html', { 'extract_batch_form': extract_batch_form, 'extract_batches': extract_batches } )
 	

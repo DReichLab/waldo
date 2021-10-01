@@ -4,7 +4,7 @@ from django.forms import modelformset_factory
 from django.forms.widgets import TextInput
 from django.utils.translation import gettext_lazy as _
 
-from samples.models import PowderBatch, PowderBatchStatus, PowderSample, Sample, SamplePrepProtocol, ControlType, ControlLayout, LysateBatch, ExtractionProtocol, ExpectedComplexity, SamplePrepQueue, LysateBatchLayout, ExtractBatch
+from samples.models import PowderBatch, PowderBatchStatus, PowderSample, Sample, SamplePrepProtocol, ControlType, ControlLayout, LysateBatch, ExtractionProtocol, ExpectedComplexity, SamplePrepQueue, LysateBatchLayout, ExtractionBatch
 
 import datetime
 
@@ -143,14 +143,14 @@ class LysateBatchForm(UserModelForm):
 			'note': Textarea(attrs={'cols': 60, 'rows': 2}),
 		}
 		
-class ExtractBatchForm(UserModelForm):
+class ExtractionBatchForm(UserModelForm):
 	protocol = ExtractionProtocolSelect(queryset=ExtractionProtocol.objects.all())
 	
 	layout_names = ControlLayout.objects.values_list('layout_name', flat=True).order_by('layout_name').distinct('layout_name')
 	control_layout_name = ChoiceField(choices=zip(layout_names, layout_names))
 	
 	class Meta:
-		model = ExtractBatch
+		model = ExtractionBatch
 		fields = ['batch_name', 'protocol', 'control_layout_name', 'date', 'robot', 'note', 'technician']
 		widgets = {
 			'note': Textarea(attrs={'cols': 60, 'rows': 2}),
