@@ -18,6 +18,7 @@ from .forms import IndividualForm, LibraryIDForm, PowderBatchForm, SampleImageFo
 from sequencing_run.models import MTAnalysis
 
 from .powder_samples import new_reich_lab_powder_sample, assign_prep_queue_entries_to_powder_batch, assign_powder_samples_to_lysate_batch, powder_samples_from_spreadsheet
+from .layout import layout_objects_map_for_rendering
 
 from samples.sample_photos import photo_list, save_sample_photo
 
@@ -429,19 +430,7 @@ def lysate_batch_plate_layout(request):
 		
 	layout_elements = LysateBatchLayout.objects.filter(lysate_batch=lysate_batch).select_related('powder_sample').select_related('control_type')
 		
-	objects_map = {}
-	for layout_element in layout_elements:
-		if layout_element.powder_sample != None:
-			identifier = layout_element.powder_sample.powder_sample_id
-		elif layout_element.control_type != None:
-			# label with location to distinguish between controls
-			identifier = f'{layout_element.control_type.control_type} {str(layout_element)}'
-		else:
-			raise ValueError('LysateBatchLayout with neither powder sample nor control content f{layout_element.pk}')
-		# remove spaces and periods for HTML widget
-		joint = { 'position':f'{str(layout_element)}', 'widget_id':identifier.replace(' ','').replace('.','') }
-		objects_map[identifier] = joint
-		print(identifier, joint)
+	objects_map = layout_objects_map_for_rendering(layout_elements, 'powder_sample', 'powder_sample_id')
 		
 	return render(request, 'samples/generic_layout.html', { 'layout_title': 'Powder Sample Layout For Lysate Batch', 'layout_name': lysate_batch_name, 'rows':PLATE_ROWS, 'columns':WELL_PLATE_COLUMNS, 'objects_map': objects_map } )
 
@@ -507,7 +496,7 @@ def extract_batch_assign_lysate(request):
 @login_required
 def extract_batch_add_lysate(request):
 	pass
-	
+
 @login_required
 def extract_batch_layout(request):
 	try:
@@ -525,19 +514,7 @@ def extract_batch_layout(request):
 		
 	layout_elements = ExtractionBatchLayout.objects.filter(extract_batch=extract_batch).select_related('lysate').select_related('control_type')
 		
-	objects_map = {}
-	for layout_element in layout_elements:
-		if layout_element.lysate != None:
-			identifier = layout_element.lysate.lysate_id
-		elif layout_element.control_type != None:
-			# label with location to distinguish between controls
-			identifier = f'{layout_element.control_type.control_type} {str(layout_element)}'
-		else:
-			raise ValueError('ExtractionBatchLayout with neither lysate nor control content f{layout_element.pk}')
-		# remove spaces and periods for HTML widget
-		joint = { 'position':f'{str(layout_element)}', 'widget_id':identifier.replace(' ','').replace('.','') }
-		objects_map[identifier] = joint
-		print(identifier, joint)
+	objects_map = layout_objects_map_for_rendering(layout_elements, 'lysate', 'lysate_id')
 		
 	return render(request, 'samples/generic_layout.html', { 'layout_title': 'Powder Sample Layout For Lysate Batch', 'layout_name': extract_batch_name, 'rows':PLATE_ROWS, 'columns':WELL_PLATE_COLUMNS, 'objects_map': objects_map } )
 	
