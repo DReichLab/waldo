@@ -14,7 +14,7 @@ from datetime import datetime
 
 from samples.pipeline import udg_and_strandedness
 from samples.models import Results, Library, Sample, PowderBatch, WetLabStaff, PowderSample, ControlType, ControlLayout, ExtractionProtocol, LysateBatch, SamplePrepQueue, PLATE_ROWS, LysateBatchLayout, ExtractionBatch, ExtractionBatchLayout
-from .forms import IndividualForm, LibraryIDForm, PowderBatchForm, SampleImageForm, PowderSampleForm, PowderSampleFormset, ControlTypeFormset, ControlLayoutFormset, ExtractionProtocolFormset, LysateBatchForm, SamplePrepQueueFormset, LysateBatchLayoutForm, LostPowderFormset, SpreadsheetForm
+from .forms import IndividualForm, LibraryIDForm, PowderBatchForm, SampleImageForm, PowderSampleForm, PowderSampleFormset, ControlTypeFormset, ControlLayoutFormset, ExtractionProtocolFormset, LysateBatchForm, SamplePrepQueueFormset, LysateBatchLayoutForm, LostPowderFormset, SpreadsheetForm, LysateBatchToExtractBatch
 from sequencing_run.models import MTAnalysis
 
 from .powder_samples import new_reich_lab_powder_sample, assign_prep_queue_entries_to_powder_batch, assign_powder_samples_to_lysate_batch, powder_samples_from_spreadsheet
@@ -339,6 +339,7 @@ def lysate_batch_assign_powder(request):
 	
 	return render(request, 'samples/lysate_batch_assign_powder.html', { 'lysate_batch_name': lysate_batch_name, 'powder_samples': powder_samples, 'assigned_powder_samples_count': assigned_powder_samples_count, 'control_count': len(existing_controls), 'form': lysate_batch_form  } )
 	
+@login_required
 def extract_batch(request):
 	if request.method == 'POST':
 		extract_batch_form = ExtractionBatchForm(request.POST, user=request.user)
@@ -358,10 +359,12 @@ def extract_batch(request):
 	# open can have new samples assigned
 	return render(request, 'samples/extract_batch.html', { 'extract_batch_form': extract_batch_form, 'extract_batches': extract_batches } )
 	
+@login_required
 def extract_batch_assign_lysate(request):
 	pass
 	
 # allow adding any lysate to this batch, free form
+@login_required
 def extract_batch_add_lysate(request):
 	pass
 
@@ -489,6 +492,20 @@ def lost_powder(request):
 	elif request.method == 'GET':
 		formset = LostPowderFormset(queryset=page_obj, form_kwargs={'user': request.user})
 	return render(request, 'samples/generic_formset.html', { 'title': 'Lost Powder', 'page_obj': page_obj, 'formset': formset, 'submit_button_text': 'Update lost powder' } )
+	
+@login_required
+def lysate_batch_to_extract_batch(request):
+	lysate_batch_name = request.GET['lysate_batch_name']
+	lysate_batch = LysateBatch.objects.get(batch_name=lysate_batch_name)
+	if request.method == 'POST':
+		form = LysateBatchToExtractBatch(request.POST)
+		if form.is_valid():
+			extract_batch_name = form.cleaned_data['extract_batch_name']
+			lysate_batch.create_extract_batch(extract_batch_name, request.user)
+	elif request.method == 'GET':
+		form = LysateBatchToExtractBatch()
+		
+	return render(request, 'samples/lysate_batch_to_extract_batch.html', { 'form': form, 'lysate_batch_name': lysate_batch_name } )
 	
 # Handle the layout of a 96 well plate with libraries
 # This renders an interface allowing a technician to move libraries between wells

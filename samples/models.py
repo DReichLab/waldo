@@ -594,7 +594,10 @@ class LysateBatch(Timestamped):
 			for layout_element in LysateBatchLayout.objects.filter(lysate_batch=self):
 				powder_sample = layout_element.powder_sample
 				# create lysate entry
-				lysate = create_lysate(powder_sample, self.protocol, user)
+				if powder_sample is not None:
+					lysate = create_lysate(powder_sample, self.protocol, user)
+				else: # library positive controls do not have powder sample
+					lysate = None
 				# create corresponding extract batch layout
 				extract_batch_layout_element = ExtractionBatchLayout(extract_batch=extract_batch,
 									lysate = lysate,
@@ -609,7 +612,7 @@ class LysateBatch(Timestamped):
 
 # 
 class LysateBatchLayout(TimestampedWellPosition):
-	lysate_batch = models.ForeignKey(LysateBatch, on_delete=models.CASCADE, null=True) # use a null extract batch to mark lost powder
+	lysate_batch = models.ForeignKey(LysateBatch, on_delete=models.CASCADE, null=True) # use a null lysate batch to mark lost powder
 	powder_sample = models.ForeignKey(PowderSample, on_delete=models.CASCADE, null=True)
 	control_type = models.ForeignKey(ControlType, on_delete=models.PROTECT, null=True)
 	powder_used_mg = models.FloatField()

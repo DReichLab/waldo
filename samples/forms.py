@@ -142,6 +142,20 @@ class LysateBatchForm(UserModelForm):
 		widgets = {
 			'note': Textarea(attrs={'cols': 60, 'rows': 2}),
 		}
+
+# raise validation error if extract batch name already exists
+def validate_extract_batch_does_not_exist(extract_batch_name):
+	try:
+		extract_batch = ExtractionBatch.objects.get(batch_name=extract_batch_name)
+		raise ValidationError(_('Extract Batch already exists: %(extract_batch_name)s'), 
+						code='exists', 
+						params={'extract_batch_name': extract_batch_name})
+	except ExtractionBatch.DoesNotExist:
+		pass
+
+# 
+class LysateBatchToExtractBatch(forms.Form):
+	extract_batch_name = forms.CharField(max_length=50, label='Extract Batch name', validators=[validate_extract_batch_does_not_exist])
 		
 class ExtractionBatchForm(UserModelForm):
 	protocol = ExtractionProtocolSelect(queryset=ExtractionProtocol.objects.all())
