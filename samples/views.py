@@ -18,7 +18,7 @@ from .forms import IndividualForm, LibraryIDForm, PowderBatchForm, SampleImageFo
 from sequencing_run.models import MTAnalysis
 
 from .powder_samples import new_reich_lab_powder_sample, assign_prep_queue_entries_to_powder_batch, assign_powder_samples_to_lysate_batch, powder_samples_from_spreadsheet
-from .layout import layout_objects_map_for_rendering
+from .layout import duplicate_positions_check, update_db_layout, layout_objects_map_for_rendering
 
 from samples.sample_photos import photo_list, save_sample_photo
 
@@ -370,22 +370,6 @@ def sample(request):
 PLATE_ROWS = 'ABCDEFGH'
 WELL_PLATE_COLUMNS = range(1,13)
 
-def duplicate_positions_check(objects_map):
-	ids_in_position = {} # store list of ids in this position
-	for identifier in objects_map:
-		x = objects_map[identifier]
-		position = x['position']
-		ids_in_position[position] = ids_in_position.get(position, []) +  [identifier]
-	
-	position_error_messages = []
-	for position in ids_in_position:
-		if len(ids_in_position[position]) > 1:
-			 position_error_messages += [f'{position}: {", ".join(ids_in_position[position])}']
-	if len(position_error_messages) > 0:
-		error_message = f'too many items in position\n' + '\n'.join(position_error_messages)
-		return error_message
-	return None
-
 @login_required
 def lysate_batch_plate_layout(request):
 	try:
@@ -398,10 +382,6 @@ def lysate_batch_plate_layout(request):
 		# JSON for a well plate layout
 		#print(request.body)
 		layout = request.POST['layout']
-		# objects map is a dictionary where each entry has keys:
-		#	widget_id: modified object id to avoid HTML issues
-		#	position: for example A1 or H12
-		#	object_id
 		objects_map = json.loads(layout)
 		#print(objects_map)
 		# Cannot have more than one powder per well
@@ -409,20 +389,7 @@ def lysate_batch_plate_layout(request):
 		if duplicate_error_message is not None:
 			return HttpResponseBadRequest(duplicate_error_message)
 		# propagate changes to database
-		for identifier in objects_map:
-			x = objects_map[identifier]
-			position = x['position']
-			#print(identifier, position)
-			try:
-				powder_sample_id_string = identifier
-				layout_element = LysateBatchLayout.objects.get(lysate_batch=lysate_batch, powder_sample__powder_sample_id=powder_sample_id_string)
-			except LysateBatchLayout.DoesNotExist:
-				control_type, start_position = identifier.rsplit(' ', 1)
-				row = start_position[0]
-				column = int(start_position[1:])
-				layout_element = LysateBatchLayout.objects.get(lysate_batch=lysate_batch, control_type__control_type=control_type, row=row, column=column)
-			layout_element.set_position(position)
-			layout_element.save(save_user=request.user)
+		update_db_layout(request.user, objects_map, LysateBatchLayout.objects.filter(lysate_batch=lysate_batch), 'powder_sample', 'powder_sample_id')
 		#print('ajax submission')
 	elif request.method == 'POST':
 		print('POST {lysate_batch_name}')
