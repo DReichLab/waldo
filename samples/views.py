@@ -14,7 +14,7 @@ from datetime import datetime
 
 from samples.pipeline import udg_and_strandedness
 from samples.models import Results, Library, Sample, PowderBatch, WetLabStaff, PowderSample, ControlType, ControlLayout, ExtractionProtocol, LysateBatch, SamplePrepQueue, PLATE_ROWS, LysateBatchLayout, ExtractionBatch, ExtractionBatchLayout
-from .forms import IndividualForm, LibraryIDForm, PowderBatchForm, SampleImageForm, PowderSampleForm, PowderSampleFormset, ControlTypeFormset, ControlLayoutFormset, ExtractionProtocolFormset, LysateBatchForm, SamplePrepQueueFormset, LysateBatchLayoutForm, LostPowderFormset, SpreadsheetForm, LysateBatchToExtractBatch
+from .forms import IndividualForm, LibraryIDForm, PowderBatchForm, SampleImageForm, PowderSampleForm, PowderSampleFormset, ControlTypeFormset, ControlLayoutFormset, ExtractionProtocolFormset, LysateBatchForm, SamplePrepQueueFormset, LysateBatchLayoutForm, LostPowderFormset, SpreadsheetForm, LysateBatchToExtractBatch, ExtractionBatchForm
 from sequencing_run.models import MTAnalysis
 
 from .powder_samples import new_reich_lab_powder_sample, assign_prep_queue_entries_to_powder_batch, assign_powder_samples_to_lysate_batch, powder_samples_from_spreadsheet
@@ -338,35 +338,6 @@ def lysate_batch_assign_powder(request):
 	assigned_powder_samples_count = already_selected_powder_sample_ids.count()
 	
 	return render(request, 'samples/lysate_batch_assign_powder.html', { 'lysate_batch_name': lysate_batch_name, 'powder_samples': powder_samples, 'assigned_powder_samples_count': assigned_powder_samples_count, 'control_count': len(existing_controls), 'form': lysate_batch_form  } )
-	
-@login_required
-def extract_batch(request):
-	if request.method == 'POST':
-		extract_batch_form = ExtractionBatchForm(request.POST, user=request.user)
-		if extract_batch_form.is_valid():
-			extract_batch_instance = extract_batch_form.save(commit=False)
-			if not ExtractionBatch.objects.filter(pk=extract_batch_instance.pk).exists():
-				if extract_batch_instance.technician_fk == None:
-					wetlab_staff = WetLabStaff.objects.get(login_user=request.user)
-					extract_batch_instance.technician_fk = wetlab_staff
-					extract_batch_instance.technician = wetlab_staff.initials()
-			extract_batch_instance.save()
-		
-	elif request.method == 'GET':
-		extract_batch_form = LysateBatchForm(user=request.user)
-	
-	extract_batches = ExtractionBatch.objects.all()
-	# open can have new samples assigned
-	return render(request, 'samples/extract_batch.html', { 'extract_batch_form': extract_batch_form, 'extract_batches': extract_batches } )
-	
-@login_required
-def extract_batch_assign_lysate(request):
-	pass
-	
-# allow adding any lysate to this batch, free form
-@login_required
-def extract_batch_add_lysate(request):
-	pass
 
 def reich_lab_sample_number_from_string(s):
 	if s.startswith('S'):
@@ -502,10 +473,73 @@ def lysate_batch_to_extract_batch(request):
 		if form.is_valid():
 			extract_batch_name = form.cleaned_data['extract_batch_name']
 			lysate_batch.create_extract_batch(extract_batch_name, request.user)
+			# TODO return redirect(f'{reverse("extract_batch")}?batch_name={extract_batch_name}')
 	elif request.method == 'GET':
 		form = LysateBatchToExtractBatch()
 		
 	return render(request, 'samples/lysate_batch_to_extract_batch.html', { 'form': form, 'lysate_batch_name': lysate_batch_name } )
+	
+@login_required
+def extract_batch(request):
+	if request.method == 'POST':
+		extract_batch_form = ExtractionBatchForm(request.POST, user=request.user)
+		if extract_batch_form.is_valid():
+			extract_batch_instance = extract_batch_form.save(commit=False)
+			if not ExtractionBatch.objects.filter(pk=extract_batch_instance.pk).exists():
+				if extract_batch_instance.technician_fk == None:
+					wetlab_staff = WetLabStaff.objects.get(login_user=request.user)
+					extract_batch_instance.technician_fk = wetlab_staff
+					extract_batch_instance.technician = wetlab_staff.initials()
+			extract_batch_instance.save()
+		
+	elif request.method == 'GET':
+		extract_batch_form = ExtractionBatchForm(user=request.user)
+	
+	extract_batches = ExtractionBatch.objects.all()
+	# open can have new samples assigned
+	return render(request, 'samples/extract_batch.html', { 'extract_batch_form': extract_batch_form, 'extract_batches': extract_batches } )
+	
+@login_required
+def extract_batch_assign_lysate(request):
+	pass
+	
+# allow adding any lysate to this batch, free form
+@login_required
+def extract_batch_add_lysate(request):
+	pass
+	
+@login_required
+def extract_batch_layout(request):
+	try:
+		extract_batch_name = request.GET['extract_batch_name']
+	except:
+		extract_batch_name = request.POST['extract_batch_name']
+	extract_batch = ExtractionBatch.objects.get(batch_name=extract_batch_name)
+	layout_element_queryset = ExtractionBatchLayout.objects.filter(extract_batch=extract_batch)
+		
+	if request.method == 'POST' and request.is_ajax():
+		raise ValueError('unimplemented') # TODO
+	elif request.method == 'POST':
+		print('POST {extract_batch_name}')
+		raise ValueError('unexpected')
+		
+	layout_elements = ExtractionBatchLayout.objects.filter(extract_batch=extract_batch).select_related('lysate').select_related('control_type')
+		
+	objects_map = {}
+	for layout_element in layout_elements:
+		if layout_element.lysate != None:
+			identifier = layout_element.lysate.lysate_id
+		elif layout_element.control_type != None:
+			# label with location to distinguish between controls
+			identifier = f'{layout_element.control_type.control_type} {str(layout_element)}'
+		else:
+			raise ValueError('ExtractionBatchLayout with neither lysate nor control content f{layout_element.pk}')
+		# remove spaces and periods for HTML widget
+		joint = { 'position':f'{str(layout_element)}', 'widget_id':identifier.replace(' ','').replace('.','') }
+		objects_map[identifier] = joint
+		print(identifier, joint)
+		
+	return render(request, 'samples/generic_layout.html', { 'layout_title': 'Powder Sample Layout For Lysate Batch', 'layout_name': extract_batch_name, 'rows':PLATE_ROWS, 'columns':WELL_PLATE_COLUMNS, 'objects_map': objects_map } )
 	
 # Handle the layout of a 96 well plate with libraries
 # This renders an interface allowing a technician to move libraries between wells
