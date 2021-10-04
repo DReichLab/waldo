@@ -34,6 +34,7 @@ def new_reich_lab_powder_sample(sample_prep_entry, powder_batch, user):
 	sample_prep_entry.save()
 
 def assign_prep_queue_entries_to_powder_batch(powder_batch, sample_prep_ids, user):
+	failed_assignments = {}
 	# first clear powder batch
 	to_clear = SamplePrepQueue.objects.filter(powder_batch=powder_batch).exclude(id__in=sample_prep_ids)
 	for sample_prep_entry in to_clear:
@@ -41,25 +42,26 @@ def assign_prep_queue_entries_to_powder_batch(powder_batch, sample_prep_ids, use
 		if sample_prep_entry.powder_sample != None:
 			powder_sample = sample_prep_entry.powder_sample
 			powder_sample.powder_batch = None
-			powder_sample.save_user = user
-			powder_sample.save()
-		sample_prep_entry.save()
+			powder_sample.save(save_user=user)
+		sample_prep_entry.save(save_user=user)
 	# add samples prep queue entries to powder batch
 	for sample_prep_entry in SamplePrepQueue.objects.filter(id__in=sample_prep_ids):
-		if sample_prep_entry.powder_batch == None:
+		existing_powder_batch = sample_prep_entry.powder_batch
+		if existing_powder_batch == None or existing_powder_batch == powder_batch:
 			sample_prep_entry.powder_batch = powder_batch
-			sample_prep_entry.save_user = user
-			sample_prep_entry.save()
-		if sample_prep_entry.powder_sample != None:
-			powder_sample = sample_prep_entry.powder_sample
-			powder_sample.powder_batch = powder_batch
-			powder_sample.save_user = user
-			powder_sample.save()
+			sample_prep_entry.save(save_user=user)
+			if sample_prep_entry.powder_sample != None:
+				powder_sample = sample_prep_entry.powder_sample
+				powder_sample.powder_batch = powder_batch
+				powder_sample.save(save_user=user)
+		else:
+			failed_assignments[sample_prep_entry.id] = sample_prep_entry.powder_batch.name
 	# assign reich lab sample number
 	# Open is the state where samples can be added. If it is not open, then create the powder sample and assign Reich lab sample number
 	if powder_batch.status.description != 'Open':
 		for sample_prep_entry in SamplePrepQueue.objects.filter(powder_batch=powder_batch):
 			new_reich_lab_powder_sample(sample_prep_entry, powder_batch, user)
+	return failed_assignments
 
 # it would be better to reuse form validation
 def powder_samples_from_spreadsheet(powder_batch_name, spreadsheet_file, user):
