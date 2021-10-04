@@ -475,7 +475,17 @@ def extract_batch_layout(request):
 	layout_element_queryset = ExtractionBatchLayout.objects.filter(extract_batch=extract_batch)
 		
 	if request.method == 'POST' and request.is_ajax():
-		raise ValueError('unimplemented') # TODO
+		# JSON for a well plate layout
+		#print(request.body)
+		layout = request.POST['layout']
+		objects_map = json.loads(layout)
+		#print(objects_map)
+		# Cannot have more than one powder per well
+		duplicate_error_message = duplicate_positions_check(objects_map)
+		if duplicate_error_message is not None:
+			return HttpResponseBadRequest(duplicate_error_message)
+		# propagate changes to database
+		update_db_layout(request.user, objects_map, ExtractionBatchLayout.objects.filter(extract_batch=extract_batch), 'lysate', 'lysate_id')
 	elif request.method == 'POST':
 		print('POST {extract_batch_name}')
 		raise ValueError('unexpected')

@@ -63,6 +63,7 @@ def assign_prep_queue_entries_to_powder_batch(powder_batch, sample_prep_ids, use
 			new_reich_lab_powder_sample(sample_prep_entry, powder_batch, user)
 	return failed_assignments
 
+# modify powder samples from spreadsheet
 # it would be better to reuse form validation
 def powder_samples_from_spreadsheet(powder_batch_name, spreadsheet_file, user):
 	s = spreadsheet_file.read().decode("utf-8")
