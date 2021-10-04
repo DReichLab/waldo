@@ -432,6 +432,7 @@ def lysate_batch_to_extract_batch(request):
 			# TODO return redirect(f'{reverse("extract_batch")}?batch_name={extract_batch_name}')
 	elif request.method == 'GET':
 		form = LysateBatchToExtractBatch()
+		form.initial['extract_batch_name'] = f'{lysate_batch_name.rsplit("_")[0]}_RE'
 		
 	return render(request, 'samples/lysate_batch_to_extract_batch.html', { 'form': form, 'lysate_batch_name': lysate_batch_name } )
 	
