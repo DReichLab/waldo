@@ -30,6 +30,7 @@ urlpatterns = [
 	path('extract_batch_add_lysate', views.extract_batch_add_lysate, name='extract_batch_add_lysate'),
 	path('extract_batch_layout', views.extract_batch_layout, name='extract_batch_layout'),
 	path('lost_powder', views.lost_powder, name='lost_powder'),
+	path('lost_lysate', views.lost_lysate, name='lost_lysate'),
 	path('sample', views.sample, name='sample'),
 	
 	path('password_change', PasswordChangeView.as_view(success_url='password_changed'), name='password_change'),

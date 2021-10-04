@@ -4,7 +4,7 @@ from django.forms import modelformset_factory
 from django.forms.widgets import TextInput
 from django.utils.translation import gettext_lazy as _
 
-from samples.models import PowderBatch, PowderBatchStatus, PowderSample, Sample, SamplePrepProtocol, ControlType, ControlLayout, LysateBatch, ExtractionProtocol, ExpectedComplexity, SamplePrepQueue, LysateBatchLayout, ExtractionBatch
+from samples.models import PowderBatch, PowderBatchStatus, PowderSample, Sample, SamplePrepProtocol, ControlType, ControlLayout, LysateBatch, ExtractionProtocol, ExpectedComplexity, SamplePrepQueue, Lysate, LysateBatchLayout, ExtractionBatch, ExtractionBatchLayout
 
 import datetime
 
@@ -192,6 +192,9 @@ class LysateBatchLayoutForm(forms.Form):
 	layout_names = ControlLayout.objects.values_list('layout_name', flat=True).order_by('layout_name').distinct('layout_name')
 	control_layout = ChoiceField(choices=zip(layout_names, layout_names))
 
+LOST_ROW = 'H'
+LOST_COLUMN = 6
+
 class LostPowderForm(UserModelForm):
 	powder_sample = ModelChoiceField(queryset=PowderSample.objects.all(), widget=TextInput, help_text='Powder Sample ID string', to_field_name='powder_sample_id')
 	
@@ -213,12 +216,39 @@ class LostPowderForm(UserModelForm):
 			
 	def save(self, commit=True):
 		lost_powder = super().save(commit=False)
-		lost_powder.row = 'H'
-		lost_powder.column = 6
+		lost_powder.row = LOST_ROW
+		lost_powder.column = LOST_COLUMN
 		lost_powder.save()
 		return lost_powder
 		
 LostPowderFormset = modelformset_factory(LysateBatchLayout, form=LostPowderForm)
+
+class LostLysateForm(UserModelForm):
+	lysate = ModelChoiceField(queryset=Lysate.objects.all(), widget=TextInput, help_text='Lysate ID string', to_field_name='lysate_id')
+	
+	class Meta:
+		model = ExtractionBatchLayout
+		fields = ['lysate', 'lysate_volume_used', 'notes', 'created_by']
+		widgets = {
+			'notes': Textarea(attrs={'cols': 60, 'rows': 2}),
+		}
+		
+	def __init__(self, *args, **kwargs):
+		super().__init__(*args, **kwargs)
+		if self.instance.pk:
+			self.initial.update({'lysate': self.instance.lysate.lysate_id})
+		else:
+			self.fields['lysate'].initial = None
+		self.fields['created_by'].disabled = True
+			
+	def save(self, commit=True):
+		lost_lysate = super().save(commit=False)
+		lost_lysate.row = LOST_ROW
+		lost_lysate.column = LOST_COLUMN
+		lost_lysate.save()
+		return lost_lysate
+
+LostLysateFormset = modelformset_factory(ExtractionBatchLayout, form=LostLysateForm)
 
 class SpreadsheetForm(forms.Form):
 	spreadsheet = forms.FileField()

@@ -14,7 +14,7 @@ from datetime import datetime
 
 from samples.pipeline import udg_and_strandedness
 from samples.models import Results, Library, Sample, PowderBatch, WetLabStaff, PowderSample, ControlType, ControlLayout, ExtractionProtocol, LysateBatch, SamplePrepQueue, PLATE_ROWS, LysateBatchLayout, ExtractionBatch, ExtractionBatchLayout
-from .forms import IndividualForm, LibraryIDForm, PowderBatchForm, SampleImageForm, PowderSampleForm, PowderSampleFormset, ControlTypeFormset, ControlLayoutFormset, ExtractionProtocolFormset, LysateBatchForm, SamplePrepQueueFormset, LysateBatchLayoutForm, LostPowderFormset, SpreadsheetForm, LysateBatchToExtractBatch, ExtractionBatchForm
+from .forms import IndividualForm, LibraryIDForm, PowderBatchForm, SampleImageForm, PowderSampleForm, PowderSampleFormset, ControlTypeFormset, ControlLayoutFormset, ExtractionProtocolFormset, LysateBatchForm, SamplePrepQueueFormset, LysateBatchLayoutForm, LostPowderFormset, SpreadsheetForm, LysateBatchToExtractBatch, ExtractionBatchForm, LostLysateFormset
 from sequencing_run.models import MTAnalysis
 
 from .powder_samples import new_reich_lab_powder_sample, assign_prep_queue_entries_to_powder_batch, assign_powder_samples_to_lysate_batch, powder_samples_from_spreadsheet
@@ -484,6 +484,25 @@ def extract_batch_layout(request):
 	objects_map = layout_objects_map_for_rendering(layout_elements, 'lysate', 'lysate_id')
 		
 	return render(request, 'samples/generic_layout.html', { 'layout_title': 'Powder Sample Layout For Lysate Batch', 'layout_name': extract_batch_name, 'rows':PLATE_ROWS, 'columns':WELL_PLATE_COLUMNS, 'objects_map': objects_map } )
+	
+@login_required
+def lost_lysate(request):
+	page_number = request.GET.get('page', 1)
+	page_size = request.GET.get('page_size', 25)
+	whole_queue = ExtractionBatchLayout.objects.filter(extract_batch=None).order_by('-modification_timestamp')
+	paginator = Paginator(whole_queue, page_size)
+	page_obj = paginator.get_page(page_number)
+	page_obj.ordered = True
+		
+	if request.method == 'POST':
+		formset = LostLysateFormset(request.POST, form_kwargs={'user': request.user})
+		
+		if formset.is_valid():
+			formset.save()
+		
+	elif request.method == 'GET':
+		formset = LostLysateFormset(queryset=page_obj, form_kwargs={'user': request.user})
+	return render(request, 'samples/generic_formset.html', { 'title': 'Lost Lysate', 'page_obj': page_obj, 'formset': formset, 'submit_button_text': 'Update lost lysate' } )
 	
 # Handle the layout of a 96 well plate with libraries
 # This renders an interface allowing a technician to move libraries between wells
