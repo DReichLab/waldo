@@ -616,6 +616,7 @@ class LysateBatchLayout(TimestampedWellPosition):
 	powder_sample = models.ForeignKey(PowderSample, on_delete=models.CASCADE, null=True)
 	control_type = models.ForeignKey(ControlType, on_delete=models.PROTECT, null=True)
 	powder_used_mg = models.FloatField()
+	notes = models.TextField(blank=True)
 	
 	def destroy_control(self, user):
 		if self.control_type is not None:
@@ -680,6 +681,7 @@ class ExtractionBatchLayout(TimestampedWellPosition):
 	lysate = models.ForeignKey(Lysate, on_delete=models.CASCADE, null=True)
 	control_type = models.ForeignKey(ControlType, on_delete=models.PROTECT, null=True)
 	lysate_volume_used = models.FloatField()
+	notes = models.TextField(blank=True)
 	
 class LibraryProtocol(Timestamped):
 	name = models.CharField(max_length=50, unique=True)
