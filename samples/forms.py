@@ -142,6 +142,11 @@ class LysateBatchForm(UserModelForm):
 		widgets = {
 			'note': Textarea(attrs={'cols': 60, 'rows': 2}),
 		}
+		
+	def __init__(self, *args, **kwargs):
+		super().__init__(*args, **kwargs)
+		for option in ['protocol', 'date', 'robot']:
+			self.fields[option].required = False
 
 # raise validation error if extract batch name already exists
 def validate_extract_batch_does_not_exist(extract_batch_name):
@@ -169,6 +174,11 @@ class ExtractionBatchForm(UserModelForm):
 		widgets = {
 			'note': Textarea(attrs={'cols': 60, 'rows': 2}),
 		}
+		
+	def __init__(self, *args, **kwargs):
+		super().__init__(*args, **kwargs)
+		for option in ['protocol', 'date', 'robot']:
+			self.fields[option].required = False
 		
 class ControlTypeSelect(ModelChoiceField):
 	def label_from_instance(self, obj):
