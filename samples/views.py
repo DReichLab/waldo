@@ -14,7 +14,7 @@ from datetime import datetime
 
 from samples.pipeline import udg_and_strandedness
 from samples.models import Results, Library, Sample, PowderBatch, WetLabStaff, PowderSample, ControlType, ControlLayout, ExtractionProtocol, LysateBatch, SamplePrepQueue, PLATE_ROWS, LysateBatchLayout, ExtractionBatch, ExtractionBatchLayout
-from .forms import IndividualForm, LibraryIDForm, PowderBatchForm, SampleImageForm, PowderSampleForm, PowderSampleFormset, ControlTypeFormset, ControlLayoutFormset, ExtractionProtocolFormset, LysateBatchForm, SamplePrepQueueFormset, LysateBatchLayoutForm, LostPowderFormset, SpreadsheetForm, LysateBatchToExtractBatch, ExtractionBatchForm, LostLysateFormset
+from .forms import IndividualForm, LibraryIDForm, PowderBatchForm, SampleImageForm, PowderSampleForm, PowderSampleFormset, ControlTypeFormset, ControlLayoutFormset, ExtractionProtocolFormset, LysateBatchForm, SamplePrepQueueFormset, LysateBatchLayoutForm, LostPowderFormset, SpreadsheetForm, LysateBatchToExtractBatch, ExtractionBatchForm, LostLysateFormset,Lysate
 from sequencing_run.models import MTAnalysis
 
 from .powder_samples import new_reich_lab_powder_sample, assign_prep_queue_entries_to_powder_batch, assign_powder_samples_to_lysate_batch, powder_samples_from_spreadsheet
@@ -458,7 +458,33 @@ def extract_batch(request):
 	
 @login_required
 def extract_batch_assign_lysate(request):
-	pass
+	extract_batch_name = request.GET['extract_batch_name']
+	extract_batch = ExtractionBatch.objects.get(batch_name=extract_batch_name)
+	if request.method == 'POST':
+		extract_batch_form = ExtractionBatchForm(request.POST, instance=extract_batch, user=request.user)
+		if extract_batch_form.is_valid():
+			print('valid extract_batch form')
+			extract_batch_form.save()
+			
+			# iterate through the checkboxes and change states
+			ticked_checkboxes = request.POST.getlist('lysate_checkboxes[]')
+			# tickbox name is lysate object id (int)
+			#assign_lysates_to_extract_batch(extract_batch, ticked_checkboxes, request.user)
+		
+	elif request.method == 'GET':
+		extract_batch_form = ExtractionBatchForm(instance=extract_batch, user=request.user)
+		
+	existing_controls = ExtractionBatchLayout.objects.filter(extract_batch=extract_batch, control_type__isnull=False)
+	
+	already_selected_lysates = ExtractionBatchLayout.objects.filter(extract_batch=extract_batch, control_type=None).values_list('lysate', flat=True)
+	
+	lysates = Lysate.objects.annotate(num_assignments=Count('extractionbatchlayout')).annotate(assigned_to_extract_batch=Count('extractionbatchlayout', filter=Q(extractionbatchlayout__extract_batch=extract_batch))).filter(
+		Q(id__in=already_selected_lysates)
+	)
+	
+	assigned_lysates_count = lysates.count()
+	
+	return render(request, 'samples/extract_batch_assign_lysate.html', { 'extract_batch_name': extract_batch_name, 'lysates': lysates, 'assigned_lysates_count': assigned_lysates_count, 'control_count': len(existing_controls), 'form': extract_batch_form  } )
 	
 # allow adding any lysate to this batch, free form
 @login_required
