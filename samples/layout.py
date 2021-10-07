@@ -1,3 +1,40 @@
+PLATE_ROWS = 'ABCDEFGH'
+PLATE_WELL_COUNT = 96
+		
+def validate_row_letter(letter):
+	if len(letter) != 1:
+		raise ValidationError(
+			_('Row letter %(letter)s must be 1 character.'),
+			params={'letter': letter},
+		)
+	if letter not in PLATE_ROWS:
+		raise ValidationError(
+			_('Row letter %(letter)s is out of allowed A-H range.'),
+			params={'letter': letter},
+		)
+
+# column first, then row (A1, B1, ..., H1, A2)
+# domain is [0,95]
+def plate_location(int_val):
+	if int_val < 0 or int_val >= PLATE_WELL_COUNT:
+		raise ValueError(f'{int_val} is out of range for a plate location')
+	row_index = int_val % len(PLATE_ROWS)
+	column_index = int_val // len(PLATE_ROWS) + 1
+	return PLATE_ROWS[row_index], column_index
+
+# map a plate location (A1, H12) back to an integer in [0,95]
+def reverse_plate_location_coordinate(row, column):
+	row_int = PLATE_ROWS.index(row)
+	int_val = row_int + (column - 1) * len(PLATE_ROWS)
+	if int_val < 0 or int_val >= PLATE_WELL_COUNT:
+		raise ValueError(f'{int_val} is out of range for a plate location')
+	return int_val
+	
+def reverse_plate_location(plate_location):
+	row = plate_location[0]
+	column = int(plate_location[1:])
+	return reverse_plate_location_coordinate(row, column)
+
 # objects map is a dictionary where each entry has keys:
 	#	widget_id: modified object id to avoid HTML issues
 	#	position: for example A1 or H12
@@ -17,6 +54,18 @@ def duplicate_positions_check(objects_map):
 		error_message = f'too many items in position\n' + '\n'.join(position_error_messages)
 		return error_message
 	return None
+	
+def occupied_wells(layout_queryset):
+	occupied_well_count = 0
+	num_non_control_assignments = 0
+	for i in range(PLATE_WELL_COUNT):
+		row, column = plate_location(i)
+		at_this_location = layout_queryset.filter(row=row, column=column)
+		if len(at_this_location) > 0:
+			occupied_well_count += 1
+		non_controls = at_this_location.filter(control_type__isnull=True)
+		num_non_control_assignments += len(non_controls)
+	return occupied_well_count, num_non_control_assignments
 
 # find the layout element with the corresponding identifier
 # This is either

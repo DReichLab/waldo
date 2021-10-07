@@ -27,7 +27,7 @@ table{
 }
 </style>
 
-Extract Batch: {{extract_batch_name}} has {{assigned_lysates_count}} lysates assigned and {{control_count}} extract and library controls.
+Extract Batch: {{extract_batch_name}} has {{assigned_lysates_count}} distinct lysates assigned {{num_assignments}} times to wells and {{control_count}} extract and library controls. These occupy {{occupied_wells}} wells. 
 
 <form action="" method='post'>
 	{% csrf_token %}
@@ -47,6 +47,7 @@ Extract Batch: {{extract_batch_name}} has {{assigned_lysates_count}} lysates ass
 	<tr>
 		<th><input type="checkbox" name="toggle_all_checkbox" id="toggle_all_checkbox" onclick="toggle_onscreen_all()"></th>
 		<th><button class="sort" data-sort="lysate_id">Lysate ID</button></th>
+		<th><button class="sort" data-sort="wells">Num Assignments</button></th>
 		<th><button class="sort" data-sort="sample">Sample</button></th>
 		<th><button class="sort" data-sort="lysate_batch">Lysate Batch</button></th>
 	</tr>
@@ -58,6 +59,7 @@ Extract Batch: {{extract_batch_name}} has {{assigned_lysates_count}} lysates ass
 			<input class="sample_checkbox" type="checkbox" name="lysate_checkboxes[]" id="checkbox{{lysate.lysate_id}}" value="{{lysate.id}}" onclick="update_count()" {% if lysate.assigned_to_extract_batch > 0 %}checked{% endif %}>
 		</td>
 		<td class="lysate_id">{{lysate.lysate_id}}</td>
+		<td class="wells">{{lysate.num_assignments}}</td>
 		<td class="sample">S{{lysate.powder_sample.sample.reich_lab_id}}</td>
 		<td class="lysate_batch">{{lysate.powder_sample.powder_batch.name}}</td>
 	</tr>

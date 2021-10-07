@@ -10,6 +10,8 @@ from django.utils.translation import gettext_lazy as _
 
 from django.db.models import Max, Min
 
+from .layout import PLATE_ROWS, PLATE_WELL_COUNT, validate_row_letter, plate_location, reverse_plate_location_coordinate, reverse_plate_location
+
 import re, string
 
 def parse_sample_string(s):
@@ -46,44 +48,6 @@ class Timestamped(models.Model):
 				self.creation_timestamp = current_time
 		self.modification_timestamp = current_time
 		super(Timestamped, self).save(*args, **kwargs)
-
-
-PLATE_ROWS = 'ABCDEFGH'
-PLATE_WELL_COUNT = 96
-		
-def validate_row_letter(letter):
-	if len(letter) != 1:
-		raise ValidationError(
-			_('Row letter %(letter)s must be 1 character.'),
-			params={'letter': letter},
-		)
-	if letter not in PLATE_ROWS:
-		raise ValidationError(
-			_('Row letter %(letter)s is out of allowed A-H range.'),
-			params={'letter': letter},
-		)
-
-# column first, then row (A1, B1, ..., H1, A2)
-# domain is [0,95]
-def plate_location(int_val):
-	if int_val < 0 or int_val >= PLATE_WELL_COUNT:
-		raise ValueError(f'{int_val} is out of range for a plate location')
-	row_index = int_val % len(PLATE_ROWS)
-	column_index = int_val // len(PLATE_ROWS) + 1
-	return PLATE_ROWS[row_index], column_index
-
-# map a plate location (A1, H12) back to an integer in [0,95]
-def reverse_plate_location_coordinate(row, column):
-	row_int = PLATE_ROWS.index(row)
-	int_val = row_int + (column - 1) * len(PLATE_ROWS)
-	if int_val < 0 or int_val >= PLATE_WELL_COUNT:
-		raise ValueError(f'{int_val} is out of range for a plate location')
-	return int_val
-	
-def reverse_plate_location(plate_location):
-	row = plate_location[0]
-	column = int(plate_location[1:])
-	return reverse_plate_location_coordinate(row, column)
 		
 class TimestampedWellPosition(Timestamped):
 	row = models.CharField(max_length=1, validators=[validate_row_letter])

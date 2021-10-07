@@ -27,7 +27,7 @@ table{
 }
 </style>
 
-Extract Batch: {{lysate_batch_name}} has {{assigned_powder_samples_count}} powder samples assigned and {{control_count}} extract and library controls.
+Extract Batch: {{lysate_batch_name}} has {{assigned_powder_samples_count}} distinct powder samples assigned {{num_assignments}} times to wells and {{control_count}} extract and library controls. These occupy {{occupied_wells}} wells. 
 
 <form action="" method='post'>
 	{% csrf_token %}
@@ -49,6 +49,7 @@ Extract Batch: {{lysate_batch_name}} has {{assigned_powder_samples_count}} powde
 	<tr>
 		<th><input type="checkbox" name="toggle_all_checkbox" id="toggle_all_checkbox" onclick="toggle_onscreen_all()"></th>
 		<th><button class="sort" data-sort="powder_sample_id">Powder Sample ID</button></th>
+		<th><button class="sort" data-sort="wells">Num Wells</button></th>
 		<th><button class="sort" data-sort="sample">Sample</button></th>
 		<th><button class="sort" data-sort="powder_batch">Powder Batch</button></th>
 		<th><button class="sort" data-sort="sampling_tech">Sampling Tech</button></th>
@@ -62,6 +63,7 @@ Extract Batch: {{lysate_batch_name}} has {{assigned_powder_samples_count}} powde
 			<input class="sample_checkbox" type="checkbox" name="powder_sample_checkboxes[]" id="checkbox{{powder_sample.powder_sample_id}}" value="{{powder_sample.id}}" onclick="update_count()" {% if powder_sample.assigned_to_lysate_batch > 0 %}checked{% endif %}>
 		</td>
 		<td class="powder_sample_id">{{powder_sample.powder_sample_id}}</td>
+		<td class="wells">{{powder_sample.num_assignments}}</td>
 		<td class="sample">S{{powder_sample.sample.reich_lab_id}}</td>
 		<td class="powder_batch">{{powder_sample.powder_batch.name}}</td>
 		<td class="sampling_tech">{{powder_sample.sampling_tech}}</td>
