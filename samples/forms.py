@@ -159,7 +159,7 @@ def validate_extract_batch_does_not_exist(extract_batch_name):
 		pass
 
 # 
-class LysateBatchToExtractBatch(forms.Form):
+class LysateBatchToExtractBatchForm(forms.Form):
 	extract_batch_name = forms.CharField(max_length=50, label='Extract Batch name', validators=[validate_extract_batch_does_not_exist])
 		
 class ExtractionBatchForm(UserModelForm):
@@ -179,6 +179,19 @@ class ExtractionBatchForm(UserModelForm):
 		super().__init__(*args, **kwargs)
 		for option in ['protocol', 'date', 'robot']:
 			self.fields[option].required = False
+			
+# raise validation error if library batch name already exists
+def validate_library_batch_does_not_exist(library_batch_name):
+	try:
+		library_batch = LibraryBatch.objects.get(name=library_batch_name)
+		raise ValidationError(_('Library Batch already exists: %(extract_batch_name)s'), 
+						code='exists', 
+						params={'library_batch_name': library_batch_name})
+	except LibraryBatch.DoesNotExist:
+		pass
+			
+class ExtractBatchToLibraryBatchForm(forms.Form):
+	library_batch_name = forms.CharField(max_length=50, label='Library Batch name', validators=[validate_library_batch_does_not_exist])
 		
 class ControlTypeSelect(ModelChoiceField):
 	def label_from_instance(self, obj):

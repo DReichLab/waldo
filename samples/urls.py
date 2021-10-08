@@ -29,6 +29,7 @@ urlpatterns = [
 	path('extract_batch_assign_lysate', views.extract_batch_assign_lysate, name='extract_batch_assign_lysate'),
 	path('extract_batch_add_lysate', views.extract_batch_add_lysate, name='extract_batch_add_lysate'),
 	path('extract_batch_layout', views.extract_batch_layout, name='extract_batch_layout'),
+	path('extract_batch_to_library_batch', views.extract_batch_to_library_batch, name='extract_batch_to_library_batch'),
 	path('lost_powder', views.lost_powder, name='lost_powder'),
 	path('lost_lysate', views.lost_lysate, name='lost_lysate'),
 	path('sample', views.sample, name='sample'),

@@ -13,8 +13,8 @@ import json
 from datetime import datetime
 
 from samples.pipeline import udg_and_strandedness
-from samples.models import Results, Library, Sample, PowderBatch, WetLabStaff, PowderSample, ControlType, ControlLayout, ExtractionProtocol, LysateBatch, SamplePrepQueue, PLATE_ROWS, LysateBatchLayout, ExtractionBatch, ExtractionBatchLayout
-from .forms import IndividualForm, LibraryIDForm, PowderBatchForm, SampleImageForm, PowderSampleForm, PowderSampleFormset, ControlTypeFormset, ControlLayoutFormset, ExtractionProtocolFormset, LysateBatchForm, SamplePrepQueueFormset, LysateBatchLayoutForm, LostPowderFormset, SpreadsheetForm, LysateBatchToExtractBatch, ExtractionBatchForm, LostLysateFormset,Lysate
+from samples.models import Results, Library, Sample, PowderBatch, WetLabStaff, PowderSample, ControlType, ControlLayout, ExtractionProtocol, LysateBatch, SamplePrepQueue, PLATE_ROWS, LysateBatchLayout, ExtractionBatch, ExtractionBatchLayout, Lysate
+from .forms import IndividualForm, LibraryIDForm, PowderBatchForm, SampleImageForm, PowderSampleForm, PowderSampleFormset, ControlTypeFormset, ControlLayoutFormset, ExtractionProtocolFormset, LysateBatchForm, SamplePrepQueueFormset, LysateBatchLayoutForm, LostPowderFormset, SpreadsheetForm, LysateBatchToExtractBatchForm, ExtractionBatchForm, LostLysateFormset, ExtractBatchToLibraryBatchForm
 from sequencing_run.models import MTAnalysis
 
 from .powder_samples import new_reich_lab_powder_sample, assign_prep_queue_entries_to_powder_batch, assign_powder_samples_to_lysate_batch, powder_samples_from_spreadsheet
@@ -427,13 +427,13 @@ def lysate_batch_to_extract_batch(request):
 	lysate_batch_name = request.GET['lysate_batch_name']
 	lysate_batch = LysateBatch.objects.get(batch_name=lysate_batch_name)
 	if request.method == 'POST':
-		form = LysateBatchToExtractBatch(request.POST)
+		form = LysateBatchToExtractBatchForm(request.POST)
 		if form.is_valid():
 			extract_batch_name = form.cleaned_data['extract_batch_name']
 			lysate_batch.create_extract_batch(extract_batch_name, request.user)
 			return redirect(f'{reverse("extract_batch_assign_lysate")}?extract_batch_name={extract_batch_name}')
 	elif request.method == 'GET':
-		form = LysateBatchToExtractBatch()
+		form = LysateBatchToExtractBatchForm()
 		# Set name for first extraction batch. Duplicates will prompt for new name and need to be set manually. 
 		form.initial['extract_batch_name'] = f'{lysate_batch_name.rsplit("_")[0]}_RE'
 		
@@ -526,6 +526,24 @@ def extract_batch_layout(request):
 	objects_map = layout_objects_map_for_rendering(layout_elements, 'lysate', 'lysate_id')
 		
 	return render(request, 'samples/generic_layout.html', { 'layout_title': 'Powder Sample Layout For Lysate Batch', 'layout_name': extract_batch_name, 'rows':PLATE_ROWS, 'columns':WELL_PLATE_COLUMNS, 'objects_map': objects_map } )
+	
+@login_required
+def extract_batch_to_library_batch(request):
+	extract_batch_name = request.GET['extract_batch_name']
+	extract_batch = ExtractionBatch.objects.get(batch_name=extract_batch_name)
+	if request.method == 'POST':
+		form = ExtractBatchToLibraryBatchForm(request.POST)
+		if form.is_valid():
+			library_batch_name = form.cleaned_data['library_batch_name']
+			extract_batch.create_library_batch(library_batch_name, request.user)
+			#return redirect(f'{reverse("extract_batch_assign_lysate")}?extract_batch_name={extract_batch_name}')
+	elif request.method == 'GET':
+		form = ExtractBatchToLibraryBatchForm()
+		# Set name for first extraction batch. Duplicates will prompt for new name and need to be set manually. 
+		# TODO this defaults to double-stranded but should also handle single-stranded
+		form.initial['library_batch_name'] = f'{extract_batch_name.rsplit("_")[0]}_DS'
+		
+	return render(request, 'samples/extract_batch_to_library_batch.html', { 'form': form, 'extract_batch_name': extract_batch_name } )
 	
 @login_required
 def lost_lysate(request):
