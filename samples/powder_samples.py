@@ -82,6 +82,9 @@ def powder_samples_from_spreadsheet(powder_batch_name, spreadsheet_file, user):
 			print(powder_sample_id)
 			powder_sample = powder_samples.get(powder_sample_id=powder_sample_id)
 			powder_sample.from_spreadsheet_row(headers[1:], fields[1:], user)
+			
+DEFAULT_ROW = 'A'
+DEFAULT_COLUMN = 1
 
 def assign_powder_samples_to_lysate_batch(lysate_batch, powder_sample_ids, user):
 	# remove powder samples that are not assigned but preserve controls
@@ -92,7 +95,7 @@ def assign_powder_samples_to_lysate_batch(lysate_batch, powder_sample_ids, user)
 		powder_sample = PowderSample.objects.get(id=powder_sample_id)
 		powder_sample_mass_for_extract = powder_sample.powder_for_extract
 		
-		default_values = {'row': 'A', 'column': 1, 'powder_used_mg': powder_sample_mass_for_extract }
+		default_values = {'row': DEFAULT_ROW, 'column': DEFAULT_COLUMN, 'powder_used_mg': powder_sample_mass_for_extract }
 		try: 
 			lysate_batch_layout = LysateBatchLayout.objects.get(lysate_batch=lysate_batch, powder_sample=powder_sample)
 		except LysateBatchLayout.DoesNotExist:
@@ -111,3 +114,20 @@ def ensure_powder_sample_reich_lab_sample_ids(lysate_batch):
 		powder_sample = lysate_batch_layout.powder_sample
 		sample = powder_sample.sample
 		sample.assign_reich_lab_sample_number()
+
+# lysate ids are numeric primary key
+def assign_lysates_to_extract_batch(extract_batch, lysate_ids, user):
+	# remove lysates that are not assigned but preserve controls
+	to_clear = ExtractionBatchLayout.objects.filter(extract_batch=extract_batch).exclude(lysate_id__in=lysate_ids).exclude(control_type__isnull=False)
+	to_clear.delete()
+	
+	lysate_volume_used = extract_batch.protocol.total_lysis_volume * extract_batch.protocol.lysate_fraction_extracted
+	
+	'''
+	# TODO for now, you can only remove lysates
+	# add ExtractionBatchLayout for lysates
+	for lysate_id in lysate_ids:
+		lysate = Lysate.objects.get(id=lysate_id)
+		
+		default_values = {'row': DEFAULT_ROW, 'column': DEFAULT_COLUMN, 'lysate_volume_used': lysate_volume_used }
+	'''
