@@ -55,6 +55,13 @@ def duplicate_positions_check(objects_map):
 		return error_message
 	return None
 	
+def duplicate_positions_check_db(layout_queryset):
+	for i in range(PLATE_WELL_COUNT):
+		row, column = plate_location(i)
+		at_this_location = layout_queryset.filter(row=row, column=column)
+		if len(at_this_location) > 1:
+			raise ValueError(f'Too many elements at {row}{column}: {len(at_this_location)}')
+	
 def occupied_wells(layout_queryset):
 	occupied_well_count = 0
 	num_non_control_assignments = 0
@@ -117,3 +124,9 @@ def layout_objects_map_for_rendering(layout_elements, object_name, property_id_f
 		objects_map[identifier] = joint
 		print(identifier, joint)
 	return objects_map 
+
+# check libraries in a well position for barcode conflicts and strandedness
+def well_barcode_check(layout_element_queryset):
+	for i in range(PLATE_WELL_COUNT):
+		row, column = plate_location(i)
+		at_this_location = layout_queryset.filter(row=row, column=column)

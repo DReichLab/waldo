@@ -10,7 +10,7 @@ from django.utils.translation import gettext_lazy as _
 
 from django.db.models import Max, Min
 
-from .layout import PLATE_ROWS, PLATE_WELL_COUNT, validate_row_letter, plate_location, reverse_plate_location_coordinate, reverse_plate_location
+from .layout import PLATE_ROWS, PLATE_WELL_COUNT, validate_row_letter, plate_location, reverse_plate_location_coordinate, reverse_plate_location, duplicate_positions_check_db
 
 import re, string
 
@@ -541,6 +541,8 @@ class LysateBatch(Timestamped):
 				layout_element.save(save_user=user)
 	
 	def create_extract_batch(self, batch_name, user):
+		layout = LysateBatchLayout.objects.filter(lysate_batch=self)
+		duplicate_positions_check_db(layout)
 		try:
 			extract_batch = ExtractionBatch.objects.get(batch_name=batch_name)
 			raise ValueError(f'ExtractionBatch {batch_name} already exists')
@@ -551,7 +553,7 @@ class LysateBatch(Timestamped):
 								technician_fk = wetlab_staff,
 								control_layout_name = self.control_layout_name)
 			extract_batch.save(save_user=user)
-			for layout_element in LysateBatchLayout.objects.filter(lysate_batch=self):
+			for layout_element in layout:
 				powder_sample = layout_element.powder_sample
 				# create lysate entry
 				if powder_sample is not None:
@@ -658,6 +660,8 @@ class ExtractionBatch(Timestamped):
 	control_layout_name = models.CharField(max_length=25, blank=True, help_text='When applying a layout, use this set of controls.  The control entries are stored in layout.')
 	
 	def create_library_batch(self, batch_name, user):
+		layout = ExtractionBatchLayout.objects.filter(extract_batch=self)
+		duplicate_positions_check_db(layout)
 		try:
 			library_batch = LibraryBatch.objects.get(name=batch_name)
 			raise ValueError(f'LibraryBatch {batch_name} already exists')
@@ -670,7 +674,7 @@ class ExtractionBatch(Timestamped):
 			library_batch.save(save_user=user)
 			
 			# create extracts, and layout for library batch with same layout
-			for layout_element in ExtractionBatchLayout.objects.filter(extract_batch=self):
+			for layout_element in layout:
 				# update layout with protocol for lysate used
 				layout_element.lysate_volume_used = self.protocol.extraction_protocol.lysate_fraction_extracted * self.protocol.lysate_fraction_extracted
 				layout_element.save(save_user=user)
