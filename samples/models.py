@@ -726,6 +726,37 @@ class LibraryBatchLayout(TimestampedWellPosition):
 	ul_extract_used = models.FloatField()
 	notes = models.TextField(blank=True)
 	
+def validate_index_dna_sequence(sequence):
+	valid_bases = 'ACGT'
+	for base in sequence:
+		if base not in valid_bases:
+			raise ValidationError(
+				_('%(base)s is not a valid DNA base'),
+				params={'base': base},
+			)
+		
+def validate_barcode_dna_sequence(sequence):
+	barcodes = sequence.split(':')
+	for barcode in barcodes:
+		if len(barcode) > 0:
+			validate_index_dna_sequence(sequence)
+		else:
+			raise ValidationError(_('%(sequence)s contains empty barcode'), params={'sequence': sequence})
+	
+class Barcode(models.Model):
+	label = models.CharField(max_length=10, db_index=True)
+	sequence = models.CharField(max_length=30, db_index=True, unique=True, validators=[validate_barcode_dna_sequence])
+	
+class P5_Index(models.Model):
+	label = models.CharField(max_length=10, db_index=True) # cannot be unique because double and single stranded are named with same integers
+	label2 = models.CharField(max_length=20)
+	sequence = models.CharField(max_length=8, db_index=True, unique=True, validators=[validate_index_dna_sequence])
+	
+class P7_Index(models.Model):
+	label = models.CharField(max_length=10, db_index=True) # cannot be unique because double and single stranded are named with same integers
+	label2 = models.CharField(max_length=20)
+	sequence = models.CharField(max_length=8, db_index=True, unique=True, validators=[validate_index_dna_sequence])
+	
 class Library(Timestamped):
 	sample = models.ForeignKey(Sample, on_delete=models.PROTECT, null=True)
 	extract = models.ForeignKey(Extract, on_delete=models.PROTECT, null=True)
@@ -748,6 +779,16 @@ class Library(Timestamped):
 	
 	nanodrop = models.FloatField(null=True)
 	qpcr = models.FloatField(null=True)
+	
+	p5_index = models.ForeignKey(P5_Index, on_delete=models.PROTECT, null=True)
+	p7_index = models.ForeignKey(P7_Index, on_delete=models.PROTECT, null=True)
+	p5_barcode = models.ForeignKey(Barcode, on_delete=models.PROTECT, null=True, related_name='p5_barcode')
+	p7_barcode = models.ForeignKey(Barcode, on_delete=models.PROTECT, null=True, related_name='p7_barcode')
+	
+	def clean(self):
+		super(Library, self).clean()
+		if (self.p5_index is not None or self.p7_index is not None) and (self.p5_barcode is not None or self.p7_barcode is not None):
+			raise ValidationError(_('Library cannot have both indices and barcodes. Single-stranded libraries should have only indices, and double-stranded libraries should have only barcodes.'))
 	
 class MTCaptureProtocol(Timestamped):
 	name = models.CharField(max_length=150)
