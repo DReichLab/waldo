@@ -539,10 +539,6 @@ class LysateBatch(Timestamped):
 				powder_sample_control.save(save_user=user)
 				layout_element = LysateBatchLayout(lysate_batch=self, control_type=control_type, row=row, column=column, powder_used_mg=0, powder_sample=powder_sample_control)
 				layout_element.save(save_user=user)
-				
-	def create_lysates(self, user):
-		for layout_element in self.layout:
-			layout_element
 	
 	def create_extract_batch(self, batch_name, user):
 		try:
@@ -574,7 +570,7 @@ class LysateBatch(Timestamped):
 			
 		return extract_batch
 
-# 
+# powder -> lysate
 class LysateBatchLayout(TimestampedWellPosition):
 	lysate_batch = models.ForeignKey(LysateBatch, on_delete=models.CASCADE, null=True) # use a null lysate batch to mark lost powder
 	powder_sample = models.ForeignKey(PowderSample, on_delete=models.CASCADE, null=True)
@@ -616,6 +612,7 @@ class Lysate(Timestamped):
 	barcode = models.CharField(max_length=12, blank=True, help_text='Physical barcode on FluidX tube')
 	notes = models.TextField(blank=True)
 	
+EXTRACTION_LAB_REICH = 'Reich Lab'
 class Extract(Timestamped):
 	extract_id = models.CharField(max_length=20, unique=True, db_index=True)
 	reich_lab_extract_number = models.PositiveIntegerField(null=True, help_text='Starts at 1 for each lysate or sample if no lysate exists.')
@@ -629,6 +626,26 @@ class Extract(Timestamped):
 	storage_location = models.TextField(blank=True)
 	extraction_lab = models.CharField(max_length=50, blank=True, help_text='Name of lab where DNA extraction was done')
 	
+# how many extracts exist for this lysate
+def extracts_for_lysate(lysate):
+	existing_extracts = Extract.objects.filter(lysate=lysate)
+	return len(existing_extracts)
+	
+def create_extract_from_lysate(lysate, lysis_volume_extracted, user):
+	sample = lysate.powder_sample.sample
+	next_extract_number = extracts_for_lysate(lysate) +1
+	extract_id = f'{str(lysate)}.E{next_extract_number}'
+	print(f'created extract id {extract_id}')
+	extract = Extract(extract_id=extract_id,
+				 reich_lab_extract_number=next_extract_number,
+				 lysate=lysate,
+				 sample=sample,
+				 lysis_volume_extracted=lysis_volume_extracted,
+				 extraction_lab=EXTRACTION_LAB_REICH)
+	extract.save(save_user=user)
+	
+	return extract
+	
 class ExtractionBatch(Timestamped):
 	batch_name = models.CharField(max_length=50, unique=True)
 	protocol = models.ForeignKey(ExtractionProtocol, on_delete=models.PROTECT, null=True)
@@ -640,6 +657,37 @@ class ExtractionBatch(Timestamped):
 	layout = models.ManyToManyField(Lysate, through='ExtractionBatchLayout', related_name='lysate_assignment')
 	control_layout_name = models.CharField(max_length=25, blank=True, help_text='When applying a layout, use this set of controls.  The control entries are stored in layout.')
 	
+	def create_library_batch(self, batch_name, user):
+		try:
+			library_batch = LibraryBatch.objects.get(name=batch_name)
+			raise ValueError(f'LibraryBatch {batch_name} already exists')
+		except LibraryBatch.DoesNotExist:
+			wetlab_staff = WetLabStaff.objects.get(login_user=user)
+			library_batch = LibraryBatch(name=batch_name,
+								technician = wetlab_staff.initials(),
+								technician_fk = wetlab_staff,
+								)
+			library_batch.save(save_user=user)
+			
+			# create extracts, and layout for library batch with same layout
+			for layout_element in ExtractionBatchLayout.objects.filter(extract_batch=self):
+				# update layout with protocol for lysate used
+				layout_element.lysate_volume_used = self.protocol.extraction_protocol.lysate_fraction_extracted * self.protocol.lysate_fraction_extracted
+				layout_element.save(save_user=user)
+				
+				lysate = layout_element.lysate
+				if lysate is not None:
+					extract = create_extract_from_lysate(lysate, layout_element.lysate_volume_used, user)
+				else: 
+					extract = None
+				# create corresponding library batch layout element
+				library_batch_layout_element = LibraryBatchLayout(library_batch=library_batch,
+									extract=extract,
+									control_type = layout_element.control_type,
+					)
+				library_batch_layout_element.save(save_user=user)
+			
+# lysate -> extract
 class ExtractionBatchLayout(TimestampedWellPosition):
 	extract_batch = models.ForeignKey(ExtractionBatch, on_delete=models.CASCADE, null=True) # use a null extract batch to mark lost lysate
 	lysate = models.ForeignKey(Lysate, on_delete=models.CASCADE, null=True)
@@ -665,6 +713,14 @@ class LibraryBatch(Timestamped):
 	prep_note = models.TextField(blank=True)
 	prep_robot = models.CharField(max_length=20, blank=True)
 	technician_fk = models.ForeignKey(WetLabStaff, on_delete=models.SET_NULL, null=True)
+	
+# extract -> library
+class LibraryBatchLayout(TimestampedWellPosition):
+	library_batch = models.ForeignKey(LibraryBatch, on_delete=models.CASCADE, null=True)
+	extract = models.ForeignKey(Extract, on_delete=models.CASCADE, null=True)
+	control_type = models.ForeignKey(ControlType, on_delete=models.PROTECT, null=True)
+	ul_extract_used = models.FloatField()
+	notes = models.TextField(blank=True)
 	
 class Library(Timestamped):
 	sample = models.ForeignKey(Sample, on_delete=models.PROTECT, null=True)
