@@ -4,7 +4,7 @@ from django.forms import modelformset_factory
 from django.forms.widgets import TextInput
 from django.utils.translation import gettext_lazy as _
 
-from samples.models import PowderBatch, PowderBatchStatus, PowderSample, Sample, SamplePrepProtocol, ControlType, ControlLayout, LysateBatch, ExtractionProtocol, ExpectedComplexity, SamplePrepQueue, Lysate, LysateBatchLayout, ExtractionBatch, ExtractionBatchLayout
+from samples.models import PowderBatch, PowderBatchStatus, PowderSample, Sample, SamplePrepProtocol, ControlType, ControlLayout, LysateBatch, ExtractionProtocol, ExpectedComplexity, SamplePrepQueue, Lysate, LysateBatchLayout, ExtractionBatch, ExtractionBatchLayout, LibraryProtocol, LibraryBatch
 
 import datetime
 
@@ -125,7 +125,7 @@ class ExtractionProtocolForm(UserModelForm):
 
 ExtractionProtocolFormset = modelformset_factory(ExtractionProtocol, form=ExtractionProtocolForm, extra=0, max_num=100)
 		
-# to display the sample prep protocol method instead of a primary key
+# to display the extraction protocol method instead of a primary key
 class ExtractionProtocolSelect(ModelChoiceField):
 	def label_from_instance(self, obj):
 		return obj.name
@@ -272,6 +272,26 @@ class LostLysateForm(UserModelForm):
 		return lost_lysate
 
 LostLysateFormset = modelformset_factory(ExtractionBatchLayout, form=LostLysateForm)
+
+# to display the name instead of a primary key
+class LibraryProtocolSelect(ModelChoiceField):
+	def label_from_instance(self, obj):
+		return obj.name
+
+class LibraryBatchForm(UserModelForm):
+	protocol = LibraryProtocolSelect(queryset=LibraryProtocol.objects.all())
+	
+	class Meta:
+		model = LibraryBatch
+		fields = ['name', 'protocol', 'technician', 'prep_date', 'prep_note', 'prep_robot']
+		widgets = {
+			'prep_note': Textarea(attrs={'cols': 60, 'rows': 2}),
+		}
+		
+	def __init__(self, *args, **kwargs):
+		super().__init__(*args, **kwargs)
+		for option in ['protocol', 'prep_date', 'prep_robot']:
+			self.fields[option].required = False
 
 class SpreadsheetForm(forms.Form):
 	spreadsheet = forms.FileField()

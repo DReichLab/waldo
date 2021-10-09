@@ -718,6 +718,9 @@ class LibraryBatch(Timestamped):
 	prep_robot = models.CharField(max_length=20, blank=True)
 	technician_fk = models.ForeignKey(WetLabStaff, on_delete=models.SET_NULL, null=True)
 	
+	def create_libraries(self):
+		pass
+	
 # extract -> library
 class LibraryBatchLayout(TimestampedWellPosition):
 	library_batch = models.ForeignKey(LibraryBatch, on_delete=models.CASCADE, null=True)

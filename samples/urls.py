@@ -8,7 +8,7 @@ from . import views
 
 urlpatterns = [
 	re_path(r'^query', views.query, name='query'),
-	re_path(r'^library', views.library_id_to_instance, name='library'),
+	#re_path(r'^library', views.library_id_to_instance, name='library'),
 	re_path(r'^mt', views.mt_query, name='mt'),
 	path('landing', views.landing, name='landing'),
 	path('sample_prep_queue', views.sample_prep_queue, name='sample_prep_queue'),
@@ -30,6 +30,7 @@ urlpatterns = [
 	path('extract_batch_add_lysate', views.extract_batch_add_lysate, name='extract_batch_add_lysate'),
 	path('extract_batch_layout', views.extract_batch_layout, name='extract_batch_layout'),
 	path('extract_batch_to_library_batch', views.extract_batch_to_library_batch, name='extract_batch_to_library_batch'),
+	path('library_batches', views.library_batches, name='library_batches'),
 	path('lost_powder', views.lost_powder, name='lost_powder'),
 	path('lost_lysate', views.lost_lysate, name='lost_lysate'),
 	path('sample', views.sample, name='sample'),
