@@ -52,7 +52,7 @@ table{
 	<tbody class="list">
 	{% for library_batch in library_batches %}
 	<tr> 
-		<td class="name"><a href="library_batch_assign_extract?library_batch_name={{library_batch.batch_name}}">{{library_batch.name}}</a></td>
+		<td class="name"><a href="library_batch_assign_extract?library_batch_name={{library_batch.name}}">{{library_batch.name}}</a></td>
 		<td class="date">{{library_batch.prep_date|date:'Y-m-d'}}</td>
 		<td class="technician">{{library_batch.technician}}</td>
 		<td class="robot">{{library_batch.prep_robot}}</td>

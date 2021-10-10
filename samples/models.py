@@ -393,7 +393,7 @@ def lysates_for_sample(sample):
 	existing_lysates = Lysate.objects.filter(powder_sample__sample=sample)
 	return len(existing_lysates)
 
-def create_lysate(powder_sample, extraction_protocol, user):
+def create_lysate(powder_sample, lysate_batch, user):
 	sample = powder_sample.sample
 	next_lysate_number = lysates_for_sample(sample) +1
 	lysate_id = f'{str(sample)}.Y{next_lysate_number}'
@@ -401,8 +401,9 @@ def create_lysate(powder_sample, extraction_protocol, user):
 	lysate = Lysate(lysate_id=lysate_id,
 				 reich_lab_lysate_number=next_lysate_number,
 				 powder_sample=powder_sample,
+				 lysate_batch=lysate_batch,
 				 powder_used_mg=powder_sample.powder_for_extract,
-				 total_volume_produced=extraction_protocol.total_lysis_volume)
+				 total_volume_produced=lysate_batch.protocol.total_lysis_volume)
 	lysate.save(save_user=user)
 	
 	return lysate
@@ -557,7 +558,7 @@ class LysateBatch(Timestamped):
 				powder_sample = layout_element.powder_sample
 				# create lysate entry
 				if powder_sample is not None:
-					lysate = create_lysate(powder_sample, self.protocol, user)
+					lysate = create_lysate(powder_sample, self, user)
 				else: # library positive controls do not have powder sample
 					lysate = None
 				# create corresponding extract batch layout
@@ -604,6 +605,7 @@ class Lysate(Timestamped):
 	lysate_id = models.CharField(max_length=15, unique=True, null=False, db_index=True)
 	reich_lab_lysate_number = models.PositiveIntegerField(null=True, help_text='Starts at 1 for each sample.')
 	powder_sample = models.ForeignKey(PowderSample, null=True, on_delete=models.PROTECT)
+	lysate_batch = models.ForeignKey(LysateBatch, null=True, on_delete=models.SET_NULL)
 	storage = models.ForeignKey(Storage, on_delete=models.PROTECT, null=True)
 	
 	powder_used_mg = models.FloatField(null=True, help_text='milligrams of bone powder used in lysis')
@@ -614,26 +616,12 @@ class Lysate(Timestamped):
 	barcode = models.CharField(max_length=12, blank=True, help_text='Physical barcode on FluidX tube')
 	notes = models.TextField(blank=True)
 	
-EXTRACTION_LAB_REICH = 'Reich Lab'
-class Extract(Timestamped):
-	extract_id = models.CharField(max_length=20, unique=True, db_index=True)
-	reich_lab_extract_number = models.PositiveIntegerField(null=True, help_text='Starts at 1 for each lysate or sample if no lysate exists.')
-	lysate = models.ForeignKey(Lysate, on_delete=models.PROTECT, null=True)
-	sample = models.ForeignKey(Sample, on_delete=models.PROTECT, null=True)
-	lysate_batch = models.ForeignKey(LysateBatch, null=True, on_delete=models.PROTECT)
-	storage = models.ForeignKey(Storage, on_delete=models.PROTECT, null=True)
-	lysis_volume_extracted = models.FloatField(null=True)
-	#extract_volume_remaining = models.FloatField(null=True)
-	notes = models.TextField(blank=True)
-	storage_location = models.TextField(blank=True)
-	extraction_lab = models.CharField(max_length=50, blank=True, help_text='Name of lab where DNA extraction was done')
-	
 # how many extracts exist for this lysate
 def extracts_for_lysate(lysate):
 	existing_extracts = Extract.objects.filter(lysate=lysate)
 	return len(existing_extracts)
 	
-def create_extract_from_lysate(lysate, lysis_volume_extracted, user):
+def create_extract_from_lysate(lysate, extract_batch, lysis_volume_extracted, user):
 	sample = lysate.powder_sample.sample
 	next_extract_number = extracts_for_lysate(lysate) +1
 	extract_id = f'{str(lysate)}.E{next_extract_number}'
@@ -642,6 +630,7 @@ def create_extract_from_lysate(lysate, lysis_volume_extracted, user):
 				 reich_lab_extract_number=next_extract_number,
 				 lysate=lysate,
 				 sample=sample,
+				 extract_batch=extract_batch,
 				 lysis_volume_extracted=lysis_volume_extracted,
 				 extraction_lab=EXTRACTION_LAB_REICH)
 	extract.save(save_user=user)
@@ -690,7 +679,22 @@ class ExtractionBatch(Timestamped):
 									control_type = layout_element.control_type,
 					)
 				library_batch_layout_element.save(save_user=user)
-			
+	
+EXTRACTION_LAB_REICH = 'Reich Lab'
+class Extract(Timestamped):
+	extract_id = models.CharField(max_length=20, unique=True, db_index=True)
+	reich_lab_extract_number = models.PositiveIntegerField(null=True, help_text='Starts at 1 for each lysate or sample if no lysate exists.')
+	lysate = models.ForeignKey(Lysate, on_delete=models.PROTECT, null=True)
+	sample = models.ForeignKey(Sample, on_delete=models.PROTECT, null=True)
+	lysate_batch = models.ForeignKey(LysateBatch, null=True, on_delete=models.PROTECT)
+	extract_batch = models.ForeignKey(ExtractionBatch, null=True, on_delete=models.PROTECT)
+	storage = models.ForeignKey(Storage, on_delete=models.PROTECT, null=True)
+	lysis_volume_extracted = models.FloatField(null=True)
+	#extract_volume_remaining = models.FloatField(null=True)
+	notes = models.TextField(blank=True)
+	storage_location = models.TextField(blank=True)
+	extraction_lab = models.CharField(max_length=50, blank=True, help_text='Name of lab where DNA extraction was done')
+	
 # lysate -> extract
 class ExtractionBatchLayout(TimestampedWellPosition):
 	extract_batch = models.ForeignKey(ExtractionBatch, on_delete=models.CASCADE, null=True) # use a null extract batch to mark lost lysate

@@ -13,7 +13,7 @@ import json
 from datetime import datetime
 
 from samples.pipeline import udg_and_strandedness
-from samples.models import Results, Library, Sample, PowderBatch, WetLabStaff, PowderSample, ControlType, ControlLayout, ExtractionProtocol, LysateBatch, SamplePrepQueue, PLATE_ROWS, LysateBatchLayout, ExtractionBatch, ExtractionBatchLayout, Lysate, LibraryBatch
+from samples.models import Results, Library, Sample, PowderBatch, WetLabStaff, PowderSample, ControlType, ControlLayout, ExtractionProtocol, LysateBatch, SamplePrepQueue, PLATE_ROWS, LysateBatchLayout, ExtractionBatch, ExtractionBatchLayout, Lysate, LibraryBatch, LibraryBatchLayout, Extract
 from .forms import IndividualForm, LibraryIDForm, PowderBatchForm, SampleImageForm, PowderSampleForm, PowderSampleFormset, ControlTypeFormset, ControlLayoutFormset, ExtractionProtocolFormset, LysateBatchForm, SamplePrepQueueFormset, LysateBatchLayoutForm, LostPowderFormset, SpreadsheetForm, LysateBatchToExtractBatchForm, ExtractionBatchForm, LostLysateFormset, ExtractBatchToLibraryBatchForm, LibraryBatchForm
 from sequencing_run.models import MTAnalysis
 
@@ -472,7 +472,7 @@ def extract_batch_assign_lysate(request):
 			# iterate through the checkboxes and change states
 			ticked_checkboxes = request.POST.getlist('lysate_checkboxes[]')
 			# tickbox name is lysate object id (int)
-			#assign_lysates_to_extract_batch(extract_batch, ticked_checkboxes, request.user)
+			assign_lysates_to_extract_batch(extract_batch, ticked_checkboxes, request.user)
 		
 	elif request.method == 'GET':
 		extract_batch_form = ExtractionBatchForm(instance=extract_batch, user=request.user)
@@ -569,12 +569,44 @@ def library_batches(request):
 	if request.method == 'POST':
 		form = LibraryBatchForm(request.POST, user=request.user)
 		if form.is_valid():
-			pass
+			form.save()
 	elif request.method == 'GET':
 		form = LibraryBatchForm(user=request.user)
 		
 	library_batches_queryset = LibraryBatch.objects.all()
 	return render(request, 'samples/library_batches.html', { 'form': form, 'library_batches': library_batches_queryset } )
+	
+@login_required
+def library_batch_assign_extract(request):
+	library_batch_name = request.GET['library_batch_name']
+	library_batch = LibraryBatch.objects.get(name=library_batch_name)
+	if request.method == 'POST':
+		library_batch_form = LibraryBatchForm(request.POST, instance=library_batch, user=request.user)
+		if library_batch_form.is_valid():
+			print('valid library_batch form')
+			library_batch_form.save()
+			
+			# iterate through the checkboxes and change states
+			ticked_checkboxes = request.POST.getlist('lysate_checkboxes[]')
+			# tickbox name is extract object id (int)
+			assign_extracts_to_library_batch(library_batch, ticked_checkboxes, request.user)
+		
+	elif request.method == 'GET':
+		library_batch_form = LibraryBatchForm(instance=library_batch, user=request.user)
+		
+	existing_controls = LibraryBatchLayout.objects.filter(library_batch=library_batch, control_type__isnull=False)
+	
+	already_selected_extracts = LibraryBatchLayout.objects.filter(library_batch=library_batch, control_type=None).values_list('extract', flat=True)
+	
+	extracts = Extract.objects.annotate(num_assignments=Count('librarybatchlayout')).annotate(assigned_to_library_batch=Count('librarybatchlayout', filter=Q(librarybatchlayout__library_batch=library_batch))).filter(
+		Q(id__in=already_selected_extracts)
+	)
+	
+	assigned_extracts_count = extracts.count()
+	# count wells
+	occupied_well_count, num_non_control_assignments = occupied_wells(LibraryBatchLayout.objects.filter(library_batch=library_batch))
+	
+	return render(request, 'samples/library_batch_assign_extract.html', { 'library_batch_name': library_batch_name, 'extracts': extracts, 'assigned_extracts_count': assigned_extracts_count, 'control_count': len(existing_controls), 'num_assignments': num_non_control_assignments, 'occupied_wells': occupied_well_count, 'form': library_batch_form  } )
 	
 # Handle the layout of a 96 well plate with libraries
 # This renders an interface allowing a technician to move libraries between wells
