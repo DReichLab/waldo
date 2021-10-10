@@ -525,7 +525,7 @@ def extract_batch_layout(request):
 		
 	objects_map = layout_objects_map_for_rendering(layout_elements, 'lysate', 'lysate_id')
 		
-	return render(request, 'samples/generic_layout.html', { 'layout_title': 'Powder Sample Layout For Lysate Batch', 'layout_name': extract_batch_name, 'rows':PLATE_ROWS, 'columns':WELL_PLATE_COLUMNS, 'objects_map': objects_map } )
+	return render(request, 'samples/generic_layout.html', { 'layout_title': 'Lysate Layout For Extract Batch', 'layout_name': extract_batch_name, 'rows':PLATE_ROWS, 'columns':WELL_PLATE_COLUMNS, 'objects_map': objects_map } )
 	
 @login_required
 def extract_batch_to_library_batch(request):
@@ -607,6 +607,37 @@ def library_batch_assign_extract(request):
 	occupied_well_count, num_non_control_assignments = occupied_wells(LibraryBatchLayout.objects.filter(library_batch=library_batch))
 	
 	return render(request, 'samples/library_batch_assign_extract.html', { 'library_batch_name': library_batch_name, 'extracts': extracts, 'assigned_extracts_count': assigned_extracts_count, 'control_count': len(existing_controls), 'num_assignments': num_non_control_assignments, 'occupied_wells': occupied_well_count, 'form': library_batch_form  } )
+
+@login_required
+def library_batch_layout(request):
+	try:
+		library_batch_name = request.GET['library_batch_name']
+	except:
+		library_batch_name = request.POST['library_batch_name']
+	library_batch = LibraryBatch.objects.get(name=library_batch_name)
+	layout_element_queryset = LibraryBatchLayout.objects.filter(library_batch=library_batch)
+		
+	if request.method == 'POST' and request.is_ajax():
+		# JSON for a well plate layout
+		#print(request.body)
+		layout = request.POST['layout']
+		objects_map = json.loads(layout)
+		#print(objects_map)
+		# Cannot have more than one powder per well
+		duplicate_error_message = duplicate_positions_check(objects_map)
+		if duplicate_error_message is not None:
+			return HttpResponseBadRequest(duplicate_error_message)
+		# propagate changes to database
+		update_db_layout(request.user, objects_map, LibraryBatchLayout.objects.filter(library_batch=library_batch), 'extract', 'extract_id')
+	elif request.method == 'POST':
+		print('POST {library_batch_name}')
+		raise ValueError('unexpected')
+		
+	layout_elements = LibraryBatchLayout.objects.filter(library_batch=library_batch).select_related('extract').select_related('control_type')
+		
+	objects_map = layout_objects_map_for_rendering(layout_elements, 'extract', 'extract_id')
+		
+	return render(request, 'samples/generic_layout.html', { 'layout_title': 'Extract Layout For Library Batch', 'layout_name': library_batch_name, 'rows':PLATE_ROWS, 'columns':WELL_PLATE_COLUMNS, 'objects_map': objects_map } )
 	
 # Handle the layout of a 96 well plate with libraries
 # This renders an interface allowing a technician to move libraries between wells
