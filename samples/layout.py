@@ -1,5 +1,6 @@
 PLATE_ROWS = 'ABCDEFGH'
 PLATE_WELL_COUNT = 96
+PLATE_WELL_COUNT_HALF = PLATE_WELL_COUNT // 2
 		
 def validate_row_letter(letter):
 	if len(letter) != 1:
@@ -12,22 +13,28 @@ def validate_row_letter(letter):
 			_('Row letter %(letter)s is out of allowed A-H range.'),
 			params={'letter': letter},
 		)
+		
+class PlateDomainError(ValueError):
+	pass
+
+# domain is [0,PLATE_WELL_COUNT]
+def check_plate_domain(int_val):
+	if int_val < 0 or int_val >= PLATE_WELL_COUNT:
+		raise PlateDomainError(f'{int_val} is out of range for a plate location')
 
 # column first, then row (A1, B1, ..., H1, A2)
-# domain is [0,95]
+# domain is [0,PLATE_WELL_COUNT]
 def plate_location(int_val):
-	if int_val < 0 or int_val >= PLATE_WELL_COUNT:
-		raise ValueError(f'{int_val} is out of range for a plate location')
+	check_plate_domain(int_val)
 	row_index = int_val % len(PLATE_ROWS)
 	column_index = int_val // len(PLATE_ROWS) + 1
 	return PLATE_ROWS[row_index], column_index
 
-# map a plate location (A1, H12) back to an integer in [0,95]
+# map a plate location (A1, H12) back to an integer in [0,PLATE_WELL_COUNT]
 def reverse_plate_location_coordinate(row, column):
 	row_int = PLATE_ROWS.index(row)
 	int_val = row_int + (column - 1) * len(PLATE_ROWS)
-	if int_val < 0 or int_val >= PLATE_WELL_COUNT:
-		raise ValueError(f'{int_val} is out of range for a plate location')
+	check_plate_domain(int_val)
 	return int_val
 	
 def reverse_plate_location(plate_location):
@@ -130,3 +137,29 @@ def well_barcode_check(layout_element_queryset):
 	for i in range(PLATE_WELL_COUNT):
 		row, column = plate_location(i)
 		at_this_location = layout_queryset.filter(row=row, column=column)
+		
+# This is transposed for python. A-H is across, 1-6 is down
+BARCODE_POSITIONS_ALL_STRING = '''
+Q1	Q9	Q17	Q2	Q10	Q18	Q3	Q11
+Q19	Q4	Q12	Q20	Q5	Q13	Q21	Q6
+Q14	Q22	Q7	Q15	Q23	Q8	Q16	Q24
+Q25	Q33	Q41	Q26	Q34	Q42	Q27	Q35
+Q43	Q28	Q36	Q44	Q29	Q37	Q45	Q30
+Q38	Q46	Q31	Q39	Q47	Q32	Q40	Q48'''
+
+BARCODES_BY_POSITION = BARCODE_POSITIONS_ALL_STRING.strip().split()
+
+def barcode_at_position(int_position):
+	return BARCODES_BY_POSITION[int_position]
+
+# column first, then row (A1, B1, ..., H1, A2)
+# domain is [0,95]
+# p7_offset is based on a global
+# return a pair of Q barcodes (p5, p7)
+def barcodes_for_location(int_position, p7_offset):
+	check_plate_domain(int_position)
+	mod_position = int_position % (PLATE_WELL_COUNT // 2) # position within left or right side
+	p5 = barcode_at_position(mod_position)
+	left_right_offset = int_position // (PLATE_WELL_COUNT // 2) # left 0, right 1
+	p7 = barcode_at_position((mod_position + p7_offset + left_right_offset) % PLATE_WELL_COUNT_HALF)
+	return p5, p7
