@@ -752,16 +752,16 @@ def validate_barcode_dna_sequence(sequence):
 	
 class Barcode(models.Model):
 	label = models.CharField(max_length=10, db_index=True)
-	sequence = models.CharField(max_length=30, db_index=True, unique=True, validators=[validate_barcode_dna_sequence])
+	sequence = models.CharField(max_length=31, db_index=True, unique=True, validators=[validate_barcode_dna_sequence])
 	
 class P5_Index(models.Model):
 	label = models.CharField(max_length=10, db_index=True) # cannot be unique because double and single stranded are named with same integers
-	label2 = models.CharField(max_length=20)
+	label2 = models.CharField(max_length=20, blank=True)
 	sequence = models.CharField(max_length=8, db_index=True, unique=True, validators=[validate_index_dna_sequence])
 	
 class P7_Index(models.Model):
 	label = models.CharField(max_length=10, db_index=True) # cannot be unique because double and single stranded are named with same integers
-	label2 = models.CharField(max_length=20)
+	label2 = models.CharField(max_length=20, blank=True)
 	sequence = models.CharField(max_length=8, db_index=True, unique=True, validators=[validate_index_dna_sequence])
 	
 class Library(Timestamped):
