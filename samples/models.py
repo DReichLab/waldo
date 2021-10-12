@@ -14,6 +14,8 @@ from .layout import PLATE_ROWS, PLATE_WELL_COUNT, validate_row_letter, plate_loc
 
 import re, string
 
+REICH_LAB = 'Reich Lab'
+
 def parse_sample_string(s):
 	# we expect a sample number to start with 'S'
 	# S1234a
@@ -632,7 +634,7 @@ def create_extract_from_lysate(lysate, extract_batch, lysis_volume_extracted, us
 				 sample=sample,
 				 extract_batch=extract_batch,
 				 lysis_volume_extracted=lysis_volume_extracted,
-				 extraction_lab=EXTRACTION_LAB_REICH)
+				 extraction_lab=REICH_LAB)
 	extract.save(save_user=user)
 	
 	return extract
@@ -680,7 +682,6 @@ class ExtractionBatch(Timestamped):
 					)
 				library_batch_layout_element.save(save_user=user)
 	
-EXTRACTION_LAB_REICH = 'Reich Lab'
 class Extract(Timestamped):
 	extract_id = models.CharField(max_length=20, unique=True, db_index=True)
 	reich_lab_extract_number = models.PositiveIntegerField(null=True, help_text='Starts at 1 for each lysate or sample if no lysate exists.')
@@ -712,6 +713,28 @@ class LibraryProtocol(Timestamped):
 	protocol_reference = models.TextField(blank=True)
 	manual_robotic = models.CharField(max_length=20, blank=True)
 	volume_extract_used_standard = models.FloatField(null=True)
+	
+def libraries_for_extract(extract):
+	libraries = Library.objects.filter(extract=extract)
+	return len(libraries)
+
+# Create the library corresponding
+def create_library_from_extract(layout_element, library_batch, p7_offset, user):
+	extract = layout_element.extract
+	existing_libraries = libraries_for_extract(extract)
+	next_library_number = existing_libraries + 1
+	library = Library(sample = extract.sample,
+					extract = extract,
+					library_batch = library_batch,
+					reich_lab_library_id = f'{extract.extract.id}.L{next_library_number}',
+					reich_lab_library_number = next_library_number,
+					udg_treatment = 'partial', # TODO fetch from protocol
+					library_type = 'DS', # TODO
+					library_prep_lab = REICH_LAB,
+					ul_extract_used = library_batch.protocol.volume_extract_used_standard,
+				   )
+	library.save(save_user=user)
+	return library
 
 class LibraryBatch(Timestamped):
 	name = models.CharField(max_length=150, blank=True)
@@ -722,8 +745,22 @@ class LibraryBatch(Timestamped):
 	prep_robot = models.CharField(max_length=20, blank=True)
 	technician_fk = models.ForeignKey(WetLabStaff, on_delete=models.SET_NULL, null=True)
 	
-	def create_libraries(self):
+	def create_libraries(self, user):
+		layout = LibraryBatchLayout.objects.filter(library_batch=self)
+		duplicate_positions_check_db(layout)
+		
+		# TODO
+		# get_p7_offset()
+		p7_offset = 0
+		for layout_element in layout:
+			create_library_from_extract(layout_element, self, p7_offset, user)
+			
+	def get_robot_layout(self):
 		pass
+			
+			
+	def create_capture(self, capture_name, capture_type, user):
+		pass # TODO
 	
 # extract -> library
 class LibraryBatchLayout(TimestampedWellPosition):

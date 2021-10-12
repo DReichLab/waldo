@@ -7,6 +7,10 @@ class BarcodesTest(SimpleTestCase):
 	def test_barcode_total_number(self):
 		self.assertEqual(PLATE_WELL_COUNT_HALF, len(BARCODES_BY_POSITION))
 		
+	def test_barcode_bad_odd_p7_offset(self):
+		p7_offset = 1
+		self.assertRaises(ValueError, barcodes_for_location, 0, p7_offset)
+		
 	def test_barcode_position(self):
 		self.assertEqual('Q1', barcode_at_position(0))
 		self.assertEqual('Q6', barcode_at_position(15))
@@ -29,17 +33,17 @@ class BarcodesTest(SimpleTestCase):
 		
 	# p7 barcode offset checking
 	def test_barcodes_p7_offset_7(self):
-		p7_offset = 7
+		p7_offset = 8
 		p5, p7 = barcodes_for_location(0, p7_offset)
-		self.assertEquals(p7, 'Q11')
+		self.assertEquals(p7, 'Q19')
 		
 		# right side of plate is shifted again
 		p5, p7 = barcodes_for_location(48, p7_offset)
-		self.assertEquals(p7, 'Q19')
+		self.assertEquals(p7, 'Q4')
 			
 	# p7 barcodes will always be shifted by one between the left and right sides of a plate
 	def test_barcodes_p7_left_right(self):
-		for p7_offset in range(PLATE_WELL_COUNT_HALF):
+		for p7_offset in range(0, PLATE_WELL_COUNT_HALF, 2):
 			p5 = {}
 			p7 = {}
 			for i in range(PLATE_WELL_COUNT):

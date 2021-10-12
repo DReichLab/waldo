@@ -154,9 +154,11 @@ def barcode_at_position(int_position):
 
 # column first, then row (A1, B1, ..., H1, A2)
 # domain is [0,95]
-# p7_offset is based on a global
+# p7_offset is based on a global, must be even
 # return a pair of Q barcodes (p5, p7)
 def barcodes_for_location(int_position, p7_offset):
+	if p7_offset % 2 == 1:
+		raise ValueError('p7_ofset must be even because odd values are used for half of plate')
 	check_plate_domain(int_position)
 	mod_position = int_position % (PLATE_WELL_COUNT // 2) # position within left or right side
 	p5 = barcode_at_position(mod_position)
