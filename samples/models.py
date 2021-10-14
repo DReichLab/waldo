@@ -667,7 +667,7 @@ class ExtractionBatch(Timestamped):
 			# create extracts, and layout for library batch with same layout
 			for layout_element in layout:
 				# update layout with protocol for lysate used
-				layout_element.lysate_volume_used = self.protocol.extraction_protocol.lysate_fraction_extracted * self.protocol.lysate_fraction_extracted
+				layout_element.lysate_volume_used = self.protocol.total_lysis_volume * self.protocol.lysate_fraction_extracted
 				layout_element.save(save_user=user)
 				
 				lysate = layout_element.lysate
