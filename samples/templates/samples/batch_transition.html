@@ -1,0 +1,18 @@
+{% extends "samples/reich_lab_base.html" %}
+
+{% load static %}
+
+{% block title %} Create {{new_batch_type}} from {{source_batch_type}} {{source_batch_name}}{% endblock %}
+
+{% block content %}
+
+{{source_batch_type}}: {{source_batch_name}}
+
+<form action="" method='post'>
+	{% csrf_token %}
+	{{ form }}
+	<input type='submit' value='Create {{new_batch_type}}'/>
+</form>
+
+{% endblock %}
+

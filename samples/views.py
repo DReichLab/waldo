@@ -437,7 +437,11 @@ def lysate_batch_to_extract_batch(request):
 		# Set name for first extraction batch. Duplicates will prompt for new name and need to be set manually. 
 		form.initial['extract_batch_name'] = f'{lysate_batch_name.rsplit("_")[0]}_RE'
 		
-	return render(request, 'samples/lysate_batch_to_extract_batch.html', { 'form': form, 'lysate_batch_name': lysate_batch_name } )
+	return render(request, 'samples/batch_transition.html', { 'form': form, 
+						'source_batch_name': lysate_batch_name,
+						'source_batch_type': 'Lysate Batch',
+						'new_batch_type': 'Extract Batch'
+						} )
 	
 @login_required
 def extract_batch(request):
@@ -535,7 +539,7 @@ def extract_batch_to_library_batch(request):
 		form = ExtractBatchToLibraryBatchForm(request.POST)
 		if form.is_valid():
 			library_batch_name = form.cleaned_data['library_batch_name']
-			extract_batch.create_library_batch(library_batch_name, request.user)
+			#extract_batch.create_library_batch(library_batch_name, request.user)
 			#return redirect(f'{reverse("extract_batch_assign_lysate")}?extract_batch_name={extract_batch_name}')
 	elif request.method == 'GET':
 		form = ExtractBatchToLibraryBatchForm()
@@ -543,8 +547,12 @@ def extract_batch_to_library_batch(request):
 		# TODO this defaults to double-stranded but should also handle single-stranded
 		form.initial['library_batch_name'] = f'{extract_batch_name.rsplit("_")[0]}_DS'
 		
-	return render(request, 'samples/extract_batch_to_library_batch.html', { 'form': form, 'extract_batch_name': extract_batch_name } )
-	
+	return render(request, 'samples/batch_transition.html', { 'form': form, 
+						'source_batch_name': extract_batch_name,
+						'source_batch_type': 'Extract Batch',
+						'new_batch_type': 'Library Batch'
+						} )
+
 @login_required
 def lost_lysate(request):
 	page_number = request.GET.get('page', 1)
