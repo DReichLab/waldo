@@ -714,6 +714,9 @@ class LibraryProtocol(Timestamped):
 	manual_robotic = models.CharField(max_length=20, blank=True)
 	volume_extract_used_standard = models.FloatField(null=True)
 	
+	udg_treatment = models.CharField(max_length=10, null=True)
+	library_type = models.CharField(max_length=2, null=True)
+	
 def libraries_for_extract(extract):
 	libraries = Library.objects.filter(extract=extract)
 	return len(libraries)
