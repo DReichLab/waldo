@@ -184,7 +184,7 @@ class ExtractionBatchForm(UserModelForm):
 def validate_library_batch_does_not_exist(library_batch_name):
 	try:
 		library_batch = LibraryBatch.objects.get(name=library_batch_name)
-		raise ValidationError(_('Library Batch already exists: %(extract_batch_name)s'), 
+		raise ValidationError(_('Library Batch already exists: %(library_batch_name)s'), 
 						code='exists', 
 						params={'library_batch_name': library_batch_name})
 	except LibraryBatch.DoesNotExist:
