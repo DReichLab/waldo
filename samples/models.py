@@ -10,7 +10,7 @@ from django.utils.translation import gettext_lazy as _
 
 from django.db.models import Max, Min
 
-from .layout import PLATE_ROWS, PLATE_WELL_COUNT, validate_row_letter, plate_location, reverse_plate_location_coordinate, reverse_plate_location, duplicate_positions_check_db
+from .layout import PLATE_ROWS, PLATE_WELL_COUNT, PLATE_WELL_COUNT_HALF, validate_row_letter, plate_location, reverse_plate_location_coordinate, reverse_plate_location, duplicate_positions_check_db
 
 import re, string
 
@@ -726,13 +726,14 @@ def create_library_from_extract(layout_element, library_batch, p7_offset, user):
 	extract = layout_element.extract
 	existing_libraries = libraries_for_extract(extract)
 	next_library_number = existing_libraries + 1
+	# TODO check existing extract amount
 	library = Library(sample = extract.sample,
 					extract = extract,
 					library_batch = library_batch,
 					reich_lab_library_id = f'{extract.extract.id}.L{next_library_number}',
 					reich_lab_library_number = next_library_number,
-					udg_treatment = 'partial', # TODO fetch from protocol
-					library_type = 'DS', # TODO
+					udg_treatment = library_batch.protocol.udg_treatment,
+					library_type = library_batch.protocol.library_type,
 					library_prep_lab = REICH_LAB,
 					ul_extract_used = library_batch.protocol.volume_extract_used_standard,
 				   )
@@ -743,35 +744,35 @@ class LibraryBatch(Timestamped):
 	name = models.CharField(max_length=150, blank=True)
 	protocol = models.ForeignKey(LibraryProtocol, on_delete=models.PROTECT, null=True)
 	technician = models.CharField(max_length=50, blank=True)
-	prep_date = models.DateField(null=True)
+	prep_date = models.DateField(null=True, help_text='YYYY-MM-DD')
 	prep_note = models.TextField(blank=True)
 	prep_robot = models.CharField(max_length=20, blank=True)
 	technician_fk = models.ForeignKey(WetLabStaff, on_delete=models.SET_NULL, null=True)
 	
+	# The offset determines completely the layout of barcodes for the library batch because the wetlab uses a system where the p5 barcodes are placed in the same location for all plates
+	# If we need to handle arbitrary layouts, migrate this state into barcodes in the layout objects 
+	p7_offset = models.SmallIntegerField(null=True, validators=[MinValueValidator(0), MaxValueValidator(PLATE_WELL_COUNT_HALF-1)])
+	
+	def check_p7_offset(self):
+		if p7_offset < 0 or p7_offset >= PLATE_WELL_COUNT_HALF:
+			raise ValueError(_('p7_offset is out of range: %(p7_offset)d'), params={'p7_offset': p7_offset})
+	
 	def create_libraries(self, user):
+		self.check_p7_offset()
 		layout = LibraryBatchLayout.objects.filter(library_batch=self)
 		duplicate_positions_check_db(layout)
 		
-		# TODO
-		# get_p7_offset()
-		p7_offset = 0
 		for layout_element in layout:
 			create_library_from_extract(layout_element, self, p7_offset, user)
 			
 	def get_robot_layout(self):
-		pass
-			
-			
-	def create_capture(self, capture_name, capture_type, user):
-		pass # TODO
-	
-# extract -> library
-class LibraryBatchLayout(TimestampedWellPosition):
-	library_batch = models.ForeignKey(LibraryBatch, on_delete=models.CASCADE, null=True)
-	extract = models.ForeignKey(Extract, on_delete=models.CASCADE, null=True)
-	control_type = models.ForeignKey(ControlType, on_delete=models.PROTECT, null=True)
-	ul_extract_used = models.FloatField()
-	notes = models.TextField(blank=True)
+		self.check_p7_offset()
+		entries = []
+		for position in range(PLATE_WELL_COUNT):
+			destination = plate_location(position) # for example, A1
+			p5, p7 = barcodes_for_location(position) # robot needs p7. p5 is already known for each location. 
+			source = p7_qbarcode_source(p7)
+			entries += [source, destination, 1]
 	
 def validate_index_dna_sequence(sequence):
 	valid_bases = 'ACGT'
@@ -803,6 +804,14 @@ class P7_Index(models.Model):
 	label = models.CharField(max_length=10, db_index=True) # cannot be unique because double and single stranded are named with same integers
 	label2 = models.CharField(max_length=20, blank=True)
 	sequence = models.CharField(max_length=8, db_index=True, unique=True, validators=[validate_index_dna_sequence])
+	
+# extract -> library
+class LibraryBatchLayout(TimestampedWellPosition):
+	library_batch = models.ForeignKey(LibraryBatch, on_delete=models.CASCADE, null=True)
+	extract = models.ForeignKey(Extract, on_delete=models.CASCADE, null=True)
+	control_type = models.ForeignKey(ControlType, on_delete=models.PROTECT, null=True)
+	ul_extract_used = models.FloatField()
+	notes = models.TextField(blank=True)
 	
 class Library(Timestamped):
 	sample = models.ForeignKey(Sample, on_delete=models.PROTECT, null=True)

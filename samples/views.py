@@ -615,6 +615,23 @@ def library_batch_assign_extract(request):
 	occupied_well_count, num_non_control_assignments = occupied_wells(LibraryBatchLayout.objects.filter(library_batch=library_batch))
 	
 	return render(request, 'samples/library_batch_assign_extract.html', { 'library_batch_name': library_batch_name, 'extracts': extracts, 'assigned_extracts_count': assigned_extracts_count, 'control_count': len(existing_controls), 'num_assignments': num_non_control_assignments, 'occupied_wells': occupied_well_count, 'form': library_batch_form  } )
+	
+# return a spreadsheet version of data for offline editing
+@login_required
+def barcodes_spreadsheet(request):
+	library_batch_name = request.GET['library_batch_name']
+	library_batch = LibraryBatch.objects.get(name=library_batch_name)
+	
+	response = HttpResponse(content_type='text/csv')
+	response['Content-Disposition'] = f'attachment; filename="library_batch_{library_batch_name}_barcodes.csv"'
+
+	writer = csv.writer(response, delimiter=',')
+	# header
+	writer.writerow(['Source', 'Destination', 'Amount'])
+	robot_layout = library_batch.get_robot_layout()
+	for entry in robot_layout:
+		writer.writerow(entry)
+	return response
 
 @login_required
 def library_batch_layout(request):
