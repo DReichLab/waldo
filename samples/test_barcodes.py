@@ -1,7 +1,7 @@
 from django.test import SimpleTestCase
 
 from .models import parse_sample_string
-from .layout import PLATE_ROWS, PLATE_WELL_COUNT, PLATE_WELL_COUNT_HALF, plate_location, reverse_plate_location, BARCODES_BY_POSITION, barcode_at_position, barcodes_for_location
+from .layout import PLATE_ROWS, PLATE_WELL_COUNT, PLATE_WELL_COUNT_HALF, plate_location, reverse_plate_location, BARCODES_BY_POSITION, barcode_at_position, barcodes_for_location, p7_qbarcode_source
 
 class BarcodesTest(SimpleTestCase):
 	def test_barcode_total_number(self):
@@ -55,3 +55,15 @@ class BarcodesTest(SimpleTestCase):
 				if right_side_index < 0:
 					right_side_index += PLATE_WELL_COUNT_HALF
 				self.assertEqual(p7[i], p7[right_side_index + PLATE_WELL_COUNT_HALF])
+				
+	def test_source_p7_barcodes(self):
+		expected_pairs = {
+			'Q1': 'A7',
+			'Q11': 'H7',
+			'Q38': 'A12',
+			'Q48': 'H12',
+			'Q26': 'D10',
+			'Q28': 'B11'
+			}
+		for barcode, expected_source in expected_pairs.items():
+			self.assertEquals(expected_source, p7_qbarcode_source(barcode))

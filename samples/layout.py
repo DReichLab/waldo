@@ -22,8 +22,8 @@ def check_plate_domain(int_val):
 	if int_val < 0 or int_val >= PLATE_WELL_COUNT:
 		raise PlateDomainError(f'{int_val} is out of range for a plate location')
 
-# column first, then row (A1, B1, ..., H1, A2)
-# domain is [0,PLATE_WELL_COUNT]
+# map integer in domain [0,PLATE_WELL_COUNT] to row and column pair (A, 1)
+# order is column first, then row (A1, B1, ..., H1, A2)
 def plate_location(int_val):
 	check_plate_domain(int_val)
 	row_index = int_val % len(PLATE_ROWS)
@@ -151,6 +151,14 @@ BARCODES_BY_POSITION = BARCODE_POSITIONS_ALL_STRING.strip().split()
 
 def barcode_at_position(int_position):
 	return BARCODES_BY_POSITION[int_position]
+	
+# Given a Q barcode label, return a string for the P7 barcode source well (A7, H12, etc.) for it
+# Used for robot instructions
+def p7_qbarcode_source(q):
+	position_left_side = BARCODES_BY_POSITION.index(q)
+	position_right_side = position_left_side + PLATE_WELL_COUNT_HALF
+	row, column = plate_location(position_right_side)
+	return f'{row}{column}'
 
 # column first, then row (A1, B1, ..., H1, A2)
 # domain is [0,95]
