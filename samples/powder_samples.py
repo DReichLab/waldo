@@ -116,6 +116,7 @@ def ensure_powder_sample_reich_lab_sample_ids(lysate_batch):
 		sample.assign_reich_lab_sample_number()
 
 # lysate ids are numeric primary key
+# currently this unassigns only
 def assign_lysates_to_extract_batch(extract_batch, lysate_ids, user):
 	# remove lysates that are not assigned but preserve controls
 	to_clear = ExtractionBatchLayout.objects.filter(extract_batch=extract_batch).exclude(lysate_id__in=lysate_ids).exclude(control_type__isnull=False)

@@ -773,6 +773,13 @@ class LibraryBatch(Timestamped):
 			p5, p7 = barcodes_for_location(position) # robot needs p7. p5 is already known for each location. 
 			source = p7_qbarcode_source(p7)
 			entries += [source, destination, 1]
+			
+	# extract_ids are numeric primary key
+	# currently this unassigns only
+	def assign_extracts_to_library_batch(self, extract_ids, user):
+		# remove extracts that are assigned but preserve controls
+		to_clear = LibraryBatchLayout.objects.filter(library_batch=self).exclude(extract_id__in=extract_ids).exclude(control_type__isnull=False)
+		pass
 	
 def validate_index_dna_sequence(sequence):
 	valid_bases = 'ACGT'

@@ -32,7 +32,7 @@ Library Batch: {{library_batch_name}} has {{assigned_extracts_count}} distinct e
 <form action="" method='post'>
 	{% csrf_token %}
 	{{ form.as_p }}
-	<input type='submit' name='assign_only' value='Assign Lysates Only'>
+	<input type='submit' name='assign_only' value='Assign Extracts'>
 	<a href='library_batch_layout?library_batch_name={{library_batch_name}}'>Modify Layout</a>
 	<a href='library_batch_to_capture_batch?library_batch_name={{library_batch_name}}'>Capture Batch</a>
 
@@ -56,7 +56,7 @@ Library Batch: {{library_batch_name}} has {{assigned_extracts_count}} distinct e
 	{% for lysate in lysates %}
 	<tr>
 		<td class="checked">
-			<input class="sample_checkbox" type="checkbox" name="lysate_checkboxes[]" id="checkbox{{lysate.lysate_id}}" value="{{lysate.id}}" onclick="update_count()" {% if lysate.assigned_to_extract_batch > 0 %}checked{% endif %}>
+			<input class="sample_checkbox" type="checkbox" name="extract_checkboxes[]" id="checkbox{{lysate.lysate_id}}" value="{{lysate.id}}" onclick="update_count()" {% if lysate.assigned_to_extract_batch > 0 %}checked{% endif %}>
 		</td>
 		<td class="extract_id">{{lysate.lysate_id}}</td>
 		<td class="wells">{{lysate.num_assignments}}</td>

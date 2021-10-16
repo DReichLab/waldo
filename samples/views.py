@@ -17,7 +17,7 @@ from samples.models import Results, Library, Sample, PowderBatch, WetLabStaff, P
 from .forms import IndividualForm, LibraryIDForm, PowderBatchForm, SampleImageForm, PowderSampleForm, PowderSampleFormset, ControlTypeFormset, ControlLayoutFormset, ExtractionProtocolFormset, LysateBatchForm, SamplePrepQueueFormset, LysateBatchLayoutForm, LostPowderFormset, SpreadsheetForm, LysateBatchToExtractBatchForm, ExtractionBatchForm, LostLysateFormset, ExtractBatchToLibraryBatchForm, LibraryBatchForm
 from sequencing_run.models import MTAnalysis
 
-from .powder_samples import new_reich_lab_powder_sample, assign_prep_queue_entries_to_powder_batch, assign_powder_samples_to_lysate_batch, powder_samples_from_spreadsheet
+from .powder_samples import new_reich_lab_powder_sample, assign_prep_queue_entries_to_powder_batch, assign_powder_samples_to_lysate_batch, powder_samples_from_spreadsheet, assign_lysates_to_extract_batch
 from .layout import duplicate_positions_check, update_db_layout,  layout_objects_map_for_rendering, occupied_wells
 
 from samples.sample_photos import photo_list, save_sample_photo
@@ -595,9 +595,9 @@ def library_batch_assign_extract(request):
 			library_batch_form.save()
 			
 			# iterate through the checkboxes and change states
-			ticked_checkboxes = request.POST.getlist('lysate_checkboxes[]')
+			ticked_checkboxes = request.POST.getlist('extract_checkboxes[]')
 			# tickbox name is extract object id (int)
-			assign_extracts_to_library_batch(library_batch, ticked_checkboxes, request.user)
+			library_batch.assign_extracts_to_library_batch(ticked_checkboxes, request.user)
 		
 	elif request.method == 'GET':
 		library_batch_form = LibraryBatchForm(instance=library_batch, user=request.user)
