@@ -618,7 +618,7 @@ def library_batch_assign_extract(request):
 	
 # return a spreadsheet version of data for offline editing
 @login_required
-def barcodes_spreadsheet(request):
+def library_batch_barcodes_spreadsheet(request):
 	library_batch_name = request.GET['library_batch_name']
 	library_batch = LibraryBatch.objects.get(name=library_batch_name)
 	

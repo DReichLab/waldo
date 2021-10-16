@@ -33,6 +33,7 @@ urlpatterns = [
 	path('library_batches', views.library_batches, name='library_batches'),
 	path('library_batch_assign_extract', views.library_batch_assign_extract, name='library_batch_assign_extract'),
 	path('library_batch_layout', views.library_batch_layout, name='library_batch_layout'),
+	path('library_batch_barcodes_spreadsheet', views.library_batch_barcodes_spreadsheet, name='library_batch_barcodes_spreadsheet'),
 	path('lost_powder', views.lost_powder, name='lost_powder'),
 	path('lost_lysate', views.lost_lysate, name='lost_lysate'),
 	path('sample', views.sample, name='sample'),

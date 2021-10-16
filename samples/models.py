@@ -754,8 +754,8 @@ class LibraryBatch(Timestamped):
 	p7_offset = models.SmallIntegerField(null=True, validators=[MinValueValidator(0), MaxValueValidator(PLATE_WELL_COUNT_HALF-1)])
 	
 	def check_p7_offset(self):
-		if p7_offset < 0 or p7_offset >= PLATE_WELL_COUNT_HALF:
-			raise ValueError(_('p7_offset is out of range: %(p7_offset)d'), params={'p7_offset': p7_offset})
+		if self.p7_offset is None or self.p7_offset < 0 or self.p7_offset >= PLATE_WELL_COUNT_HALF:
+			raise ValueError(f'p7_offset is out of range: {self.p7_offset}')
 	
 	def create_libraries(self, user):
 		self.check_p7_offset()
