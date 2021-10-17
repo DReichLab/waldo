@@ -10,7 +10,7 @@ from django.utils.translation import gettext_lazy as _
 
 from django.db.models import Max, Min
 
-from .layout import PLATE_ROWS, PLATE_WELL_COUNT, PLATE_WELL_COUNT_HALF, validate_row_letter, plate_location, reverse_plate_location_coordinate, reverse_plate_location, duplicate_positions_check_db
+from .layout import PLATE_ROWS, PLATE_WELL_COUNT, PLATE_WELL_COUNT_HALF, validate_row_letter, plate_location, reverse_plate_location_coordinate, reverse_plate_location, duplicate_positions_check_db, p7_qbarcode_source, barcodes_for_location
 
 import re, string
 
@@ -769,10 +769,12 @@ class LibraryBatch(Timestamped):
 		self.check_p7_offset()
 		entries = []
 		for position in range(PLATE_WELL_COUNT):
-			destination = plate_location(position) # for example, A1
-			p5, p7 = barcodes_for_location(position) # robot needs p7. p5 is already known for each location. 
+			row, column = plate_location(position) # for example, A1
+			destination = f'{row}{column}'
+			p5, p7 = barcodes_for_location(position, self.p7_offset) # robot needs p7. p5 is already known for each location. 
 			source = p7_qbarcode_source(p7)
-			entries += [source, destination, 1]
+			entries.append([source, destination, 1]) # TODO fix elements
+		return entries
 			
 	# extract_ids are numeric primary key
 	# currently this unassigns only

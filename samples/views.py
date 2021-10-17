@@ -616,7 +616,7 @@ def library_batch_assign_extract(request):
 	
 	return render(request, 'samples/library_batch_assign_extract.html', { 'library_batch_name': library_batch_name, 'extracts': extracts, 'assigned_extracts_count': assigned_extracts_count, 'control_count': len(existing_controls), 'num_assignments': num_non_control_assignments, 'occupied_wells': occupied_well_count, 'form': library_batch_form  } )
 	
-# return a spreadsheet version of data for offline editing
+# return comma-delimited spreadsheet version of barcodes for robot
 @login_required
 def library_batch_barcodes_spreadsheet(request):
 	library_batch_name = request.GET['library_batch_name']
@@ -629,6 +629,7 @@ def library_batch_barcodes_spreadsheet(request):
 	# header
 	writer.writerow(['Source', 'Destination', 'Amount'])
 	robot_layout = library_batch.get_robot_layout()
+	#print(robot_layout)
 	for entry in robot_layout:
 		writer.writerow(entry)
 	return response
