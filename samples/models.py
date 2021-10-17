@@ -410,6 +410,7 @@ def create_lysate(powder_sample, lysate_batch, user):
 	
 	return lysate
 
+# turn powders into lysates
 class LysateBatch(Timestamped):
 	batch_name = models.CharField(max_length=50, unique=True)
 	protocol = models.ForeignKey(ExtractionProtocol, on_delete=models.PROTECT, null=True)
@@ -420,6 +421,14 @@ class LysateBatch(Timestamped):
 	note = models.TextField(blank=True)
 	layout = models.ManyToManyField(PowderSample, through='LysateBatchLayout', related_name='powder_sample_assignment')
 	control_layout_name = models.CharField(max_length=25, blank=True, help_text='When applying a layout, use this set of controls.  The control entries are stored in layout.')
+	
+	OPEN = 0
+	LYSATES_CREATED = 1
+	LYSATE_BATCH_STATES = (
+		(OPEN, 'Open'),
+		(LYSATES_CREATED, 'Lysates created')
+	)
+	status = models.PositiveSmallIntegerField(default = LYSATES_CREATED, choices=LYSATE_BATCH_STATES) # for migration
 	
 	# assign a layout, one powder sample or control per position
 	# this is the layout to produce lysate
@@ -617,6 +626,25 @@ class Lysate(Timestamped):
 	position = models.CharField(max_length=3, blank=True, help_text='well/tube position in plate/rack')
 	barcode = models.CharField(max_length=12, blank=True, help_text='Physical barcode on FluidX tube')
 	notes = models.TextField(blank=True)
+	
+	@staticmethod
+	def spreadsheet_header():
+		return ['lysate_id',
+			'powder_used_mg',
+			'total_volume_produced',
+			'plate_id',
+			'position',
+			'barcode',
+			'notes']
+		
+	def to_spreadsheet_row(self):
+		field_list = Lysate.spreadsheet_header()
+		values = []
+		for field in field_list:
+			values.append(self.getattr(field))
+		
+	def from_spreadsheet_row(self, headers, arg_array, user):
+		pass
 	
 # how many extracts exist for this lysate
 def extracts_for_lysate(lysate):
