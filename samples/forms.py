@@ -147,6 +147,16 @@ class LysateBatchForm(UserModelForm):
 		super().__init__(*args, **kwargs)
 		for option in ['protocol', 'date', 'robot']:
 			self.fields[option].required = False
+			
+class LysateForm(UserModelForm):
+	class Meta:
+		model = Lysate
+		fields = ['lysate_id', 'powder_used_mg', 'total_volume_produced', 'plate_id', 'position', 'barcode', 'notes']
+		widgets = {
+			'note': Textarea(attrs={'cols': 60, 'rows': 2}),
+		}
+		
+LysateFormset = modelformset_factory(Lysate, form=LysateForm)
 
 # raise validation error if extract batch name already exists
 def validate_extract_batch_does_not_exist(extract_batch_name):

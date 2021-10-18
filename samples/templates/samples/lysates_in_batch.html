@@ -1,0 +1,52 @@
+{% extends "samples/reich_lab_base.html" %}
+
+{% load static %}
+
+{% block title %}Lysate Batch {{lysate_batch_name}} {% endblock %}
+
+{% block content %}
+
+<form action="" method='post'>
+	{% csrf_token %}
+	{{ lysate_batch_form.as_p }}
+
+<hr>
+
+	<input type='submit' value='Update Lysate Batch and Lysates'>
+	<a href='lysates_spreadsheet?lysate_batch_name={{lysate_batch_name}}'>Get Lysate spreadsheet</a>
+	<a href='lysates_spreadsheet_upload?lysate_batch_name={{lysate_batch_name}}'>Upload spreadsheet</a>
+	
+	{{ formset.management_form }}
+	
+	<table>
+	<thead>
+	<tr>
+		{% for field in formset.0.visible_fields %}
+			<th>{{ field.label_tag }}</th>
+		{% endfor %}
+	</tr>
+	</thead>
+	
+	<tr>
+		{% for field in formset.0.visible_fields %}
+			<td>
+				{{ field.help_text }}
+			</td>
+		{% endfor %}
+	</tr>
+	
+	{% for form in formset %}
+	<tr>
+		{{ form.id }}
+		{% for field in form.visible_fields %}
+			<td>
+			{{ field.errors }}
+			{{ field }}
+			</td>
+		{% endfor %}
+	</tr>
+	{% endfor %}
+	</table>
+</form>
+
+{% endblock %}

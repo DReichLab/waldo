@@ -71,7 +71,7 @@ table{
 		<td class="high_complexity_count">{{powder_batch.high_complexity_count}}</td>
 		<td class="lysate_batch">
 			{% for lysate_batch in powder_batch.lysatebatch_set.all %}
-				<a href="lysate_batch_assign_powder_batches?lysate_batch={{lysate_batch.batch_name}}">{{lysate_batch.batch_name}}</a>
+				<a href="lysate_batch_assign_powder_batches?lysate_batch_name={{lysate_batch.batch_name}}">{{lysate_batch.batch_name}}</a>
 			{% endfor %}
 		</td>
 		<td class="notes">{{powder_batch.notes}}</td>

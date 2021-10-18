@@ -430,6 +430,10 @@ class LysateBatch(Timestamped):
 	)
 	status = models.PositiveSmallIntegerField(default = LYSATES_CREATED, choices=LYSATE_BATCH_STATES) # for migration
 	
+	# return string representing status. For templates
+	def get_status(self):
+		return self.LYSATE_BATCH_STATES[self.status][1]
+	
 	# assign a layout, one powder sample or control per position
 	# this is the layout to produce lysate
 	def assign_layout(self, user):
@@ -583,6 +587,23 @@ class LysateBatch(Timestamped):
 				extract_batch_layout_element.save(save_user=user)
 			
 		return extract_batch
+		
+	def lysates_from_spreadsheet(spreadsheet, user):
+		s = spreadsheet_file.read().decode("utf-8")
+		lysates = Lysate.objects.filter(lysate_batch=self)
+		lines = s.split('\n')
+		header = lines[0]
+		headers = re.split('\t|\n', header)
+		if headers[0] != 'lysate_id':
+			raise ValueError('lysate_id is not first')
+			
+		for line in lines[1:]:
+			fields = re.split('\t|\n', line)
+			lysate_id = fields[0]
+			if len(lysate_id) > 0:
+				print(lysate_id)
+				lysate = lysates.get(lysate_id=lysate_id)
+				lysate.from_spreadsheet_row(headers[1:], fields[1:], user)
 
 # powder -> lysate
 class LysateBatchLayout(TimestampedWellPosition):
@@ -641,10 +662,17 @@ class Lysate(Timestamped):
 		field_list = Lysate.spreadsheet_header()
 		values = []
 		for field in field_list:
-			values.append(self.getattr(field))
+			values.append(getattr(self, field))
+		return values
 		
 	def from_spreadsheet_row(self, headers, arg_array, user):
-		pass
+		self.lysate_id = arg_array[headers.index('lysate_id')]
+		self.powder_used_mg = float(arg_array[headers.index('powder_used_mg')])
+		self.total_volume_produced = float(arg_array[headers.index('total_volume_produced')])
+		self.position = arg_array[headers.index('position')]
+		self.barcode = arg_array[headers.index('barcode')]
+		self.notes = arg_array[headers.index('notes')]
+		self.save(save_user=user)
 	
 # how many extracts exist for this lysate
 def extracts_for_lysate(lysate):

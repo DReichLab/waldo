@@ -14,7 +14,7 @@ from datetime import datetime
 
 from samples.pipeline import udg_and_strandedness
 from samples.models import Results, Library, Sample, PowderBatch, WetLabStaff, PowderSample, ControlType, ControlLayout, ExtractionProtocol, LysateBatch, SamplePrepQueue, PLATE_ROWS, LysateBatchLayout, ExtractionBatch, ExtractionBatchLayout, Lysate, LibraryBatch, LibraryBatchLayout, Extract
-from .forms import IndividualForm, LibraryIDForm, PowderBatchForm, SampleImageForm, PowderSampleForm, PowderSampleFormset, ControlTypeFormset, ControlLayoutFormset, ExtractionProtocolFormset, LysateBatchForm, SamplePrepQueueFormset, LysateBatchLayoutForm, LostPowderFormset, SpreadsheetForm, LysateBatchToExtractBatchForm, ExtractionBatchForm, LostLysateFormset, ExtractBatchToLibraryBatchForm, LibraryBatchForm
+from .forms import IndividualForm, LibraryIDForm, PowderBatchForm, SampleImageForm, PowderSampleForm, PowderSampleFormset, ControlTypeFormset, ControlLayoutFormset, ExtractionProtocolFormset, LysateBatchForm, LysateFormset, LysateForm, SamplePrepQueueFormset, LysateBatchLayoutForm, LostPowderFormset, SpreadsheetForm, LysateBatchToExtractBatchForm, ExtractionBatchForm, LostLysateFormset, ExtractBatchToLibraryBatchForm, LibraryBatchForm
 from sequencing_run.models import MTAnalysis
 
 from .powder_samples import new_reich_lab_powder_sample, assign_prep_queue_entries_to_powder_batch, assign_powder_samples_to_lysate_batch, powder_samples_from_spreadsheet, assign_lysates_to_extract_batch
@@ -298,7 +298,7 @@ def lysate_batch (request):
 
 @login_required
 def lysate_batch_assign_powder(request):
-	lysate_batch_name = request.GET['lysate_batch']
+	lysate_batch_name = request.GET['lysate_batch_name']
 	lysate_batch = LysateBatch.objects.get(batch_name=lysate_batch_name)
 	if request.method == 'POST':
 		lysate_batch_form = LysateBatchForm(request.POST, instance=lysate_batch, user=request.user)
@@ -340,7 +340,65 @@ def lysate_batch_assign_powder(request):
 	# count wells
 	occupied_well_count, num_non_control_assignments = occupied_wells(LysateBatchLayout.objects.filter(lysate_batch=lysate_batch))
 	
-	return render(request, 'samples/lysate_batch_assign_powder.html', { 'lysate_batch_name': lysate_batch_name, 'powder_samples': powder_samples, 'assigned_powder_samples_count': assigned_powder_samples_count, 'control_count': len(existing_controls), 'num_assignments': num_non_control_assignments, 'occupied_wells': occupied_well_count, 'form': lysate_batch_form  } ) 
+	return render(request, 'samples/lysate_batch_assign_powder.html', { 'lysate_batch_name': lysate_batch_name, 'powder_samples': powder_samples, 'assigned_powder_samples_count': assigned_powder_samples_count, 'control_count': len(existing_controls), 'num_assignments': num_non_control_assignments, 'occupied_wells': occupied_well_count, 'form': lysate_batch_form  } )
+	
+@login_required
+def lysates_in_batch(request):
+	lysate_batch_name = request.GET['lysate_batch_name']
+	lysate_batch = LysateBatch.objects.get(batch_name=lysate_batch_name)
+	
+	if request.method == 'POST':
+		lysate_batch_form = LysateBatchForm(request.POST, instance=lysate_batch, user=request.user)
+		lysates_formset = LysateFormset(request.POST, request.FILES, form_kwargs={'user': request.user})
+		
+		if lysate_batch_form.is_valid():
+			lysate_batch_form.save()
+		if lysates_formset.is_valid():
+			lysates_formset.save()
+		if lysate_batch_form.is_valid() and lysates_formset.is_valid():
+			if lysate_batch.status == lysate_batch.OPEN:
+				return redirect(f'{reverse("lysate_batch_assign_powder")}?lysate_batch_name={lysate_batch_name}')
+		
+	elif request.method == 'GET':
+		#powder_batch_form = PowderBatchForm(initial={'name': powder_batch_name, 'date': powder_batch.date, 'status': powder_batch.status, 'notes': powder_batch.notes}, instance=powder_batch, user=request.user)
+		lysate_batch_form = LysateBatchForm(instance=lysate_batch, user=request.user)
+		lysates_formset = LysateFormset(queryset=Lysate.objects.filter(lysate_batch=lysate_batch), form_kwargs={'user': request.user})
+	
+	# open can have new samples assigned
+	return render(request, 'samples/lysates_in_batch.html', { 'lysate_batch_name': lysate_batch_name, 'lysate_batch_form': lysate_batch_form, 'formset': lysates_formset} )
+	
+# return a spreadsheet version of data for offline editing
+@login_required
+def lysates_spreadsheet(request):
+	lysate_batch_name = request.GET['lysate_batch_name']
+	lysate_batch = LysateBatch.objects.get(batch_name=lysate_batch_name)
+	
+	response = HttpResponse(content_type='text/csv')
+	response['Content-Disposition'] = f'attachment; filename="lysate_batch_{lysate_batch_name}.csv"'
+
+	writer = csv.writer(response, delimiter='\t')
+	# header
+	writer.writerow(Lysate.spreadsheet_header())
+	lysates = Lysate.objects.filter(lysate_batch=lysate_batch)
+	for lysate in lysates:
+		writer.writerow(lysate.to_spreadsheet_row())
+	return response
+	
+@login_required
+def lysates_spreadsheet_upload(request):
+	lysate_batch_name = request.GET['lysate_batch_name']
+	if request.method == 'POST':
+		spreadsheet_form = SpreadsheetForm(request.POST, request.FILES)
+		print(f'lysates spreadsheet {lysate_batch_name}')
+		if spreadsheet_form.is_valid():
+			spreadsheet = request.FILES.get('spreadsheet')
+			lysate_batch = LysateBatch.objects.get(batch_name=lysate_batch_name)
+			lysate_batch.lysates_from_spreadsheet(spreadsheet, request.user)
+			message = 'Values updated'
+	else:
+		spreadsheet_form = SpreadsheetForm()
+		message = ''
+	return render(request, 'samples/spreadsheet_upload.html', { 'title': f'Lysates for {lysate_batch_name}', 'form': spreadsheet_form, 'message': message} )
 
 def reich_lab_sample_number_from_string(s):
 	if s.startswith('S'):

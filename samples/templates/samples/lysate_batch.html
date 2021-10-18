@@ -43,6 +43,7 @@ table{
 	<thead>
 	<tr>
 		<th><button class="sort" data-sort="name" data-default-order='desc'>Name</button></th>
+		<th><button class="sort" data-sort="status">Status</button></th>
 		<th><button class="sort" data-sort="date">Date</button></th>
 		<th><button class="sort" data-sort="technician">Technician</button></th>
 		<th><button class="sort" data-sort="robot">Robot</button></th>
@@ -52,7 +53,12 @@ table{
 	<tbody class="list">
 	{% for lysate_batch in lysate_batches %}
 	<tr>
-		<td class="name"><a href="lysate_batch_assign_powder?lysate_batch={{lysate_batch.batch_name}}">{{lysate_batch.batch_name}}</a></td>
+		{% if lysate_batch.status == lysate_batch.OPEN %}
+		<td class="name"><a href="lysate_batch_assign_powder?lysate_batch_name={{lysate_batch.batch_name}}">{{lysate_batch.batch_name}}</a></td>
+		{% else %}
+		<td class="name"><a href="lysates_in_batch?lysate_batch_name={{lysate_batch.batch_name}}">{{lysate_batch.batch_name}}</a></td>
+		{% endif %}
+		<td class="status">{{lysate_batch.get_status}}</td>
 		<td class="date">{{lysate_batch.date|date:'Y-m-d'}}</td>
 		<td class="technician">{{lysate_batch.technician}}</td>
 		<td class="robot">{{lysate_batch.robot}}</td>
