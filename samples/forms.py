@@ -155,8 +155,12 @@ class LysateForm(UserModelForm):
 		widgets = {
 			'note': Textarea(attrs={'cols': 60, 'rows': 2}),
 		}
+	
+	def __init__(self, *args, **kwargs):
+		super().__init__(*args, **kwargs)
+		self.fields['lysate_id'].disabled = True
 		
-LysateFormset = modelformset_factory(Lysate, form=LysateForm)
+LysateFormset = modelformset_factory(Lysate, form=LysateForm, extra=0)
 
 # raise validation error if extract batch name already exists
 def validate_extract_batch_does_not_exist(extract_batch_name):

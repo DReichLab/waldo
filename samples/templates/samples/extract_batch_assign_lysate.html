@@ -32,7 +32,7 @@ Extract Batch: {{extract_batch_name}} has {{assigned_lysates_count}} distinct ly
 <form action="" method='post'>
 	{% csrf_token %}
 	{{ form.as_p }}
-	<input type='submit' name='assign_only' value='Assign Lysates Only'>
+	<input type='submit' name='assign_only' value='Update and assign lysates'>
 	<a href='extract_batch_layout?extract_batch_name={{extract_batch_name}}'>Modify Layout</a>
 	<a href='extract_batch_to_library_batch?extract_batch_name={{extract_batch_name}}'>Library Batch</a>
 

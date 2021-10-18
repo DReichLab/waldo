@@ -32,7 +32,7 @@ Library Batch: {{library_batch_name}} has {{assigned_extracts_count}} distinct e
 <form action="" method='post'>
 	{% csrf_token %}
 	{{ form.as_p }}
-	<input type='submit' name='assign_only' value='Assign Extracts'>
+	<input type='submit' name='assign_only' value='Update and Assign Extracts'>
 	<a href='library_batch_layout?library_batch_name={{library_batch_name}}'>Modify Layout</a>
 	<a href='library_batch_to_capture_batch?library_batch_name={{library_batch_name}}'>Capture Batch</a>
 	<a href='library_batch_barcodes_spreadsheet?library_batch_name={{library_batch_name}}'>Barcodes for robot</a>

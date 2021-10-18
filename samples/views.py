@@ -320,6 +320,8 @@ def lysate_batch_assign_powder(request):
 				print(f'lysate batch layout {lysate_batch_name}')
 				lysate_batch.fill_empty_wells_with_library_negatives(request.user)
 				return redirect(f'{reverse("lysate_batch_plate_layout")}?lysate_batch_name={lysate_batch_name}')
+			elif lysate_batch.status == lysate_batch.LYSATES_CREATED:
+				return redirect(f'{reverse("lysates_in_batch")}?lysate_batch_name={lysate_batch_name}')
 		
 	elif request.method == 'GET':
 		lysate_batch_form = LysateBatchForm(instance=lysate_batch, user=request.user)
