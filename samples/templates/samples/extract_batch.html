@@ -43,6 +43,7 @@ table{
 	<thead>
 	<tr>
 		<th><button class="sort" data-sort="name" data-default-order='desc'>Name</button></th>
+		<th><button class="sort" data-sort="status">Status</button></th>
 		<th><button class="sort" data-sort="date">Date</button></th>
 		<th><button class="sort" data-sort="technician">Technician</button></th>
 		<th><button class="sort" data-sort="robot">Robot</button></th>
@@ -53,6 +54,7 @@ table{
 	{% for extract_batch in extract_batches %}
 	<tr> 
 		<td class="name"><a href="extract_batch_assign_lysate?extract_batch_name={{extract_batch.batch_name}}">{{extract_batch.batch_name}}</a></td>
+		<td class="status">{{extract_batch.get_status}}</td>
 		<td class="date">{{extract_batch.date|date:'Y-m-d'}}</td>
 		<td class="technician">{{extract_batch.technician}}</td>
 		<td class="robot">{{extract_batch.robot}}</td>
@@ -66,7 +68,7 @@ table{
 
 <script>
 	var list_options = {
-		valueNames: ['name', 'date', 'technician', 'robot', 'notes'],
+		valueNames: ['name', 'status', 'date', 'technician', 'robot', 'notes'],
 		searchDelay: 500
 	};
 	var extract_batch_list = new List('extract_batch_rows', list_options);

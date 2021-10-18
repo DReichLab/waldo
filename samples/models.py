@@ -706,6 +706,18 @@ class ExtractionBatch(Timestamped):
 	layout = models.ManyToManyField(Lysate, through='ExtractionBatchLayout', related_name='lysate_assignment')
 	control_layout_name = models.CharField(max_length=25, blank=True, help_text='When applying a layout, use this set of controls.  The control entries are stored in layout.')
 	
+	OPEN = 0
+	EXTRACTED = 1
+	EXTRACT_BATCH_STATES = (
+		(OPEN, 'Open'),
+		(EXTRACTED, 'Extracted')
+	)
+	status = models.PositiveSmallIntegerField(default = OPEN, choices=EXTRACT_BATCH_STATES)
+	
+	# return string representing status. For templates
+	def get_status(self):
+		return self.EXTRACT_BATCH_STATES[self.status][1]
+	
 	def create_library_batch(self, batch_name, user):
 		layout = ExtractionBatchLayout.objects.filter(extract_batch=self)
 		duplicate_positions_check_db(layout)
