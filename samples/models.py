@@ -428,7 +428,7 @@ class LysateBatch(Timestamped):
 		(OPEN, 'Open'),
 		(LYSATES_CREATED, 'Lysates created')
 	)
-	status = models.PositiveSmallIntegerField(default = LYSATES_CREATED, choices=LYSATE_BATCH_STATES) # for migration
+	status = models.PositiveSmallIntegerField(default = OPEN, choices=LYSATE_BATCH_STATES)
 	
 	# return string representing status. For templates
 	def get_status(self):
