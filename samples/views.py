@@ -13,8 +13,8 @@ import json
 from datetime import datetime
 
 from samples.pipeline import udg_and_strandedness
-from samples.models import Results, Library, Sample, PowderBatch, WetLabStaff, PowderSample, ControlType, ControlLayout, ExtractionProtocol, LysateBatch, SamplePrepQueue, PLATE_ROWS, LysateBatchLayout, ExtractionBatch, ExtractionBatchLayout, Lysate, LibraryBatch, LibraryBatchLayout, Extract
-from .forms import IndividualForm, LibraryIDForm, PowderBatchForm, SampleImageForm, PowderSampleForm, PowderSampleFormset, ControlTypeFormset, ControlLayoutFormset, ExtractionProtocolFormset, LysateBatchForm, LysateFormset, LysateForm, SamplePrepQueueFormset, LysateBatchLayoutForm, LostPowderFormset, SpreadsheetForm, LysateBatchToExtractBatchForm, ExtractionBatchForm, LostLysateFormset, ExtractBatchToLibraryBatchForm, LibraryBatchForm
+from samples.models import Results, Library, Sample, PowderBatch, WetLabStaff, PowderSample, ControlType, ControlLayout, ExtractionProtocol, LysateBatch, SamplePrepQueue, PLATE_ROWS, LysateBatchLayout, ExtractionBatch, ExtractionBatchLayout, Lysate, LibraryBatch, LibraryBatchLayout, Extract, Storage
+from .forms import IndividualForm, LibraryIDForm, PowderBatchForm, SampleImageForm, PowderSampleForm, PowderSampleFormset, ControlTypeFormset, ControlLayoutFormset, ExtractionProtocolFormset, LysateBatchForm, LysateFormset, LysateForm, SamplePrepQueueFormset, LysateBatchLayoutForm, LostPowderFormset, SpreadsheetForm, LysateBatchToExtractBatchForm, ExtractionBatchForm, LostLysateFormset, ExtractBatchToLibraryBatchForm, LibraryBatchForm, StorageFormset, ExtractFormset
 from sequencing_run.models import MTAnalysis
 
 from .powder_samples import new_reich_lab_powder_sample, assign_prep_queue_entries_to_powder_batch, assign_powder_samples_to_lysate_batch, powder_samples_from_spreadsheet, assign_lysates_to_extract_batch
@@ -366,7 +366,6 @@ def lysates_in_batch(request):
 		lysate_batch_form = LysateBatchForm(instance=lysate_batch, user=request.user)
 		lysates_formset = LysateFormset(queryset=Lysate.objects.filter(lysate_batch=lysate_batch), form_kwargs={'user': request.user})
 	
-	# open can have new samples assigned
 	return render(request, 'samples/lysates_in_batch.html', { 'lysate_batch_name': lysate_batch_name, 'lysate_batch_form': lysate_batch_form, 'formset': lysates_formset} )
 	
 # return a spreadsheet version of data for offline editing
@@ -592,6 +591,30 @@ def extract_batch_layout(request):
 	return render(request, 'samples/generic_layout.html', { 'layout_title': 'Lysate Layout For Extract Batch', 'layout_name': extract_batch_name, 'rows':PLATE_ROWS, 'columns':WELL_PLATE_COLUMNS, 'objects_map': objects_map } )
 	
 @login_required
+def extracts_in_batch(request):
+	extract_batch_name = request.GET['extract_batch_name']
+	extract_batch = ExtractionBatch.objects.get(batch_name=extract_batch_name)
+	
+	if request.method == 'POST':
+		extract_batch_form = ExtractionBatchForm(request.POST, instance=extract_batch, user=request.user)
+		extracts_formset = ExtractFormset(request.POST, request.FILES, form_kwargs={'user': request.user})
+		
+		if extract_batch_form.is_valid():
+			extract_batch_form.save()
+		if extracts_formset.is_valid():
+			extracts_formset.save()
+		if extract_batch_form.is_valid() and extracts_formset.is_valid():
+			if extract_batch.status == extract_batch.OPEN:
+				return redirect(f'{reverse("extract_batch_assign_lysate")}?extract_batch_name={extract_batch_name}')
+		
+	elif request.method == 'GET':
+		extract_batch_form = ExtractionBatchForm(instance=extract_batch, user=request.user)
+		extracts_formset = ExtractFormset(queryset=Extract.objects.filter(extract_batch=extract_batch), form_kwargs={'user': request.user})
+	
+	return render(request, 'samples/extracts_in_batch.html', { 'extract_batch_name': extract_batch_name, 'extract_batch_form': extract_batch_form, 'formset': extracts_formset} )
+	
+	
+@login_required
 def extract_batch_to_library_batch(request):
 	extract_batch_name = request.GET['extract_batch_name']
 	extract_batch = ExtractionBatch.objects.get(batch_name=extract_batch_name)
@@ -727,6 +750,25 @@ def library_batch_layout(request):
 	
 # Handle the layout of a 96 well plate with libraries
 # This renders an interface allowing a technician to move libraries between wells
+
+@login_required
+def storage_all(request):
+	page_number = request.GET.get('page', 1)
+	page_size = request.GET.get('page_size', 25)
+	whole_queue = Storage.objects.all().order_by('-id')
+	paginator = Paginator(whole_queue, page_size)
+	page_obj = paginator.get_page(page_number)
+	page_obj.ordered = True
+		
+	if request.method == 'POST':
+		formset =StorageFormset(request.POST, form_kwargs={'user': request.user})
+		
+		if formset.is_valid():
+			formset.save()
+		
+	elif request.method == 'GET':
+		formset = StorageFormset(queryset=page_obj, form_kwargs={'user': request.user})
+	return render(request, 'samples/generic_formset.html', { 'title': 'Storage', 'page_obj': page_obj, 'formset': formset, 'submit_button_text': 'Update' } ) 
 		
 def logout_user(request):
 	return logout_then_login(request)

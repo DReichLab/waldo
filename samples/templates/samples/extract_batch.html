@@ -52,8 +52,12 @@ table{
 	</thead>
 	<tbody class="list">
 	{% for extract_batch in extract_batches %}
-	<tr> 
+	<tr>
+		{% if extract_batch.status == extract_batch.OPEN %}
 		<td class="name"><a href="extract_batch_assign_lysate?extract_batch_name={{extract_batch.batch_name}}">{{extract_batch.batch_name}}</a></td>
+		{% else %}
+		<td class="name"><a href="extracts_in_batch?extract_batch_name={{extract_batch.batch_name}}">{{extract_batch.batch_name}}</a></td>
+		{% endif %}
 		<td class="status">{{extract_batch.get_status}}</td>
 		<td class="date">{{extract_batch.date|date:'Y-m-d'}}</td>
 		<td class="technician">{{extract_batch.technician}}</td>

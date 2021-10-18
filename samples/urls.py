@@ -32,6 +32,7 @@ urlpatterns = [
 	path('extract_batch_assign_lysate', views.extract_batch_assign_lysate, name='extract_batch_assign_lysate'),
 	path('extract_batch_add_lysate', views.extract_batch_add_lysate, name='extract_batch_add_lysate'),
 	path('extract_batch_layout', views.extract_batch_layout, name='extract_batch_layout'),
+	path('extracts_in_batch', views.extracts_in_batch, name='extracts_in_batch'),
 	path('extract_batch_to_library_batch', views.extract_batch_to_library_batch, name='extract_batch_to_library_batch'),
 	path('library_batches', views.library_batches, name='library_batches'),
 	path('library_batch_assign_extract', views.library_batch_assign_extract, name='library_batch_assign_extract'),
@@ -40,6 +41,8 @@ urlpatterns = [
 	path('lost_powder', views.lost_powder, name='lost_powder'),
 	path('lost_lysate', views.lost_lysate, name='lost_lysate'),
 	path('sample', views.sample, name='sample'),
+	
+	path('storage_all', views.storage_all, name='storage_all'),
 	
 	path('password_change', PasswordChangeView.as_view(success_url='password_changed'), name='password_change'),
 	path('password_changed', views.password_changed, name='password_changed'),

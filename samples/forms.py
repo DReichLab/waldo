@@ -4,7 +4,7 @@ from django.forms import modelformset_factory
 from django.forms.widgets import TextInput
 from django.utils.translation import gettext_lazy as _
 
-from samples.models import PowderBatch, PowderBatchStatus, PowderSample, Sample, SamplePrepProtocol, ControlType, ControlLayout, LysateBatch, ExtractionProtocol, ExpectedComplexity, SamplePrepQueue, Lysate, LysateBatchLayout, ExtractionBatch, ExtractionBatchLayout, LibraryProtocol, LibraryBatch
+from samples.models import PowderBatch, PowderBatchStatus, PowderSample, Sample, SamplePrepProtocol, ControlType, ControlLayout, LysateBatch, ExtractionProtocol, ExpectedComplexity, SamplePrepQueue, Lysate, LysateBatchLayout, ExtractionBatch, ExtractionBatchLayout, LibraryProtocol, LibraryBatch, Extract, Storage
 
 import datetime
 
@@ -194,6 +194,20 @@ class ExtractionBatchForm(UserModelForm):
 		for option in ['protocol', 'date', 'robot']:
 			self.fields[option].required = False
 			
+class ExtractForm(UserModelForm):
+	class Meta:
+		model = Extract
+		fields = ['extract_id', 'lysis_volume_extracted', 'notes']
+		widgets = {
+			'note': Textarea(attrs={'cols': 60, 'rows': 2}),
+		}
+	
+	def __init__(self, *args, **kwargs):
+		super().__init__(*args, **kwargs)
+		self.fields['extract_id'].disabled = True
+		
+ExtractFormset = modelformset_factory(Extract, form=ExtractForm, extra=0)
+			
 # raise validation error if library batch name already exists
 def validate_library_batch_does_not_exist(library_batch_name):
 	try:
@@ -309,3 +323,10 @@ class LibraryBatchForm(UserModelForm):
 
 class SpreadsheetForm(forms.Form):
 	spreadsheet = forms.FileField()
+	
+class StorageForm(UserModelForm):
+	class Meta:
+		model = Storage
+		fields = ['equipment_type', 'equipment_location', 'equipment_name', 'shelf', 'rack', 'drawer', 'unit_name', 'unit_type']
+
+StorageFormset = modelformset_factory(Storage, form=StorageForm)

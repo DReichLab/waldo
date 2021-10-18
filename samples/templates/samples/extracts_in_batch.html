@@ -1,0 +1,53 @@
+{% extends "samples/reich_lab_base.html" %}
+
+{% load static %}
+
+{% block title %}Extract Batch {{extract_batch_name}} {% endblock %}
+
+{% block content %}
+
+<form action="" method='post'>
+	{% csrf_token %}
+	{{ extract_batch_form.as_p }}
+
+<hr>
+
+	<input type='submit' value='Update Extract Batch and Extracts'>
+	<a href='extracts_spreadsheet?extract_batch_name={{extract_batch_name}}'>Get Extract spreadsheet</a>
+	<a href='extracts_spreadsheet_upload?extract_batch_name={{extract_batch_name}}'>Upload spreadsheet</a>
+	<a href='extract_batch_to_library_batch?extract_batch_name={{extract_batch_name}}'>Prepare extracts</a>
+	
+	{{ formset.management_form }}
+	
+	<table>
+	<thead>
+	<tr>
+		{% for field in formset.0.visible_fields %}
+			<th>{{ field.label_tag }}</th>
+		{% endfor %}
+	</tr>
+	</thead>
+	
+	<tr>
+		{% for field in formset.0.visible_fields %}
+			<td>
+				{{ field.help_text }}
+			</td>
+		{% endfor %}
+	</tr>
+	
+	{% for form in formset %}
+	<tr>
+		{{ form.id }}
+		{% for field in form.visible_fields %}
+			<td>
+			{{ field.errors }}
+			{{ field }}
+			</td>
+		{% endfor %}
+	</tr>
+	{% endfor %}
+	</table>
+</form>
+
+{% endblock %}

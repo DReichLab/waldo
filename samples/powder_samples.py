@@ -1,7 +1,7 @@
 from django.db.models import Max
 
 from .models import PowderSample, Sample, SamplePrepQueue, PowderBatch
-from .models import LysateBatchLayout
+from .models import LysateBatchLayout, ExtractionBatchLayout
 
 import re
 
