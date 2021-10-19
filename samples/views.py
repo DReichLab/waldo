@@ -618,6 +618,38 @@ def extracts_in_batch(request):
 	
 	return render(request, 'samples/extracts_in_batch.html', { 'extract_batch_name': extract_batch_name, 'extract_batch_form': extract_batch_form, 'formset': extracts_formset} )
 	
+# return a spreadsheet version of data for offline editing
+@login_required
+def extracts_spreadsheet(request):
+	extract_batch_name = request.GET['extract_batch_name']
+	extract_batch = ExtractionBatch.objects.get(batch_name=extract_batch_name)
+	
+	response = HttpResponse(content_type='text/csv')
+	response['Content-Disposition'] = f'attachment; filename="extract_batch_{extract_batch_name}.csv"'
+
+	writer = csv.writer(response, delimiter='\t')
+	# header
+	writer.writerow(Extract.spreadsheet_header())
+	extracts = Extract.objects.filter(extract_batch=extract_batch)
+	for extract in extracts:
+		writer.writerow(extract.to_spreadsheet_row())
+	return response
+
+@login_required
+def extracts_spreadsheet_upload(request):
+	extract_batch_name = request.GET['extract_batch_name']
+	if request.method == 'POST':
+		spreadsheet_form = SpreadsheetForm(request.POST, request.FILES)
+		print(f'extracts spreadsheet {extract_batch_name}')
+		if spreadsheet_form.is_valid():
+			spreadsheet = request.FILES.get('spreadsheet')
+			extract_batch = ExtractionBatch.objects.get(batch_name=extract_batch_name)
+			extract_batch.extracts_from_spreadsheet(spreadsheet, request.user)
+			message = 'Values updated'
+	else:
+		spreadsheet_form = SpreadsheetForm()
+		message = ''
+	return render(request, 'samples/spreadsheet_upload.html', { 'title': f'Extracts for {extract_batch_name}', 'form': spreadsheet_form, 'message': message} )
 	
 @login_required
 def extract_batch_to_library_batch(request):

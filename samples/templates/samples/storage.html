@@ -1,0 +1,68 @@
+{% extends "samples/reich_lab_base.html" %}
+
+{% load static %}
+
+{% block title %}Storage Locations{% endblock %}
+
+{% block content %}
+<script src="{% static "samples/list.js" %}"></script>
+
+<style>
+th {
+	position: sticky;
+	top: 0;
+	background: #eee;
+}
+
+#table_wrapper{
+	overflow-x: auto;
+	overflow-y: scroll;
+	height: 85vh;
+}
+
+table{
+	border-collapse: collapse;
+	border-spacing: 0;
+	width: 100%;
+}
+</style>
+
+<div id='storage_rows'>
+
+<input class="search" placeholder="Search" />
+<div id='table_wrapper'>
+<table>
+	<thead>
+	<tr>
+		<th><button class="sort" data-sort="equipment_type" data-default-order='desc'>Equipment Type</button></th>
+		<th><button class="sort" data-sort="equipment_location">Equipment Location</button></th>
+		<th><button class="sort" data-sort="equipment_name">Equipment Name</button></th>
+		<th><button class="sort" data-sort="robot">Robot</button></th>
+		<th><button class="sort" data-sort="notes">Notes</button></th>
+	</tr>
+	</thead>
+	<tbody class="list">
+	{% for library_batch in library_batches %}
+	<tr> 
+		<td class="name"><a href="library_batch_assign_extract?library_batch_name={{library_batch.name}}">{{library_batch.name}}</a></td>
+		<td class="date">{{library_batch.prep_date|date:'Y-m-d'}}</td>
+		<td class="technician">{{library_batch.technician}}</td>
+		<td class="robot">{{library_batch.prep_robot}}</td>
+		<td class="notes">{{library_batch.prep_note}}</td>
+	</tr>
+	{% endfor %}
+	</tbody>
+</table>
+</div>
+</div>
+
+<script>
+	var list_options = {
+		valueNames: ['name', 'date', 'technician', 'robot', 'notes'],
+		searchDelay: 500
+	};
+	var library_batch_list = new List('library_batch_rows', list_options);
+	document.addEventListener("load", library_batch_list.sort('date', { order: 'desc'}));
+</script>
+
+{% endblock %}

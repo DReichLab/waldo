@@ -777,6 +777,22 @@ class ExtractionBatch(Timestamped):
 					)
 				library_batch_layout_element.save(save_user=user)
 	
+	def extracts_from_spreadsheet(self, spreadsheet, user):
+		s = spreadsheet.read().decode("utf-8")
+		extracts = Extract.objects.filter(extract_batch=self)
+		lines = s.split('\n')
+		header = lines[0].strip()
+		headers = re.split('\t|\n', header)
+		if headers[0] != 'extract_id':
+			raise ValueError('extract_id is not first')
+			
+		for line in lines[1:]:
+			fields = re.split('\t|\n', line)
+			extract_id = fields[0]
+			if len(extract_id) > 0:
+				extract = extracts.get(extract_id=extract_id)
+				extract.from_spreadsheet_row(headers, fields, user)
+	
 class Extract(Timestamped):
 	extract_id = models.CharField(max_length=20, unique=True, db_index=True)
 	reich_lab_extract_number = models.PositiveIntegerField(null=True, help_text='Starts at 1 for each lysate or sample if no lysate exists.')
@@ -790,6 +806,30 @@ class Extract(Timestamped):
 	notes = models.TextField(blank=True)
 	storage_location = models.TextField(blank=True)
 	extraction_lab = models.CharField(max_length=50, blank=True, help_text='Name of lab where DNA extraction was done')
+	
+	@staticmethod
+	def spreadsheet_header():
+		return ['extract_id',
+			'lysis_volume_extracted',
+			'notes',
+			#'storage_location',
+			]
+		
+	def to_spreadsheet_row(self):
+		field_list = Extract.spreadsheet_header()
+		values = []
+		for field in field_list:
+			values.append(getattr(self, field))
+		return values
+		
+	def from_spreadsheet_row(self, headers, arg_array, user):
+		row_extract_id = arg_array[headers.index('extract_id')]
+		if self.extract_id != row_extract_id:
+			raise ValueError(f'extract_id mismatch {self.extract_id} {row_extract_id}')
+		self.lysis_volume_extracted = float(arg_array[headers.index('lysis_volume_extracted')])
+		self.notes = arg_array[headers.index('notes')]
+		self.storage_location = arg_array[headers.index('storage_location')]
+		self.save(save_user=user)
 	
 # lysate -> extract
 class ExtractionBatchLayout(TimestampedWellPosition):
