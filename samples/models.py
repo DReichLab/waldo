@@ -815,6 +815,8 @@ class LibraryBatch(Timestamped):
 	prep_date = models.DateField(null=True, help_text='YYYY-MM-DD')
 	prep_note = models.TextField(blank=True)
 	prep_robot = models.CharField(max_length=20, blank=True)
+	cleanup_robot = models.CharField(max_length=20, blank=True)
+	qpcr_machine = models.CharField(max_length=20, blank=True)
 	technician_fk = models.ForeignKey(WetLabStaff, on_delete=models.SET_NULL, null=True)
 	
 	# The offset determines completely the layout of barcodes for the library batch because the wetlab uses a system where the p5 barcodes are placed in the same location for all plates
