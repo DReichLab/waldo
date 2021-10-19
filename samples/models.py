@@ -395,20 +395,31 @@ def lysates_for_sample(sample):
 	existing_lysates = Lysate.objects.filter(powder_sample__sample=sample)
 	return len(existing_lysates)
 
-def create_lysate(powder_sample, lysate_batch, user):
-	sample = powder_sample.sample
-	next_lysate_number = lysates_for_sample(sample) +1
-	lysate_id = f'{str(sample)}.Y{next_lysate_number}'
-	print(f'created lysate id {lysate_id}')
-	lysate = Lysate(lysate_id=lysate_id,
-				 reich_lab_lysate_number=next_lysate_number,
-				 powder_sample=powder_sample,
-				 lysate_batch=lysate_batch,
-				 powder_used_mg=powder_sample.powder_for_extract,
-				 total_volume_produced=lysate_batch.protocol.total_lysis_volume)
-	lysate.save(save_user=user)
-	
-	return lysate
+# this creates a lysate for a layout_element if it does not exist, and returns the existing one otherwise
+def create_lysate(lysate_layout_element, lysate_batch, user):
+	powder_sample = lysate_layout_element.powder_sample
+	# library positive controls do not have powder sample
+	if powder_sample is None:
+		return None
+	# only create the lysate from powder for this well once
+	elif lysate_layout_element.lysate is not None:
+		return lysate_layout_element.lysate
+	else:
+		sample = powder_sample.sample
+		next_lysate_number = lysates_for_sample(sample) +1
+		lysate_id = f'{str(sample)}.Y{next_lysate_number}'
+		print(f'created lysate id {lysate_id}')
+		lysate = Lysate(lysate_id=lysate_id,
+					reich_lab_lysate_number=next_lysate_number,
+					powder_sample=powder_sample,
+					lysate_batch=lysate_batch,
+					powder_used_mg=powder_sample.powder_for_extract,
+					total_volume_produced=lysate_batch.protocol.total_lysis_volume)
+		lysate.save(save_user=user)
+		lysate_layout_element.lysate = lysate
+		lysate_layout_element.save(save_user=user)
+		
+		return lysate
 
 # turn powders into lysates
 class LysateBatch(Timestamped):
@@ -555,6 +566,13 @@ class LysateBatch(Timestamped):
 				powder_sample_control.save(save_user=user)
 				layout_element = LysateBatchLayout(lysate_batch=self, control_type=control_type, row=row, column=column, powder_used_mg=0, powder_sample=powder_sample_control)
 				layout_element.save(save_user=user)
+				
+	def create_lysates(self, user):
+		layout = LysateBatchLayout.objects.filter(lysate_batch=self)
+		duplicate_positions_check_db(layout)
+		for layout_element in layout:
+			# create lysate entry, if it does not exist
+			lysate = create_lysate(layout_element, self, user)
 	
 	def create_extract_batch(self, batch_name, user):
 		layout = LysateBatchLayout.objects.filter(lysate_batch=self)
@@ -570,12 +588,7 @@ class LysateBatch(Timestamped):
 								control_layout_name = self.control_layout_name)
 			extract_batch.save(save_user=user)
 			for layout_element in layout:
-				powder_sample = layout_element.powder_sample
-				# create lysate entry
-				if powder_sample is not None:
-					lysate = create_lysate(powder_sample, self, user)
-				else: # library positive controls do not have powder sample
-					lysate = None
+				lysate = layout_element.lysate
 				# create corresponding extract batch layout
 				extract_batch_layout_element = ExtractionBatchLayout(extract_batch=extract_batch,
 									lysate = lysate,
@@ -604,34 +617,6 @@ class LysateBatch(Timestamped):
 				print(lysate_id)
 				lysate = lysates.get(lysate_id=lysate_id)
 				lysate.from_spreadsheet_row(headers[1:], fields[1:], user)
-
-# powder -> lysate
-class LysateBatchLayout(TimestampedWellPosition):
-	lysate_batch = models.ForeignKey(LysateBatch, on_delete=models.CASCADE, null=True) # use a null lysate batch to mark lost powder
-	powder_sample = models.ForeignKey(PowderSample, on_delete=models.CASCADE, null=True)
-	control_type = models.ForeignKey(ControlType, on_delete=models.PROTECT, null=True)
-	powder_used_mg = models.FloatField()
-	notes = models.TextField(blank=True)
-	
-	def destroy_control(self, user):
-		if self.control_type is not None:
-			if self.powder_sample is not None:
-				to_delete_powder_sample = self.powder_sample
-				self.powder_sample = None
-				to_delete_sample = to_delete_powder_sample.sample
-				if not to_delete_powder_sample.is_control():
-					raise ValueError(f'{to_delete_powder_sample.powder_sample_id} does not appear to be a control')
-				if not to_delete_sample.is_control():
-					raise ValueError(f'{to_delete_sample.reich_lab_id} does not appear to be a control')
-				to_delete_powder_sample.delete()
-				to_delete_sample.delete()
-				self.save(save_user=user)
-				
-	def clean(self):
-		super(LysateBatchLayout, self).clean()
-		if self.powder_sample is None and (self.lysate_batch is None or self.control_type is None):
-			print('Null powder samples must be extract batch controls')
-			raise ValidationError(_('Null powder samples must be extract batch controls'))
 
 class Lysate(Timestamped):
 	lysate_id = models.CharField(max_length=15, unique=True, null=False, db_index=True)
@@ -678,6 +663,35 @@ class Lysate(Timestamped):
 def extracts_for_lysate(lysate):
 	existing_extracts = Extract.objects.filter(lysate=lysate)
 	return len(existing_extracts)
+	
+# powder -> lysate
+class LysateBatchLayout(TimestampedWellPosition):
+	lysate_batch = models.ForeignKey(LysateBatch, on_delete=models.CASCADE, null=True) # use a null lysate batch to mark lost powder
+	powder_sample = models.ForeignKey(PowderSample, on_delete=models.CASCADE, null=True)
+	control_type = models.ForeignKey(ControlType, on_delete=models.PROTECT, null=True)
+	powder_used_mg = models.FloatField()
+	notes = models.TextField(blank=True)
+	lysate = models.ForeignKey(Lysate, on_delete=models.SET_NULL, null=True, help_text='Lysate created in this well from powder')
+	
+	def destroy_control(self, user):
+		if self.control_type is not None:
+			if self.powder_sample is not None:
+				to_delete_powder_sample = self.powder_sample
+				self.powder_sample = None
+				to_delete_sample = to_delete_powder_sample.sample
+				if not to_delete_powder_sample.is_control():
+					raise ValueError(f'{to_delete_powder_sample.powder_sample_id} does not appear to be a control')
+				if not to_delete_sample.is_control():
+					raise ValueError(f'{to_delete_sample.reich_lab_id} does not appear to be a control')
+				to_delete_powder_sample.delete()
+				to_delete_sample.delete()
+				self.save(save_user=user)
+				
+	def clean(self):
+		super(LysateBatchLayout, self).clean()
+		if self.powder_sample is None and (self.lysate_batch is None or self.control_type is None):
+			print('Null powder samples must be extract batch controls')
+			raise ValidationError(_('Null powder samples must be extract batch controls'))
 	
 def create_extract_from_lysate(lysate, extract_batch, lysis_volume_extracted, user):
 	sample = lysate.powder_sample.sample
@@ -851,6 +865,13 @@ class LibraryBatch(Timestamped):
 	def assign_extracts_to_library_batch(self, extract_ids, user):
 		# remove extracts that are assigned but preserve controls
 		to_clear = LibraryBatchLayout.objects.filter(library_batch=self).exclude(extract_id__in=extract_ids).exclude(control_type__isnull=False)
+		to_clear.delete()
+		
+	def create_capture(self, user):
+		# TODO control changes for capture
+		# 1. Move library negative in H12 to H9
+		# 2. Replace library positive with PCR negative (G12)
+		# 3. capture positive in H12
 		pass
 	
 def validate_index_dna_sequence(sequence):

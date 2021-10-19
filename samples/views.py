@@ -292,7 +292,7 @@ def lysate_batch (request):
 	elif request.method == 'GET':
 		lysate_batch_form = LysateBatchForm(user=request.user)
 	
-	lysate_batches = LysateBatch.objects.all()
+	lysate_batches = LysateBatch.objects.all().order_by('status', '-date')
 	# open can have new samples assigned
 	return render(request, 'samples/lysate_batch.html', { 'lysate_batch_form': lysate_batch_form, 'lysate_batches': lysate_batches } )
 
@@ -321,6 +321,7 @@ def lysate_batch_assign_powder(request):
 				lysate_batch.fill_empty_wells_with_library_negatives(request.user)
 				return redirect(f'{reverse("lysate_batch_plate_layout")}?lysate_batch_name={lysate_batch_name}')
 			elif lysate_batch.status == lysate_batch.LYSATES_CREATED:
+				lysate_batch.create_lysates(request.user)
 				return redirect(f'{reverse("lysates_in_batch")}?lysate_batch_name={lysate_batch_name}')
 		
 	elif request.method == 'GET':
@@ -536,6 +537,9 @@ def extract_batch_assign_lysate(request):
 			ticked_checkboxes = request.POST.getlist('lysate_checkboxes[]')
 			# tickbox name is lysate object id (int)
 			assign_lysates_to_extract_batch(extract_batch, ticked_checkboxes, request.user)
+			
+			if extract_batch.status == extract_batch.EXTRACTED:
+				return redirect(f'{reverse("extracts_in_batch")}?extract_batch_name={extract_batch_name}')
 		
 	elif request.method == 'GET':
 		extract_batch_form = ExtractionBatchForm(instance=extract_batch, user=request.user)
