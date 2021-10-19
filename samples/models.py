@@ -583,6 +583,7 @@ class LysateBatch(Timestamped):
 		except ExtractionBatch.DoesNotExist:
 			wetlab_staff = WetLabStaff.objects.get(login_user=user)
 			extract_batch = ExtractionBatch(batch_name=batch_name,
+								protocol = self.protocol,
 								technician = wetlab_staff.initials(),
 								technician_fk = wetlab_staff,
 								control_layout_name = self.control_layout_name)
@@ -693,21 +694,34 @@ class LysateBatchLayout(TimestampedWellPosition):
 			print('Null powder samples must be extract batch controls')
 			raise ValidationError(_('Null powder samples must be extract batch controls'))
 	
-def create_extract_from_lysate(lysate, extract_batch, lysis_volume_extracted, user):
-	sample = lysate.powder_sample.sample
-	next_extract_number = extracts_for_lysate(lysate) +1
-	extract_id = f'{str(lysate)}.E{next_extract_number}'
-	print(f'created extract id {extract_id}')
-	extract = Extract(extract_id=extract_id,
-				 reich_lab_extract_number=next_extract_number,
-				 lysate=lysate,
-				 sample=sample,
-				 extract_batch=extract_batch,
-				 lysis_volume_extracted=lysis_volume_extracted,
-				 extraction_lab=REICH_LAB)
-	extract.save(save_user=user)
+def create_extract_from_lysate(extract_layout_element, user):
+	lysate = extract_layout_element.lysate
 	
-	return extract
+	if lysate is None:
+		return None
+	elif extract_layout_element.extract is not None:
+		return extract_layout_element.extract
+	else:
+		extract_batch = extract_layout_element.extract_batch
+		lysis_volume_extracted = extract_batch.protocol.total_lysis_volume * extract_batch.protocol.lysate_fraction_extracted
+		
+		sample = lysate.powder_sample.sample
+		next_extract_number = extracts_for_lysate(lysate) +1
+		extract_id = f'{str(lysate.lysate_id)}.E{next_extract_number}'
+		print(f'created extract id {extract_id}')
+		extract = Extract(extract_id=extract_id,
+					reich_lab_extract_number=next_extract_number,
+					lysate=lysate,
+					sample=sample,
+					extract_batch=extract_batch,
+					lysis_volume_extracted=lysis_volume_extracted,
+					extraction_lab=REICH_LAB)
+		extract.save(save_user=user)
+		
+		extract_layout_element.extract = extract
+		extract_layout_element.lysate_volume_used = lysis_volume_extracted
+		extract_layout_element.save(save_user=user)
+		return extract
 	
 class ExtractionBatch(Timestamped):
 	batch_name = models.CharField(max_length=50, unique=True)
@@ -731,6 +745,13 @@ class ExtractionBatch(Timestamped):
 	# return string representing status. For templates
 	def get_status(self):
 		return self.EXTRACT_BATCH_STATES[self.status][1]
+		
+	def create_extracts(self, user):
+		layout = ExtractionBatchLayout.objects.filter(extract_batch=self)
+		duplicate_positions_check_db(layout)
+		# create extracts
+		for layout_element in layout:
+			extract = create_extract_from_lysate(layout_element, user)
 	
 	def create_library_batch(self, batch_name, user):
 		layout = ExtractionBatchLayout.objects.filter(extract_batch=self)
@@ -746,20 +767,11 @@ class ExtractionBatch(Timestamped):
 								)
 			library_batch.save(save_user=user)
 			
-			# create extracts, and layout for library batch with same layout
+			# layout for library batch with same layout
 			for layout_element in layout:
-				# update layout with protocol for lysate used
-				layout_element.lysate_volume_used = self.protocol.total_lysis_volume * self.protocol.lysate_fraction_extracted
-				layout_element.save(save_user=user)
-				
-				lysate = layout_element.lysate
-				if lysate is not None:
-					extract = create_extract_from_lysate(lysate, layout_element.lysate_volume_used, user)
-				else: 
-					extract = None
 				# create corresponding library batch layout element
 				library_batch_layout_element = LibraryBatchLayout(library_batch=library_batch,
-									extract=extract,
+									extract=layout_element.extract,
 									control_type = layout_element.control_type,
 					)
 				library_batch_layout_element.save(save_user=user)
@@ -785,6 +797,7 @@ class ExtractionBatchLayout(TimestampedWellPosition):
 	control_type = models.ForeignKey(ControlType, on_delete=models.PROTECT, null=True)
 	lysate_volume_used = models.FloatField()
 	notes = models.TextField(blank=True)
+	extract = models.ForeignKey(Extract, on_delete=models.SET_NULL, null=True, help_text='extract created in this well location')
 	
 class LibraryProtocol(Timestamped):
 	name = models.CharField(max_length=50, unique=True)
@@ -809,6 +822,7 @@ def create_library_from_extract(layout_element, library_batch, p7_offset, user):
 	existing_libraries = libraries_for_extract(extract)
 	next_library_number = existing_libraries + 1
 	# TODO check existing extract amount
+	# TODO assign barcodes
 	library = Library(sample = extract.sample,
 					extract = extract,
 					library_batch = library_batch,
@@ -821,6 +835,13 @@ def create_library_from_extract(layout_element, library_batch, p7_offset, user):
 				   )
 	library.save(save_user=user)
 	return library
+	
+def validate_even(value):
+	if value % 2 != 0:
+		raise ValidationError(
+			_('%(value)s is not an even number'),
+			params={'value': value},
+		)
 
 class LibraryBatch(Timestamped):
 	name = models.CharField(max_length=150, blank=True)
@@ -835,7 +856,7 @@ class LibraryBatch(Timestamped):
 	
 	# The offset determines completely the layout of barcodes for the library batch because the wetlab uses a system where the p5 barcodes are placed in the same location for all plates
 	# If we need to handle arbitrary layouts, migrate this state into barcodes in the layout objects 
-	p7_offset = models.SmallIntegerField(null=True, validators=[MinValueValidator(0), MaxValueValidator(PLATE_WELL_COUNT_HALF-1)])
+	p7_offset = models.SmallIntegerField(null=True, validators=[MinValueValidator(0), MaxValueValidator(PLATE_WELL_COUNT_HALF-1), validate_even], help_text='Must be even in [0,46]')
 	
 	def check_p7_offset(self):
 		if self.p7_offset is None or self.p7_offset < 0 or self.p7_offset >= PLATE_WELL_COUNT_HALF:

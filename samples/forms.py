@@ -191,7 +191,7 @@ class ExtractionBatchForm(UserModelForm):
 		
 	def __init__(self, *args, **kwargs):
 		super().__init__(*args, **kwargs)
-		for option in ['protocol', 'date', 'robot']:
+		for option in ['date', 'robot']:
 			self.fields[option].required = False
 			
 class ExtractForm(UserModelForm):

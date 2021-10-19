@@ -539,6 +539,7 @@ def extract_batch_assign_lysate(request):
 			assign_lysates_to_extract_batch(extract_batch, ticked_checkboxes, request.user)
 			
 			if extract_batch.status == extract_batch.EXTRACTED:
+				extract_batch.create_extracts(request.user)
 				return redirect(f'{reverse("extracts_in_batch")}?extract_batch_name={extract_batch_name}')
 		
 	elif request.method == 'GET':
