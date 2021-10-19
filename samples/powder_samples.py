@@ -70,7 +70,7 @@ def powder_samples_from_spreadsheet(powder_batch_name, spreadsheet_file, user):
 	powder_batch = PowderBatch.objects.get(name=powder_batch_name)
 	powder_samples = PowderSample.objects.filter(powder_batch=powder_batch)
 	lines = s.split('\n')
-	header = lines[0]
+	header = lines[0].strip()
 	headers = re.split('\t|\n', header)
 	if headers[0] != 'powder_sample_id':
 		raise ValueError('powder_sample_id is not first')

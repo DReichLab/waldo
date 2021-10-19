@@ -602,11 +602,11 @@ class LysateBatch(Timestamped):
 			
 		return extract_batch
 		
-	def lysates_from_spreadsheet(spreadsheet, user):
-		s = spreadsheet_file.read().decode("utf-8")
+	def lysates_from_spreadsheet(self, spreadsheet, user):
+		s = spreadsheet.read().decode("utf-8")
 		lysates = Lysate.objects.filter(lysate_batch=self)
 		lines = s.split('\n')
-		header = lines[0]
+		header = lines[0].strip()
 		headers = re.split('\t|\n', header)
 		if headers[0] != 'lysate_id':
 			raise ValueError('lysate_id is not first')
@@ -615,9 +615,8 @@ class LysateBatch(Timestamped):
 			fields = re.split('\t|\n', line)
 			lysate_id = fields[0]
 			if len(lysate_id) > 0:
-				print(lysate_id)
 				lysate = lysates.get(lysate_id=lysate_id)
-				lysate.from_spreadsheet_row(headers[1:], fields[1:], user)
+				lysate.from_spreadsheet_row(headers, fields, user)
 
 class Lysate(Timestamped):
 	lysate_id = models.CharField(max_length=15, unique=True, null=False, db_index=True)
@@ -652,7 +651,9 @@ class Lysate(Timestamped):
 		return values
 		
 	def from_spreadsheet_row(self, headers, arg_array, user):
-		self.lysate_id = arg_array[headers.index('lysate_id')]
+		row_lysate_id = arg_array[headers.index('lysate_id')]
+		if self.lysate_id != row_lysate_id:
+			raise ValueError(f'lysate_id mismatch {self.lysate_id} {row_lysate_id}')
 		self.powder_used_mg = float(arg_array[headers.index('powder_used_mg')])
 		self.total_volume_produced = float(arg_array[headers.index('total_volume_produced')])
 		self.position = arg_array[headers.index('position')]
