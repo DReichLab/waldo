@@ -14,7 +14,7 @@ from datetime import datetime
 
 from samples.pipeline import udg_and_strandedness
 from samples.models import Results, Library, Sample, PowderBatch, WetLabStaff, PowderSample, ControlType, ControlLayout, ExtractionProtocol, LysateBatch, SamplePrepQueue, PLATE_ROWS, LysateBatchLayout, ExtractionBatch, ExtractionBatchLayout, Lysate, LibraryBatch, LibraryBatchLayout, Extract, Storage
-from .forms import IndividualForm, LibraryIDForm, PowderBatchForm, SampleImageForm, PowderSampleForm, PowderSampleFormset, ControlTypeFormset, ControlLayoutFormset, ExtractionProtocolFormset, LysateBatchForm, LysateFormset, LysateForm, SamplePrepQueueFormset, LysateBatchLayoutForm, LostPowderFormset, SpreadsheetForm, LysateBatchToExtractBatchForm, ExtractionBatchForm, LostLysateFormset, ExtractBatchToLibraryBatchForm, LibraryBatchForm, StorageFormset, ExtractFormset
+from .forms import IndividualForm, LibraryIDForm, PowderBatchForm, SampleImageForm, PowderSampleForm, PowderSampleFormset, ControlTypeFormset, ControlLayoutFormset, ExtractionProtocolFormset, LysateBatchForm, LysateFormset, LysateForm, SamplePrepQueueFormset, LysateBatchLayoutForm, LostPowderFormset, SpreadsheetForm, LysateBatchToExtractBatchForm, ExtractionBatchForm, LostLysateFormset, ExtractBatchToLibraryBatchForm, LibraryBatchForm, StorageFormset, ExtractFormset, LibraryFormset
 from sequencing_run.models import MTAnalysis
 
 from .powder_samples import new_reich_lab_powder_sample, assign_prep_queue_entries_to_powder_batch, assign_powder_samples_to_lysate_batch, powder_samples_from_spreadsheet, assign_lysates_to_extract_batch
@@ -718,6 +718,10 @@ def library_batch_assign_extract(request):
 			ticked_checkboxes = request.POST.getlist('extract_checkboxes[]')
 			# tickbox name is extract object id (int)
 			library_batch.assign_extracts_to_library_batch(ticked_checkboxes, request.user)
+			
+			if library_batch.status == library_batch.LIBRARIED:
+				library_batch.create_libraries(request.user)
+				return redirect(f'{reverse("libraries_in_batch")}?library_batch_name={library_batch_name}')
 		
 	elif request.method == 'GET':
 		library_batch_form = LibraryBatchForm(instance=library_batch, user=request.user)
@@ -785,8 +789,61 @@ def library_batch_layout(request):
 		
 	return render(request, 'samples/generic_layout.html', { 'layout_title': 'Extract Layout For Library Batch', 'layout_name': library_batch_name, 'rows':PLATE_ROWS, 'columns':WELL_PLATE_COLUMNS, 'objects_map': objects_map } )
 	
-# Handle the layout of a 96 well plate with libraries
-# This renders an interface allowing a technician to move libraries between wells
+@login_required
+def libraries_in_batch(request):
+	library_batch_name = request.GET['library_batch_name']
+	library_batch = LibraryBatch.objects.get(name=library_batch_name)
+	
+	if request.method == 'POST':
+		library_batch_form = LibraryBatchForm(request.POST, instance=library_batch, user=request.user)
+		libraries_formset = LibraryFormset(request.POST, request.FILES, form_kwargs={'user': request.user})
+		
+		if library_batch_form.is_valid():
+			library_batch_form.save()
+		if libraries_formset.is_valid():
+			libraries_formset.save()
+		if library_batch_form.is_valid() and libraries_formset.is_valid():
+			if library_batch.status == library_batch.OPEN:
+				return redirect(f'{reverse("library_batch_assign_extract")}?library_batch_name={library_batch_name}')
+		
+	elif request.method == 'GET':
+		library_batch_form = LibraryBatchForm(instance=library_batch, user=request.user)
+		libraries_formset = LibraryFormset(queryset=Library.objects.filter(library_batch=library_batch), form_kwargs={'user': request.user})
+	
+	return render(request, 'samples/libraries_in_batch.html', { 'library_batch_name': library_batch_name, 'library_batch_form': library_batch_form, 'formset': libraries_formset} )
+	
+# return a spreadsheet version of data for offline editing
+@login_required
+def libraries_spreadsheet(request):
+	library_batch_name = request.GET['library_batch_name']
+	library_batch = LibraryBatch.objects.get(name=library_batch_name)
+	
+	response = HttpResponse(content_type='text/csv')
+	response['Content-Disposition'] = f'attachment; filename="library_batch_{library_batch_name}.csv"'
+
+	writer = csv.writer(response, delimiter='\t')
+	# header
+	writer.writerow(Library.spreadsheet_header())
+	libraries = Library.objects.filter(library_batch=library_batch)
+	for library in libraries:
+		writer.writerow(library.to_spreadsheet_row())
+	return response
+
+@login_required
+def libraries_spreadsheet_upload(request):
+	library_batch_name = request.GET['library_batch_name']
+	if request.method == 'POST':
+		spreadsheet_form = SpreadsheetForm(request.POST, request.FILES)
+		print(f'libraries spreadsheet {library_batch_name}')
+		if spreadsheet_form.is_valid():
+			spreadsheet = request.FILES.get('spreadsheet')
+			library_batch = LibraryBatch.objects.get(name=library_batch_name)
+			library_batch.libraries_from_spreadsheet(spreadsheet, request.user)
+			message = 'Values updated'
+	else:
+		spreadsheet_form = SpreadsheetForm()
+		message = ''
+	return render(request, 'samples/spreadsheet_upload.html', { 'title': f'Librarie for {library_batch_name}', 'form': spreadsheet_form, 'message': message} )
 
 @login_required
 def storage_all(request):

@@ -877,9 +877,9 @@ def create_library_from_extract(layout_element, user):
 		# assign barcodes
 		if library_batch.protocol.library_type == 'ds':
 			int_position = reverse_plate_location_coordinate(layout_element.row, layout_element.column)
-			p5_qstr, p5_qstr = barcodes_for_location(int_position, layout_batch.p7_offset)
-			p5_barcode = Barcode.object.get(label = p5_qstr)
-			p7_barcode = Barcode.object.get(label = p7_qstr)
+			p5_qstr, p7_qstr = barcodes_for_location(int_position, library_batch.p7_offset)
+			p5_barcode = Barcode.objects.get(label = p5_qstr)
+			p7_barcode = Barcode.objects.get(label = p7_qstr)
 		elif library_batch.protocol.library_type == 'ss':
 			raise ValueError(f'single stranded TODO')
 		else:
@@ -887,7 +887,7 @@ def create_library_from_extract(layout_element, user):
 		library = Library(sample = extract.sample,
 						extract = extract,
 						library_batch = library_batch,
-						reich_lab_library_id = f'{extract.extract.id}.L{next_library_number}',
+						reich_lab_library_id = f'{extract.extract_id}.L{next_library_number}',
 						reich_lab_library_number = next_library_number,
 						udg_treatment = library_batch.protocol.udg_treatment,
 						library_type = library_batch.protocol.library_type,
@@ -962,6 +962,24 @@ class LibraryBatch(Timestamped):
 		to_clear = LibraryBatchLayout.objects.filter(library_batch=self).exclude(extract_id__in=extract_ids).exclude(control_type__isnull=False)
 		to_clear.delete()
 		
+	def extracts_from_spreadsheet(self, spreadsheet, user):
+		s = spreadsheet.read().decode("utf-8")
+		libraries = Library.objects.filter(library_batch=self)
+		lines = s.split('\n')
+		header = lines[0].strip()
+		headers = re.split('\t|\n', header)
+		if headers[0] != 'well_position':
+			raise ValueError('well_position is not first')
+		if headers[0] != 'reich_lab_library_id':
+			raise ValueError('reich_lab_library_id is not second')
+			
+		for line in lines[1:]:
+			fields = re.split('\t|\n', line)
+			reich_lab_library_id = fields[1]
+			if len(reich_lab_library_id) > 0:
+				library = libraries.get(reich_lab_library_id=reich_lab_library_id)
+				library.from_spreadsheet_row(headers, fields, user)
+		
 	def create_capture(self, user):
 		# TODO control changes for capture
 		# 1. Move library negative in H12 to H9
@@ -1034,6 +1052,54 @@ class Library(Timestamped):
 		super(Library, self).clean()
 		if (self.p5_index is not None or self.p7_index is not None) and (self.p5_barcode is not None or self.p7_barcode is not None):
 			raise ValidationError(_('Library cannot have both indices and barcodes. Single-stranded libraries should have only indices, and double-stranded libraries should have only barcodes.'))
+			
+	@staticmethod
+	def spreadsheet_header():
+		return ['well_position',
+			'reich_lab_library_id',
+			'p5_barcode',
+			'p7_barcode',
+			'nanodrop',
+			'qpcr',
+			'plate_id',
+			'position'
+			'barcode',
+			'notes',
+			#'storage_location',
+			]
+		
+	def to_spreadsheet_row(self):
+		layout_element = LibraryBatchLayout.objects.get(library_batch=self.library_batch, library=self)
+		return [ str(layout_element),
+			self.reich_lab_library_id,
+			self.p5_barcode.label,
+			self.p7_barcode.label,
+			self.nanodrop,
+			self.qpcr,
+			self.plate_id,
+			self.position,
+			self.barcode,
+			self.notes
+			]
+		
+	def from_spreadsheet_row(self, headers, arg_array, user):
+		reich_lab_library_id = arg_array[headers.index('reich_lab_library_id')]
+		if self.reich_lab_library_id != reich_lab_library_id:
+			raise ValueError(f'reich_lab_library_id mismatch {self.reich_lab_library_id} {reich_lab_library_id}')
+		
+		layout_element = LibraryBatchLayout.objects.get(library_batch=self.library_batch, library=self)
+		position_from_sheet = arg_array[headers.index('well_position')]
+		if str(layout_element) != position_from_sheet:
+			raise ValueError(f'cannot change position of {reich_lab_library_id}')
+			
+		self.nanodrop = float(arg_array[headers.index('nanodrop')])
+		self.qpcr = float(arg_array[headers.index('qpcr')])
+		self.plate_id = arg_array[headers.index('plate_id')]
+		self.position = arg_array[headers.index('position')]
+		self.barcode = arg_array[headers.index('barcode')]
+		self.notes = arg_array[headers.index('notes')]
+		self.save(save_user=user)
+	
 	
 # extract -> library
 class LibraryBatchLayout(TimestampedWellPosition):

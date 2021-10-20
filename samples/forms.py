@@ -4,7 +4,7 @@ from django.forms import modelformset_factory
 from django.forms.widgets import TextInput
 from django.utils.translation import gettext_lazy as _
 
-from samples.models import PowderBatch, PowderBatchStatus, PowderSample, Sample, SamplePrepProtocol, ControlType, ControlLayout, LysateBatch, ExtractionProtocol, ExpectedComplexity, SamplePrepQueue, Lysate, LysateBatchLayout, ExtractionBatch, ExtractionBatchLayout, LibraryProtocol, LibraryBatch, Extract, Storage
+from samples.models import PowderBatch, PowderBatchStatus, PowderSample, Sample, SamplePrepProtocol, ControlType, ControlLayout, LysateBatch, ExtractionProtocol, ExpectedComplexity, SamplePrepQueue, Lysate, LysateBatchLayout, ExtractionBatch, ExtractionBatchLayout, LibraryProtocol, LibraryBatch, Extract, Storage, Library
 
 import datetime
 
@@ -311,7 +311,7 @@ class LibraryBatchForm(UserModelForm):
 	
 	class Meta:
 		model = LibraryBatch
-		fields = ['name', 'protocol', 'technician', 'prep_date', 'prep_note', 'prep_robot', 'p7_offset', 'status']
+		fields = ['name', 'protocol', 'technician', 'prep_date', 'prep_note', 'prep_robot', 'cleanup_robot', 'qpcr_machine', 'p7_offset', 'status']
 		widgets = {
 			'prep_note': Textarea(attrs={'cols': 60, 'rows': 2}),
 		}
@@ -320,6 +320,20 @@ class LibraryBatchForm(UserModelForm):
 		super().__init__(*args, **kwargs)
 		for option in ['protocol', 'prep_date', 'prep_robot', 'p7_offset']:
 			self.fields[option].required = False
+			
+class LibraryForm(UserModelForm):
+	class Meta:
+		model = Library
+		fields = ['reich_lab_library_id', 'p5_barcode', 'p7_barcode', 'nanodrop', 'qpcr', 'plate_id', 'position', 'barcode', 'notes']
+		widgets = {
+			'note': Textarea(attrs={'cols': 60, 'rows': 2}),
+		}
+	
+	def __init__(self, *args, **kwargs):
+		super().__init__(*args, **kwargs)
+		self.fields['reich_lab_library_id'].disabled = True
+
+LibraryFormset = modelformset_factory(Library, form=LibraryForm, extra=0)
 
 class SpreadsheetForm(forms.Form):
 	spreadsheet = forms.FileField()

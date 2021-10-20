@@ -1,0 +1,54 @@
+{% extends "samples/reich_lab_base.html" %}
+
+{% load static %}
+
+{% block title %}Library Batch {{library_batch_name}} {% endblock %}
+
+{% block content %}
+
+<form action="" method='post'>
+	{% csrf_token %}
+	{{ library_batch_form.as_p }}
+
+<hr>
+
+	<input type='submit' value='Update Library Batch and Libraries'>
+	<a href='libraries_spreadsheet?library_batch_name={{library_batch_name}}'>Get Library spreadsheet</a>
+	<a href='libraries_spreadsheet_upload?library_batch_name={{library_batch_name}}'>Upload spreadsheet</a>
+	<a href='library_batch_to_capture_batch?library_batch_name={{library_batch_name}}'>Prepare capture</a>
+	<a href='library_batch_barcodes_spreadsheet?library_batch_name={{library_batch_name}}'>Barcodes for robot</a>
+	
+	{{ formset.management_form }}
+	
+	<table>
+	<thead>
+	<tr>
+		{% for field in formset.0.visible_fields %}
+			<th>{{ field.label_tag }}</th>
+		{% endfor %}
+	</tr>
+	</thead>
+	
+	<tr>
+		{% for field in formset.0.visible_fields %}
+			<td>
+				{{ field.help_text }}
+			</td>
+		{% endfor %}
+	</tr>
+	
+	{% for form in formset %}
+	<tr>
+		{{ form.id }}
+		{% for field in form.visible_fields %}
+			<td>
+			{{ field.errors }}
+			{{ field }}
+			</td>
+		{% endfor %}
+	</tr>
+	{% endfor %}
+	</table>
+</form>
+
+{% endblock %}

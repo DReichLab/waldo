@@ -51,8 +51,12 @@ table{
 	</thead>
 	<tbody class="list">
 	{% for library_batch in library_batches %}
-	<tr> 
+	<tr>
+		{% if library_batch.status == library_batch.OPEN %}
 		<td class="name"><a href="library_batch_assign_extract?library_batch_name={{library_batch.name}}">{{library_batch.name}}</a></td>
+		{% else %}
+		<td class="name"><a href="libraries_in_batch?library_batch_name={{library_batch.name}}">{{library_batch.name}}</a></td>
+		{% endif %}
 		<td class="date">{{library_batch.prep_date|date:'Y-m-d'}}</td>
 		<td class="technician">{{library_batch.technician}}</td>
 		<td class="robot">{{library_batch.prep_robot}}</td>
