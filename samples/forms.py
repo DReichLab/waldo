@@ -4,7 +4,7 @@ from django.forms import modelformset_factory
 from django.forms.widgets import TextInput
 from django.utils.translation import gettext_lazy as _
 
-from samples.models import PowderBatch, PowderBatchStatus, PowderSample, Sample, SamplePrepProtocol, ControlType, ControlLayout, LysateBatch, ExtractionProtocol, ExpectedComplexity, SamplePrepQueue, Lysate, LysateBatchLayout, ExtractionBatch, ExtractionBatchLayout, LibraryProtocol, LibraryBatch, Extract, Storage, Library
+from samples.models import PowderBatch, PowderBatchStatus, PowderSample, Sample, SamplePrepProtocol, ControlType, ControlLayout, LysateBatch, ExtractionProtocol, ExpectedComplexity, SamplePrepQueue, Lysate, LysateBatchLayout, ExtractionBatch, ExtractionBatchLayout, LibraryProtocol, LibraryBatch, Extract, Storage, Library, Barcode
 
 import datetime
 
@@ -321,12 +321,20 @@ class LibraryBatchForm(UserModelForm):
 		for option in ['protocol', 'prep_date', 'prep_robot', 'p7_offset']:
 			self.fields[option].required = False
 			
+# to display the name instead of a primary key
+class BarcodeSelect(ModelChoiceField):
+	def label_from_instance(self, obj):
+		return obj.label
+			
 class LibraryForm(UserModelForm):
+	p5_barcode = BarcodeSelect(queryset=Barcode.objects.all())
+	p7_barcode = BarcodeSelect(queryset=Barcode.objects.all())
+	
 	class Meta:
 		model = Library
 		fields = ['reich_lab_library_id', 'p5_barcode', 'p7_barcode', 'nanodrop', 'qpcr', 'plate_id', 'position', 'barcode', 'notes']
 		widgets = {
-			'note': Textarea(attrs={'cols': 60, 'rows': 2}),
+			'notes': Textarea(attrs={'cols': 60, 'rows': 2}),
 		}
 	
 	def __init__(self, *args, **kwargs):
