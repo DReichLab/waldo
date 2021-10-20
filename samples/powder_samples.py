@@ -39,10 +39,11 @@ def assign_prep_queue_entries_to_powder_batch(powder_batch, sample_prep_ids, use
 	to_clear = SamplePrepQueue.objects.filter(powder_batch=powder_batch).exclude(id__in=sample_prep_ids)
 	for sample_prep_entry in to_clear:
 		sample_prep_entry.powder_batch = None
+		# existing powder sample is destroyed for this sample prep entry
 		if sample_prep_entry.powder_sample != None:
-			powder_sample = sample_prep_entry.powder_sample
-			powder_sample.powder_batch = None
-			powder_sample.save(save_user=user)
+			# in models, powder sample is protected if there is a lysate
+			# sample prep entry sets reference to null
+			sample_prep_entry.powder_sample.delete()
 		sample_prep_entry.save(save_user=user)
 	# add samples prep queue entries to powder batch
 	for sample_prep_entry in SamplePrepQueue.objects.filter(id__in=sample_prep_ids):
@@ -54,7 +55,7 @@ def assign_prep_queue_entries_to_powder_batch(powder_batch, sample_prep_ids, use
 				powder_sample = sample_prep_entry.powder_sample
 				powder_sample.powder_batch = powder_batch
 				powder_sample.save(save_user=user)
-		else:
+		else: # already assigned elsewhere
 			failed_assignments[sample_prep_entry.id] = sample_prep_entry.powder_batch.name
 	# assign reich lab sample number
 	# Open is the state where samples can be added. If it is not open, then create the powder sample and assign Reich lab sample number
