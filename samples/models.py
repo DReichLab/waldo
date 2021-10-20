@@ -930,7 +930,7 @@ class LibraryBatch(Timestamped):
 		(OPEN, 'Open'),
 		(LIBRARIED, 'Libraried')
 	)
-	status = models.PositiveSmallIntegerField(default = LIBRARIED, choices=LIBRARY_BATCH_STATES)
+	status = models.PositiveSmallIntegerField(default = OPEN, choices=LIBRARY_BATCH_STATES)
 	
 	def check_p7_offset(self):
 		if self.p7_offset is None or self.p7_offset < 0 or self.p7_offset >= PLATE_WELL_COUNT_HALF:
