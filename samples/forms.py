@@ -340,6 +340,8 @@ class LibraryForm(UserModelForm):
 	def __init__(self, *args, **kwargs):
 		super().__init__(*args, **kwargs)
 		self.fields['reich_lab_library_id'].disabled = True
+		for option in ['nanodrop', 'qpcr']:
+			self.fields[option].required = False
 
 LibraryFormset = modelformset_factory(Library, form=LibraryForm, extra=0)
 
