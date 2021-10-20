@@ -311,7 +311,7 @@ class LibraryBatchForm(UserModelForm):
 	
 	class Meta:
 		model = LibraryBatch
-		fields = ['name', 'protocol', 'technician', 'prep_date', 'prep_note', 'prep_robot', 'p7_offset']
+		fields = ['name', 'protocol', 'technician', 'prep_date', 'prep_note', 'prep_robot', 'p7_offset', 'status']
 		widgets = {
 			'prep_note': Textarea(attrs={'cols': 60, 'rows': 2}),
 		}

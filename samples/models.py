@@ -924,6 +924,14 @@ class LibraryBatch(Timestamped):
 	# If we need to handle arbitrary layouts, migrate this state into barcodes in the layout objects 
 	p7_offset = models.SmallIntegerField(null=True, validators=[MinValueValidator(0), MaxValueValidator(PLATE_WELL_COUNT_HALF-1), validate_even], help_text='Must be even in [0,46]')
 	
+	OPEN = 0
+	LIBRARIED = 1
+	LIBRARY_BATCH_STATES = (
+		(OPEN, 'Open'),
+		(LIBRARIED, 'Libraried')
+	)
+	status = models.PositiveSmallIntegerField(default = LIBRARIED, choices=LIBRARY_BATCH_STATES)
+	
 	def check_p7_offset(self):
 		if self.p7_offset is None or self.p7_offset < 0 or self.p7_offset >= PLATE_WELL_COUNT_HALF:
 			raise ValueError(f'p7_offset is out of range: {self.p7_offset}')
