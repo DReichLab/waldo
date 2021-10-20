@@ -659,8 +659,8 @@ def extract_batch_to_library_batch(request):
 		form = ExtractBatchToLibraryBatchForm(request.POST)
 		if form.is_valid():
 			library_batch_name = form.cleaned_data['library_batch_name']
-			#extract_batch.create_library_batch(library_batch_name, request.user)
-			#return redirect(f'{reverse("extract_batch_assign_lysate")}?extract_batch_name={extract_batch_name}')
+			extract_batch.create_library_batch(library_batch_name, request.user)
+			return redirect(f'{reverse("library_batch_assign_extract")}?library_batch_name={library_batch_name}')
 	elif request.method == 'GET':
 		form = ExtractBatchToLibraryBatchForm()
 		# Set name for first extraction batch. Duplicates will prompt for new name and need to be set manually. 

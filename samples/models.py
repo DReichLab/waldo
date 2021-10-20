@@ -774,6 +774,8 @@ class ExtractionBatch(Timestamped):
 				library_batch_layout_element = LibraryBatchLayout(library_batch=library_batch,
 									extract=layout_element.extract,
 									control_type = layout_element.control_type,
+									row = layout_element.row,
+									column = layout_element.column
 					)
 				library_batch_layout_element.save(save_user=user)
 	
@@ -858,24 +860,44 @@ def libraries_for_extract(extract):
 	return len(libraries)
 
 # Create the library corresponding
-def create_library_from_extract(layout_element, library_batch, p7_offset, user):
+def create_library_from_extract(layout_element, user):
+	library_batch = layout_element.library_batch
 	extract = layout_element.extract
-	existing_libraries = libraries_for_extract(extract)
-	next_library_number = existing_libraries + 1
-	# TODO check existing extract amount
-	# TODO assign barcodes
-	library = Library(sample = extract.sample,
-					extract = extract,
-					library_batch = library_batch,
-					reich_lab_library_id = f'{extract.extract.id}.L{next_library_number}',
-					reich_lab_library_number = next_library_number,
-					udg_treatment = library_batch.protocol.udg_treatment,
-					library_type = library_batch.protocol.library_type,
-					library_prep_lab = REICH_LAB,
-					ul_extract_used = library_batch.protocol.volume_extract_used_standard,
-				   )
-	library.save(save_user=user)
-	return library
+	
+	if extract is None:
+		return None
+	elif layout_element.library is not None:
+		return layout_element.library
+	else:
+		existing_libraries = libraries_for_extract(extract)
+		next_library_number = existing_libraries + 1
+		# TODO check existing extract amount
+		# assign barcodes
+		if library_batch.protocol.library_type == 'ds':
+			int_position = reverse_plate_location_coordinate(layout_element.row, layout_element.column)
+			p5_qstr, p5_qstr = barcodes_for_location(int_position, layout_batch.p7_offset)
+			p5_barcode = Barcode.object.get(label = p5_qstr)
+			p7_barcode = Barcode.object.get(label = p7_qstr)
+		elif library_batch.protocol.library_type == 'ss':
+			raise ValueError(f'single stranded TODO')
+		else:
+			raise ValueError(f'unhandled library type {library_batch.protocol.library_type}')
+		library = Library(sample = extract.sample,
+						extract = extract,
+						library_batch = library_batch,
+						reich_lab_library_id = f'{extract.extract.id}.L{next_library_number}',
+						reich_lab_library_number = next_library_number,
+						udg_treatment = library_batch.protocol.udg_treatment,
+						library_type = library_batch.protocol.library_type,
+						library_prep_lab = REICH_LAB,
+						ul_extract_used = library_batch.protocol.volume_extract_used_standard,
+						p5_barcode = p5_barcode,
+						p7_barcode = p7_barcode
+					)
+		library.save(save_user=user)
+		layout_element.library = library
+		layout_element.save(save_user=user)
+		return library
 	
 def validate_even(value):
 	if value % 2 != 0:
@@ -909,7 +931,7 @@ class LibraryBatch(Timestamped):
 		duplicate_positions_check_db(layout)
 		
 		for layout_element in layout:
-			create_library_from_extract(layout_element, self, p7_offset, user)
+			create_library_from_extract(layout_element, user)
 			
 	def get_robot_layout(self):
 		self.check_p7_offset()
@@ -967,14 +989,6 @@ class P7_Index(models.Model):
 	label2 = models.CharField(max_length=20, blank=True)
 	sequence = models.CharField(max_length=8, db_index=True, unique=True, validators=[validate_index_dna_sequence])
 	
-# extract -> library
-class LibraryBatchLayout(TimestampedWellPosition):
-	library_batch = models.ForeignKey(LibraryBatch, on_delete=models.CASCADE, null=True)
-	extract = models.ForeignKey(Extract, on_delete=models.CASCADE, null=True)
-	control_type = models.ForeignKey(ControlType, on_delete=models.PROTECT, null=True)
-	ul_extract_used = models.FloatField()
-	notes = models.TextField(blank=True)
-	
 class Library(Timestamped):
 	sample = models.ForeignKey(Sample, on_delete=models.PROTECT, null=True)
 	extract = models.ForeignKey(Extract, on_delete=models.PROTECT, null=True)
@@ -998,8 +1012,10 @@ class Library(Timestamped):
 	nanodrop = models.FloatField(null=True)
 	qpcr = models.FloatField(null=True)
 	
+	# single stranded libraries have indices directly assigned
 	p5_index = models.ForeignKey(P5_Index, on_delete=models.PROTECT, null=True)
 	p7_index = models.ForeignKey(P7_Index, on_delete=models.PROTECT, null=True)
+	# double stranded libraries have barcodes, and indices applied at capture
 	p5_barcode = models.ForeignKey(Barcode, on_delete=models.PROTECT, null=True, related_name='p5_barcode')
 	p7_barcode = models.ForeignKey(Barcode, on_delete=models.PROTECT, null=True, related_name='p7_barcode')
 	
@@ -1007,6 +1023,15 @@ class Library(Timestamped):
 		super(Library, self).clean()
 		if (self.p5_index is not None or self.p7_index is not None) and (self.p5_barcode is not None or self.p7_barcode is not None):
 			raise ValidationError(_('Library cannot have both indices and barcodes. Single-stranded libraries should have only indices, and double-stranded libraries should have only barcodes.'))
+	
+# extract -> library
+class LibraryBatchLayout(TimestampedWellPosition):
+	library_batch = models.ForeignKey(LibraryBatch, on_delete=models.CASCADE, null=True)
+	extract = models.ForeignKey(Extract, on_delete=models.CASCADE, null=True)
+	control_type = models.ForeignKey(ControlType, on_delete=models.PROTECT, null=True)
+	ul_extract_used = models.FloatField()
+	notes = models.TextField(blank=True)
+	library = models.ForeignKey(Library, on_delete=models.SET_NULL, null=True, help_text='')
 	
 class MTCaptureProtocol(Timestamped):
 	name = models.CharField(max_length=150)

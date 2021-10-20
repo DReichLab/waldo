@@ -17,12 +17,12 @@ def validate_row_letter(letter):
 class PlateDomainError(ValueError):
 	pass
 
-# domain is [0,PLATE_WELL_COUNT]
+# domain is [0,PLATE_WELL_COUNT)
 def check_plate_domain(int_val):
 	if int_val < 0 or int_val >= PLATE_WELL_COUNT:
 		raise PlateDomainError(f'{int_val} is out of range for a plate location')
 
-# map integer in domain [0,PLATE_WELL_COUNT] to row and column pair (A, 1)
+# map integer in domain [0,PLATE_WELL_COUNT) to row and column pair (A, 1)
 # order is column first, then row (A1, B1, ..., H1, A2)
 def plate_location(int_val):
 	check_plate_domain(int_val)
@@ -30,7 +30,7 @@ def plate_location(int_val):
 	column_index = int_val // len(PLATE_ROWS) + 1
 	return PLATE_ROWS[row_index], column_index
 
-# map a plate location (A1, H12) back to an integer in [0,PLATE_WELL_COUNT]
+# map a plate location (A1, H12) back to an integer in [0,PLATE_WELL_COUNT)
 def reverse_plate_location_coordinate(row, column):
 	row_int = PLATE_ROWS.index(row)
 	int_val = row_int + (column - 1) * len(PLATE_ROWS)
