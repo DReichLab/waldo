@@ -361,6 +361,8 @@ class ExtractionProtocol(Timestamped):
 	manuscript_summary = models.CharField(max_length=150, blank=True)
 	protocol_reference = models.TextField(blank=True)
 	
+	def lysate_volume_used(self):
+		return self.total_lysis_volume * self.lysate_fraction_extracted
 	
 # enumeration of the control types
 class ControlType(models.Model):
@@ -896,6 +898,7 @@ def create_library_from_extract(layout_element, user):
 					)
 		library.save(save_user=user)
 		layout_element.library = library
+		layout_element.ul_extract_used = library.ul_extract_used
 		layout_element.save(save_user=user)
 		return library
 	
@@ -1029,7 +1032,7 @@ class LibraryBatchLayout(TimestampedWellPosition):
 	library_batch = models.ForeignKey(LibraryBatch, on_delete=models.CASCADE, null=True)
 	extract = models.ForeignKey(Extract, on_delete=models.CASCADE, null=True)
 	control_type = models.ForeignKey(ControlType, on_delete=models.PROTECT, null=True)
-	ul_extract_used = models.FloatField()
+	ul_extract_used = models.FloatField(null=True) # populated from library protocol, needs to done after layout elements are created
 	notes = models.TextField(blank=True)
 	library = models.ForeignKey(Library, on_delete=models.SET_NULL, null=True, help_text='')
 	
