@@ -1052,6 +1052,8 @@ class Library(Timestamped):
 		super(Library, self).clean()
 		if (self.p5_index is not None or self.p7_index is not None) and (self.p5_barcode is not None or self.p7_barcode is not None):
 			raise ValidationError(_('Library cannot have both indices and barcodes. Single-stranded libraries should have only indices, and double-stranded libraries should have only barcodes.'))
+		if self.p5_index is None and self.p7_index is None and self.p5_barcode is None and self.p7_barcode is None:
+			raise ValidationError(_('Library must have either indices or barcodes')) 
 			
 	@staticmethod
 	def spreadsheet_header():
