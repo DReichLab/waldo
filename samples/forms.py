@@ -133,7 +133,8 @@ class ExtractionProtocolSelect(ModelChoiceField):
 class LysateBatchForm(UserModelForm):
 	protocol = ExtractionProtocolSelect(queryset=ExtractionProtocol.objects.all())
 	
-	layout_names = ControlLayout.objects.values_list('layout_name', flat=True).order_by('layout_name').distinct('layout_name')
+	layout_names = ControlLayout.objects.all().values_list('layout_name', flat=True).order_by('layout_name').distinct('layout_name')
+	print(layout_names)
 	control_layout_name = ChoiceField(choices=zip(layout_names, layout_names))
 	
 	class Meta:
@@ -179,7 +180,7 @@ class LysateBatchToExtractBatchForm(forms.Form):
 class ExtractionBatchForm(UserModelForm):
 	protocol = ExtractionProtocolSelect(queryset=ExtractionProtocol.objects.all())
 	
-	layout_names = ControlLayout.objects.values_list('layout_name', flat=True).order_by('layout_name').distinct('layout_name')
+	layout_names = ControlLayout.objects.all().values_list('layout_name', flat=True).order_by('layout_name').distinct('layout_name')
 	control_layout_name = ChoiceField(choices=zip(layout_names, layout_names))
 	
 	class Meta:
@@ -240,7 +241,7 @@ class ControlLayoutForm(UserModelForm):
 ControlLayoutFormset = modelformset_factory(ControlLayout, form=ControlLayoutForm)
 
 class LysateBatchLayoutForm(forms.Form):
-	layout_names = ControlLayout.objects.values_list('layout_name', flat=True).order_by('layout_name').distinct('layout_name')
+	layout_names = ControlLayout.objects.all().values_list('layout_name', flat=True).order_by('layout_name').distinct('layout_name')
 	control_layout = ChoiceField(choices=zip(layout_names, layout_names))
 
 LOST_ROW = 'H'
