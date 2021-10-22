@@ -202,7 +202,7 @@ def powder_batch_assign_samples(request):
 	# count for feedback
 	num_sample_prep = SamplePrepQueue.objects.filter(powder_batch=powder_batch).count()
 	num_powder_samples = PowderSample.objects.filter(powder_batch=powder_batch).count()
-	return render(request, 'samples/sample_selection.html', { 'queued_samples': sample_queue, 'powder_batch_name': powder_batch_name, 'form': form, 'num_sample_prep': num_sample_prep, 'num_powder_samples': num_powder_samples } )
+	return render(request, 'samples/powder_batch_assign_sample.html', { 'queued_samples': sample_queue, 'powder_batch_name': powder_batch_name, 'form': form, 'num_sample_prep': num_sample_prep, 'num_powder_samples': num_powder_samples } )
 
 # Edit the powder samples in a powder batch
 @login_required
@@ -217,8 +217,8 @@ def powder_samples(request):
 			powder_batch_form.save()
 		if powder_batch_sample_formset.is_valid():
 			powder_batch_sample_formset.save()
-		if powder_batch_form.is_valid() and powder_batch_sample_formset.is_valid():
-			if powder_batch.status.description == 'Open':
+		# do not require the formset to be valid to switch back to open
+		if powder_batch_form.is_valid() and powder_batch.status.description == 'Open':
 				return redirect(f'{reverse("powder_batch_assign_samples")}?name={powder_batch_name}')
 		
 	elif request.method == 'GET':
