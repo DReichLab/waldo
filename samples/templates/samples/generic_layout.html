@@ -15,12 +15,12 @@
 <style>
 	{% for row in rows %}
 		{% for column in columns %}
-			#{{ row }}{{ column }} { width: 100px; height: 90px; padding: 0.0em; float: left; margin: 0px; }
+			#{{ row }}{{ column }} { width: 100px; height: 90px; padding: 2.0em; float: left; margin: 5px; text-align: left}
 		{% endfor %}
 	{% endfor %}
 	
 	{% for object_id, position_and_widget_ui in objects_map.items %}
-		#{{ position_and_widget_ui.widget_id }} { width: 100px; height: 20px; display: flex;
+		#{{ position_and_widget_ui.widget_id }} { width: 90px; height: 20px; display: flex;
 			justify-content: left;
 			align-items: center; }
 	{% endfor %}
@@ -40,9 +40,9 @@
 	
 
 	function remove_object_from_old_position(object_map_entry){
-		var position_list = objects_by_position[object_map_entry.position]
+		let position_list = objects_by_position[object_map_entry.position]
 		if (position_list != null){
-			var index = position_list.indexOf(object_map_entry.object_id);
+			let index = position_list.indexOf(object_map_entry.object_id);
 			if (index >= 0){
 				position_list.splice(index, 1);
 			}
@@ -54,32 +54,36 @@
 		if (!objects_by_position[object_map_entry.position]){
 			objects_by_position[object_map_entry.position] = [];
 		}
-		objects_by_position[object_map_entry.position].push(object_map_entry.object_id);
+		if (!objects_by_position[object_map_entry.position].includes(object_map_entry.object_id))
+			objects_by_position[object_map_entry.position].push(object_map_entry.object_id);
 	}
 	
 	// render objects in a well position without overlap
 	function layout_well(position){
-		var well_objects = objects_by_position[position];
+		let well_objects = objects_by_position[position];
 		if (well_objects != null){
-			var prior_object_widget = null;
-			for (var i = 0; i < well_objects.length; i++){
-				var object_id = well_objects[i];
-				var object_map_entry = objects_map_js[object_id];
-				var gui_position_arguments = {
-					of: $( "#" + position ),
+			let prior_object_widget = null;
+			for (let i = 0; i < well_objects.length; i++){
+				let object_id = well_objects[i];
+				let object_map_entry = objects_map_js[object_id];
+				let gui_position_arguments = {
 					my: "left bottom",
-					at: "left bottom"
+					at: "left bottom",
+					of: $( "#" + position ),
+					within: $( "#" + position )
 				};
 				if (prior_object_widget != null){
 					gui_position_arguments = {
-						of: $( "#" +  prior_object_widget ),
 						my: "left bottom",
-						at: "left top"
+						at: "left top",
+						of: $( "#" +  prior_object_widget ),
+						within: $( "#" + position )
 					};
 				}
 				prior_object_widget = object_map_entry.widget_id;
 				
 				$( "#" + object_map_entry.widget_id ).position(gui_position_arguments);
+				console.log(object_map_entry.widget_id + JSON.stringify(gui_position_arguments));
 			}
 		}
 	}
@@ -92,10 +96,10 @@
 	}
 	
 	function position_all_objects(objects_map_js){
-		for(var object_map_entry in objects_map_js){
+		for(let object_map_entry in objects_map_js){
 			position_object(objects_map_js[object_map_entry]);
 		}
-		for(var position in objects_by_position){
+		for(let position in objects_by_position){
 			layout_well(position);
 		}
 	}
@@ -108,9 +112,9 @@
 						"ui-droppable-hover": "ui-state-hover"
 					},
 					drop: function( event, ui ) {
-						var well_position = "{{ row }}{{ column }}"
-						var object_id = ui.draggable[0].getAttribute('object_id');
-						var object_map_entry = objects_map_js[object_id];
+						let well_position = "{{ row }}{{ column }}"
+						let object_id = ui.draggable[0].getAttribute('object_id');
+						let object_map_entry = objects_map_js[object_id];
 						object_dropped_in_well_position(object_map_entry, well_position);
 					}
 				});
@@ -136,7 +140,9 @@
 	<form id="" method="POST">
 		{% csrf_token %}
 	</form>
+	{% if allow_modifications == True %}
 	<button onclick="send_well_plate_layout(objects_map_js)">Submit Layout</button>
+	{% endif %}
 </div>
 
 <script>
