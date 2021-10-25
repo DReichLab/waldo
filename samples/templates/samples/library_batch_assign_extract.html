@@ -32,7 +32,7 @@ Library Batch: {{library_batch_name}} has {{assigned_extracts_count}} distinct e
 <form action="" method='post'>
 	{% csrf_token %}
 	{{ form.as_p }}
-	<input type='submit' name='assign_only' value='Update and Assign Extracts'>
+	<input id="submit_button" type='submit' name='assign_only' value='Update and Assign Extracts'>
 	<a href='library_batch_layout?library_batch_name={{library_batch_name}}'>Modify Layout</a>
 	<a href='library_batch_barcodes_spreadsheet?library_batch_name={{library_batch_name}}'>Barcodes for robot</a>
 
@@ -76,7 +76,7 @@ Library Batch: {{library_batch_name}} has {{assigned_extracts_count}} distinct e
 		searchDelay: 500
 	};
 	var sample_list = new List('sample_rows', list_options);
-	var overall_count = 0;
+	var overall_count = document.querySelectorAll('input[type="checkbox"].sample_checkbox:checked').length;
 	
 	document.querySelectorAll("input[type=checkbox]").forEach(input => {
 		input.addEventListener("click", (e) => {
@@ -90,10 +90,23 @@ Library Batch: {{library_batch_name}} has {{assigned_extracts_count}} distinct e
 		
 		let filtered_count = document.querySelectorAll('input[type="checkbox"].sample_checkbox:checked').length;
 		let filtered_total = document.querySelectorAll('input[type="checkbox"].sample_checkbox').length;
-		document.getElementById('sample_count').innerHTML = String(filtered_count) + " sample" + (filtered_count != 1 ? "s" : "") + " selected of " + String(filtered_total) + " filtered samples."
+		document.getElementById('sample_count').innerHTML = String(filtered_count) + " sample" + (filtered_count != 1 ? "s" : "") + " selected of " + String(filtered_total) + " filtered extracts. " + String(overall_count) + " selected of " + String(overall_total) + " total extracts."
 	}
 	
 	sample_list.on('updated', update_count);
+	
+	function clear_search(){
+		var search_field = document.getElementById("list_search_field");
+		search_field.value = "";
+		sample_list.search()
+	}
+	
+	// clear search upon submission
+	for (button_name in ["submit_button"]){
+		var submit_button = document.getElementById("submit_button");
+		if (submit_button.addEventListener)
+			submit_button.addEventListener("click", clear_search);
+	}
 	
 	// toggle all checkboxes in current list, which may be search subset
 	function toggle_onscreen_all(){

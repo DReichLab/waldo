@@ -32,16 +32,16 @@ Lysate Batch: {{lysate_batch_name}} has {{assigned_powder_samples_count}} distin
 <form action="" method='post'>
 	{% csrf_token %}
 	{{ form.as_p }}
-	<input type='submit' name='assign_only' value='Update and assign powder samples'>
-	<input type='submit' name='assign_and_layout' value='Update, assign powder samples, and perform initial layout'>
+	<input id="submit_assign_only" type='submit' name='assign_only' value='Update and assign powder samples'>
+	<input id="submit_assign_and_layout" type='submit' name='assign_and_layout' value='Update, assign powder samples, and perform initial layout'>
 	<a href='lysate_batch_plate_layout?lysate_batch_name={{lysate_batch_name}}'>Modify Layout</a>
-	<input type='submit' name='assign_and_fill_empty_with_library_controls' value='Update, assign powder samples, and fill empty with library controls'>
+	<input id="submit_assign_and_fill_empty" type='submit' name='assign_and_fill_empty_with_library_controls' value='Update, assign powder samples, and fill empty with library controls'>
 
 <legend>Samples</legend>
 <div id='sample_rows'>
 <div id='sample_count'></div>
 
-<input class="search" placeholder="Search" />
+<input id="list_search_field" class="search" placeholder="Search" />
 <div id='table_wrapper'>
 <table>
 	<thead>
@@ -81,7 +81,7 @@ Lysate Batch: {{lysate_batch_name}} has {{assigned_powder_samples_count}} distin
 		searchDelay: 500
 	};
 	var sample_list = new List('sample_rows', list_options);
-	var overall_count = 0;
+	var overall_count = document.querySelectorAll('input[type="checkbox"].sample_checkbox:checked').length;
 	
 	document.querySelectorAll("input[type=checkbox]").forEach(input => {
 		input.addEventListener("click", (e) => {
@@ -95,10 +95,23 @@ Lysate Batch: {{lysate_batch_name}} has {{assigned_powder_samples_count}} distin
 		
 		let filtered_count = document.querySelectorAll('input[type="checkbox"].sample_checkbox:checked').length;
 		let filtered_total = document.querySelectorAll('input[type="checkbox"].sample_checkbox').length;
-		document.getElementById('sample_count').innerHTML = String(filtered_count) + " sample" + (filtered_count != 1 ? "s" : "") + " selected of " + String(filtered_total) + " filtered samples."
+		document.getElementById('sample_count').innerHTML = String(filtered_count) + " sample" + (filtered_count != 1 ? "s" : "") + " selected of " + String(filtered_total) + " filtered powder samples. " + String(overall_count) + " selected of " + String(overall_total) + " total powder samples.";
 	}
 	
 	sample_list.on('updated', update_count);
+	
+	function clear_search(){
+		var search_field = document.getElementById("list_search_field");
+		search_field.value = "";
+		sample_list.search()
+	}
+	
+	// clear search upon submission
+	for (let submit_button_str in ["submit_assign_only", "submit_assign_and_layout", "submit_assign_and_fill_empty"]){
+		let submit_button = document.getElementById(submit_button_str);
+		if (submit_button.addEventListener)
+			submit_button.addEventListener("click", clear_search);
+	}
 	
 	// toggle all checkboxes in current list, which may be search subset
 	function toggle_onscreen_all(){

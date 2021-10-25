@@ -124,9 +124,9 @@ Powder Batch: {{powder_batch_name}} has {{num_sample_prep}} sample prep entries 
 	}
 	
 	// clear search upon submission
-	var submit_button = document.getElementById("submit_button");
+	let submit_button = document.getElementById("submit_button");
 	if (submit_button.addEventListener)
-		submit_button.addEventListener("click", clear_search)
+		submit_button.addEventListener("click", clear_search);
 	
 	// toggle all checkboxes in current list, which may be search subset
 	function toggle_onscreen_all(){

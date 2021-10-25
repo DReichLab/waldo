@@ -32,7 +32,7 @@ Extract Batch: {{extract_batch_name}} has {{assigned_lysates_count}} distinct ly
 <form action="" method='post'>
 	{% csrf_token %}
 	{{ form.as_p }}
-	<input type='submit' name='assign_only' value='Update and assign lysates'>
+	<input id="submit_button" type='submit' name='assign_only' value='Update and assign lysates'>
 	<a href='extract_batch_layout?extract_batch_name={{extract_batch_name}}'>Modify Layout</a>
 
 <legend>Samples</legend>
@@ -75,7 +75,7 @@ Extract Batch: {{extract_batch_name}} has {{assigned_lysates_count}} distinct ly
 		searchDelay: 500
 	};
 	var sample_list = new List('sample_rows', list_options);
-	var overall_count = 0;
+	var overall_count =  document.querySelectorAll('input[type="checkbox"].sample_checkbox:checked').length;
 	
 	document.querySelectorAll("input[type=checkbox]").forEach(input => {
 		input.addEventListener("click", (e) => {
@@ -89,10 +89,23 @@ Extract Batch: {{extract_batch_name}} has {{assigned_lysates_count}} distinct ly
 		
 		let filtered_count = document.querySelectorAll('input[type="checkbox"].sample_checkbox:checked').length;
 		let filtered_total = document.querySelectorAll('input[type="checkbox"].sample_checkbox').length;
-		document.getElementById('sample_count').innerHTML = String(filtered_count) + " sample" + (filtered_count != 1 ? "s" : "") + " selected of " + String(filtered_total) + " filtered samples."
+		document.getElementById('sample_count').innerHTML = String(filtered_count) + " sample" + (filtered_count != 1 ? "s" : "") + " selected of " + String(filtered_total) + " filtered lysates. " + String(overall_count) + " selected of " + String(overall_total) + " total lysates."
 	}
 	
 	sample_list.on('updated', update_count);
+	
+	function clear_search(){
+		var search_field = document.getElementById("list_search_field");
+		search_field.value = "";
+		sample_list.search()
+	}
+	
+	// clear search upon submission
+	for (let submit_button_str in ["submit_button"]){
+		let submit_button = document.getElementById(submit_button_str);
+		if (submit_button.addEventListener)
+			submit_button.addEventListener("click", clear_search);
+	}
 	
 	// toggle all checkboxes in current list, which may be search subset
 	function toggle_onscreen_all(){
