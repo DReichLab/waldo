@@ -378,6 +378,7 @@ class ControlSet(Timestamped):
 # a control layout is applied to batch layouts to add controls
 class ControlLayout(TimestampedWellPosition):
 	layout_name = models.CharField(max_length=25, db_index=True)
+	control_set = models.ForeignKey(ControlSet, on_delete=models.CASCADE, null=True)
 	control_type = models.ForeignKey(ControlType, on_delete=models.PROTECT)
 	active = models.BooleanField(default=True)
 
@@ -440,6 +441,7 @@ class LysateBatch(Timestamped):
 	note = models.TextField(blank=True)
 	layout = models.ManyToManyField(PowderSample, through='LysateBatchLayout', related_name='powder_sample_assignment')
 	control_layout_name = models.CharField(max_length=25, blank=True, help_text='When applying a layout, use this set of controls.  The control entries are stored in layout.')
+	control_set = models.ForeignKey(ControlSet, on_delete=models.SET_NULL, null=True)
 	
 	OPEN = 0
 	LYSATES_CREATED = 1
@@ -742,6 +744,7 @@ class ExtractionBatch(Timestamped):
 	note = models.TextField(blank=True)
 	layout = models.ManyToManyField(Lysate, through='ExtractionBatchLayout', related_name='lysate_assignment')
 	control_layout_name = models.CharField(max_length=25, blank=True, help_text='When applying a layout, use this set of controls.  The control entries are stored in layout.')
+	control_set = models.ForeignKey(ControlSet, on_delete=models.SET_NULL, null=True)
 	
 	OPEN = 0
 	EXTRACTED = 1
