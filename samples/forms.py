@@ -4,7 +4,7 @@ from django.forms import modelformset_factory
 from django.forms.widgets import TextInput
 from django.utils.translation import gettext_lazy as _
 
-from samples.models import PowderBatch, PowderBatchStatus, PowderSample, Sample, SamplePrepProtocol, ControlType, ControlLayout, LysateBatch, ExtractionProtocol, ExpectedComplexity, SamplePrepQueue, Lysate, LysateBatchLayout, ExtractionBatch, ExtractionBatchLayout, LibraryProtocol, LibraryBatch, Extract, Storage, Library, Barcode
+from samples.models import PowderBatch, PowderBatchStatus, PowderSample, Sample, SamplePrepProtocol, ControlType, ControlSet, ControlLayout, LysateBatch, ExtractionProtocol, ExpectedComplexity, SamplePrepQueue, Lysate, LysateBatchLayout, ExtractionBatch, ExtractionBatchLayout, LibraryProtocol, LibraryBatch, Extract, Storage, Library, Barcode
 
 import datetime
 
@@ -130,16 +130,26 @@ class ExtractionProtocolSelect(ModelChoiceField):
 	def label_from_instance(self, obj):
 		return obj.name
 		
+# to display the powder batch status description instead of a primary key
+class ControlSetSelect(ModelChoiceField):
+	def label_from_instance(self, obj):
+		return obj.layout_name
+		
+class ControlSetForm(UserModelForm):
+	class Meta:
+		model = ControlSet
+		fields = ['layout_name', 'notes', 'active']
+		widgets = {
+			'note': Textarea(attrs={'cols': 60, 'rows': 2}),
+		}
+		
 class LysateBatchForm(UserModelForm):
 	protocol = ExtractionProtocolSelect(queryset=ExtractionProtocol.objects.all())
-	
-	layout_names = ControlLayout.objects.all().values_list('layout_name', flat=True).order_by('layout_name').distinct('layout_name')
-	print(layout_names)
-	control_layout_name = ChoiceField(choices=zip(layout_names, layout_names))
+	control_set = ControlSetSelect(queryset=ControlSet.objects.filter(active=True).order_by('layout_name'))
 	
 	class Meta:
 		model = LysateBatch
-		fields = ['batch_name', 'protocol', 'control_layout_name', 'date', 'robot', 'note', 'technician', 'status']
+		fields = ['batch_name', 'protocol', 'control_set', 'date', 'robot', 'note', 'technician', 'status']
 		widgets = {
 			'note': Textarea(attrs={'cols': 60, 'rows': 2}),
 		}
@@ -179,13 +189,11 @@ class LysateBatchToExtractBatchForm(forms.Form):
 		
 class ExtractionBatchForm(UserModelForm):
 	protocol = ExtractionProtocolSelect(queryset=ExtractionProtocol.objects.all())
-	
-	layout_names = ControlLayout.objects.all().values_list('layout_name', flat=True).order_by('layout_name').distinct('layout_name')
-	control_layout_name = ChoiceField(choices=zip(layout_names, layout_names))
+	control_set = ControlSetSelect(queryset=ControlSet.objects.filter(active=True).order_by('layout_name'))
 	
 	class Meta:
 		model = ExtractionBatch
-		fields = ['batch_name', 'protocol', 'control_layout_name', 'date', 'robot', 'note', 'technician', 'status']
+		fields = ['batch_name', 'protocol', 'control_set', 'date', 'robot', 'note', 'technician', 'status']
 		widgets = {
 			'note': Textarea(attrs={'cols': 60, 'rows': 2}),
 		}
@@ -236,13 +244,9 @@ class ControlLayoutForm(UserModelForm):
 	control_type = ControlTypeSelect(queryset=ControlType.objects.all())
 	class Meta:
 		model = ControlLayout
-		fields = ['layout_name', 'row', 'column', 'control_type', 'active']
+		fields = ['row', 'column', 'control_type', 'active']
 
-ControlLayoutFormset = modelformset_factory(ControlLayout, form=ControlLayoutForm)
-
-class LysateBatchLayoutForm(forms.Form):
-	layout_names = ControlLayout.objects.all().values_list('layout_name', flat=True).order_by('layout_name').distinct('layout_name')
-	control_layout = ChoiceField(choices=zip(layout_names, layout_names))
+ControlLayoutFormset = modelformset_factory(ControlLayout, form=ControlLayoutForm, extra=7)
 
 LOST_ROW = 'H'
 LOST_COLUMN = 6

@@ -377,7 +377,6 @@ class ControlSet(Timestamped):
 # each control layout comprises rows with the same name
 # a control layout is applied to batch layouts to add controls
 class ControlLayout(TimestampedWellPosition):
-	layout_name = models.CharField(max_length=25, db_index=True)
 	control_set = models.ForeignKey(ControlSet, on_delete=models.CASCADE, null=True)
 	control_type = models.ForeignKey(ControlType, on_delete=models.PROTECT)
 	active = models.BooleanField(default=True)
@@ -440,7 +439,6 @@ class LysateBatch(Timestamped):
 	robot = models.CharField(max_length=20, blank=True)
 	note = models.TextField(blank=True)
 	layout = models.ManyToManyField(PowderSample, through='LysateBatchLayout', related_name='powder_sample_assignment')
-	control_layout_name = models.CharField(max_length=25, blank=True, help_text='When applying a layout, use this set of controls.  The control entries are stored in layout.')
 	control_set = models.ForeignKey(ControlSet, on_delete=models.SET_NULL, null=True)
 	
 	OPEN = 0
@@ -462,7 +460,7 @@ class LysateBatch(Timestamped):
 		# sort powder batches by lowest sample ID, then powder batch by reich lab id
 		# powder batches are grouped together, and sample numbers are ascending
 		powders = LysateBatchLayout.objects.annotate(powder_batch_order=Min('powder_sample__powder_batch__powdersample__sample__reich_lab_id')).filter(lysate_batch=self, control_type=None).order_by('powder_batch_order', 'powder_sample__powder_batch', 'powder_sample__sample__reich_lab_id')
-		controls = ControlLayout.objects.filter(layout_name=self.control_layout_name, control_type__control_type__in=control_types, active=True).order_by('column', 'row')
+		controls = ControlLayout.objects.filter(control_set=self.control_set, control_type__control_type__in=control_types, active=True).order_by('column', 'row')
 		# check count
 		if powders.count() + controls.count() > PLATE_WELL_COUNT:
 			raise ValueError(f'Too many items for extract layout: {powders.count} powders and {controls.count} controls')
@@ -596,7 +594,7 @@ class LysateBatch(Timestamped):
 								protocol = self.protocol,
 								technician = wetlab_staff.initials(),
 								technician_fk = wetlab_staff,
-								control_layout_name = self.control_layout_name)
+								control_set = self.control_set)
 			extract_batch.save(save_user=user)
 			for layout_element in layout:
 				lysate = layout_element.lysate
@@ -743,7 +741,6 @@ class ExtractionBatch(Timestamped):
 	robot = models.CharField(max_length=20, blank=True)
 	note = models.TextField(blank=True)
 	layout = models.ManyToManyField(Lysate, through='ExtractionBatchLayout', related_name='lysate_assignment')
-	control_layout_name = models.CharField(max_length=25, blank=True, help_text='When applying a layout, use this set of controls.  The control entries are stored in layout.')
 	control_set = models.ForeignKey(ControlSet, on_delete=models.SET_NULL, null=True)
 	
 	OPEN = 0

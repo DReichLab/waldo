@@ -13,8 +13,8 @@ import json
 from datetime import datetime
 
 from samples.pipeline import udg_and_strandedness
-from samples.models import Results, Library, Sample, PowderBatch, WetLabStaff, PowderSample, ControlType, ControlLayout, ExtractionProtocol, LysateBatch, SamplePrepQueue, PLATE_ROWS, LysateBatchLayout, ExtractionBatch, ExtractionBatchLayout, Lysate, LibraryBatch, LibraryBatchLayout, Extract, Storage
-from .forms import IndividualForm, LibraryIDForm, PowderBatchForm, SampleImageForm, PowderSampleForm, PowderSampleFormset, ControlTypeFormset, ControlLayoutFormset, ExtractionProtocolFormset, LysateBatchForm, LysateFormset, LysateForm, SamplePrepQueueFormset, LysateBatchLayoutForm, LostPowderFormset, SpreadsheetForm, LysateBatchToExtractBatchForm, ExtractionBatchForm, LostLysateFormset, ExtractBatchToLibraryBatchForm, LibraryBatchForm, StorageFormset, ExtractFormset, LibraryFormset
+from samples.models import Results, Library, Sample, PowderBatch, WetLabStaff, PowderSample, ControlType, ControlSet, ControlLayout, ExtractionProtocol, LysateBatch, SamplePrepQueue, PLATE_ROWS, LysateBatchLayout, ExtractionBatch, ExtractionBatchLayout, Lysate, LibraryBatch, LibraryBatchLayout, Extract, Storage
+from .forms import IndividualForm, LibraryIDForm, PowderBatchForm, SampleImageForm, PowderSampleForm, PowderSampleFormset, ControlTypeFormset, ControlSetForm, ControlLayoutFormset, ExtractionProtocolFormset, LysateBatchForm, LysateFormset, LysateForm, SamplePrepQueueFormset, LostPowderFormset, SpreadsheetForm, LysateBatchToExtractBatchForm, ExtractionBatchForm, LostLysateFormset, ExtractBatchToLibraryBatchForm, LibraryBatchForm, StorageFormset, ExtractFormset, LibraryFormset
 from sequencing_run.models import MTAnalysis
 
 from .powder_samples import new_reich_lab_powder_sample, assign_prep_queue_entries_to_powder_batch, assign_powder_samples_to_lysate_batch, powder_samples_from_spreadsheet, assign_lysates_to_extract_batch
@@ -267,14 +267,46 @@ def extraction_protocols(request):
 		if extraction_protocol_formset.is_valid():
 			print('valid extraction protocol formset')
 			extraction_protocol_formset.save()
-		else:
-			raise ValueError('failed validation')
 		
 	elif request.method == 'GET':
 		extraction_protocol_formset = ExtractionProtocolFormset(queryset=ExtractionProtocol.objects.all(), form_kwargs={'user': request.user})
 	
 	# open can have new samples assigned
 	return render(request, 'samples/extraction_protocols.html', { 'formset': extraction_protocol_formset } )
+	
+@login_required
+def control_sets(request):
+	control_sets_all = ControlSet.objects.all().order_by('layout_name')
+	
+	if request.method == 'POST':
+		form  = ControlSetForm(request.POST, user=request.user)
+		if form.is_valid():
+			form.save()
+		
+	elif request.method == 'GET':
+		form = ControlSetForm(user=request.user)
+	# open can have new samples assigned
+	return render(request, 'samples/control_sets.html', { 'form': form, 'control_sets': control_sets_all } )
+	
+@login_required
+def control_set(request):
+	control_set_name = request.GET['control_set_name']
+	control_set_instance = ControlSet.objects.get(layout_name=control_set_name)
+	
+	if request.method == 'POST':
+		form  = ControlSetForm(request.POST, instance=control_set_instance, user=request.user)
+		formset = ControlLayoutFormset(request.POST, request.FILES, form_kwargs={'user': request.user})
+		if form.is_valid():
+			form.save()
+		if formset.is_valid():
+			formset.save()
+		
+	elif request.method == 'GET':
+		
+		form = ControlSetForm(instance=control_set_instance, user=request.user)
+		formset = ControlLayoutFormset(queryset=ControlLayout.objects.filter(control_set=control_set_instance), form_kwargs={'user': request.user})
+	
+	return render(request, 'samples/control_set.html', { 'form': form, 'formset': formset, 'layout_name': control_set_name } )
 
 @login_required
 def lysate_batch (request):
