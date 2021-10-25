@@ -367,6 +367,12 @@ class ExtractionProtocol(Timestamped):
 # enumeration of the control types
 class ControlType(models.Model):
 	control_type = models.CharField(max_length=25, unique=True)
+	
+# the set of controls for a plate. Each control has a ControlLayout element containing its plate position.
+class ControlSet(Timestamped):
+	layout_name = models.CharField(max_length=25, db_index=True, unique=True)
+	notes = models.TextField(blank=True)
+	active = models.BooleanField(default=True)
 
 # each control layout comprises rows with the same name
 # a control layout is applied to batch layouts to add controls
