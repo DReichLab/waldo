@@ -40,7 +40,7 @@ table{
 		<th><button class="sort" type="button" data-sort="priority">Priority</button></th>
 		<th><button class="sort" type="button" data-sort="expected_complexity">Expected Complexity</button></th>
 		<th><button class="sort" type="button" data-sort="sampling_tech">Sampling Tech</button></th>
-		<th><button class="sort" type="button" data-sort="sampling_tech">UDG</button></th>
+		<th><button class="sort" type="button" data-sort="udg">UDG</button></th>
 		<th><button class="sort" type="button" data-sort="shipment_id">Shipment ID</button></th>
 		<th><button class="sort" type="button" data-sort="collaborator">Collaborator</button></th>
 		<th><button class="sort" type="button" data-sort="skeletal_element">Skeletal Element</button></th>
@@ -59,7 +59,7 @@ table{
 	<tr>
 		<td class="queue_id">{{queued.sample.queue_id}}</td>
 		<td class="priority">{{queued.priority}}</td>
-		<td class="priority">{{queued.sample.expected_complexity.description}}</td>
+		<td class="expected_complexity">{{queued.sample.expected_complexity.description}}</td>
 		<td class="sampling_tech">{{queued.sample_prep_protocol.preparation_method}}</td>
 		<td class="udg">{{queued.udg_treatment}}</td>
 		<td class="shipment_id">{{queued.sample.shipment.shipment_name}}</td>
