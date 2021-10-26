@@ -123,6 +123,9 @@
 	
 		{% for object_id, position_and_widget_ui in objects_map.items %}
 			$( "#{{ position_and_widget_ui.widget_id }}" ).draggable( { snap: ".ui-widget-header", snapMode: "inner", revert: "invalid" } );
+			{% if allow_layout_modifications != True %}
+			$( "#{{ position_and_widget_ui.widget_id }}" ).draggable( "option", "disabled", true);
+			{% endif %}
 		{% endfor %}
 		position_all_objects(objects_map_js);
 	} );
@@ -140,7 +143,7 @@
 	<form id="" method="POST">
 		{% csrf_token %}
 	</form>
-	{% if allow_modifications == True %}
+	{% if allow_layout_modifications == True %}
 	<button onclick="send_well_plate_layout(objects_map_js)">Submit Layout</button>
 	{% endif %}
 </div>

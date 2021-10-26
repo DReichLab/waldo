@@ -493,7 +493,7 @@ def lysate_batch_plate_layout(request):
 		
 	objects_map = layout_objects_map_for_rendering(layout_elements, 'powder_sample', 'powder_sample_id')
 		
-	return render(request, 'samples/generic_layout.html', { 'layout_title': 'Powder Sample Layout For Lysate Batch', 'layout_name': lysate_batch_name, 'rows':PLATE_ROWS, 'columns':WELL_PLATE_COLUMNS, 'objects_map': objects_map } )
+	return render(request, 'samples/generic_layout.html', { 'layout_title': 'Powder Sample Layout For Lysate Batch', 'layout_name': lysate_batch_name, 'rows':PLATE_ROWS, 'columns':WELL_PLATE_COLUMNS, 'objects_map': objects_map, 'allow_layout_modifications': (lysate_batch.status == lysate_batch.OPEN) } )
 
 @login_required
 def lost_powder(request):
@@ -625,7 +625,7 @@ def extract_batch_layout(request):
 		
 	objects_map = layout_objects_map_for_rendering(layout_elements, 'lysate', 'lysate_id')
 		
-	return render(request, 'samples/generic_layout.html', { 'layout_title': 'Lysate Layout For Extract Batch', 'layout_name': extract_batch_name, 'rows':PLATE_ROWS, 'columns':WELL_PLATE_COLUMNS, 'objects_map': objects_map } )
+	return render(request, 'samples/generic_layout.html', { 'layout_title': 'Lysate Layout For Extract Batch', 'layout_name': extract_batch_name, 'rows':PLATE_ROWS, 'columns':WELL_PLATE_COLUMNS, 'objects_map': objects_map, 'allow_layout_modifications': (extract_batch.status == extract_batch.OPEN)  } )
 	
 @login_required
 def extracts_in_batch(request):
@@ -819,7 +819,7 @@ def library_batch_layout(request):
 		
 	objects_map = layout_objects_map_for_rendering(layout_elements, 'extract', 'extract_id')
 		
-	return render(request, 'samples/generic_layout.html', { 'layout_title': 'Extract Layout For Library Batch', 'layout_name': library_batch_name, 'rows':PLATE_ROWS, 'columns':WELL_PLATE_COLUMNS, 'objects_map': objects_map } )
+	return render(request, 'samples/generic_layout.html', { 'layout_title': 'Extract Layout For Library Batch', 'layout_name': library_batch_name, 'rows':PLATE_ROWS, 'columns':WELL_PLATE_COLUMNS, 'objects_map': objects_map, 'allow_layout_modifications': (library_batch.status == library_batch.OPEN) } )
 	
 @login_required
 def libraries_in_batch(request):
