@@ -102,8 +102,8 @@ Library Batch: {{library_batch_name}} has {{assigned_extracts_count}} distinct e
 	}
 	
 	// clear search upon submission
-	for (button_name in ["submit_button"]){
-		var submit_button = document.getElementById("submit_button");
+	for (let submit_button_str of ["submit_button"]){
+		var submit_button = document.getElementById(submit_button_str);
 		if (submit_button.addEventListener)
 			submit_button.addEventListener("click", clear_search);
 	}

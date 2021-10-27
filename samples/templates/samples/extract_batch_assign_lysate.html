@@ -101,7 +101,7 @@ Extract Batch: {{extract_batch_name}} has {{assigned_lysates_count}} distinct ly
 	}
 	
 	// clear search upon submission
-	for (let submit_button_str in ["submit_button"]){
+	for (let submit_button_str of ["submit_button"]){
 		let submit_button = document.getElementById(submit_button_str);
 		if (submit_button.addEventListener)
 			submit_button.addEventListener("click", clear_search);

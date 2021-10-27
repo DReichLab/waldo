@@ -107,7 +107,7 @@ Lysate Batch: {{lysate_batch_name}} has {{assigned_powder_samples_count}} distin
 	}
 	
 	// clear search upon submission
-	for (let submit_button_str in ["submit_assign_only", "submit_assign_and_layout", "submit_assign_and_fill_empty"]){
+	for (let submit_button_str of ["submit_assign_only", "submit_assign_and_layout", "submit_assign_and_fill_empty"]){
 		let submit_button = document.getElementById(submit_button_str);
 		if (submit_button.addEventListener)
 			submit_button.addEventListener("click", clear_search);
