@@ -269,7 +269,7 @@ def extraction_protocols(request):
 			extraction_protocol_formset.save()
 		
 	elif request.method == 'GET':
-		extraction_protocol_formset = ExtractionProtocolFormset(queryset=ExtractionProtocol.objects.all(), form_kwargs={'user': request.user})
+		extraction_protocol_formset = ExtractionProtocolFormset(queryset=ExtractionProtocol.objects.all().order_by('-end_date'), form_kwargs={'user': request.user})
 	
 	# open can have new samples assigned
 	return render(request, 'samples/extraction_protocols.html', { 'formset': extraction_protocol_formset } )

@@ -121,7 +121,7 @@ PowderSampleFormset = modelformset_factory(PowderSample, form=PowderSampleForm, 
 class ExtractionProtocolForm(UserModelForm):
 	class Meta:
 		model = ExtractionProtocol
-		fields = ['name', 'start_date', 'end_date', 'description', 'manual_robotic', 'total_lysis_volume', 'lysate_fraction_extracted', 'final_extract_volume', 'binding_buffer', 'manuscript_summary', 'protocol_reference']
+		fields = ['name', 'start_date', 'end_date', 'description', 'manual_robotic', 'total_lysis_volume', 'lysate_fraction_extracted', 'final_extract_volume', 'binding_buffer', 'manuscript_summary', 'protocol_reference', 'active']
 
 ExtractionProtocolFormset = modelformset_factory(ExtractionProtocol, form=ExtractionProtocolForm, extra=0, max_num=100)
 		
@@ -144,7 +144,7 @@ class ControlSetForm(UserModelForm):
 		}
 		
 class LysateBatchForm(UserModelForm):
-	protocol = ExtractionProtocolSelect(queryset=ExtractionProtocol.objects.all())
+	protocol = ExtractionProtocolSelect(queryset=ExtractionProtocol.objects.filter(active=True).order_by('-start_date'))
 	control_set = ControlSetSelect(queryset=ControlSet.objects.filter(active=True).order_by('layout_name'))
 	
 	class Meta:
@@ -188,7 +188,7 @@ class LysateBatchToExtractBatchForm(forms.Form):
 	extract_batch_name = forms.CharField(max_length=50, label='Extract Batch name', validators=[validate_extract_batch_does_not_exist])
 		
 class ExtractionBatchForm(UserModelForm):
-	protocol = ExtractionProtocolSelect(queryset=ExtractionProtocol.objects.all())
+	protocol = ExtractionProtocolSelect(queryset=ExtractionProtocol.objects.filter(active=True).order_by('-start_date'))
 	control_set = ControlSetSelect(queryset=ControlSet.objects.filter(active=True).order_by('layout_name'))
 	
 	class Meta:

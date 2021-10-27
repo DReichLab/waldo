@@ -360,6 +360,7 @@ class ExtractionProtocol(Timestamped):
 	binding_buffer = models.CharField(max_length=20, blank=True)
 	manuscript_summary = models.CharField(max_length=150, blank=True)
 	protocol_reference = models.TextField(blank=True)
+	active = models.BooleanField(default=True)
 	
 	def lysate_volume_used(self):
 		return self.total_lysis_volume * self.lysate_fraction_extracted
