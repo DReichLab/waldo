@@ -1193,6 +1193,14 @@ class NuclearSequencingRun(Timestamped):
 	sequencing = models.ForeignKey(SequencingPlatform, on_delete=models.SET_NULL, null=True)
 	notes = models.TextField(blank=True)
 	
+class SequencingRun(Timestamped):
+	name = models.CharField(max_length=50, unique=True, db_index=True)
+	technician = models.CharField(max_length=10, blank=True, default='')
+	technician_fk = models.ForeignKey(WetLabStaff, on_delete=models.SET_NULL, null=True)
+	date = models.DateField(null=True)
+	sequencing = models.ForeignKey(SequencingPlatform, on_delete=models.SET_NULL, null=True)
+	notes = models.TextField(blank=True, default='')
+	
 class ControlsExtract(Timestamped):
 	lysate_batch = models.ForeignKey(LysateBatch, on_delete=models.PROTECT)
 	ec_count = models.PositiveSmallIntegerField(null=True)
