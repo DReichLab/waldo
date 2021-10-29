@@ -1152,7 +1152,7 @@ class MTCapturePlate(Timestamped):
 	notes = models.TextField(blank=True)
 	
 class MTSequencingRun(Timestamped):
-	name = models.CharField(max_length=30)
+	name = models.CharField(max_length=50)
 	technician = models.CharField(max_length=10, blank=True)
 	technician_fk = models.ForeignKey(WetLabStaff, on_delete=models.SET_NULL, null=True)
 	date = models.DateField(null=True)
