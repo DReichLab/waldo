@@ -1151,29 +1151,13 @@ class MTCapturePlate(Timestamped):
 	robot = models.CharField(max_length=20, blank=True)
 	notes = models.TextField(blank=True)
 	
-class MTSequencingRun(Timestamped):
-	name = models.CharField(max_length=50)
-	technician = models.CharField(max_length=10, blank=True)
-	technician_fk = models.ForeignKey(WetLabStaff, on_delete=models.SET_NULL, null=True)
-	date = models.DateField(null=True)
-	sequencing = models.ForeignKey(SequencingPlatform, on_delete=models.SET_NULL, null=True)
-	notes = models.TextField(blank=True)
-	
 class ShotgunPool(Timestamped):
 	name = models.CharField(max_length=50)
 	technician = models.CharField(max_length=10, blank=True)
 	technician_fk = models.ForeignKey(WetLabStaff, on_delete=models.SET_NULL, null=True)
 	date = models.DateField(null=True)
 	notes = models.TextField(blank=True)
-	
-class ShotgunSequencingRun(Timestamped):
-	name = models.CharField(max_length=50)
-	technician = models.CharField(max_length=10, blank=True)
-	technician_fk = models.ForeignKey(WetLabStaff, on_delete=models.SET_NULL, null=True)
-	date = models.DateField(null=True)
-	sequencing = models.ForeignKey(SequencingPlatform, on_delete=models.SET_NULL, null=True)
-	notes = models.TextField(blank=True)
-	
+		
 class NuclearCapturePlate(Timestamped):
 	name = models.CharField(max_length=50)
 	enrichment_type = models.CharField(max_length=20, blank=True)
@@ -1184,15 +1168,7 @@ class NuclearCapturePlate(Timestamped):
 	robot = models.CharField(max_length=50, blank=True)
 	hyb_wash_temps = models.CharField(max_length=50, blank=True)
 	notes = models.TextField(blank=True)
-	
-class NuclearSequencingRun(Timestamped):
-	name = models.CharField(max_length=50)
-	technician = models.CharField(max_length=10, blank=True)
-	technician_fk = models.ForeignKey(WetLabStaff, on_delete=models.SET_NULL, null=True)
-	date = models.DateField(null=True)
-	sequencing = models.ForeignKey(SequencingPlatform, on_delete=models.SET_NULL, null=True)
-	notes = models.TextField(blank=True)
-	
+		
 class SequencingRun(Timestamped):
 	name = models.CharField(max_length=50, unique=True, db_index=True)
 	technician = models.CharField(max_length=10, blank=True, default='')
@@ -1290,13 +1266,10 @@ class Results(Timestamped):
 	library_id = models.CharField(max_length=25, db_index=True)
 	library_fk = models.ForeignKey(Library, null=True, on_delete=models.SET_NULL)
 	mt_capture_plate = models.ForeignKey(MTCapturePlate, null=True, on_delete=models.SET_NULL)
-	mt_seq_run = models.ForeignKey(MTSequencingRun, null=True, on_delete=models.SET_NULL)
 	mt_seq_run_temp = models.ForeignKey(SequencingRun, null=True, on_delete=models.SET_NULL, related_name='results_mt')
 	shotgun_pool = models.ForeignKey(ShotgunPool, null=True, on_delete=models.SET_NULL)
-	shotgun_seq_run = models.ForeignKey(ShotgunSequencingRun, null=True, on_delete=models.SET_NULL)
 	shotgun_seq_run_temp = models.ForeignKey(SequencingRun, null=True, on_delete=models.SET_NULL, related_name='results_shotgun')
 	nuclear_capture_plate = models.ForeignKey(NuclearCapturePlate, null=True, on_delete=models.SET_NULL)
-	nuclear_seq_run = models.ForeignKey(NuclearSequencingRun, null=True, on_delete=models.SET_NULL)
 	nuclear_seq_run_temp = models.ForeignKey(SequencingRun, null=True, on_delete=models.SET_NULL, related_name='results_nuclear')
 	extract_control = models.ForeignKey(ControlsExtract, null=True, on_delete=models.SET_NULL)
 	library_control = models.ForeignKey(ControlsLibrary, null=True, on_delete=models.SET_NULL)
