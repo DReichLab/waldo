@@ -59,7 +59,7 @@ Lysate Batch: {{lysate_batch_name}} has {{assigned_powder_samples_count}} distin
 	{% for layout_element in assigned_powder_samples %}
 	<tr>
 		<td class="checked">
-			<input class="sample_checkbox" type="checkbox" name="powder_sample_checkboxes[]" id="checkbox{{layout_element.powder_sample.powder_sample_id}}" value="{{layout_element.powder_sample.id}}" onclick="update_count()" checked>
+			<input class="sample_checkbox" type="checkbox" name="powder_sample_checkboxes[]" id="checkbox{{layout_element.powder_sample.powder_sample_id}}" value="{{layout_element.id}}_{{layout_element.powder_sample.id}}" onclick="update_count()" checked>
 		</td>
 		<td class="position">{{layout_element}}</td>
 		<td class="powder_sample_id">{{layout_element.powder_sample.powder_sample_id}}</td>
@@ -72,7 +72,7 @@ Lysate Batch: {{lysate_batch_name}} has {{assigned_powder_samples_count}} distin
 	{% for powder_sample in powder_samples %}
 	<tr>
 		<td class="checked">
-			<input class="sample_checkbox" type="checkbox" name="powder_sample_checkboxes[]" id="checkbox{{powder_sample.powder_sample_id}}" value="{{powder_sample.id}}" onclick="update_count()" {% if powder_sample.assigned_to_lysate_batch > 0 %}checked{% endif %}>
+			<input class="sample_checkbox" type="checkbox" name="powder_sample_checkboxes[]" id="checkbox{{powder_sample.powder_sample_id}}" value="_{{powder_sample.id}}" onclick="update_count()" {% if powder_sample.assigned_to_lysate_batch > 0 %}checked{% endif %}>
 		</td>
 		<td class="position">N/A</td>
 		<td class="powder_sample_id">{{powder_sample.powder_sample_id}}</td>

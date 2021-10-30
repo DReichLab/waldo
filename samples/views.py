@@ -17,8 +17,8 @@ from samples.models import Results, Library, Sample, PowderBatch, WetLabStaff, P
 from .forms import IndividualForm, LibraryIDForm, PowderBatchForm, SampleImageForm, PowderSampleForm, PowderSampleFormset, ControlTypeFormset, ControlSetForm, ControlLayoutFormset, ExtractionProtocolFormset, LysateBatchForm, LysateFormset, LysateForm, SamplePrepQueueFormset, LostPowderFormset, SpreadsheetForm, LysateBatchToExtractBatchForm, ExtractionBatchForm, LostLysateFormset, ExtractBatchToLibraryBatchForm, LibraryBatchForm, StorageFormset, ExtractFormset, LibraryFormset
 from sequencing_run.models import MTAnalysis
 
-from .powder_samples import new_reich_lab_powder_sample, assign_prep_queue_entries_to_powder_batch, assign_powder_samples_to_lysate_batch, powder_samples_from_spreadsheet, assign_lysates_to_extract_batch
-from .layout import duplicate_positions_check, update_db_layout,  layout_objects_map_for_rendering, occupied_wells
+from .powder_samples import new_reich_lab_powder_sample, assign_prep_queue_entries_to_powder_batch, powder_samples_from_spreadsheet, assign_lysates_to_extract_batch
+from .layout import duplicate_positions_check, update_db_layout,  layout_objects_map_for_rendering, occupied_wells, layout_and_content_lists, PLATE_WELL_COUNT
 
 from samples.sample_photos import photo_list, save_sample_photo
 
@@ -338,13 +338,15 @@ def lysate_batch_assign_powder(request):
 			print('valid lysate_batch form')
 			lysate_batch_form.save()
 			
-			# iterate through the checkboxes and change states
 			ticked_checkboxes = request.POST.getlist('powder_sample_checkboxes[]')
-			# TODO validate number of selections
-			# tickbox name is powder sample object id (int)
-			#for powder_sample_id in ticked_checkboxes:
-			#	print(f'powder sample: {powder_sample_id}')
-			assign_powder_samples_to_lysate_batch(lysate_batch, ticked_checkboxes, request.user)
+			layout_ids, powder_sample_ids =layout_and_content_lists(ticked_checkboxes)
+			# validate number of selections
+			total_wells = lysate_batch.num_controls() + len(layout_ids) + len(powder_sample_ids)
+			if total_wells > PLATE_WELL_COUNT:
+				return HttpResponse(f'Too many powders and controls {total_wells}')
+			
+			lysate_batch.restrict_layout_elements(layout_ids)
+			lysate_batch.assign_powder_samples(powder_sample_ids, request.user)
 			if 'assign_and_layout' in request.POST:
 				print(f'lysate batch layout {lysate_batch_name}')
 				lysate_batch.assign_layout(request.user)
@@ -356,6 +358,7 @@ def lysate_batch_assign_powder(request):
 			elif lysate_batch.status == lysate_batch.LYSATES_CREATED:
 				lysate_batch.create_lysates(request.user)
 				return redirect(f'{reverse("lysates_in_batch")}?lysate_batch_name={lysate_batch_name}')
+			
 		
 	elif request.method == 'GET':
 		lysate_batch_form = LysateBatchForm(instance=lysate_batch, user=request.user)

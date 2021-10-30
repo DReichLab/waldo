@@ -453,6 +453,33 @@ class LysateBatch(Timestamped):
 	# return string representing status. For templates
 	def get_status(self):
 		return self.LYSATE_BATCH_STATES[self.status][1]
+		
+	# retain only powder samples in layout_element_ids
+	# in addition, preserve controls
+	def restrict_layout_elements(self, layout_element_ids):
+		to_clear = LysateBatchLayout.objects.filter(lysate_batch=self).exclude(id__in=layout_element_ids).exclude(control_type__isnull=False)
+		to_clear.delete()
+	
+	# add LysateBatchLayout for powder samples
+	# this always adds a new layout element
+	def assign_powder_samples(self, new_powder_sample_ids, user):
+		DEFAULT_ROW = 'A'
+		DEFAULT_COLUMN = 1
+		for powder_sample_id in new_powder_sample_ids:
+			powder_sample = PowderSample.objects.get(id=powder_sample_id)
+			powder_sample_mass_for_extract = powder_sample.powder_for_extract
+			
+			lysate_batch_layout = LysateBatchLayout(lysate_batch=self,
+									powder_sample=powder_sample,
+									row=DEFAULT_ROW,
+									column=DEFAULT_COLUMN,
+									powder_used_mg = powder_sample_mass_for_extract,
+									)
+			lysate_batch_layout.save(save_user = user)
+			
+	def num_controls(self):
+		existing_controls = LysateBatchLayout.objects.filter(lysate_batch=self, control_type__isnull=False)
+		return existing_controls.count()
 	
 	# assign a layout, one powder sample or control per position
 	# this is the layout to produce lysate

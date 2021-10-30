@@ -84,32 +84,7 @@ def powder_samples_from_spreadsheet(powder_batch_name, spreadsheet_file, user):
 			powder_sample = powder_samples.get(powder_sample_id=powder_sample_id)
 			powder_sample.from_spreadsheet_row(headers[1:], fields[1:], user)
 			
-DEFAULT_ROW = 'A'
-DEFAULT_COLUMN = 1
 
-def assign_powder_samples_to_lysate_batch(lysate_batch, powder_sample_ids, user):
-	# remove powder samples that are not assigned but preserve controls
-	to_clear = LysateBatchLayout.objects.filter(lysate_batch=lysate_batch).exclude(powder_sample_id__in=powder_sample_ids).exclude(control_type__isnull=False)
-	to_clear.delete()
-	# add LysateBatchLayout for powder samples
-	for powder_sample_id in powder_sample_ids:
-		powder_sample = PowderSample.objects.get(id=powder_sample_id)
-		powder_sample_mass_for_extract = powder_sample.powder_for_extract
-		
-		default_values = {'row': DEFAULT_ROW, 'column': DEFAULT_COLUMN, 'powder_used_mg': powder_sample_mass_for_extract }
-		try: 
-			lysate_batch_layout = LysateBatchLayout.objects.get(lysate_batch=lysate_batch, powder_sample=powder_sample)
-		except LysateBatchLayout.DoesNotExist:
-			lysate_batch_layout = LysateBatchLayout(lysate_batch=lysate_batch, powder_sample=powder_sample)
-			# well position is set after all powder samples are added, this is just a placeholder
-			# existing entries are unchanged
-			lysate_batch_layout.row = 'A'
-			lysate_batch_layout.column = 1
-		
-		lysate_batch_layout.powder_used_mg = powder_sample_mass_for_extract
-		lysate_batch_layout.save_user = user
-		lysate_batch_layout.save()
-		
 def ensure_powder_sample_reich_lab_sample_ids(lysate_batch):
 	for lysate_batch_layout in lysate_batch.layout:
 		powder_sample = lysate_batch_layout.powder_sample

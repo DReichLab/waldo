@@ -80,6 +80,22 @@ def occupied_wells(layout_queryset):
 		non_controls = at_this_location.filter(control_type__isnull=True)
 		num_non_control_assignments += len(non_controls)
 	return occupied_well_count, num_non_control_assignments
+	
+# checkboxes have values [layout_element_id]_[content_id]
+# where content is a powder, lysate, extract, or library
+# return lists
+# 1. layout_elements_id
+# 2. content_ids without a layout_element_id
+def layout_and_content_lists(checkbox_values):
+	layout_ids = []
+	new_content_ids = []
+	for value in checkbox_values:
+		layout_id, content_id = value.split('_')
+		if len(layout_id) > 0:
+			layout_ids.append(int(layout_id))
+		else:
+			new_content_ids.append(int(content_id))
+	return layout_ids, new_content_ids
 
 # find the layout element with the corresponding identifier
 # This is either

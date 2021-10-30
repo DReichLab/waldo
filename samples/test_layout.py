@@ -1,6 +1,6 @@
 from django.test import SimpleTestCase
 
-from .layout import PLATE_ROWS, PLATE_WELL_COUNT, plate_location, reverse_plate_location, PlateDomainError, check_plate_domain
+from .layout import PLATE_ROWS, PLATE_WELL_COUNT, plate_location, reverse_plate_location, PlateDomainError, check_plate_domain, layout_and_content_lists
 			
 class WellPositionArithmetic(SimpleTestCase):
 	def test_check_plate_domain_good(self):
@@ -36,5 +36,13 @@ class WellPositionArithmetic(SimpleTestCase):
 		self.assertEquals('H', row)
 		self.assertEquals(12, column)
 		
-	def out_of_domain_position(self):
+	def test_out_of_domain_position(self):
 		self.assertRaises(PlateDomainError, plate_location, -1)
+
+	def test_layout_and_content_lists(self):
+		checkbox_values = ['1_100', '2_200', '_300', '_400']
+		layout_ids, new_content_ids = layout_and_content_lists(checkbox_values)
+		self.assertEquals(1, layout_ids[0])
+		self.assertEquals(2, layout_ids[1])
+		self.assertEquals(300, new_content_ids[0])
+		self.assertEquals(400, new_content_ids[1])
