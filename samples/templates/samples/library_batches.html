@@ -44,8 +44,12 @@ table{
 	<tr>
 		<th><button class="sort" data-sort="name" data-default-order='desc'>Name</button></th>
 		<th><button class="sort" data-sort="date">Date</button></th>
+		<th><button class="sort" data-sort="protocol">Protocol</button></th>
 		<th><button class="sort" data-sort="technician">Technician</button></th>
-		<th><button class="sort" data-sort="robot">Robot</button></th>
+		<th><button class="sort" data-sort="prep_robot">Prep Robot</button></th>
+		<th><button class="sort" data-sort="cleanup_robot">Cleanup Robot</button></th>
+		<th><button class="sort" data-sort="qpcr_machine">QPCR Machine</button></th>
+		<th><button class="sort" data-sort="p7_offset">P7 Offset</button></th>
 		<th><button class="sort" data-sort="notes">Notes</button></th>
 	</tr>
 	</thead>
@@ -58,8 +62,12 @@ table{
 		<td class="name"><a href="libraries_in_batch?library_batch_name={{library_batch.name}}">{{library_batch.name}}</a></td>
 		{% endif %}
 		<td class="date">{{library_batch.prep_date|date:'Y-m-d'}}</td>
+		<td class="protocol">{{library_batch.protocol}}</td>
 		<td class="technician">{{library_batch.technician}}</td>
-		<td class="robot">{{library_batch.prep_robot}}</td>
+		<td class="prep_robot">{{library_batch.prep_robot}}</td>
+		<td class="cleanup_robot">{{library_batch.cleanup_robot}}</td>
+		<td class="qpcr_machine">{{library_batch.qpcr_machine}}</td>
+		<td class="p7_offset">{{library_batch.p7_offset}}</td>
 		<td class="notes">{{library_batch.prep_note}}</td>
 	</tr>
 	{% endfor %}
@@ -70,7 +78,7 @@ table{
 
 <script>
 	var list_options = {
-		valueNames: ['name', 'date', 'technician', 'robot', 'notes'],
+		valueNames: ['name', 'date', 'protocol', 'technician', 'prep_robot', 'cleanup_robot', 'qpcr_machine', 'p7_offset', 'notes'],
 		searchDelay: 500
 	};
 	var library_batch_list = new List('library_batch_rows', list_options);

@@ -47,6 +47,8 @@ table{
 		<th><button class="sort" data-sort="date">Date</button></th>
 		<th><button class="sort" data-sort="technician">Technician</button></th>
 		<th><button class="sort" data-sort="robot">Robot</button></th>
+		<th><button class="sort" data-sort="protocol">Protocol</button></th>
+		<th><button class="sort" data-sort="controls">Controls</button></th>
 		<th><button class="sort" data-sort="notes">Notes</button></th>
 	</tr>
 	</thead>
@@ -62,6 +64,8 @@ table{
 		<td class="date">{{lysate_batch.date|date:'Y-m-d'}}</td>
 		<td class="technician">{{lysate_batch.technician}}</td>
 		<td class="robot">{{lysate_batch.robot}}</td>
+		<td class="protocol">{{lysate_batch.protocol.name}}</td>
+		<td class="controls">{{lysate_batch.control_set.layout_name}}</td>
 		<td class="notes">{{lysate_batch.note}}</td>
 	</tr>
 	{% endfor %}
@@ -72,7 +76,7 @@ table{
 
 <script>
 	var list_options = {
-		valueNames: ['name', 'status', 'date', 'technician', 'robot', 'notes'],
+		valueNames: ['name', 'status', 'date', 'technician', 'robot', 'protocol', 'controls', 'notes'],
 		searchDelay: 500
 	};
 	var lysate_batch_list = new List('lysate_batch_rows', list_options);
