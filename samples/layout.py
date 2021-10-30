@@ -97,24 +97,6 @@ def layout_and_content_lists(checkbox_values):
 			new_content_ids.append(int(content_id))
 	return layout_ids, new_content_ids
 
-# find the layout element with the corresponding identifier
-# This is either
-# 1. element with object exactly matching identifier
-# or
-# 2. return the control element with its starting location
-def get_layout_element_for_identifier(layout_element_queryset, identifier, object_name, property_id_field):
-	try: # noncontrol
-		kwargs = {
-			'{0}__{1}'.format(object_name, property_id_field): identifier
-		}
-		layout_element = layout_element_queryset.get(**kwargs)
-	except layout_element_queryset.model.DoesNotExist: # control, named with position
-		control_type, start_position = identifier.rsplit(' ', 1)
-		row = start_position[0]
-		column = int(start_position[1:])
-		layout_element = layout_element_queryset.get(control_type__control_type=control_type, row=row, column=column)
-	return layout_element
-
 # update the layout elements in the queryset using the json
 # objects map is a dictionary where each entry has keys:
 	#	widget_id: modified object id to avoid HTML issues
@@ -126,7 +108,7 @@ def update_db_layout(user, objects_map, layout_element_queryset, object_name, pr
 		x = objects_map[identifier]
 		position = x['position']
 		#print(identifier, position)
-		layout_element = get_layout_element_for_identifier(layout_element_queryset, identifier, object_name, property_id_field)
+		layout_element = layout_element_queryset.get(id=identifier)
 		layout_element.set_position(position)
 		layout_element.save(save_user=user)
 
@@ -134,17 +116,22 @@ def update_db_layout(user, objects_map, layout_element_queryset, object_name, pr
 def layout_objects_map_for_rendering(layout_elements, object_name, property_id_field):
 	objects_map = {}
 	for layout_element in layout_elements:
+		identifier = layout_element.id
 		layout_object = getattr(layout_element, object_name, None)
 		if layout_object != None:
-			identifier = getattr(layout_object, property_id_field)
+			label = getattr(layout_object, property_id_field)
 		elif layout_element.control_type != None:
 			# label with location to distinguish between controls
-			identifier = f'{layout_element.control_type.control_type} {str(layout_element)}'
+			label = f'{layout_element.control_type.control_type} {str(layout_element)}'
 		else:
 			raise ValueError('layout with unknown content {property_id_field} {layout_element.pk}')
 		# remove spaces and periods for HTML widget
-		joint = { 'position':f'{str(layout_element)}', 'widget_id':identifier.replace(' ','').replace('.','') }
-		objects_map[identifier] = joint
+		widget_id = f'{label}_{identifier}'.replace(' ','').replace('.','')
+		joint = { 'position':f'{str(layout_element)}', 'widget_id':widget_id, 'label': label }
+		if identifier in objects_map:
+			raise ValueError(f'duplicate key {identifier}')
+		else:
+			objects_map[identifier] = joint
 		print(identifier, joint)
 	return objects_map 
 

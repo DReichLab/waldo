@@ -33,7 +33,8 @@
 		objects_map_js[ "{{ object_id }}" ] = {
 			widget_id:"{{ position_and_widget_ui.widget_id }}", 
 			position:"{{ position_and_widget_ui.position }}",
-			object_id:"{{ object_id }}"
+			object_id:"{{ object_id }}",
+			label:"{{ position_and_widget_ui.label }}"
 		};
 	{% endfor %}
 	var objects_by_position = {}; // object ids contained in well location
@@ -207,7 +208,7 @@ const csrftoken = getCookie('csrftoken');
 
 {% for object_id, position_and_widget_ui in objects_map.items %}
 	<div id="{{ position_and_widget_ui.widget_id }}" class="draggable ui-widget-content positionable" object_id="{{ object_id }}">
-		<p>{{ object_id }}</p>
+		<p>{{ position_and_widget_ui.label }}</p>
 	</div>
 {% endfor %}
 
