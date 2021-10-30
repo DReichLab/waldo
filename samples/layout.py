@@ -125,7 +125,7 @@ def layout_objects_map_for_rendering(layout_elements, object_name, property_id_f
 			# label with location to distinguish between controls
 			identifier = f'{layout_element.control_type.control_type} {str(layout_element)}'
 		else:
-			raise ValueError('ExtractionBatchLayout with neither lysate nor control content f{layout_element.pk}')
+			raise ValueError('layout with unknown content {property_id_field} {layout_element.pk}')
 		# remove spaces and periods for HTML widget
 		joint = { 'position':f'{str(layout_element)}', 'widget_id':identifier.replace(' ','').replace('.','') }
 		objects_map[identifier] = joint
