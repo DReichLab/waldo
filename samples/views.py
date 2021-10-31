@@ -17,7 +17,7 @@ from samples.models import Results, Library, Sample, PowderBatch, WetLabStaff, P
 from .forms import IndividualForm, LibraryIDForm, PowderBatchForm, SampleImageForm, PowderSampleForm, PowderSampleFormset, ControlTypeFormset, ControlSetForm, ControlLayoutFormset, ExtractionProtocolFormset, LysateBatchForm, LysateFormset, LysateForm, SamplePrepQueueFormset, LostPowderFormset, SpreadsheetForm, LysateBatchToExtractBatchForm, ExtractionBatchForm, LostLysateFormset, ExtractBatchToLibraryBatchForm, LibraryBatchForm, StorageFormset, ExtractFormset, LibraryFormset
 from sequencing_run.models import MTAnalysis
 
-from .powder_samples import new_reich_lab_powder_sample, assign_prep_queue_entries_to_powder_batch, powder_samples_from_spreadsheet, assign_lysates_to_extract_batch
+from .powder_samples import new_reich_lab_powder_sample, assign_prep_queue_entries_to_powder_batch, powder_samples_from_spreadsheet
 from .layout import duplicate_positions_check, update_db_layout,  layout_objects_map_for_rendering, occupied_wells, layout_and_content_lists, PLATE_WELL_COUNT
 
 from samples.sample_photos import photo_list, save_sample_photo
@@ -375,10 +375,13 @@ def lysate_batch_assign_powder(request):
 	powder_samples_unselected = PowderSample.objects.annotate(num_assignments=Count('lysatebatchlayout')).annotate(assigned_to_lysate_batch=Count('lysatebatchlayout', filter=Q(lysatebatchlayout__lysate_batch=lysate_batch))).filter(
 		Q(powder_batch__status__description='Ready For Plate', num_assignments=0)
 		| (Q(powder_batch=None) & ~Q(powder_sample_id__endswith='NP'))# powder samples directly from collaborators will not have powder batch. Exclude controls. 
-	)
+	).order_by('powder_batch', 'sample__reich_lab_id')
 	#powder_samples = powder_samples_already_selected.union(powder_samples_unselected).order_by('id')
 	
-	assigned_powder_samples_count = -1 # TODO already_selected_powder_sample_ids.count()
+	powder_samples = {}
+	for layout_element in layout_powder_samples_already_selected:
+		powder_samples[layout_element.powder_sample] = True
+	assigned_powder_samples_count = len(powder_samples)
 	# count wells
 	occupied_well_count, num_non_control_assignments = occupied_wells(LysateBatchLayout.objects.filter(lysate_batch=lysate_batch))
 	
@@ -574,8 +577,10 @@ def extract_batch_assign_lysate(request):
 			
 			# iterate through the checkboxes and change states
 			ticked_checkboxes = request.POST.getlist('lysate_checkboxes[]')
+			layout_ids, lysate_ids =layout_and_content_lists(ticked_checkboxes)
 			# tickbox name is lysate object id (int)
-			assign_lysates_to_extract_batch(extract_batch, ticked_checkboxes, request.user)
+			extract_batch.restrict_layout_elements(layout_ids)
+			# extra lysates are not currently listed, so there are none to add
 			
 			if extract_batch.status == extract_batch.EXTRACTED:
 				extract_batch.create_extracts(request.user)
@@ -586,17 +591,17 @@ def extract_batch_assign_lysate(request):
 		
 	existing_controls = ExtractionBatchLayout.objects.filter(extract_batch=extract_batch, control_type__isnull=False)
 	
-	already_selected_lysates = ExtractionBatchLayout.objects.filter(extract_batch=extract_batch, control_type=None).values_list('lysate', flat=True)
+	already_selected_lysate_layout_elements = ExtractionBatchLayout.objects.filter(extract_batch=extract_batch, control_type=None)
 	
-	lysates = Lysate.objects.annotate(num_assignments=Count('extractionbatchlayout')).annotate(assigned_to_extract_batch=Count('extractionbatchlayout', filter=Q(extractionbatchlayout__extract_batch=extract_batch))).filter(
-		Q(id__in=already_selected_lysates)
-	)
-	
-	assigned_lysates_count = lysates.count()
+	# count distinct lysates
+	lysates = {}
+	for layout_element in already_selected_lysate_layout_elements:
+		lysates[layout_element.lysate] = True
+	assigned_lysates_count = len(lysates)
 	# count wells
 	occupied_well_count, num_non_control_assignments = occupied_wells(ExtractionBatchLayout.objects.filter(extract_batch=extract_batch))
 	
-	return render(request, 'samples/extract_batch_assign_lysate.html', { 'extract_batch_name': extract_batch_name, 'lysates': lysates, 'assigned_lysates_count': assigned_lysates_count, 'control_count': len(existing_controls), 'num_assignments': num_non_control_assignments, 'occupied_wells': occupied_well_count, 'form': extract_batch_form  } )
+	return render(request, 'samples/extract_batch_assign_lysate.html', { 'extract_batch_name': extract_batch_name, 'assigned_lysates': already_selected_lysate_layout_elements, 'assigned_lysates_count': assigned_lysates_count, 'control_count': len(existing_controls), 'num_assignments': num_non_control_assignments, 'occupied_wells': occupied_well_count, 'form': extract_batch_form  } )
 	
 # allow adding any lysate to this batch, free form
 @login_required

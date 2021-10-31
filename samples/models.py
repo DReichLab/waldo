@@ -782,6 +782,12 @@ class ExtractionBatch(Timestamped):
 	# return string representing status. For templates
 	def get_status(self):
 		return self.EXTRACT_BATCH_STATES[self.status][1]
+	
+	# retain only lysates in layout_element_ids
+	# in addition, preserve controls
+	def restrict_layout_elements(self, layout_element_ids):
+		to_clear = ExtractionBatchLayout.objects.filter(extract_batch=self).exclude(id__in=layout_element_ids).exclude(control_type__isnull=False)
+		to_clear.delete()
 		
 	def create_extracts(self, user):
 		layout = ExtractionBatchLayout.objects.filter(extract_batch=self)
