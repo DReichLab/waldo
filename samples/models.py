@@ -294,7 +294,7 @@ class PowderBatch(Timestamped):
 class PowderSample(Timestamped):
 	powder_sample_id = models.CharField(max_length=15, unique=True, null=False, db_index=True)
 	sample = models.ForeignKey(Sample, on_delete=models.PROTECT, help_text='Powder was produced from this sample')
-	powder_batch = models.ForeignKey(PowderBatch, on_delete=models.PROTECT, help_text='powder belongs to this processing batch', null=True)
+	powder_batch = models.ForeignKey(PowderBatch, on_delete=models.CASCADE, help_text='powder belongs to this processing batch', null=True)
 	storage = models.ForeignKey(Storage, on_delete=models.PROTECT, null=True)
 	
 	sampling_tech = models.CharField(max_length=15, blank=True, help_text='Technique used to produce the bone powder')
@@ -658,7 +658,7 @@ class Lysate(Timestamped):
 	lysate_id = models.CharField(max_length=15, unique=True, null=False, db_index=True)
 	reich_lab_lysate_number = models.PositiveIntegerField(null=True, help_text='Starts at 1 for each sample.')
 	powder_sample = models.ForeignKey(PowderSample, null=True, on_delete=models.PROTECT)
-	lysate_batch = models.ForeignKey(LysateBatch, null=True, on_delete=models.SET_NULL)
+	lysate_batch = models.ForeignKey(LysateBatch, null=True, on_delete=models.CASCADE)
 	storage = models.ForeignKey(Storage, on_delete=models.PROTECT, null=True)
 	
 	powder_used_mg = models.FloatField(null=True, help_text='milligrams of bone powder used in lysis')
@@ -860,7 +860,7 @@ class Extract(Timestamped):
 	lysate = models.ForeignKey(Lysate, on_delete=models.PROTECT, null=True)
 	sample = models.ForeignKey(Sample, on_delete=models.PROTECT, null=True)
 	lysate_batch = models.ForeignKey(LysateBatch, null=True, on_delete=models.PROTECT)
-	extract_batch = models.ForeignKey(ExtractionBatch, null=True, on_delete=models.PROTECT)
+	extract_batch = models.ForeignKey(ExtractionBatch, null=True, on_delete=models.CASCADE)
 	storage = models.ForeignKey(Storage, on_delete=models.PROTECT, null=True)
 	lysis_volume_extracted = models.FloatField(null=True)
 	#extract_volume_remaining = models.FloatField(null=True)
@@ -1078,7 +1078,7 @@ class P7_Index(models.Model):
 class Library(Timestamped):
 	sample = models.ForeignKey(Sample, on_delete=models.PROTECT, null=True)
 	extract = models.ForeignKey(Extract, on_delete=models.PROTECT, null=True)
-	library_batch = models.ForeignKey(LibraryBatch, on_delete=models.PROTECT, null=True)
+	library_batch = models.ForeignKey(LibraryBatch, on_delete=models.CASCADE, null=True)
 	reich_lab_library_id = models.CharField(max_length=20, unique=True, db_index=True)
 	reich_lab_library_number = models.PositiveIntegerField(null=True, help_text='Starts at 1 for each extract or sample')
 	udg_treatment = models.CharField(max_length=10)
