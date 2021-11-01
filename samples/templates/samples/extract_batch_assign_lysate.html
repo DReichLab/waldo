@@ -45,9 +45,11 @@ Extract Batch: {{extract_batch_name}} has {{assigned_lysates_count}} distinct ly
 	<thead>
 	<tr>
 		<th><input type="checkbox" name="toggle_all_checkbox" id="toggle_all_checkbox" onclick="toggle_onscreen_all()"></th>
+		<th><button class="sort" type="button" data-sort="position">Position</button></th>
 		<th><button class="sort" type="button" data-sort="lysate_id">Lysate ID</button></th>
 		<th><button class="sort" type="button" data-sort="sample">Sample</button></th>
 		<th><button class="sort" type="button" data-sort="lysate_batch">Lysate Batch</button></th>
+		<th><button class="sort" type="button" data-sort="lysate_remaining">Lysate Remaining</button></th>
 	</tr>
 	</thead>
 	<tbody class="list">
@@ -56,9 +58,11 @@ Extract Batch: {{extract_batch_name}} has {{assigned_lysates_count}} distinct ly
 		<td class="checked">
 			<input class="sample_checkbox" type="checkbox" name="lysate_checkboxes[]" id="checkbox{{layout_element.lysate.lysate_id}}" value="{{layout_element.id}}_{{layout_element.lysate.id}}" onclick="update_count()" checked>
 		</td>
+		<td class="position">{{layout_element}}</td>
 		<td class="lysate_id">{{layout_element.lysate.lysate_id}}</td>
 		<td class="sample">S{{layout_element.lysate.powder_sample.sample.reich_lab_id}}</td>
 		<td class="lysate_batch">{{layout_element.lysate.lysate_batch.batch_name}}</td>
+		<td class="lysate_remaining">{{layout_element.lysate.remaining}}</td>
 	</tr>
 	{% endfor %}
 	</tbody>

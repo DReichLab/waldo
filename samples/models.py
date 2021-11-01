@@ -696,6 +696,23 @@ class Lysate(Timestamped):
 		self.barcode = arg_array[headers.index('barcode')]
 		self.notes = arg_array[headers.index('notes')]
 		self.save(save_user=user)
+		
+	# Compute how much lysate is left based on original lysate amount generated minus:
+	# 1. lysate used to make extracts
+	# 2. lost lysate
+	def remaining(self):
+		lysate_used = 0
+		# Rebecca kept track of lysate used in extracts
+		# potential improvement is to move all of these computations into ExtractionBatchLayout objects
+		extracts = Extract.objects.filter(lysate=self)
+		for extract in extracts:
+			lysate_used += extract.lysis_volume_extracted
+		# Lost lysate is in ExtractionBatchLayout
+		lost_lysates = ExtractionBatchLayout.objects.filter(lysate=self, extract_batch=None)
+		for lost in lost_lysates:
+			lysate_used += lost.lysate_volume_used
+		lysate_remaining = self.total_volume_produced - lysate_used
+		return lysate_remaining
 	
 # how many extracts exist for this lysate
 def extracts_for_lysate(lysate):
