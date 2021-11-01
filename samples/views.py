@@ -784,6 +784,18 @@ def library_batch_assign_extract(request):
 	
 	return render(request, 'samples/library_batch_assign_extract.html', { 'library_batch_name': library_batch_name, 'extracts': extracts, 'assigned_extracts_count': assigned_extracts_count, 'control_count': len(existing_controls), 'num_assignments': num_non_control_assignments, 'occupied_wells': occupied_well_count, 'form': library_batch_form  } )
 	
+@login_required
+def library_batch_delete(request):
+	library_batch_name = request.GET['batch_name']
+	library_batch = LibraryBatch.objects.get(name=library_batch_name)
+	library_batch_form = LibraryBatchForm(instance=library_batch, user=request.user)
+	library_batch_form.disable_fields()
+	
+	if request.method == 'POST':
+		print(f'request to delete {library_batch_name}')
+		
+	return render(request, 'samples/delete_batch.html', {'form': library_batch_form, 'batch_type': 'Library Batch', 'batch_name': library_batch_name, 'cancel_link': 'library_batches'})
+	
 # return comma-delimited spreadsheet version of barcodes for robot
 @login_required
 def library_batch_barcodes_spreadsheet(request):

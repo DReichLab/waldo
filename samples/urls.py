@@ -39,6 +39,7 @@ urlpatterns = [
 	path('extract_batch_to_library_batch', views.extract_batch_to_library_batch, name='extract_batch_to_library_batch'),
 	path('library_batches', views.library_batches, name='library_batches'),
 	path('library_batch_assign_extract', views.library_batch_assign_extract, name='library_batch_assign_extract'),
+	path('library_batch_delete', views.library_batch_delete, name='library_batch_delete'),
 	path('library_batch_layout', views.library_batch_layout, name='library_batch_layout'),
 	path('library_batch_barcodes_spreadsheet', views.library_batch_barcodes_spreadsheet, name='library_batch_barcodes_spreadsheet'),
 	path('libraries_in_batch', views.libraries_in_batch, name='libraries_in_batch'),
