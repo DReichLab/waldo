@@ -33,6 +33,8 @@ Powder Batch: {{powder_batch_name}} has {{num_sample_prep}} sample prep entries 
 	{% csrf_token %}
 	{{ form.as_p }}
 	<input id="submit_button" type='submit' value='Modify Powder Batch And Assign Samples'>
+	
+<a href='powder_batch_delete?batch_name={{powder_batch_name}}'>Delete</a>
 
 <legend>Samples</legend>
 <div id='sample_rows'>

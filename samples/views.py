@@ -203,6 +203,23 @@ def powder_batch_assign_samples(request):
 	num_sample_prep = SamplePrepQueue.objects.filter(powder_batch=powder_batch).count()
 	num_powder_samples = PowderSample.objects.filter(powder_batch=powder_batch).count()
 	return render(request, 'samples/powder_batch_assign_sample.html', { 'queued_samples': sample_queue, 'powder_batch_name': powder_batch_name, 'form': form, 'num_sample_prep': num_sample_prep, 'num_powder_samples': num_powder_samples } )
+	
+@login_required
+def powder_batch_delete(request):
+	powder_batch_name = request.GET['batch_name']
+	try:
+		powder_batch = PowderBatch.objects.get(name=powder_batch_name)
+		powder_batch_form = PowderBatchForm(instance=powder_batch, user=request.user)
+		powder_batch_form.disable_fields()
+	except PowderBatch.DoesNotExist:
+		return HttpResponse(f'{powder_batch_name} no longer exists.')
+	
+	if request.method == 'POST':
+		print(f'request to delete {powder_batch_name}')
+		powder_batch.delete()
+		return redirect(f'{reverse("powder_batch")}')
+		
+	return render(request, 'samples/delete_batch.html', {'form': powder_batch_form, 'batch_type': 'Powder Batch', 'batch_name': powder_batch_name, 'cancel_link': 'powder_batch'})
 
 # Edit the powder samples in a powder batch
 @login_required
@@ -386,6 +403,23 @@ def lysate_batch_assign_powder(request):
 	occupied_well_count, num_non_control_assignments = occupied_wells(LysateBatchLayout.objects.filter(lysate_batch=lysate_batch))
 	
 	return render(request, 'samples/lysate_batch_assign_powder.html', { 'lysate_batch_name': lysate_batch_name, 'assigned_powder_samples': layout_powder_samples_already_selected, 'powder_samples': powder_samples_unselected, 'assigned_powder_samples_count': assigned_powder_samples_count, 'control_count': len(existing_controls), 'num_assignments': num_non_control_assignments, 'occupied_wells': occupied_well_count, 'form': lysate_batch_form  } )
+	
+@login_required
+def lysate_batch_delete(request):
+	lysate_batch_name = request.GET['batch_name']
+	try:
+		lysate_batch = LysateBatch.objects.get(batch_name=lysate_batch_name)
+		lysate_batch_form = LysateBatchForm(instance=lysate_batch, user=request.user)
+		lysate_batch_form.disable_fields()
+	except LysateBatch.DoesNotExist:
+		return HttpResponse(f'{lysate_batch_name} no longer exists.')
+	
+	if request.method == 'POST':
+		print(f'request to delete {lysate_batch_name}')
+		lysate_batch.delete()
+		return redirect(f'{reverse("lysate_batch")}')
+		
+	return render(request, 'samples/delete_batch.html', {'form': lysate_batch_form, 'batch_type': 'Lysate Batch', 'batch_name': lysate_batch_name, 'cancel_link': 'lysate_batch'})
 	
 @login_required
 def lysates_in_batch(request):
@@ -603,6 +637,23 @@ def extract_batch_assign_lysate(request):
 	
 	return render(request, 'samples/extract_batch_assign_lysate.html', { 'extract_batch_name': extract_batch_name, 'assigned_lysates': already_selected_lysate_layout_elements, 'assigned_lysates_count': assigned_lysates_count, 'control_count': len(existing_controls), 'num_assignments': num_non_control_assignments, 'occupied_wells': occupied_well_count, 'form': extract_batch_form  } )
 	
+@login_required
+def extract_batch_delete(request):
+	extract_batch_name = request.GET['batch_name']
+	try:
+		extract_batch = ExtractionBatch.objects.get(batch_name=extract_batch_name)
+		extract_batch_form = ExtractionBatchForm(instance=extract_batch, user=request.user)
+		extract_batch_form.disable_fields()
+	except ExtractionBatch.DoesNotExist:
+		return HttpResponse(f'{extract_batch_name} no longer exists.')
+	
+	if request.method == 'POST':
+		print(f'request to delete {extract_batch_name}')
+		extract_batch.delete()
+		return redirect(f'{reverse("extract_batch")}')
+		
+	return render(request, 'samples/delete_batch.html', {'form': extract_batch_form, 'batch_type': 'Extract Batch', 'batch_name': extract_batch_name, 'cancel_link': 'extract_batch'})
+	
 # allow adding any lysate to this batch, free form
 @login_required
 def extract_batch_add_lysate(request):
@@ -787,14 +838,19 @@ def library_batch_assign_extract(request):
 @login_required
 def library_batch_delete(request):
 	library_batch_name = request.GET['batch_name']
-	library_batch = LibraryBatch.objects.get(name=library_batch_name)
-	library_batch_form = LibraryBatchForm(instance=library_batch, user=request.user)
-	library_batch_form.disable_fields()
+	try:
+		library_batch = LibraryBatch.objects.get(name=library_batch_name)
+		library_batch_form = LibraryBatchForm(instance=library_batch, user=request.user)
+		library_batch_form.disable_fields()
+	except LibraryBatch.DoesNotExist:
+		return HttpResponse(f'{library_batch_name} no longer exists.')
 	
 	if request.method == 'POST':
 		print(f'request to delete {library_batch_name}')
+		library_batch.delete()
+		return redirect(f'{reverse("library_batches")}')
 		
-	return render(request, 'samples/delete_batch.html', {'form': library_batch_form, 'batch_type': 'Library Batch', 'batch_name': library_batch_name, 'cancel_link': 'library_batches'})
+	return render(request, 'samples/delete_batch.html', {'form': library_batch_form, 'batch_type': 'Library Batch', 'batch_name': library_batch_name, 'link': 'library_batches'})
 	
 # return comma-delimited spreadsheet version of barcodes for robot
 @login_required

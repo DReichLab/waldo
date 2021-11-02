@@ -42,6 +42,10 @@ class PowderBatchForm(UserModelForm):
 	class Meta:
 		model = PowderBatch
 		fields = ['name', 'date', 'technician', 'status', 'notes']
+		
+	def disable_fields(self):
+		for field in PowderBatchForm._meta.fields:
+			self.fields[field].disabled = True
 
 IMAGE_TYPES = [
 		('Before', 'Before'),
@@ -159,6 +163,10 @@ class LysateBatchForm(UserModelForm):
 		for option in ['protocol', 'date', 'robot']:
 			self.fields[option].required = False
 			
+	def disable_fields(self):
+		for field in LysateBatchForm._meta.fields:
+			self.fields[field].disabled = True
+			
 class LysateForm(UserModelForm):
 	well_position = forms.CharField(disabled=True)
 	class Meta:
@@ -208,6 +216,10 @@ class ExtractionBatchForm(UserModelForm):
 		super().__init__(*args, **kwargs)
 		for option in ['date', 'robot']:
 			self.fields[option].required = False
+			
+	def disable_fields(self):
+		for field in ExtractionBatchForm._meta.fields:
+			self.fields[field].disabled = True
 			
 class ExtractForm(UserModelForm):
 	class Meta:
