@@ -441,7 +441,7 @@ def lysates_in_batch(request):
 	elif request.method == 'GET':
 		#powder_batch_form = PowderBatchForm(initial={'name': powder_batch_name, 'date': powder_batch.date, 'status': powder_batch.status, 'notes': powder_batch.notes}, instance=powder_batch, user=request.user)
 		lysate_batch_form = LysateBatchForm(instance=lysate_batch, user=request.user)
-		lysates_formset = LysateFormset(queryset=Lysate.objects.filter(lysate_batch=lysate_batch), form_kwargs={'user': request.user})
+		lysates_formset = LysateFormset(queryset=Lysate.objects.filter(lysate_batch=lysate_batch).order_by('lysatebatchlayout__column', 'lysatebatchlayout__row'), form_kwargs={'user': request.user})
 	
 	return render(request, 'samples/lysates_in_batch.html', { 'lysate_batch_name': lysate_batch_name, 'lysate_batch_form': lysate_batch_form, 'formset': lysates_formset} )
 	
