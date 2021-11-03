@@ -183,7 +183,7 @@ class LysateForm(UserModelForm):
 		if self.instance:
 			layout_elements = self.instance.lysatebatchlayout_set
 			layout_element = layout_elements.get(lysate=self.instance)
-			self.initial['well_position'] =str(layout_element)
+			self.initial['well_position'] = str(layout_element)
 		
 LysateFormset = modelformset_factory(Lysate, form=LysateForm, extra=0)
 
@@ -222,9 +222,10 @@ class ExtractionBatchForm(UserModelForm):
 			self.fields[field].disabled = True
 			
 class ExtractForm(UserModelForm):
+	well_position = forms.CharField(disabled=True)
 	class Meta:
 		model = Extract
-		fields = ['extract_id', 'lysis_volume_extracted', 'notes']
+		fields = ['well_position', 'extract_id', 'lysis_volume_extracted', 'notes']
 		widgets = {
 			'note': Textarea(attrs={'cols': 60, 'rows': 2}),
 		}
@@ -232,6 +233,11 @@ class ExtractForm(UserModelForm):
 	def __init__(self, *args, **kwargs):
 		super().__init__(*args, **kwargs)
 		self.fields['extract_id'].disabled = True
+		
+		if self.instance:
+			layout_elements = self.instance.extractionbatchlayout_set
+			layout_element = layout_elements.get(extract=self.instance)
+			self.initial['well_position'] = str(layout_element)
 		
 ExtractFormset = modelformset_factory(Extract, form=ExtractForm, extra=0)
 			

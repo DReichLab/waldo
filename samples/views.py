@@ -709,7 +709,7 @@ def extracts_in_batch(request):
 		
 	elif request.method == 'GET':
 		extract_batch_form = ExtractionBatchForm(instance=extract_batch, user=request.user)
-		extracts_formset = ExtractFormset(queryset=Extract.objects.filter(extract_batch=extract_batch), form_kwargs={'user': request.user})
+		extracts_formset = ExtractFormset(queryset=Extract.objects.filter(extract_batch=extract_batch).order_by('extractionbatchlayout__column', 'extractionbatchlayout__row'), form_kwargs={'user': request.user})
 	
 	return render(request, 'samples/extracts_in_batch.html', { 'extract_batch_name': extract_batch_name, 'extract_batch_form': extract_batch_form, 'formset': extracts_formset} )
 	
