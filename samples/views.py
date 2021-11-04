@@ -625,7 +625,7 @@ def extract_batch_assign_lysate(request):
 		
 	existing_controls = ExtractionBatchLayout.objects.filter(extract_batch=extract_batch, control_type__isnull=False)
 	
-	already_selected_lysate_layout_elements = ExtractionBatchLayout.objects.filter(extract_batch=extract_batch, control_type=None)
+	already_selected_lysate_layout_elements = ExtractionBatchLayout.objects.filter(extract_batch=extract_batch, control_type=None).order_by(column, row)
 	
 	# count distinct lysates
 	lysates = {}
@@ -796,7 +796,7 @@ def library_batches(request):
 	elif request.method == 'GET':
 		form = LibraryBatchForm(user=request.user)
 		
-	library_batches_queryset = LibraryBatch.objects.all()
+	library_batches_queryset = LibraryBatch.objects.all().order_by('-id')
 	return render(request, 'samples/library_batches.html', { 'form': form, 'library_batches': library_batches_queryset } )
 	
 @login_required
@@ -821,19 +821,20 @@ def library_batch_assign_extract(request):
 	elif request.method == 'GET':
 		library_batch_form = LibraryBatchForm(instance=library_batch, user=request.user)
 		
-	existing_controls = LibraryBatchLayout.objects.filter(library_batch=library_batch, control_type__isnull=False)
+	existing_controls = LibraryBatchLayout.objects.filter(library_batch=library_batch, control_type__isnull=False).order_by('column', 'row')
 	
-	already_selected_extracts = LibraryBatchLayout.objects.filter(library_batch=library_batch, control_type=None).values_list('extract', flat=True)
+	already_selected_extract_layout_elements = LibraryBatchLayout.objects.filter(library_batch=library_batch, control_type=None).order_by('column', 'row')
 	
-	extracts = Extract.objects.annotate(num_assignments=Count('librarybatchlayout')).annotate(assigned_to_library_batch=Count('librarybatchlayout', filter=Q(librarybatchlayout__library_batch=library_batch))).filter(
-		Q(id__in=already_selected_extracts)
-	)
+	# count distinct extracts
+	extracts = {}
+	for layout_element in already_selected_extract_layout_elements:
+		extracts[layout_element.extract] = True
+	assigned_extracts_count = len(extracts)
 	
-	assigned_extracts_count = extracts.count()
 	# count wells
 	occupied_well_count, num_non_control_assignments = occupied_wells(LibraryBatchLayout.objects.filter(library_batch=library_batch))
 	
-	return render(request, 'samples/library_batch_assign_extract.html', { 'library_batch_name': library_batch_name, 'extracts': extracts, 'assigned_extracts_count': assigned_extracts_count, 'control_count': len(existing_controls), 'num_assignments': num_non_control_assignments, 'occupied_wells': occupied_well_count, 'form': library_batch_form  } )
+	return render(request, 'samples/library_batch_assign_extract.html', { 'library_batch_name': library_batch_name, 'assigned_extracts': already_selected_extract_layout_elements, 'assigned_extracts_count': assigned_extracts_count, 'control_count': len(existing_controls), 'num_assignments': num_non_control_assignments, 'occupied_wells': occupied_well_count, 'form': library_batch_form  } )
 	
 @login_required
 def library_batch_delete(request):

@@ -2,7 +2,7 @@
 
 {% load static %}
 
-{% block title %}Extract Selection For Library Batch {{library_batch_name}}{% endblock %}
+{% block title %}Library Batch {{library_batch_name}} Extract Selection {% endblock %}
 
 {% block content %}
 <script src="{% static "samples/list.js" %}"></script>
@@ -47,22 +47,22 @@ Library Batch: {{library_batch_name}} has {{assigned_extracts_count}} distinct e
 	<thead>
 	<tr>
 		<th><input type="checkbox" name="toggle_all_checkbox" id="toggle_all_checkbox" onclick="toggle_onscreen_all()"></th>
+		<th><button class="sort" type="button" data-sort="position">Position</button></th>
 		<th><button class="sort" type="button" data-sort="extract_id">Extract ID</button></th>
-		<th><button class="sort" type="button" data-sort="wells">Num Assignments</button></th>
 		<th><button class="sort" type="button" data-sort="sample">Sample</button></th>
 		<th><button class="sort" type="button" data-sort="extract_batch">Extract Batch</button></th>
 	</tr>
 	</thead>
 	<tbody class="list">
-	{% for extract in extracts %}
+	{% for layout_element in assigned_extracts %}
 	<tr>
 		<td class="checked">
-			<input class="sample_checkbox" type="checkbox" name="extract_checkboxes[]" id="checkbox{{extract.extract_id}}" value="{{extract.id}}" onclick="update_count()" {% if extract.assigned_to_library_batch > 0 %}checked{% endif %}>
+			<input class="sample_checkbox" type="checkbox" name="extract_checkboxes[]" id="checkbox{{layout_element.extract.extract_id}}" value="{{layout_element.id}}_{{layout_element.extract.id}}" onclick="update_count()" checked>
 		</td>
-		<td class="extract_id">{{extract.extract_id}}</td>
-		<td class="wells">{{extract.num_assignments}}</td>
-		<td class="sample">S{{extract.lysate.powder_sample.sample.reich_lab_id}}</td>
-		<td class="extract_batch">{{extract.extract_batch.batch_name}}</td>
+		<td class="position">{{layout_element}}</td>
+		<td class="extract_id">{{layout_element.extract.extract_id}}</td>
+		<td class="sample">S{{layout_element.extract.lysate.powder_sample.sample.reich_lab_id}}</td>
+		<td class="extract_batch">{{layout_element.extract.extract_batch.batch_name}}</td>
 	</tr>
 	{% endfor %}
 	</tbody>
