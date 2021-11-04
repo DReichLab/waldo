@@ -341,7 +341,7 @@ def lysate_batch (request):
 	elif request.method == 'GET':
 		lysate_batch_form = LysateBatchForm(user=request.user)
 	
-	lysate_batches = LysateBatch.objects.all().order_by('status', '-date')
+	lysate_batches = LysateBatch.objects.all().order_by('-id')
 	# open can have new samples assigned
 	return render(request, 'samples/lysate_batch.html', { 'lysate_batch_form': lysate_batch_form, 'lysate_batches': lysate_batches } )
 
@@ -595,7 +595,7 @@ def extract_batch(request):
 	elif request.method == 'GET':
 		extract_batch_form = ExtractionBatchForm(user=request.user)
 	
-	extract_batches = ExtractionBatch.objects.all()
+	extract_batches = ExtractionBatch.objects.all().order_by('-id')
 	# open can have new samples assigned
 	return render(request, 'samples/extract_batch.html', { 'extract_batch_form': extract_batch_form, 'extract_batches': extract_batches } )
 	
