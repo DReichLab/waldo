@@ -4,7 +4,7 @@ from django.forms import modelformset_factory
 from django.forms.widgets import TextInput
 from django.utils.translation import gettext_lazy as _
 
-from samples.models import PowderBatch, PowderBatchStatus, PowderSample, Sample, SamplePrepProtocol, ControlType, ControlSet, ControlLayout, LysateBatch, ExtractionProtocol, ExpectedComplexity, SamplePrepQueue, Lysate, LysateBatchLayout, ExtractionBatch, ExtractionBatchLayout, LibraryProtocol, LibraryBatch, Extract, Storage, Library, Barcode
+from samples.models import PowderBatch, PowderBatchStatus, PowderSample, Sample, SamplePrepProtocol, ControlType, ControlSet, ControlLayout, LysateBatch, ExtractionProtocol, ExpectedComplexity, SamplePrepQueue, Lysate, LysateBatchLayout, ExtractionBatch, ExtractionBatchLayout, LibraryProtocol, LibraryBatch, Extract, Storage, Library, Barcode, NuclearCaptureProtocol, NuclearCapturePlate
 
 import datetime
 
@@ -377,6 +377,20 @@ class LibraryForm(UserModelForm):
 			self.fields[option].required = False
 
 LibraryFormset = modelformset_factory(Library, form=LibraryForm, extra=0)
+
+class CaptureProtocolSelect(ModelChoiceField):
+	def label_from_instance(self, obj):
+		return obj.name
+
+class CaptureBatchForm(UserModelForm):
+	protocol = CaptureProtocolSelect(queryset=NuclearCaptureProtocol.objects.all())
+	
+	class Meta:
+		model = NuclearCapturePlate
+		fields = ['name', 'enrichment_type', 'protocol', 'technician', 'date', 'robot', 'hyb_wash_temps', 'notes']
+		widgets = {
+			'notes': Textarea(attrs={'cols': 60, 'rows': 2}),
+		}
 
 class SpreadsheetForm(forms.Form):
 	spreadsheet = forms.FileField()

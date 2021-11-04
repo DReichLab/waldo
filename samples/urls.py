@@ -48,6 +48,7 @@ urlpatterns = [
 	path('libraries_in_batch', views.libraries_in_batch, name='libraries_in_batch'),
 	path('libraries_spreadsheet', views.libraries_spreadsheet, name='libraries_spreadsheet'),
 	path('libraries_spreadsheet_upload', views.libraries_spreadsheet_upload, name='libraries_spreadsheet_upload'),
+	path('capture_batches', views.capture_batches, name='capture_batches'),
 	path('lost_powder', views.lost_powder, name='lost_powder'),
 	path('lost_lysate', views.lost_lysate, name='lost_lysate'),
 	path('sample', views.sample, name='sample'),

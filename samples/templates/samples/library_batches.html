@@ -43,6 +43,7 @@ table{
 	<thead>
 	<tr>
 		<th><button class="sort" data-sort="name" data-default-order='desc'>Name</button></th>
+		<th><button class="sort" data-sort="status">Status</button></th>
 		<th><button class="sort" data-sort="date">Date</button></th>
 		<th><button class="sort" data-sort="protocol">Protocol</button></th>
 		<th><button class="sort" data-sort="technician">Technician</button></th>
@@ -61,6 +62,7 @@ table{
 		{% else %}
 		<td class="name"><a href="libraries_in_batch?library_batch_name={{library_batch.name}}">{{library_batch.name}}</a></td>
 		{% endif %}
+		<td class="date">{{library_batch.get_status}}</td>
 		<td class="date">{{library_batch.prep_date|date:'Y-m-d'}}</td>
 		<td class="protocol">{{library_batch.protocol}}</td>
 		<td class="technician">{{library_batch.technician}}</td>

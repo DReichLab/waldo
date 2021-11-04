@@ -1,0 +1,86 @@
+{% extends "samples/reich_lab_base.html" %}
+
+{% load static %}
+
+{% block title %}Capture Batches{% endblock %}
+
+{% block content %}
+<script src="{% static "samples/list.js" %}"></script>
+
+<style>
+th {
+	position: sticky;
+	top: 0;
+	background: #eee;
+}
+
+#table_wrapper{
+	overflow-x: auto;
+	overflow-y: scroll;
+	height: 85vh;
+}
+
+table{
+	border-collapse: collapse;
+	border-spacing: 0;
+	width: 100%;
+}
+</style>
+
+<form action="" method='post'>
+	{% csrf_token %}
+	{{ form.as_p }}
+	<input type='submit' value='Create Capture Batch'>
+</form>
+
+<hr>
+
+<div id='capture_batch_rows'>
+
+<input class="search" placeholder="Search" />
+<div id='table_wrapper'>
+<table>
+	<thead>
+	<tr>
+		<th><button class="sort" data-sort="name" data-default-order='desc'>Name</button></th>
+		<th><button class="sort" data-sort="date">Date</button></th>
+		<th><button class="sort" data-sort="protocol">Protocol</button></th>
+		<th><button class="sort" data-sort="enrichment_type">Enrichment Type</button></th>
+		<th><button class="sort" data-sort="technician">Technician</button></th>
+		<th><button class="sort" data-sort="robot">Robot</button></th>
+		<th><button class="sort" data-sort="hyb_wash_temps">Hyb Wash Temps</button></th>
+		<th><button class="sort" data-sort="notes">Notes</button></th>
+	</tr>
+	</thead>
+	<tbody class="list">
+	{% for capture_batch in capture_batches %}
+	<tr>
+		{% if capture_batch.status == capture_batch.OPEN %}
+		<td class="name"><a href="capture_batch_assign_library?capture_batch_name={{capture_batch.name}}">{{capture_batch.name}}</a></td>
+		{% else %}
+		<td class="name"><a href="libraries_in_batch?capture_batch_name={{capture_batch.name}}">{{capture_batch.name}}</a></td>
+		{% endif %}
+		<td class="date">{{capture_batch.prep_date|date:'Y-m-d'}}</td>
+		<td class="protocol">{{capture_batch.protocol.name}}</td>
+		<td class="enrichment_type">{{capture_batch.enrichment_type}}</td>
+		<td class="technician">{{capture_batch.technician}}</td>
+		<td class="robot">{{capture_batch.robot}}</td>
+		<td class="hyb_wash_temps">{{capture_batch.hyb_wash_temps}}</td>
+		<td class="notes">{{capture_batch.prep_note}}</td>
+	</tr>
+	{% endfor %}
+	</tbody>
+</table>
+</div>
+</div>
+
+<script>
+	var list_options = {
+		valueNames: ['name', 'date', 'protocol', 'enrichment_type', 'technician', 'robot', 'hyb_wash_temps', 'notes'],
+		searchDelay: 500
+	};
+	var capture_batch_list = new List('capture_batch_rows', list_options);
+	//document.addEventListener("load", capture_batch_list.sort('date', { order: 'desc'}));
+</script>
+
+{% endblock %}

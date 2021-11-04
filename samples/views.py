@@ -13,8 +13,8 @@ import json
 from datetime import datetime
 
 from samples.pipeline import udg_and_strandedness
-from samples.models import Results, Library, Sample, PowderBatch, WetLabStaff, PowderSample, ControlType, ControlSet, ControlLayout, ExtractionProtocol, LysateBatch, SamplePrepQueue, PLATE_ROWS, LysateBatchLayout, ExtractionBatch, ExtractionBatchLayout, Lysate, LibraryBatch, LibraryBatchLayout, Extract, Storage
-from .forms import IndividualForm, LibraryIDForm, PowderBatchForm, SampleImageForm, PowderSampleForm, PowderSampleFormset, ControlTypeFormset, ControlSetForm, ControlLayoutFormset, ExtractionProtocolFormset, LysateBatchForm, LysateFormset, LysateForm, SamplePrepQueueFormset, LostPowderFormset, SpreadsheetForm, LysateBatchToExtractBatchForm, ExtractionBatchForm, LostLysateFormset, ExtractBatchToLibraryBatchForm, LibraryBatchForm, StorageFormset, ExtractFormset, LibraryFormset
+from samples.models import Results, Library, Sample, PowderBatch, WetLabStaff, PowderSample, ControlType, ControlSet, ControlLayout, ExtractionProtocol, LysateBatch, SamplePrepQueue, PLATE_ROWS, LysateBatchLayout, ExtractionBatch, ExtractionBatchLayout, Lysate, LibraryBatch, LibraryBatchLayout, Extract, NuclearCapturePlate, Storage
+from .forms import IndividualForm, LibraryIDForm, PowderBatchForm, SampleImageForm, PowderSampleForm, PowderSampleFormset, ControlTypeFormset, ControlSetForm, ControlLayoutFormset, ExtractionProtocolFormset, LysateBatchForm, LysateFormset, LysateForm, SamplePrepQueueFormset, LostPowderFormset, SpreadsheetForm, LysateBatchToExtractBatchForm, ExtractionBatchForm, LostLysateFormset, ExtractBatchToLibraryBatchForm, LibraryBatchForm, StorageFormset, ExtractFormset, LibraryFormset, CaptureBatchForm
 from sequencing_run.models import MTAnalysis
 
 from .powder_samples import new_reich_lab_powder_sample, assign_prep_queue_entries_to_powder_batch, powder_samples_from_spreadsheet
@@ -957,6 +957,18 @@ def libraries_spreadsheet_upload(request):
 		spreadsheet_form = SpreadsheetForm()
 		message = ''
 	return render(request, 'samples/spreadsheet_upload.html', { 'title': f'Librarie for {library_batch_name}', 'form': spreadsheet_form, 'message': message} )
+	
+@login_required
+def capture_batches(request):
+	if request.method == 'POST':
+		form = CaptureBatchForm(request.POST, user=request.user)
+		if form.is_valid():
+			form.save()
+	elif request.method == 'GET':
+		form = CaptureBatchForm(user=request.user)
+		
+	capture_batches_queryset = NuclearCapturePlate.objects.all().order_by('-id')
+	return render(request, 'samples/capture_batches.html', { 'form': form, 'capture_batches': capture_batches_queryset } )
 
 @login_required
 def storage_all(request):

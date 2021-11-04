@@ -989,6 +989,10 @@ class LibraryBatch(Timestamped):
 	)
 	status = models.PositiveSmallIntegerField(default = OPEN, choices=LIBRARY_BATCH_STATES)
 	
+	# return string representing status. For templates
+	def get_status(self):
+		return self.LIBRARY_BATCH_STATES[self.status][1]
+	
 	def check_p7_offset(self):
 		if self.p7_offset is None or self.p7_offset < 0 or self.p7_offset >= PLATE_WELL_COUNT_HALF:
 			raise ValueError(f'p7_offset is out of range: {self.p7_offset}')
