@@ -217,7 +217,7 @@ def powder_batch_delete(request):
 	if request.method == 'POST':
 		print(f'request to delete {powder_batch_name}')
 		powder_batch.delete()
-		return redirect(f'{reverse("powder_batch")}')
+		return redirect(f'{reverse("powder_batches")}')
 		
 	return render(request, 'samples/delete_batch.html', {'form': powder_batch_form, 'batch_type': 'Powder Batch', 'batch_name': powder_batch_name, 'cancel_link': 'powder_batch'})
 
