@@ -1232,6 +1232,15 @@ class NuclearCaptureProtocol(Timestamped):
 	manuscript_summary = models.TextField(blank=True, help_text='Enrichment method summary for manuscripts')
 	protocol_reference = models.TextField(blank=True)
 	
+class CaptureProtocol(Timestamped):
+	name = models.CharField(max_length=150)
+	start_date = models.DateField(null=True)
+	end_date = models.DateField(null=True)
+	description = models.TextField(blank=True)
+	manuscript_summary = models.TextField(blank=True, help_text='Enrichment method summary for manuscripts')
+	protocol_reference = models.TextField(blank=True)
+	active = models.BooleanField(default=True)
+	
 class SequencingPlatform(Timestamped):
 	platform = models.CharField(max_length=20)
 	read_length = models.CharField(max_length=20, blank=True)
