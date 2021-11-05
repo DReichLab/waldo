@@ -914,6 +914,7 @@ class LibraryProtocol(Timestamped):
 	
 	udg_treatment = models.CharField(max_length=10, null=True)
 	library_type = models.CharField(max_length=2, null=True)
+	active = models.BooleanField(default=True)
 	
 def libraries_for_extract(extract):
 	libraries = Library.objects.filter(extract=extract)

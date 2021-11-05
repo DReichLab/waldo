@@ -14,7 +14,7 @@ from datetime import datetime
 
 from samples.pipeline import udg_and_strandedness
 from samples.models import Results, Library, Sample, PowderBatch, WetLabStaff, PowderSample, ControlType, ControlSet, ControlLayout, ExtractionProtocol, LysateBatch, SamplePrepQueue, PLATE_ROWS, LysateBatchLayout, ExtractionBatch, ExtractionBatchLayout, Lysate, LibraryBatch, LibraryBatchLayout, Extract, NuclearCapturePlate, CaptureLayout, Storage
-from .forms import IndividualForm, LibraryIDForm, PowderBatchForm, SampleImageForm, PowderSampleForm, PowderSampleFormset, ControlTypeFormset, ControlSetForm, ControlLayoutFormset, ExtractionProtocolFormset, LysateBatchForm, LysateFormset, LysateForm, SamplePrepQueueFormset, LostPowderFormset, SpreadsheetForm, LysateBatchToExtractBatchForm, ExtractionBatchForm, LostLysateFormset, ExtractBatchToLibraryBatchForm, LibraryBatchForm, StorageFormset, ExtractFormset, LibraryFormset, LibraryBatchToCaptureBatchForm, CaptureBatchForm
+from .forms import *
 from sequencing_run.models import MTAnalysis
 
 from .powder_samples import new_reich_lab_powder_sample, assign_prep_queue_entries_to_powder_batch, powder_samples_from_spreadsheet
@@ -786,6 +786,31 @@ def lost_lysate(request):
 	elif request.method == 'GET':
 		formset = LostLysateFormset(queryset=page_obj, form_kwargs={'user': request.user})
 	return render(request, 'samples/generic_formset.html', { 'title': 'Lost Lysate', 'page_obj': page_obj, 'formset': formset, 'submit_button_text': 'Update lost lysate' } )
+	
+@login_required
+def library_protocols(request):
+	if request.method == 'POST':
+		form = LibraryProtocolForm(request.POST, user=request.user)
+		if form.is_valid():
+			form.save()
+	elif request.method == 'GET':
+		form = LibraryProtocolForm(user=request.user)
+		
+	library_protocols_queryset = LibraryProtocol.objects.all().order_by('-id')
+	return render(request, 'samples/library_protocols.html', { 'form': form, 'library_protocols': library_protocols_queryset } )
+	
+@login_required
+def library_protocol(request):
+	library_protocol_name = request.GET['library_protocol_name']
+	if request.method == 'POST':
+		form = LibraryProtocolForm(request.POST, user=request.user)
+		if form.is_valid():
+			form.save()
+	elif request.method == 'GET':
+		library_protocol = LibraryProtocol.objects.get(name=library_protocol_name)
+		form = LibraryProtocolForm(user=request.user, instance=library_protocol)
+		
+	return render(request, 'samples/generic_form.html', { 'title': f'Library Protocol {library_protocol_name}', 'form': form, } )
 	
 @login_required
 def library_batches(request):

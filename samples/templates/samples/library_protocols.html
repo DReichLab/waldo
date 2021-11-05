@@ -1,0 +1,88 @@
+{% extends "samples/reich_lab_base.html" %}
+
+{% load static %}
+
+{% block title %}Library protocols{% endblock %}
+
+{% block content %}
+<script src="{% static "samples/list.js" %}"></script>
+
+<style>
+th {
+	position: sticky;
+	top: 0;
+	background: #eee;
+}
+
+#table_wrapper{
+	overflow-x: auto;
+	overflow-y: scroll;
+	height: 85vh;
+}
+
+table{
+	border-collapse: collapse;
+	border-spacing: 0;
+	width: 100%;
+}
+</style>
+
+<form action="" method='post'>
+	{% csrf_token %}
+	{{ form.as_p }}
+	<input type='submit' value='Create Library Protocol'>
+</form>
+
+<hr>
+
+<div id='library_protocols'>
+
+<input class="search" placeholder="Search" />
+<div id='table_wrapper'>
+<table>
+	<thead>
+	<tr>
+		<th><button class="sort" data-sort="name" data-default-order='desc'>Name</button></th>
+		<th><button class="sort" data-sort="start_date">Start Date</button></th>
+		<th><button class="sort" data-sort="end_date">End Date</button></th>
+		<th><button class="sort" data-sort="description">Description</button></th>
+		<th><button class="sort" data-sort="manuscript_summary">Manuscript Summary</button></th>
+		<th><button class="sort" data-sort="protocol_reference">Protocol Reference</button></th>
+		<th><button class="sort" data-sort="manual_robotic">Manual Robotic</button></th>
+		<th><button class="sort" data-sort="volume_extract_used_standard">Volume extract used standard</button></th>
+		<th><button class="sort" data-sort="udg_treatment">UDG</button></th>
+		<th><button class="sort" data-sort="library_type">Library Type</button></th>
+		<th><button class="sort" data-sort="active">Active</button></th>
+	</tr>
+	</thead>
+	<tbody class="list">
+	{% for library_protocol in library_protocols %}
+	<tr>
+		<td class="name"><a href="library_protocol?library_protocol_name={{library_protocol.name}}">{{library_protocol.name}}</a></td>
+		<td class="start_date">{{library_protocol.start_date}}</td>
+		<td class="end_date">{{library_protocol.end_date}}</td>
+		<td class="description">{{library_protocol.description}}</td>
+		<td class="manuscript_summary">{{library_protocol.manuscript_summary}}</td>
+		<td class="protocol_reference">{{library_protocol.protocol_reference}}</td>
+		<td class="manual_robotic">{{library_protocol.manual_robotic}}</td>
+		<td class="volume_extract_used_standard">{{library_protocol.volume_extract_used_standard}}</td>
+		<td class="udg_treatment">{{library_protocol.udg_treatment}}</td>
+		<td class="library_type">{{library_protocol.library_type}}</td>
+		<td class="active">{{library_protocol.active}}</td>
+	</tr>
+	{% endfor %}
+	</tbody>
+</table>
+</div>
+</div>
+
+<script>
+	var list_options = {
+		valueNames: ['name', 'start_date', 'end_date', 'description', 'manuscript_summary', 'protocol_reference', 'manual_robotic', 'volume_extract_used_standard', 'udg_treatment', 'library_type', 'active'],
+		searchDelay: 500
+	};
+	var library_protocol_list = new List('library_protocols', list_options);
+	document.addEventListener("load", library_protocol_list.sort('date', { order: 'desc'}));
+</script>
+
+{% endblock %}

@@ -334,6 +334,11 @@ LostLysateFormset = modelformset_factory(ExtractionBatchLayout, form=LostLysateF
 class LibraryProtocolSelect(ModelChoiceField):
 	def label_from_instance(self, obj):
 		return obj.name
+		
+class LibraryProtocolForm(UserModelForm):
+	class Meta:
+		model = LibraryProtocol
+		fields = ['name', 'start_date', 'end_date', 'description', 'manuscript_summary', 'protocol_reference', 'manual_robotic', 'volume_extract_used_standard', 'udg_treatment', 'library_type']
 
 class LibraryBatchForm(UserModelForm):
 	protocol = LibraryProtocolSelect(queryset=LibraryProtocol.objects.all())
