@@ -10,7 +10,7 @@ from django.utils.translation import gettext_lazy as _
 
 from django.db.models import Max, Min
 
-from .layout import PLATE_ROWS, PLATE_WELL_COUNT, PLATE_WELL_COUNT_HALF, validate_row_letter, plate_location, reverse_plate_location_coordinate, reverse_plate_location, duplicate_positions_check_db, p7_qbarcode_source, barcodes_for_location
+from .layout import PLATE_ROWS, PLATE_WELL_COUNT, PLATE_WELL_COUNT_HALF, validate_row_letter, plate_location, reverse_plate_location_coordinate, reverse_plate_location, duplicate_positions_check_db, p7_qbarcode_source, barcodes_for_location, indices_for_location
 
 import re, string
 
@@ -1265,11 +1265,12 @@ class NuclearCapturePlate(Timestamped):
 		for layout_element in CaptureLayout.objects.filter(capture_batch=self):
 			int_position = reverse_plate_location_coordinate(layout_element.row, layout_element.column)
 			# double-stranded, TODO single-stranded
-			p5_int, p7_int = indices_for_location(int_position, p5_index_start)
+			p5_int, p7_int = indices_for_location(int_position, self.p5_index_start)
+			print(f'indices {p5_int} {p7_int}')
 			p5 = P5_Index.objects.get(label=str(p5_int))
 			p7 = P7_Index.objects.get(label=str(p7_int))
 			layout_element.p5_index = p5
-			layout_slement.p7_index = p7
+			layout_element.p7_index = p7
 			layout_element.save(save_user=user)
 			
 	def check_library_inputs(self):
@@ -1281,7 +1282,7 @@ class NuclearCapturePlate(Timestamped):
 			combinations[s] = True
 			
 	def restrict_layout_elements(self, layout_ids, user):
-		to_clear = CaptureLayout.objects.filter(capture_batch=self).exclude(id__in=layout_element_ids).exclude(control_type__isnull=False)
+		to_clear = CaptureLayout.objects.filter(capture_batch=self).exclude(id__in=layout_ids).exclude(control_type__isnull=False)
 		to_clear.delete()
 			
 	def clean(self):

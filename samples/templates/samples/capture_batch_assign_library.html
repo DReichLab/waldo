@@ -1,0 +1,146 @@
+{% extends "samples/reich_lab_base.html" %}
+
+{% load static %}
+
+{% block title %}Capture Batch {{capture_batch_name}} Library Selection {% endblock %}
+
+{% block content %}
+<script src="{% static "samples/list.js" %}"></script>
+
+<style>
+th {
+	position: sticky;
+	top: 0;
+	background: #eee;
+}
+
+#table_wrapper{
+	overflow-x: auto;
+	overflow-y: scroll;
+	height: 85vh;
+}
+
+table{
+	border-collapse: collapse;
+	border-spacing: 0;
+	width: 100%;
+}
+</style>
+
+Capture Batch: {{capture_batch_name}} has {{assigned_extracts_count}} distinct extracts assigned {{num_assignments}} times to wells and {{control_count}} extract and capture controls. These occupy {{occupied_wells}} wells. 
+
+<form action="" method='post'>
+	{% csrf_token %}
+	{{ form.as_p }}
+	<input id="submit_button" type='submit' name='assign_only' value='Update and Assign Libraries'>
+	<a href='capture_batch_layout?capture_batch_name={{capture_batch_name}}'>Modify Layout</a>
+	<a href='capture_batch_delete?batch_name={{capture_batch_name}}'>Delete</a>
+	<input id="submit_button_plus" type='submit' name='assign_plus_indices' value='Update and Assign Indices'>
+
+<legend>Samples</legend>
+<div id='sample_rows'>
+<div id='sample_count'></div>
+
+<input class="search" placeholder="Search" />
+<div id='table_wrapper'>
+<table>
+	<thead>
+	<tr>
+		<th><input type="checkbox" name="toggle_all_checkbox" id="toggle_all_checkbox" onclick="toggle_onscreen_all()"></th>
+		<th><button class="sort" type="button" data-sort="position">Position</button></th>
+		<th><button class="sort" type="button" data-sort="library_id">Library ID</button></th>
+		<th><button class="sort" type="button" data-sort="p5_index">P5 Index</button></th>
+		<th><button class="sort" type="button" data-sort="p7_index">P7 Index</button></th>
+		<th><button class="sort" type="button" data-sort="p5_barcode">P5 Barcode</button></th>
+		<th><button class="sort" type="button" data-sort="p7_barcode">P7 Barcode</button></th>
+	</tr>
+	</thead>
+	<tbody class="list">
+	{% for layout_element in assigned_libraries %}
+	<tr>
+		<td class="checked">
+			<input class="sample_checkbox" type="checkbox" name="library_checkboxes[]" id="checkbox{{layout_element.library.reich_lab_library_id}}" value="{{layout_element.id}}_{{layout_element.library.id}}" onclick="update_count()" checked>
+		</td>
+		<td class="position">{{layout_element}}</td>
+		<td class="library_id">{{layout_element.library.reich_lab_library_id}}</td>
+		<td class="p5_index">{{layout_element.p5_index.label}}</td>
+		<td class="p7_index">{{layout_element.p7_index.label}}</td>
+		<td class="p5_barcode">{{layout_element.library.p5_barcode.label}}</td>
+		<td class="p7_barcode">{{layout_element.library.p7_barcode.label}}</td>
+	</tr>
+	{% endfor %}
+	</tbody>
+</table>
+</form>
+</div>
+</div>
+
+<script>
+	var list_options = {
+		valueNames: ['checked', 'position', 'library_id'],
+		searchDelay: 500
+	};
+	var sample_list = new List('sample_rows', list_options);
+	var overall_count = document.querySelectorAll('input[type="checkbox"].sample_checkbox:checked').length;
+	
+	document.querySelectorAll("input[type=checkbox]").forEach(input => {
+		input.addEventListener("click", (e) => {
+			e.target.checked ? overall_count += 1 : overall_count -= 1;
+			update_count();
+		})
+	})
+	
+	function update_count(){
+		let overall_total = sample_list.size();
+		
+		let filtered_count = document.querySelectorAll('input[type="checkbox"].sample_checkbox:checked').length;
+		let filtered_total = document.querySelectorAll('input[type="checkbox"].sample_checkbox').length;
+		document.getElementById('sample_count').innerHTML = String(filtered_count) + " sample" + (filtered_count != 1 ? "s" : "") + " selected of " + String(filtered_total) + " filtered extracts. " + String(overall_count) + " selected of " + String(overall_total) + " total extracts."
+	}
+	
+	sample_list.on('updated', update_count);
+	
+	function clear_search(){
+		var search_field = document.getElementById("list_search_field");
+		search_field.value = "";
+		sample_list.search()
+	}
+	
+	// clear search upon submission
+	for (let submit_button_str of ["submit_button", "submit_button_plus"]){
+		var submit_button = document.getElementById(submit_button_str);
+		if (submit_button.addEventListener)
+			submit_button.addEventListener("click", clear_search);
+	}
+	
+	// toggle all checkboxes in current list, which may be search subset
+	function toggle_onscreen_all(){
+		var visible = sample_list.visibleItems;
+		var matching = sample_list.matchingItems;
+		let anybox_checked = false;
+		// first pass to see whether any checkbox in this set is checked
+		for (let i = 0; i < matching.length; i++) {
+			let checkbox_id = 'checkbox' + matching[i]._values['lysate_id'];
+			let sample_checkbox = document.getElementById(checkbox_id);
+			anybox_checked ||= sample_checkbox.checked;
+		}
+		// second pass to set checkboxes
+		for (let i = 0; i < matching.length; i++) {
+			let checkbox_id = 'checkbox' + matching[i]._values['lysate_id'];
+			let sample_checkbox = document.getElementById(checkbox_id);
+			// box will be changed to unchecked
+			if (sample_checkbox.checked && anybox_checked){
+				overall_count -= 1;
+			}
+			// box will be changed to checked
+			else if (!sample_checkbox.checked && anybox_checked){
+				overall_count += 1;
+			} 
+			sample_checkbox.checked = !anybox_checked;
+		}
+		update_count();
+		//alert('toggle ' + String(visible.length) + " " + String(matching.length));
+	}
+</script>
+
+{% endblock %}

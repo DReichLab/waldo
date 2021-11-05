@@ -1004,6 +1004,9 @@ def capture_batch_assign_library(request):
 			ticked_checkboxes = request.POST.getlist('library_checkboxes[]')
 			layout_ids, extract_ids = layout_and_content_lists(ticked_checkboxes)
 			capture_batch.restrict_layout_elements(layout_ids, request.user)
+			
+			if 'assign_plus_indices' in request.POST:
+				capture_batch.assign_indices(request.user)
 		
 	elif request.method == 'GET':
 		capture_batch_form = CaptureBatchForm(instance=capture_batch, user=request.user)

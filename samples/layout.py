@@ -185,12 +185,12 @@ def indices_for_location(int_position, p5_index_starting):
 	# P5s for capture are assigned top and bottom. So one P5 for the top half (All wells A-D), and one P5 for the bottom half (All wells E-H).
 	row_num = PLATE_ROWS.index(row)
 	p5 = p5_index_starting
-	if row_num >= (len(PLATE_ROWS) / 2):
+	if row_num >= (len(PLATE_ROWS) // 2):
 		p5 += 1
 	# TODO modulus for number of P5 indices
 	if p5 > 48: 
 		p5 = 1
 	# P7s are ordered going left-right across the rows. A1 -> 1, A12 -> 12, B1 -> 13
-	row_length = PLATE_WELL_COUNT / len(PLATE_ROWS)
+	row_length = PLATE_WELL_COUNT // len(PLATE_ROWS)
 	p7 = row_num * row_length + column
 	return p5, p7

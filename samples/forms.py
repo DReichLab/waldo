@@ -401,7 +401,7 @@ class CaptureBatchForm(UserModelForm):
 	
 	class Meta:
 		model = NuclearCapturePlate
-		fields = ['name', 'enrichment_type', 'protocol', 'technician', 'date', 'robot', 'hyb_wash_temps', 'notes']
+		fields = ['name', 'enrichment_type', 'protocol', 'technician', 'date', 'robot', 'hyb_wash_temps', 'p5_index_start', 'notes']
 		widgets = {
 			'notes': Textarea(attrs={'cols': 60, 'rows': 2}),
 		}
