@@ -1023,7 +1023,7 @@ class LibraryBatch(Timestamped):
 		to_clear = LibraryBatchLayout.objects.filter(library_batch=self).exclude(extract_id__in=extract_ids).exclude(control_type__isnull=False)
 		to_clear.delete()
 		
-	def extracts_from_spreadsheet(self, spreadsheet, user):
+	def libraries_from_spreadsheet(self, spreadsheet, user):
 		s = spreadsheet.read().decode("utf-8")
 		libraries = Library.objects.filter(library_batch=self)
 		lines = s.split('\n')
@@ -1041,12 +1041,24 @@ class LibraryBatch(Timestamped):
 				library = libraries.get(reich_lab_library_id=reich_lab_library_id)
 				library.from_spreadsheet_row(headers, fields, user)
 		
-	def create_capture(self, user):
-		# TODO control changes for capture
+	
+	def create_capture(self, capture_name, user):
+		# create capture
+		capture_plate = NuclearCapturePlate.objects.create(name=capture_name,
+				technician = self.technician,
+				technician_fk = self.technician_fk,
+			)
+		
+		# copy from library layout
+		# control changes for capture
 		# 1. Move library negative in H12 to H9
 		# 2. Replace library positive with PCR negative (G12)
 		# 3. capture positive in H12
-		pass
+		to_copy = LibraryBatchLayout.objects.filter(library_batch=self).exclude(control_type__control_type='Library Positive')
+		for x in to_copy:
+			CaptureLayout.objects.create(capture_batch = capture_plate, 
+								row = x.row,
+								colum = x.column,)
 	
 def validate_index_dna_sequence(sequence):
 	valid_bases = 'ACGT'
@@ -1213,7 +1225,7 @@ class ShotgunPool(Timestamped):
 	notes = models.TextField(blank=True)
 		
 class NuclearCapturePlate(Timestamped):
-	name = models.CharField(max_length=50)
+	name = models.CharField(max_length=50, unique=True)
 	enrichment_type = models.CharField(max_length=20, blank=True)
 	protocol = models.ForeignKey(NuclearCaptureProtocol, on_delete=models.PROTECT, null=True)
 	technician = models.CharField(max_length=10, blank=True)
@@ -1222,6 +1234,57 @@ class NuclearCapturePlate(Timestamped):
 	robot = models.CharField(max_length=50, blank=True)
 	hyb_wash_temps = models.CharField(max_length=50, blank=True)
 	notes = models.TextField(blank=True)
+	
+	p5_index_start = models.PositiveSmallIntegerField(null=True)
+	
+	def assign_indices(self, user):
+		for layout_element in CaptureLayout.objects.filter(capture_batch=self):
+			int_position = reverse_plate_location_coordinate(layout_element.row, layout_element.column)
+			# double-stranded, TODO single-stranded
+			p5_int, p7_int = indices_for_location(int_position, p5_index_start)
+			p5 = P5_Index.objects.get(label=str(p5_int))
+			p7 = P7_Index.objects.get(label=str(p7_int))
+			layout_element.p5_index = p5
+			layout_slement.p7_index = p7
+			layout_element.save(save_user=user)
+			
+	def check_library_inputs(self):
+		combinations = {}
+		for layout_element in CaptureLayout.objects.filter(capture_batch=self):
+			s = f'{layout_element.library.p5_barcode}_{layout_element.library.p7_barcode}'
+			if s in combinations:
+				raise ValueError(f'duplicate barcodes {s} in {self.name}')
+			combinations[s] = True
+			
+	def clean(self):
+		super(NuclearCapturePlate, self).clean()
+	
+	def create_sequencing_run(self, sequencing_run_name, user):
+		pass # TODO
+	
+# library -> indices added
+class CaptureLayout(TimestampedWellPosition):
+	capture_batch = models.ForeignKey(NuclearCapturePlate, on_delete=models.CASCADE) # we don't need to account for lost library
+	library = models.ForeignKey(Library, on_delete=models.CASCADE, null=True)
+	control_type = models.ForeignKey(ControlType, on_delete=models.PROTECT, null=True)
+	notes = models.TextField(blank=True)
+	p5_index = models.ForeignKey(P5_Index, on_delete=models.PROTECT, null=True)
+	p7_index = models.ForeignKey(P7_Index, on_delete=models.PROTECT, null=True)
+	
+	def clean(self):
+		super(CaptureLayout, self).clean()
+		has_library_indices = self.library.p5_index is not None and self.library.p7_index is not None
+		has_capture_indices = self.p5_index is not None and self.p7_index is not None
+		
+		exactly_one_index_pair = has_library_indices ^ has_capture_indices
+		
+		if not exactly_one_index_pair:
+			raise ValidationError(_('Captured library should have exactly one pair of indices between capture and library %(p5_index_capture)s %(p7_index_capture)s  %(p5_index_library)s %(p7_index_library)s'), 
+						 params={'p5_index_capture': self.p5_index,
+								'p7_index_capture': self.p7_index,
+								'p5_index_library': self.library.p5_index,
+								'p5_index_library': self.library.p7_index
+				   })
 		
 class SequencingRun(Timestamped):
 	name = models.CharField(max_length=50, unique=True, db_index=True)
@@ -1230,6 +1293,56 @@ class SequencingRun(Timestamped):
 	date = models.DateField(null=True)
 	sequencing = models.ForeignKey(SequencingPlatform, on_delete=models.SET_NULL, null=True)
 	notes = models.TextField(blank=True, default='')
+	
+	indexed_libraries = models.ManyToManyField(CaptureLayout)
+	
+	# only one library type is allowed
+	def check_library_type(self):
+		pass
+		
+	def check_index_barcode_combinations(self):
+		combinations = {}
+		for layout_element in CaptureLayout.objects.filter(capture_batch=self):
+			s = f'{layout_element.p5_index.sequence}_{layout_element.p7_index.sequence}_{layout_element.library.p5_barcode}_{layout_element.library.p5_barcode}'
+			if s in combinations:
+				raise ValueError(f'duplicate index-barcode_combination {s}')
+			combinations[s] = True
+	
+	def to_spreadsheet(self):
+		lines = []
+		header = ['well_position',
+			'library_id',
+			'plate_id',
+			'experiment',
+			'p5_index_label'
+			'p5_index',
+			'p7_index_label',
+			'p7_index',
+			'p5_barcode_label',
+			'p5_barcode',
+			'p7_barcode_label',
+			'p7_barcode',
+			'udg_treatment'
+			'library_type']
+		lines.append(header)
+		for indexed_library in indexed_libraries:
+			line = [str(indexed_library),
+				indexed_library.library.reich_lab_library_id,
+				indexed_library.capture_batch.name,
+				indexed_library.capture_batch.enrichment_type,
+				indexed_library.p5_index.label,
+				indexed_library.p5_index.sequence,
+				indexed_library.p7_index.label,
+				indexed_library.p7_index.sequence,
+				indexed_library.library.p5_index.label,
+				indexed_library.library.p5_index.sequence,
+				indexed_library.library.p7_index.label,
+				indexed_library.library.p7_index.sequence,
+				indexed_library.library.udg_treatment,
+				indexed_library.library.library_type,
+		]
+			lines.append(line)
+		return lines
 	
 class ControlsExtract(Timestamped):
 	lysate_batch = models.ForeignKey(LysateBatch, on_delete=models.PROTECT)
