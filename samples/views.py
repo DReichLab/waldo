@@ -173,7 +173,7 @@ def powder_batches(request):
 					Count('powdersample', distinct=True),
 					low_complexity_count=Count('sampleprepqueue', distinct=True, filter=Q(sampleprepqueue__sample__expected_complexity__description__iexact='low')),
 					high_complexity_count=Count('sampleprepqueue', distinct=True, filter=Q(sampleprepqueue__sample__expected_complexity__description__iexact='high')),
-					)
+					).order_by('-id')
 	return render(request, 'samples/powder_batches.html', {'powder_batches' : batches, 'form' : form} )
 
 @login_required
