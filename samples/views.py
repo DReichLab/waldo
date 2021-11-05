@@ -625,7 +625,7 @@ def extract_batch_assign_lysate(request):
 		
 	existing_controls = ExtractionBatchLayout.objects.filter(extract_batch=extract_batch, control_type__isnull=False)
 	
-	already_selected_lysate_layout_elements = ExtractionBatchLayout.objects.filter(extract_batch=extract_batch, control_type=None).order_by(column, row)
+	already_selected_lysate_layout_elements = ExtractionBatchLayout.objects.filter(extract_batch=extract_batch, control_type=None).order_by('column', 'row')
 	
 	# count distinct lysates
 	lysates = {}
