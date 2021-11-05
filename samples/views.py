@@ -811,8 +811,8 @@ def library_batch_assign_extract(request):
 			
 			# iterate through the checkboxes and change states
 			ticked_checkboxes = request.POST.getlist('extract_checkboxes[]')
-			# tickbox name is extract object id (int)
-			library_batch.assign_extracts_to_library_batch(ticked_checkboxes, request.user)
+			layout_ids, extract_ids = layout_and_content_lists(ticked_checkboxes)
+			library_batch.restrict_layout_elements(layout_ids, request.user)
 			
 			if library_batch.status == library_batch.LIBRARIED:
 				library_batch.create_libraries(request.user)
