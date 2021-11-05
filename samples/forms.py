@@ -341,7 +341,7 @@ class LibraryProtocolForm(UserModelForm):
 		fields = ['name', 'start_date', 'end_date', 'description', 'manuscript_summary', 'protocol_reference', 'manual_robotic', 'volume_extract_used_standard', 'udg_treatment', 'library_type']
 
 class LibraryBatchForm(UserModelForm):
-	protocol = LibraryProtocolSelect(queryset=LibraryProtocol.objects.all())
+	protocol = LibraryProtocolSelect(queryset=LibraryProtocol.objects.filter(active=True))
 	control_set = ControlSetSelect(queryset=ControlSet.objects.filter(active=True).order_by('layout_name'))
 	
 	class Meta:
