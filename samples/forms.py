@@ -393,7 +393,7 @@ class CaptureBatchForm(UserModelForm):
 		}
 
 class SpreadsheetForm(forms.Form):
-	spreadsheet = forms.FileField()
+	spreadsheet = forms.FileField(help_text='Retain headers from downloaded spreadsheet')
 	
 class StorageForm(UserModelForm):
 	class Meta:
