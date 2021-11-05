@@ -51,8 +51,8 @@ table{
 	{% for control_set in control_sets %}
 	<tr>
 		<td class="name"><a href="control_set?control_set_name={{control_set.layout_name}}">{{control_set.layout_name}}</a></td>
-		<td class="active">{{extract_batch.active}}</td>
-		<td class="notes">{{extract_batch.note}}</td>
+		<td class="active">{{control_set.active}}</td>
+		<td class="notes">{{control_set.notes}}</td>
 	</tr>
 	{% endfor %}
 	</tbody>
