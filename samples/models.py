@@ -824,6 +824,7 @@ class ExtractionBatch(Timestamped):
 			library_batch = LibraryBatch(name=batch_name,
 								technician = wetlab_staff.initials(),
 								technician_fk = wetlab_staff,
+								control_set=self.control_set,
 								)
 			library_batch.save(save_user=user)
 			
@@ -976,6 +977,7 @@ class LibraryBatch(Timestamped):
 	cleanup_robot = models.CharField(max_length=20, blank=True)
 	qpcr_machine = models.CharField(max_length=20, blank=True)
 	technician_fk = models.ForeignKey(WetLabStaff, on_delete=models.SET_NULL, null=True)
+	control_set = models.ForeignKey(ControlSet, on_delete=models.SET_NULL, null=True)
 	
 	# The offset determines completely the layout of barcodes for the library batch because the wetlab uses a system where the p5 barcodes are placed in the same location for all plates
 	# If we need to handle arbitrary layouts, migrate this state into barcodes in the layout objects 
@@ -1050,15 +1052,36 @@ class LibraryBatch(Timestamped):
 			)
 		
 		# copy from library layout
-		# control changes for capture
-		# 1. Move library negative in H12 to H9
-		# 2. Replace library positive with PCR negative (G12)
-		# 3. capture positive in H12
 		to_copy = LibraryBatchLayout.objects.filter(library_batch=self).exclude(control_type__control_type='Library Positive')
 		for x in to_copy:
-			CaptureLayout.objects.create(capture_batch = capture_plate, 
+			copied = CaptureLayout(capture_batch = capture_plate, 
 								row = x.row,
-								colum = x.column,)
+								column = x.column,
+								library = x.library,
+								control_type = x.control_type
+								)
+			copied.save(save_user=user)
+		# control changes for capture
+		# 1. Move library negative in H12 to H9
+		library_negatives = CaptureLayout.objects.filter(capture_batch=capture_plate, control_type__control_type='Library Negative').order_by('column', 'row')
+		destination = library_negatives[0]
+		print(f'{len(library_negatives)} library_negatives')
+		for to_move in library_negatives: 
+			to_move.row = destination.row
+			to_move.column = destination.column
+			to_move.save(save_user=user)
+			print(f'{to_move} {destination}')
+		# 2. Replace library positive with PCR negative (G12)
+		pcr_negative_position = ControlLayout.objects.get(control_set=self.control_set, control_type__control_type='PCR Negative')
+		pcr_negative = CaptureLayout(capture_batch=capture_plate,
+							   control_type=pcr_negative_position.control_type, row=pcr_negative_position.row, column=pcr_negative_position.column)
+		pcr_negative.save(save_user=user)
+		# 3. capture positive in H12
+		capture_positive_position = ControlLayout.objects.get(control_set=self.control_set, control_type__control_type='Capture Positive')
+		capture_positive = CaptureLayout(capture_batch=capture_plate,
+								   control_type=capture_positive_position.control_type, row=capture_positive_position.row, column=capture_positive_position.column)
+		capture_positive.save(save_user=user)
+		# TODO attach library
 	
 def validate_index_dna_sequence(sequence):
 	valid_bases = 'ACGT'
@@ -1237,6 +1260,7 @@ class NuclearCapturePlate(Timestamped):
 	
 	p5_index_start = models.PositiveSmallIntegerField(null=True)
 	
+	
 	def assign_indices(self, user):
 		for layout_element in CaptureLayout.objects.filter(capture_batch=self):
 			int_position = reverse_plate_location_coordinate(layout_element.row, layout_element.column)
@@ -1255,6 +1279,10 @@ class NuclearCapturePlate(Timestamped):
 			if s in combinations:
 				raise ValueError(f'duplicate barcodes {s} in {self.name}')
 			combinations[s] = True
+			
+	def restrict_layout_elements(self, layout_ids, user):
+		to_clear = CaptureLayout.objects.filter(capture_batch=self).exclude(id__in=layout_element_ids).exclude(control_type__isnull=False)
+		to_clear.delete()
 			
 	def clean(self):
 		super(NuclearCapturePlate, self).clean()

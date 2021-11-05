@@ -13,8 +13,8 @@ import json
 from datetime import datetime
 
 from samples.pipeline import udg_and_strandedness
-from samples.models import Results, Library, Sample, PowderBatch, WetLabStaff, PowderSample, ControlType, ControlSet, ControlLayout, ExtractionProtocol, LysateBatch, SamplePrepQueue, PLATE_ROWS, LysateBatchLayout, ExtractionBatch, ExtractionBatchLayout, Lysate, LibraryBatch, LibraryBatchLayout, Extract, NuclearCapturePlate, Storage
-from .forms import IndividualForm, LibraryIDForm, PowderBatchForm, SampleImageForm, PowderSampleForm, PowderSampleFormset, ControlTypeFormset, ControlSetForm, ControlLayoutFormset, ExtractionProtocolFormset, LysateBatchForm, LysateFormset, LysateForm, SamplePrepQueueFormset, LostPowderFormset, SpreadsheetForm, LysateBatchToExtractBatchForm, ExtractionBatchForm, LostLysateFormset, ExtractBatchToLibraryBatchForm, LibraryBatchForm, StorageFormset, ExtractFormset, LibraryFormset, CaptureBatchForm
+from samples.models import Results, Library, Sample, PowderBatch, WetLabStaff, PowderSample, ControlType, ControlSet, ControlLayout, ExtractionProtocol, LysateBatch, SamplePrepQueue, PLATE_ROWS, LysateBatchLayout, ExtractionBatch, ExtractionBatchLayout, Lysate, LibraryBatch, LibraryBatchLayout, Extract, NuclearCapturePlate, CaptureLayout, Storage
+from .forms import IndividualForm, LibraryIDForm, PowderBatchForm, SampleImageForm, PowderSampleForm, PowderSampleFormset, ControlTypeFormset, ControlSetForm, ControlLayoutFormset, ExtractionProtocolFormset, LysateBatchForm, LysateFormset, LysateForm, SamplePrepQueueFormset, LostPowderFormset, SpreadsheetForm, LysateBatchToExtractBatchForm, ExtractionBatchForm, LostLysateFormset, ExtractBatchToLibraryBatchForm, LibraryBatchForm, StorageFormset, ExtractFormset, LibraryFormset, LibraryBatchToCaptureBatchForm, CaptureBatchForm
 from sequencing_run.models import MTAnalysis
 
 from .powder_samples import new_reich_lab_powder_sample, assign_prep_queue_entries_to_powder_batch, powder_samples_from_spreadsheet
@@ -959,6 +959,27 @@ def libraries_spreadsheet_upload(request):
 	return render(request, 'samples/spreadsheet_upload.html', { 'title': f'Librarie for {library_batch_name}', 'form': spreadsheet_form, 'message': message} )
 	
 @login_required
+def library_batch_to_capture_batch(request):
+	library_batch_name = request.GET['library_batch_name']
+	library_batch = LibraryBatch.objects.get(name=library_batch_name)
+	if request.method == 'POST':
+		form = LibraryBatchToCaptureBatchForm(request.POST)
+		if form.is_valid():
+			capture_batch_name = form.cleaned_data['capture_batch_name']
+			library_batch.create_capture(capture_batch_name, request.user)
+			return redirect(f'{reverse("capture_batch_assign_library")}?capture_batch_name={capture_batch_name}')
+	elif request.method == 'GET':
+		form = LibraryBatchToCaptureBatchForm()
+		# For now, manual only
+		form.initial['capture_batch_name'] = f'{library_batch_name.rsplit("_")[0]}'
+		
+	return render(request, 'samples/batch_transition.html', { 'form': form, 
+						'source_batch_name': library_batch_name,
+						'source_batch_type': 'Library Batch',
+						'new_batch_type': 'Capture Batch'
+						} )
+	
+@login_required
 def capture_batches(request):
 	if request.method == 'POST':
 		form = CaptureBatchForm(request.POST, user=request.user)
@@ -969,6 +990,84 @@ def capture_batches(request):
 		
 	capture_batches_queryset = NuclearCapturePlate.objects.all().order_by('-id')
 	return render(request, 'samples/capture_batches.html', { 'form': form, 'capture_batches': capture_batches_queryset } )
+	
+@login_required
+def capture_batch_assign_library(request):
+	capture_batch_name = request.GET['capture_batch_name']
+	capture_batch = NuclearCapturePlate.objects.get(name=capture_batch_name)
+	if request.method == 'POST':
+		capture_batch_form = CaptureBatchForm(request.POST, instance=capture_batch, user=request.user)
+		if capture_batch_form.is_valid():
+			capture_batch_form.save()
+			
+			# iterate through the checkboxes and change states
+			ticked_checkboxes = request.POST.getlist('library_checkboxes[]')
+			layout_ids, extract_ids = layout_and_content_lists(ticked_checkboxes)
+			capture_batch.restrict_layout_elements(layout_ids, request.user)
+		
+	elif request.method == 'GET':
+		capture_batch_form = CaptureBatchForm(instance=capture_batch, user=request.user)
+		
+	existing_controls = CaptureLayout.objects.filter(capture_batch=capture_batch, control_type__isnull=False).order_by('column', 'row')
+	
+	already_selected_library_layout_elements = CaptureLayout.objects.filter(capture_batch=capture_batch, control_type=None).order_by('column', 'row')
+	
+	# count distinct libraries
+	libraries = {}
+	for layout_element in already_selected_library_layout_elements:
+		libraries[layout_element.library] = True
+	assigned_libraries_count = len(libraries)
+	
+	# count wells
+	occupied_well_count, num_non_control_assignments = occupied_wells(CaptureLayout.objects.filter(capture_batch=capture_batch))
+	
+	return render(request, 'samples/capture_batch_assign_library.html', { 'capture_batch_name': capture_batch_name, 'assigned_libraries': already_selected_library_layout_elements, 'assigned_libraries_count': assigned_libraries_count, 'control_count': len(existing_controls), 'num_assignments': num_non_control_assignments, 'occupied_wells': occupied_well_count, 'form': capture_batch_form  } )
+	
+@login_required
+def capture_batch_layout(request):
+	try:
+		capture_batch_name = request.GET['capture_batch_name']
+	except:
+		capture_batch_name = request.POST['capture_batch_name']
+	capture_batch = NuclearCapturePlate.objects.get(name=capture_batch_name)
+	layout_element_queryset = CaptureLayout.objects.filter(capture_batch=capture_batch)
+		
+	if request.method == 'POST' and request.is_ajax():
+		# JSON for a well plate layout
+		#print(request.body)
+		layout = request.POST['layout']
+		objects_map = json.loads(layout)
+		#print(objects_map)
+		# propagate changes to database
+		update_db_layout(request.user, objects_map, CaptureLayout.objects.filter(capture_batch=capture_batch), 'library', 'reich_lab_library_id')
+	elif request.method == 'POST':
+		print('POST {capture_batch_name}')
+		raise ValueError('unexpected')
+		
+	layout_elements = CaptureLayout.objects.filter(capture_batch=capture_batch).select_related('library').select_related('control_type')
+		
+	objects_map = layout_objects_map_for_rendering(layout_elements, 'library', 'reich_lab_library_id')
+		
+	return render(request, 'samples/generic_layout.html', { 'layout_title': 'Library Layout For Capture', 'layout_name': capture_batch_name, 'rows':PLATE_ROWS, 'columns':WELL_PLATE_COLUMNS, 'objects_map': objects_map,
+	'allow_layout_modifications': True })
+		#(capture_batch.status == capture_batch.OPEN) } )
+
+@login_required
+def capture_batch_delete(request):
+	capture_batch_name = request.GET['batch_name']
+	try:
+		capture_batch = NuclearCapturePlate.objects.get(name=capture_batch_name)
+		capture_batch_form = CaptureBatchForm(instance=capture_batch, user=request.user)
+		capture_batch_form.disable_fields()
+	except NuclearCapturePlate.DoesNotExist:
+		return HttpResponse(f'{capture_batch_name} no longer exists.')
+	
+	if request.method == 'POST':
+		print(f'request to delete {capture_batch_name}')
+		capture_batch.delete()
+		return redirect(f'{reverse("capture_batches")}')
+		
+	return render(request, 'samples/delete_batch.html', {'form': capture_batch_form, 'batch_type': 'Capture Batch', 'batch_name': capture_batch_name, 'link': 'capture_batches'})
 
 @login_required
 def storage_all(request):

@@ -337,10 +337,11 @@ class LibraryProtocolSelect(ModelChoiceField):
 
 class LibraryBatchForm(UserModelForm):
 	protocol = LibraryProtocolSelect(queryset=LibraryProtocol.objects.all())
+	control_set = ControlSetSelect(queryset=ControlSet.objects.filter(active=True).order_by('layout_name'))
 	
 	class Meta:
 		model = LibraryBatch
-		fields = ['name', 'protocol', 'technician', 'prep_date', 'prep_note', 'prep_robot', 'cleanup_robot', 'qpcr_machine', 'p7_offset', 'status']
+		fields = ['name', 'protocol', 'technician', 'prep_date', 'prep_note', 'prep_robot', 'cleanup_robot', 'qpcr_machine', 'control_set', 'p7_offset', 'status']
 		widgets = {
 			'prep_note': Textarea(attrs={'cols': 60, 'rows': 2}),
 		}
@@ -378,6 +379,19 @@ class LibraryForm(UserModelForm):
 
 LibraryFormset = modelformset_factory(Library, form=LibraryForm, extra=0)
 
+# raise validation error if capture batch name already exists
+def validate_capture_batch_does_not_exist(capture_batch_name):
+	try:
+		capture_batch = NuclearCapturePlate.objects.get(name=capture_batch_name)
+		raise ValidationError(_('NuclearCapturePlate already exists: %(capture_batch_name)s'), 
+						code='exists', 
+						params={'capture_batch_name': capture_batch_name})
+	except NuclearCapturePlate.DoesNotExist:
+		pass
+			
+class LibraryBatchToCaptureBatchForm(forms.Form):
+	capture_batch_name = forms.CharField(max_length=50, label='Capture Batch name', validators=[validate_capture_batch_does_not_exist])
+
 class CaptureProtocolSelect(ModelChoiceField):
 	def label_from_instance(self, obj):
 		return obj.name
@@ -391,6 +405,10 @@ class CaptureBatchForm(UserModelForm):
 		widgets = {
 			'notes': Textarea(attrs={'cols': 60, 'rows': 2}),
 		}
+	
+	def disable_fields(self):
+		for field in CaptureBatchForm._meta.fields:
+			self.fields[field].disabled = True
 
 class SpreadsheetForm(forms.Form):
 	spreadsheet = forms.FileField(help_text='Retain headers from downloaded spreadsheet')
