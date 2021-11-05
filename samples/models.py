@@ -961,6 +961,13 @@ def create_library_from_extract(layout_element, user):
 		layout_element.save(save_user=user)
 		return library
 	
+def validate_odd(value):
+	if value % 2 != 1:
+		raise ValidationError(
+			_('%(value)s is not an odd number'),
+			params={'value': value},
+		)
+	
 def validate_even(value):
 	if value % 2 != 0:
 		raise ValidationError(
@@ -1259,7 +1266,7 @@ class NuclearCapturePlate(Timestamped):
 	hyb_wash_temps = models.CharField(max_length=50, blank=True)
 	notes = models.TextField(blank=True)
 	
-	p5_index_start = models.PositiveSmallIntegerField(null=True)
+	p5_index_start = models.PositiveSmallIntegerField(null=True, validators=[MinValueValidator(1), MaxValueValidator(47), validate_odd], help_text='Must be odd in [1, 48]')# revisit this for single stranded
 	
 	
 	def assign_indices(self, user):
