@@ -169,10 +169,28 @@ def p7_qbarcode_source(q):
 # return a pair of Q barcodes (p5, p7)
 def barcodes_for_location(int_position, p7_offset):
 	if p7_offset % 2 == 1:
-		raise ValueError('p7_ofset must be even because odd values are used for half of plate')
+		raise ValueError('p7_offset must be even because odd values are used for half of plate')
 	check_plate_domain(int_position)
 	mod_position = int_position % (PLATE_WELL_COUNT // 2) # position within left or right side
 	p5 = barcode_at_position(mod_position)
 	left_right_offset = int_position // (PLATE_WELL_COUNT // 2) # left 0, right 1
 	p7 = barcode_at_position((mod_position + p7_offset + left_right_offset) % PLATE_WELL_COUNT_HALF)
+	return p5, p7
+	
+# TODO currently double-stranded only
+# return a pair of indices (p5, p7) as integers
+# expect p5_index_starting to be odd
+def indices_for_location(int_position, p5_index_starting):
+	row, column = plate_location(int_position)
+	# P5s for capture are assigned top and bottom. So one P5 for the top half (All wells A-D), and one P5 for the bottom half (All wells E-H).
+	row_num = PLATE_ROWS.index(row)
+	p5 = p5_index_starting
+	if row_num >= (len(PLATE_ROWS) / 2):
+		p5 += 1
+	# TODO modulus for number of P5 indices
+	if p5 > 48: 
+		p5 = 1
+	# P7s are ordered going left-right across the rows. A1 -> 1, A12 -> 12, B1 -> 13
+	row_length = PLATE_WELL_COUNT / len(PLATE_ROWS)
+	p7 = row_num * row_length + column
 	return p5, p7

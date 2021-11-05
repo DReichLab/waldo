@@ -1,7 +1,7 @@
 from django.test import SimpleTestCase
 
 from .models import parse_sample_string
-from .layout import PLATE_ROWS, PLATE_WELL_COUNT, PLATE_WELL_COUNT_HALF, plate_location, reverse_plate_location, BARCODES_BY_POSITION, barcode_at_position, barcodes_for_location, p7_qbarcode_source
+from .layout import PLATE_ROWS, PLATE_WELL_COUNT, PLATE_WELL_COUNT_HALF, plate_location, reverse_plate_location, BARCODES_BY_POSITION, barcode_at_position, barcodes_for_location, p7_qbarcode_source, indices_for_location
 
 class BarcodesTest(SimpleTestCase):
 	def test_barcode_total_number(self):
@@ -67,3 +67,36 @@ class BarcodesTest(SimpleTestCase):
 			}
 		for barcode, expected_source in expected_pairs.items():
 			self.assertEquals(expected_source, p7_qbarcode_source(barcode))
+
+	def test_indices_A1(self):
+		s = 'A1'
+		n = reverse_plate_location(s)
+		self.assertEquals(0, n)
+		starting = 3
+		p5, p7 = indices_for_location(n, starting)
+		self.assertEquals(starting, p5)
+		self.assertEquals(1, p7)
+		
+	def test_indices_A12(self):
+		s = 'A12'
+		n = reverse_plate_location(s)
+		starting = 3
+		p5, p7 = indices_for_location(n, starting)
+		self.assertEquals(starting, p5)
+		self.assertEquals(12, p7)
+		
+	def test_indices_E1(self):
+		s = 'E1'
+		n = reverse_plate_location(s)
+		starting = 3
+		p5, p7 = indices_for_location(n, starting)
+		self.assertEquals(starting+1, p5)
+		self.assertEquals(49, p7)
+	
+	def test_indices_H12(self):
+		s = 'H12'
+		n = reverse_plate_location(s)
+		starting = 3
+		p5, p7 = indices_for_location(n, starting)
+		self.assertEquals(starting+1, p5)
+		self.assertEquals(96, p7)
