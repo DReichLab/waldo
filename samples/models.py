@@ -1251,6 +1251,7 @@ class SequencingPlatform(Timestamped):
 class MTCapturePlate(Timestamped):
 	name = models.CharField(max_length=30)
 	protocol = models.ForeignKey(MTCaptureProtocol, on_delete=models.PROTECT, null=True)
+	protocol_temp = models.ForeignKey(CaptureProtocol, on_delete=models.PROTECT, null=True)
 	technician = models.CharField(max_length=10, blank=True)
 	technician_fk = models.ForeignKey(WetLabStaff, on_delete=models.SET_NULL, null=True)
 	date = models.DateField(null=True)
@@ -1268,6 +1269,7 @@ class NuclearCapturePlate(Timestamped):
 	name = models.CharField(max_length=50, unique=True)
 	enrichment_type = models.CharField(max_length=20, blank=True)
 	protocol = models.ForeignKey(NuclearCaptureProtocol, on_delete=models.PROTECT, null=True)
+	protocol_temp = models.ForeignKey(CaptureProtocol, on_delete=models.PROTECT, null=True)
 	technician = models.CharField(max_length=10, blank=True)
 	technician_fk = models.ForeignKey(WetLabStaff, on_delete=models.SET_NULL, null=True)
 	date = models.DateField(null=True)
