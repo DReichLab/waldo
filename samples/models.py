@@ -1217,7 +1217,7 @@ class LibraryBatchLayout(TimestampedWellPosition):
 	library = models.ForeignKey(Library, on_delete=models.SET_NULL, null=True, help_text='')
 	
 class CaptureProtocol(Timestamped):
-	name = models.CharField(max_length=150)
+	name = models.CharField(max_length=150, unique=True)
 	start_date = models.DateField(null=True)
 	end_date = models.DateField(null=True)
 	description = models.TextField(blank=True)
