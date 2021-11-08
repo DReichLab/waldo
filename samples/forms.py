@@ -353,7 +353,7 @@ class LibraryBatchForm(UserModelForm):
 		
 	def __init__(self, *args, **kwargs):
 		super().__init__(*args, **kwargs)
-		for option in ['protocol', 'prep_date', 'prep_robot', 'p7_offset']:
+		for option in ['protocol', 'prep_date', 'prep_robot']:
 			self.fields[option].required = False
 	
 	def disable_fields(self):
