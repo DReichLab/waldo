@@ -1216,22 +1216,6 @@ class LibraryBatchLayout(TimestampedWellPosition):
 	notes = models.TextField(blank=True)
 	library = models.ForeignKey(Library, on_delete=models.SET_NULL, null=True, help_text='')
 	
-class MTCaptureProtocol(Timestamped):
-	name = models.CharField(max_length=150)
-	start_date = models.DateField(null=True)
-	end_date = models.DateField(null=True)
-	description = models.TextField(blank=True)
-	manuscript_summary = models.TextField(blank=True, help_text='Enrichment method summary for manuscripts')
-	protocol_reference = models.TextField(blank=True)
-	
-class NuclearCaptureProtocol(Timestamped):
-	name = models.CharField(max_length=150)
-	start_date = models.DateField(null=True)
-	end_date = models.DateField(null=True)
-	description = models.TextField(blank=True)
-	manuscript_summary = models.TextField(blank=True, help_text='Enrichment method summary for manuscripts')
-	protocol_reference = models.TextField(blank=True)
-	
 class CaptureProtocol(Timestamped):
 	name = models.CharField(max_length=150)
 	start_date = models.DateField(null=True)
@@ -1250,7 +1234,6 @@ class SequencingPlatform(Timestamped):
 	
 class MTCapturePlate(Timestamped):
 	name = models.CharField(max_length=30)
-	protocol = models.ForeignKey(MTCaptureProtocol, on_delete=models.PROTECT, null=True)
 	protocol_temp = models.ForeignKey(CaptureProtocol, on_delete=models.PROTECT, null=True)
 	technician = models.CharField(max_length=10, blank=True)
 	technician_fk = models.ForeignKey(WetLabStaff, on_delete=models.SET_NULL, null=True)
@@ -1268,7 +1251,6 @@ class ShotgunPool(Timestamped):
 class NuclearCapturePlate(Timestamped):
 	name = models.CharField(max_length=50, unique=True)
 	enrichment_type = models.CharField(max_length=20, blank=True)
-	protocol = models.ForeignKey(NuclearCaptureProtocol, on_delete=models.PROTECT, null=True)
 	protocol_temp = models.ForeignKey(CaptureProtocol, on_delete=models.PROTECT, null=True)
 	technician = models.CharField(max_length=10, blank=True)
 	technician_fk = models.ForeignKey(WetLabStaff, on_delete=models.SET_NULL, null=True)

@@ -4,7 +4,7 @@ from django.forms import modelformset_factory
 from django.forms.widgets import TextInput
 from django.utils.translation import gettext_lazy as _
 
-from samples.models import PowderBatch, PowderBatchStatus, PowderSample, Sample, SamplePrepProtocol, ControlType, ControlSet, ControlLayout, LysateBatch, ExtractionProtocol, ExpectedComplexity, SamplePrepQueue, Lysate, LysateBatchLayout, ExtractionBatch, ExtractionBatchLayout, LibraryProtocol, LibraryBatch, Extract, Storage, Library, Barcode, NuclearCaptureProtocol, NuclearCapturePlate
+from samples.models import PowderBatch, PowderBatchStatus, PowderSample, Sample, SamplePrepProtocol, ControlType, ControlSet, ControlLayout, LysateBatch, ExtractionProtocol, ExpectedComplexity, SamplePrepQueue, Lysate, LysateBatchLayout, ExtractionBatch, ExtractionBatchLayout, LibraryProtocol, LibraryBatch, Extract, Storage, Library, Barcode, CaptureProtocol, NuclearCapturePlate
 
 import datetime
 
@@ -402,11 +402,11 @@ class CaptureProtocolSelect(ModelChoiceField):
 		return obj.name
 
 class CaptureBatchForm(UserModelForm):
-	protocol = CaptureProtocolSelect(queryset=NuclearCaptureProtocol.objects.all())
+	protocol_temp = CaptureProtocolSelect(queryset=CaptureProtocol.objects.all())
 	
 	class Meta:
 		model = NuclearCapturePlate
-		fields = ['name', 'enrichment_type', 'protocol', 'technician', 'date', 'robot', 'hyb_wash_temps', 'p5_index_start', 'notes']
+		fields = ['name', 'enrichment_type', 'protocol_temp', 'technician', 'date', 'robot', 'hyb_wash_temps', 'p5_index_start', 'notes']
 		widgets = {
 			'notes': Textarea(attrs={'cols': 60, 'rows': 2}),
 		}
