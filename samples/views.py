@@ -1005,6 +1005,31 @@ def library_batch_to_capture_batch(request):
 						} )
 	
 @login_required
+def capture_protocols(request):
+	if request.method == 'POST':
+		form = CaptureProtocolForm(request.POST, user=request.user)
+		if form.is_valid():
+			form.save()
+	elif request.method == 'GET':
+		form = CaptureProtocolForm(user=request.user)
+		
+	capture_protocols_queryset = CaptureProtocol.objects.all().order_by('-id')
+	return render(request, 'samples/capture_protocols.html', { 'form': form, 'capture_protocols': capture_protocols_queryset } )
+	
+@login_required
+def capture_protocol(request):
+	capture_protocol_name = request.GET['capture_protocol_name']
+	if request.method == 'POST':
+		form = CaptureProtocolForm(request.POST, user=request.user)
+		if form.is_valid():
+			form.save()
+	elif request.method == 'GET':
+		library_protocol = CaptureProtocol.objects.get(name=capture_protocol_name)
+		form = CaptureProtocolForm(user=request.user, instance=library_protocol)
+		
+	return render(request, 'samples/generic_form.html', { 'title': f'Capture Protocol {library_protocol_name}', 'form': form, } )
+	
+@login_required
 def capture_batches(request):
 	if request.method == 'POST':
 		form = CaptureBatchForm(request.POST, user=request.user)

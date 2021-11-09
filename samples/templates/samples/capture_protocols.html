@@ -1,0 +1,82 @@
+{% extends "samples/reich_lab_base.html" %}
+
+{% load static %}
+
+{% block title %}Capture protocols{% endblock %}
+
+{% block content %}
+<script src="{% static "samples/list.js" %}"></script>
+
+<style>
+th {
+	position: sticky;
+	top: 0;
+	background: #eee;
+}
+
+#table_wrapper{
+	overflow-x: auto;
+	overflow-y: scroll;
+	height: 85vh;
+}
+
+table{
+	border-collapse: collapse;
+	border-spacing: 0;
+	width: 100%;
+}
+</style>
+
+<form action="" method='post'>
+	{% csrf_token %}
+	{{ form.as_p }}
+	<input type='submit' value='Create Capture Protocol'>
+</form>
+
+<hr>
+
+<div id='capture_protocols'>
+
+<input class="search" placeholder="Search" />
+<div id='table_wrapper'>
+<table>
+	<thead>
+	<tr>
+		<th><button class="sort" data-sort="id">ID</button></th>
+		<th><button class="sort" data-sort="name">Name</button></th>
+		<th><button class="sort" data-sort="start_date">Start Date</button></th>
+		<th><button class="sort" data-sort="end_date">End Date</button></th>
+		<th><button class="sort" data-sort="description">Description</button></th>
+		<th><button class="sort" data-sort="manuscript_summary">Manuscript Summary</button></th>
+		<th><button class="sort" data-sort="protocol_reference">Protocol Reference</button></th>
+		<th><button class="sort" data-sort="active">Active</button></th>
+	</tr>
+	</thead>
+	<tbody class="list">
+	{% for capture_protocol in capture_protocols %}
+	<tr>
+		<td class="id">{{capture_protocol.id}}</td>
+		<td class="name"><a href="capture_protocol?capture_protocol_name={{capture_protocol.name}}">{{capture_protocol.name}}</a></td>
+		<td class="start_date">{{capture_protocol.start_date}}</td>
+		<td class="end_date">{{capture_protocol.end_date}}</td>
+		<td class="description">{{capture_protocol.description}}</td>
+		<td class="manuscript_summary">{{capture_protocol.manuscript_summary}}</td>
+		<td class="protocol_reference">{{capture_protocol.protocol_reference}}</td>
+		<td class="active">{{capture_protocol.active}}</td>
+	</tr>
+	{% endfor %}
+	</tbody>
+</table>
+</div>
+</div>
+
+<script>
+	var list_options = {
+		valueNames: ['id', 'name', 'start_date', 'end_date', 'description', 'manuscript_summary', 'protocol_reference', 'active'],
+		searchDelay: 500
+	};
+	var capture_protocol_list = new List('capture_protocols', list_options);
+	document.addEventListener("load", capture_protocol_list.sort('date', { order: 'desc'}));
+</script>
+
+{% endblock %}

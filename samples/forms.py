@@ -338,7 +338,7 @@ class LibraryProtocolSelect(ModelChoiceField):
 class LibraryProtocolForm(UserModelForm):
 	class Meta:
 		model = LibraryProtocol
-		fields = ['name', 'start_date', 'end_date', 'description', 'manuscript_summary', 'protocol_reference', 'manual_robotic', 'volume_extract_used_standard', 'udg_treatment', 'library_type']
+		fields = ['name', 'start_date', 'end_date', 'description', 'manuscript_summary', 'protocol_reference', 'manual_robotic', 'volume_extract_used_standard', 'udg_treatment', 'library_type', 'active']
 
 class LibraryBatchForm(UserModelForm):
 	protocol = LibraryProtocolSelect(queryset=LibraryProtocol.objects.filter(active=True))
@@ -396,6 +396,11 @@ def validate_capture_batch_does_not_exist(capture_batch_name):
 			
 class LibraryBatchToCaptureBatchForm(forms.Form):
 	capture_batch_name = forms.CharField(max_length=50, label='Capture Batch name', validators=[validate_capture_batch_does_not_exist])
+	
+class CaptureProtocolForm(UserModelForm):
+	class Meta:
+		model = CaptureProtocol
+		fields = ['name', 'start_date', 'end_date', 'description', 'manuscript_summary', 'protocol_reference', 'active']
 
 class CaptureProtocolSelect(ModelChoiceField):
 	def label_from_instance(self, obj):
