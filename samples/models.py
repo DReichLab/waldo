@@ -11,6 +11,7 @@ from django.utils.translation import gettext_lazy as _
 from django.db.models import Max, Min
 
 from .layout import PLATE_ROWS, PLATE_WELL_COUNT, PLATE_WELL_COUNT_HALF, validate_row_letter, plate_location, reverse_plate_location_coordinate, reverse_plate_location, duplicate_positions_check_db, p7_qbarcode_source, barcodes_for_location, indices_for_location
+from .spreadsheet import spreadsheet_headers_and_data_rows
 
 import re, string
 
@@ -290,6 +291,22 @@ class PowderBatch(Timestamped):
 	technician_fk = models.ForeignKey(WetLabStaff, on_delete=models.SET_NULL, null=True)
 	status = models.ForeignKey(PowderBatchStatus, null=True, on_delete=models.SET_NULL)
 	notes = models.TextField(blank=True)
+	
+	# modify powder samples from spreadsheet
+	# it would be better to reuse form validation
+	def powder_samples_from_spreadsheet(self, spreadsheet_file, user):
+		headers, data_rows = spreadsheet_headers_and_data_rows(spreadsheet_file)
+		powder_samples = PowderSample.objects.filter(powder_batch=self)
+		if headers[0] != 'powder_sample_id':
+			raise ValueError('powder_sample_id is not first')
+			
+		for line in data_rows[1:]:
+			fields = re.split('\t', line)
+			powder_sample_id = fields[0]
+			if len(powder_sample_id) > 0:
+				print(powder_sample_id)
+				powder_sample = powder_samples.get(powder_sample_id=powder_sample_id)
+				powder_sample.from_spreadsheet_row(headers[1:], fields[1:], user)
 
 class PowderSample(Timestamped):
 	powder_sample_id = models.CharField(max_length=15, unique=True, null=False, db_index=True)
@@ -336,7 +353,9 @@ class PowderSample(Timestamped):
 		self.powder_for_extract = float(arg_array[headers.index('powder_for_extract')])
 		self.storage_location = arg_array[headers.index('storage_location')]
 		self.sample_prep_lab = arg_array[headers.index('sample_prep_lab')]
-		self.sample_prep_protocol = SamplePrepProtocol.objects.get(preparation_method=arg_array[headers.index('sample_prep_protocol')])
+		
+		preparation_method = arg_array[headers.index('sample_prep_protocol')]
+		self.sample_prep_protocol = SamplePrepProtocol.objects.get(preparation_method=preparation_method)
 		self.save(save_user=user)
 	
 # Wetlab consumes samples from this queue for powder batches
@@ -639,16 +658,13 @@ class LysateBatch(Timestamped):
 		return extract_batch
 		
 	def lysates_from_spreadsheet(self, spreadsheet, user):
-		s = spreadsheet.read().decode("utf-8")
 		lysates = Lysate.objects.filter(lysate_batch=self)
-		lines = s.split('\n')
-		header = lines[0].strip()
-		headers = re.split('\t|\n', header)
+		headers, data_rows = spreadsheet_headers_and_data_rows(spreadsheet)
 		if headers[0] != 'lysate_id':
 			raise ValueError('lysate_id is not first')
 			
-		for line in lines[1:]:
-			fields = re.split('\t|\n', line)
+		for line in data_rows:
+			fields = re.split('\t', line)
 			lysate_id = fields[0]
 			if len(lysate_id) > 0:
 				lysate = lysates.get(lysate_id=lysate_id)
@@ -840,16 +856,13 @@ class ExtractionBatch(Timestamped):
 				library_batch_layout_element.save(save_user=user)
 	
 	def extracts_from_spreadsheet(self, spreadsheet, user):
-		s = spreadsheet.read().decode("utf-8")
 		extracts = Extract.objects.filter(extract_batch=self)
-		lines = s.split('\n')
-		header = lines[0].strip()
-		headers = re.split('\t|\n', header)
+		headers, data_rows = spreadsheet_headers_and_data_rows(spreadsheet)
 		if headers[0] != 'extract_id':
 			raise ValueError('extract_id is not first')
 			
-		for line in lines[1:]:
-			fields = re.split('\t|\n', line)
+		for line in data_rows:
+			fields = re.split('\t', line)
 			extract_id = fields[0]
 			if len(extract_id) > 0:
 				extract = extracts.get(extract_id=extract_id)
@@ -1034,18 +1047,15 @@ class LibraryBatch(Timestamped):
 		to_clear.delete()
 		
 	def libraries_from_spreadsheet(self, spreadsheet, user):
-		s = spreadsheet.read().decode("utf-8")
 		libraries = Library.objects.filter(library_batch=self)
-		lines = s.split('\n')
-		header = lines[0].strip()
-		headers = re.split('\t|\n', header)
+		headers, data_rows = spreadsheet_headers_and_data_rows(spreadsheet)
 		if headers[0] != 'well_position':
 			raise ValueError('well_position is not first')
 		if headers[0] != 'reich_lab_library_id':
 			raise ValueError('reich_lab_library_id is not second')
 			
-		for line in lines[1:]:
-			fields = re.split('\t|\n', line)
+		for line in data_rows:
+			fields = re.split('\t', line)
 			reich_lab_library_id = fields[1]
 			if len(reich_lab_library_id) > 0:
 				library = libraries.get(reich_lab_library_id=reich_lab_library_id)
@@ -1260,7 +1270,6 @@ class NuclearCapturePlate(Timestamped):
 	notes = models.TextField(blank=True)
 	
 	p5_index_start = models.PositiveSmallIntegerField(null=True, validators=[MinValueValidator(1), MaxValueValidator(47), validate_odd], help_text='Must be odd in [1, 48]')# revisit this for single stranded
-	
 	
 	def assign_indices(self, user):
 		for layout_element in CaptureLayout.objects.filter(capture_batch=self):

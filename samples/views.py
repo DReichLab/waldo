@@ -17,7 +17,7 @@ from samples.models import Results, Library, Sample, PowderBatch, WetLabStaff, P
 from .forms import *
 from sequencing_run.models import MTAnalysis
 
-from .powder_samples import new_reich_lab_powder_sample, assign_prep_queue_entries_to_powder_batch, powder_samples_from_spreadsheet
+from .powder_samples import new_reich_lab_powder_sample, assign_prep_queue_entries_to_powder_batch
 from .layout import duplicate_positions_check, update_db_layout,  layout_objects_map_for_rendering, occupied_wells, layout_and_content_lists, PLATE_WELL_COUNT
 
 from samples.sample_photos import photo_list, save_sample_photo
@@ -257,7 +257,7 @@ def powder_samples_spreadsheet(request):
 	writer = csv.writer(response, delimiter='\t')
 	# header
 	writer.writerow(PowderSample.spreadsheet_header())
-	powder_samples = PowderSample.objects.filter(powder_batch=powder_batch)
+	powder_samples = PowderSample.objects.filter(powder_batch=powder_batch).order_by('sample__reich_lab_id')
 	for powder_sample in powder_samples:
 		writer.writerow(powder_sample.to_spreadsheet_row())
 	return response
@@ -266,11 +266,12 @@ def powder_samples_spreadsheet(request):
 def powder_samples_spreadsheet_upload(request):
 	powder_batch_name = request.GET['powder_batch_name']
 	if request.method == 'POST':
+		powder_batch = PowderBatch.objects.get(name=powder_batch_name)
 		spreadsheet_form = SpreadsheetForm(request.POST, request.FILES)
 		print(f'powder sample spreadsheet {powder_batch_name}')
 		if spreadsheet_form.is_valid():
 			spreadsheet = request.FILES.get('spreadsheet')
-			powder_samples_from_spreadsheet(powder_batch_name, spreadsheet, request.user)
+			powder_batch.powder_samples_from_spreadsheet(spreadsheet, request.user)
 			message = 'Values updated'
 	else:
 		spreadsheet_form = SpreadsheetForm()
