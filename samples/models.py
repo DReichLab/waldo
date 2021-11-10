@@ -1259,7 +1259,7 @@ class ShotgunPool(Timestamped):
 	notes = models.TextField(blank=True)
 		
 class NuclearCapturePlate(Timestamped):
-	name = models.CharField(max_length=50, unique=True)
+	name = models.CharField(max_length=50)
 	enrichment_type = models.CharField(max_length=20, blank=True)
 	protocol_temp = models.ForeignKey(CaptureProtocol, on_delete=models.PROTECT, null=True)
 	technician = models.CharField(max_length=10, blank=True)
