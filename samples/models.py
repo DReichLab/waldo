@@ -1241,23 +1241,6 @@ class SequencingPlatform(Timestamped):
 	note = models.TextField(blank=True)
 	lanes_runs = models.FloatField(null=True, help_text='number of lanes for HISeqs or number of runs for Miseq and NextSeq')
 	location = models.CharField(max_length=50, blank=True, help_text='location of sequencing platform')
-	
-class MTCapturePlate(Timestamped):
-	name = models.CharField(max_length=30)
-	protocol_temp = models.ForeignKey(CaptureProtocol, on_delete=models.PROTECT, null=True)
-	technician = models.CharField(max_length=10, blank=True)
-	technician_fk = models.ForeignKey(WetLabStaff, on_delete=models.SET_NULL, null=True)
-	date = models.DateField(null=True)
-	robot = models.CharField(max_length=20, blank=True)
-	notes = models.TextField(blank=True)
-	
-class ShotgunPool(Timestamped):
-	name = models.CharField(max_length=50)
-	protocol_temp = models.ForeignKey(CaptureProtocol, on_delete=models.PROTECT, null=True)
-	technician = models.CharField(max_length=10, blank=True)
-	technician_fk = models.ForeignKey(WetLabStaff, on_delete=models.SET_NULL, null=True)
-	date = models.DateField(null=True)
-	notes = models.TextField(blank=True)
 		
 class NuclearCapturePlate(Timestamped):
 	name = models.CharField(max_length=50)
@@ -1472,10 +1455,8 @@ class DistributionsExtract(Timestamped):
 class Results(Timestamped):
 	library_id = models.CharField(max_length=25, db_index=True)
 	library_fk = models.ForeignKey(Library, null=True, on_delete=models.SET_NULL)
-	mt_capture_plate = models.ForeignKey(MTCapturePlate, null=True, on_delete=models.SET_NULL)
 	mt_capture_plate_temp = models.ForeignKey(NuclearCapturePlate, null=True, on_delete=models.SET_NULL, related_name='results_mt')
 	mt_seq_run = models.ForeignKey(SequencingRun, null=True, on_delete=models.SET_NULL, related_name='results_mt')
-	shotgun_pool = models.ForeignKey(ShotgunPool, null=True, on_delete=models.SET_NULL)
 	shotgun_plate = models.ForeignKey(NuclearCapturePlate, null=True, on_delete=models.SET_NULL, related_name='results_shotgun')
 	shotgun_seq_run = models.ForeignKey(SequencingRun, null=True, on_delete=models.SET_NULL, related_name='results_shotgun')
 	nuclear_capture_plate = models.ForeignKey(NuclearCapturePlate, null=True, on_delete=models.SET_NULL, related_name='results_nuclear')
