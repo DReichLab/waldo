@@ -407,11 +407,11 @@ class CaptureProtocolSelect(ModelChoiceField):
 		return obj.name
 
 class CaptureBatchForm(UserModelForm):
-	protocol_temp = CaptureProtocolSelect(queryset=CaptureProtocol.objects.all())
+	protocol = CaptureProtocolSelect(queryset=CaptureProtocol.objects.all())
 	
 	class Meta:
 		model = CaptureOrShotgunPlate
-		fields = ['name', 'enrichment_type', 'protocol_temp', 'technician', 'date', 'robot', 'hyb_wash_temps', 'p5_index_start', 'notes']
+		fields = ['name', 'enrichment_type', 'protocol', 'technician', 'date', 'robot', 'hyb_wash_temps', 'p5_index_start', 'notes']
 		widgets = {
 			'notes': Textarea(attrs={'cols': 60, 'rows': 2}),
 		}

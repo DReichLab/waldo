@@ -1245,7 +1245,7 @@ class SequencingPlatform(Timestamped):
 class CaptureOrShotgunPlate(Timestamped):
 	name = models.CharField(max_length=50)
 	enrichment_type = models.CharField(max_length=20, blank=True)
-	protocol_temp = models.ForeignKey(CaptureProtocol, on_delete=models.PROTECT, null=True)
+	protocol = models.ForeignKey(CaptureProtocol, on_delete=models.PROTECT, null=True)
 	technician = models.CharField(max_length=10, blank=True)
 	technician_fk = models.ForeignKey(WetLabStaff, on_delete=models.SET_NULL, null=True)
 	date = models.DateField(null=True)
@@ -1455,7 +1455,7 @@ class DistributionsExtract(Timestamped):
 class Results(Timestamped):
 	library_id = models.CharField(max_length=25, db_index=True)
 	library_fk = models.ForeignKey(Library, null=True, on_delete=models.SET_NULL)
-	mt_capture_plate_temp = models.ForeignKey(CaptureOrShotgunPlate, null=True, on_delete=models.SET_NULL, related_name='results_mt')
+	mt_capture_plate = models.ForeignKey(CaptureOrShotgunPlate, null=True, on_delete=models.SET_NULL, related_name='results_mt')
 	mt_seq_run = models.ForeignKey(SequencingRun, null=True, on_delete=models.SET_NULL, related_name='results_mt')
 	shotgun_plate = models.ForeignKey(CaptureOrShotgunPlate, null=True, on_delete=models.SET_NULL, related_name='results_shotgun')
 	shotgun_seq_run = models.ForeignKey(SequencingRun, null=True, on_delete=models.SET_NULL, related_name='results_shotgun')
