@@ -1241,6 +1241,8 @@ class SequencingPlatform(Timestamped):
 	note = models.TextField(blank=True)
 	lanes_runs = models.FloatField(null=True, help_text='number of lanes for HISeqs or number of runs for Miseq and NextSeq')
 	location = models.CharField(max_length=50, blank=True, help_text='location of sequencing platform')
+	
+	active = models.BooleanField(default=True)
 		
 class CaptureOrShotgunPlate(Timestamped):
 	name = models.CharField(max_length=50)
