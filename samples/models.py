@@ -1064,7 +1064,7 @@ class LibraryBatch(Timestamped):
 	
 	def create_capture(self, capture_name, user):
 		# create capture
-		capture_plate = NuclearCapturePlate.objects.create(name=capture_name,
+		capture_plate = CaptureOrShotgunPlate.objects.create(name=capture_name,
 				technician = self.technician,
 				technician_fk = self.technician_fk,
 			)
@@ -1242,7 +1242,7 @@ class SequencingPlatform(Timestamped):
 	lanes_runs = models.FloatField(null=True, help_text='number of lanes for HISeqs or number of runs for Miseq and NextSeq')
 	location = models.CharField(max_length=50, blank=True, help_text='location of sequencing platform')
 		
-class NuclearCapturePlate(Timestamped):
+class CaptureOrShotgunPlate(Timestamped):
 	name = models.CharField(max_length=50)
 	enrichment_type = models.CharField(max_length=20, blank=True)
 	protocol_temp = models.ForeignKey(CaptureProtocol, on_delete=models.PROTECT, null=True)
@@ -1280,14 +1280,14 @@ class NuclearCapturePlate(Timestamped):
 		to_clear.delete()
 			
 	def clean(self):
-		super(NuclearCapturePlate, self).clean()
+		super(CaptureOrShotgunPlate, self).clean()
 	
 	def create_sequencing_run(self, sequencing_run_name, user):
 		pass # TODO
 	
 # library -> indices added
 class CaptureLayout(TimestampedWellPosition):
-	capture_batch = models.ForeignKey(NuclearCapturePlate, on_delete=models.CASCADE) # we don't need to account for lost library
+	capture_batch = models.ForeignKey(CaptureOrShotgunPlate, on_delete=models.CASCADE) # we don't need to account for lost library
 	library = models.ForeignKey(Library, on_delete=models.CASCADE, null=True)
 	control_type = models.ForeignKey(ControlType, on_delete=models.PROTECT, null=True)
 	notes = models.TextField(blank=True)
@@ -1455,11 +1455,11 @@ class DistributionsExtract(Timestamped):
 class Results(Timestamped):
 	library_id = models.CharField(max_length=25, db_index=True)
 	library_fk = models.ForeignKey(Library, null=True, on_delete=models.SET_NULL)
-	mt_capture_plate_temp = models.ForeignKey(NuclearCapturePlate, null=True, on_delete=models.SET_NULL, related_name='results_mt')
+	mt_capture_plate_temp = models.ForeignKey(CaptureOrShotgunPlate, null=True, on_delete=models.SET_NULL, related_name='results_mt')
 	mt_seq_run = models.ForeignKey(SequencingRun, null=True, on_delete=models.SET_NULL, related_name='results_mt')
-	shotgun_plate = models.ForeignKey(NuclearCapturePlate, null=True, on_delete=models.SET_NULL, related_name='results_shotgun')
+	shotgun_plate = models.ForeignKey(CaptureOrShotgunPlate, null=True, on_delete=models.SET_NULL, related_name='results_shotgun')
 	shotgun_seq_run = models.ForeignKey(SequencingRun, null=True, on_delete=models.SET_NULL, related_name='results_shotgun')
-	nuclear_capture_plate = models.ForeignKey(NuclearCapturePlate, null=True, on_delete=models.SET_NULL, related_name='results_nuclear')
+	nuclear_capture_plate = models.ForeignKey(CaptureOrShotgunPlate, null=True, on_delete=models.SET_NULL, related_name='results_nuclear')
 	nuclear_seq_run = models.ForeignKey(SequencingRun, null=True, on_delete=models.SET_NULL, related_name='results_nuclear')
 	extract_control = models.ForeignKey(ControlsExtract, null=True, on_delete=models.SET_NULL)
 	library_control = models.ForeignKey(ControlsLibrary, null=True, on_delete=models.SET_NULL)

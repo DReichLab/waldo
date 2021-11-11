@@ -13,7 +13,7 @@ import json
 from datetime import datetime
 
 from samples.pipeline import udg_and_strandedness
-from samples.models import Results, Library, Sample, PowderBatch, WetLabStaff, PowderSample, ControlType, ControlSet, ControlLayout, ExtractionProtocol, LysateBatch, SamplePrepQueue, PLATE_ROWS, LysateBatchLayout, ExtractionBatch, ExtractionBatchLayout, Lysate, LibraryBatch, LibraryBatchLayout, Extract, NuclearCapturePlate, CaptureLayout, Storage
+from samples.models import Results, Library, Sample, PowderBatch, WetLabStaff, PowderSample, ControlType, ControlSet, ControlLayout, ExtractionProtocol, LysateBatch, SamplePrepQueue, PLATE_ROWS, LysateBatchLayout, ExtractionBatch, ExtractionBatchLayout, Lysate, LibraryBatch, LibraryBatchLayout, Extract, CaptureOrShotgunPlate, CaptureLayout, Storage
 from .forms import *
 from sequencing_run.models import MTAnalysis
 
@@ -1039,13 +1039,13 @@ def capture_batches(request):
 	elif request.method == 'GET':
 		form = CaptureBatchForm(user=request.user)
 		
-	capture_batches_queryset = NuclearCapturePlate.objects.all().order_by('-id')
+	capture_batches_queryset = CaptureOrShotgunPlate.objects.all().order_by('-id')
 	return render(request, 'samples/capture_batches.html', { 'form': form, 'capture_batches': capture_batches_queryset } )
 	
 @login_required
 def capture_batch_assign_library(request):
 	capture_batch_name = request.GET['capture_batch_name']
-	capture_batch = NuclearCapturePlate.objects.get(name=capture_batch_name)
+	capture_batch = CaptureOrShotgunPlate.objects.get(name=capture_batch_name)
 	if request.method == 'POST':
 		capture_batch_form = CaptureBatchForm(request.POST, instance=capture_batch, user=request.user)
 		if capture_batch_form.is_valid():
@@ -1083,7 +1083,7 @@ def capture_batch_layout(request):
 		capture_batch_name = request.GET['capture_batch_name']
 	except:
 		capture_batch_name = request.POST['capture_batch_name']
-	capture_batch = NuclearCapturePlate.objects.get(name=capture_batch_name)
+	capture_batch = CaptureOrShotgunPlate.objects.get(name=capture_batch_name)
 	layout_element_queryset = CaptureLayout.objects.filter(capture_batch=capture_batch)
 		
 	if request.method == 'POST' and request.is_ajax():
@@ -1110,10 +1110,10 @@ def capture_batch_layout(request):
 def capture_batch_delete(request):
 	capture_batch_name = request.GET['batch_name']
 	try:
-		capture_batch = NuclearCapturePlate.objects.get(name=capture_batch_name)
+		capture_batch = CaptureOrShotgunPlate.objects.get(name=capture_batch_name)
 		capture_batch_form = CaptureBatchForm(instance=capture_batch, user=request.user)
 		capture_batch_form.disable_fields()
-	except NuclearCapturePlate.DoesNotExist:
+	except CaptureOrShotgunPlate.DoesNotExist:
 		return HttpResponse(f'{capture_batch_name} no longer exists.')
 	
 	if request.method == 'POST':

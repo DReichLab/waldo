@@ -4,7 +4,7 @@ from django.forms import modelformset_factory
 from django.forms.widgets import TextInput
 from django.utils.translation import gettext_lazy as _
 
-from samples.models import PowderBatch, PowderBatchStatus, PowderSample, Sample, SamplePrepProtocol, ControlType, ControlSet, ControlLayout, LysateBatch, ExtractionProtocol, ExpectedComplexity, SamplePrepQueue, Lysate, LysateBatchLayout, ExtractionBatch, ExtractionBatchLayout, LibraryProtocol, LibraryBatch, Extract, Storage, Library, Barcode, CaptureProtocol, NuclearCapturePlate
+from samples.models import PowderBatch, PowderBatchStatus, PowderSample, Sample, SamplePrepProtocol, ControlType, ControlSet, ControlLayout, LysateBatch, ExtractionProtocol, ExpectedComplexity, SamplePrepQueue, Lysate, LysateBatchLayout, ExtractionBatch, ExtractionBatchLayout, LibraryProtocol, LibraryBatch, Extract, Storage, Library, Barcode, CaptureProtocol, CaptureOrShotgunPlate
 
 import datetime
 
@@ -353,7 +353,7 @@ class LibraryBatchForm(UserModelForm):
 		
 	def __init__(self, *args, **kwargs):
 		super().__init__(*args, **kwargs)
-		for option in ['protocol', 'prep_date', 'prep_robot']:
+		for option in ['prep_date', 'prep_robot']:
 			self.fields[option].required = False
 	
 	def disable_fields(self):
@@ -387,11 +387,11 @@ LibraryFormset = modelformset_factory(Library, form=LibraryForm, extra=0)
 # raise validation error if capture batch name already exists
 def validate_capture_batch_does_not_exist(capture_batch_name):
 	try:
-		capture_batch = NuclearCapturePlate.objects.get(name=capture_batch_name)
-		raise ValidationError(_('NuclearCapturePlate already exists: %(capture_batch_name)s'), 
+		capture_batch = CaptureOrShotgunPlate.objects.get(name=capture_batch_name)
+		raise ValidationError(_('CaptureOrShotgunPlate already exists: %(capture_batch_name)s'), 
 						code='exists', 
 						params={'capture_batch_name': capture_batch_name})
-	except NuclearCapturePlate.DoesNotExist:
+	except CaptureOrShotgunPlate.DoesNotExist:
 		pass
 			
 class LibraryBatchToCaptureBatchForm(forms.Form):
@@ -410,7 +410,7 @@ class CaptureBatchForm(UserModelForm):
 	protocol_temp = CaptureProtocolSelect(queryset=CaptureProtocol.objects.all())
 	
 	class Meta:
-		model = NuclearCapturePlate
+		model = CaptureOrShotgunPlate
 		fields = ['name', 'enrichment_type', 'protocol_temp', 'technician', 'date', 'robot', 'hyb_wash_temps', 'p5_index_start', 'notes']
 		widgets = {
 			'notes': Textarea(attrs={'cols': 60, 'rows': 2}),
