@@ -1253,6 +1253,7 @@ class MTCapturePlate(Timestamped):
 	
 class ShotgunPool(Timestamped):
 	name = models.CharField(max_length=50)
+	protocol_temp = models.ForeignKey(CaptureProtocol, on_delete=models.PROTECT, null=True)
 	technician = models.CharField(max_length=10, blank=True)
 	technician_fk = models.ForeignKey(WetLabStaff, on_delete=models.SET_NULL, null=True)
 	date = models.DateField(null=True)
