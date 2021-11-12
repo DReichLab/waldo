@@ -145,7 +145,10 @@
 		{% csrf_token %}
 	</form>
 	{% if allow_layout_modifications == True %}
-	<button onclick="send_well_plate_layout(objects_map_js)">Submit Layout</button>
+	<button onclick="send_well_plate_layout(objects_map_js)">Update Layout</button>
+	{% endif %}
+	{% if back_link %}
+	<a href='{{back_link}}'>Back to batch</a>
 	{% endif %}
 </div>
 
