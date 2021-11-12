@@ -995,6 +995,7 @@ def create_library_from_extract(layout_element, user):
 	library_batch = layout_element.library_batch
 	extract = layout_element.extract
 	
+	# TODO libraries needed for controls?
 	if extract is None:
 		return None
 	elif layout_element.library is not None:
@@ -1393,6 +1394,7 @@ class SequencingRun(Timestamped):
 	reich_lab_release_version = models.CharField(max_length=20, blank=True)
 	
 	indexed_libraries = models.ManyToManyField(CaptureLayout)
+	captures = models.ManyToManyField(CaptureOrShotgunPlate) # for marking whether captures have been sequenced
 	
 	# only one library type is allowed
 	def check_library_type(self):
