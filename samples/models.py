@@ -1317,7 +1317,7 @@ class CaptureOrShotgunPlate(Timestamped):
 	
 	p5_index_start = models.PositiveSmallIntegerField(null=True, validators=[MinValueValidator(1), MaxValueValidator(47), validate_odd], help_text='Must be odd in [1, 48]')# revisit this for single stranded
 	
-	needs_sequencing = models.BooleanField(default=True, help_text='True normally. False for historical plates.')
+	needs_sequencing = models.BooleanField(default=True, help_text='True for new plates. False for plates sequenced before website switchover.')
 	
 	def assign_indices(self, user):
 		for layout_element in CaptureLayout.objects.filter(capture_batch=self):
@@ -1396,13 +1396,25 @@ class SequencingRun(Timestamped):
 	indexed_libraries = models.ManyToManyField(CaptureLayout)
 	captures = models.ManyToManyField(CaptureOrShotgunPlate) # for marking whether captures have been sequenced
 	
+	def assign_captures(self, capture_ids):
+		# remove captures that are not in list
+		for capture in self.captures:
+			if capture.id not in capture_ids:
+				self.captures.remove(capture)
+		# add captures in list
+		for capture_id in captures_ids:
+			capture = CaptureOrShotgunPlate.objects.get(id=capture_id)
+			self.captures.add(capture)
+		# TODO indexed_libraries
+	
 	# only one library type is allowed
 	def check_library_type(self):
-		pass
+		pass # TODO
 		
 	def check_index_barcode_combinations(self):
+		# TODO
 		combinations = {}
-		for layout_element in CaptureLayout.objects.filter(capture_batch=self):
+		for layout_element in indexed_libraries:
 			s = f'{layout_element.p5_index.sequence}_{layout_element.p7_index.sequence}_{layout_element.library.p5_barcode}_{layout_element.library.p5_barcode}'
 			if s in combinations:
 				raise ValueError(f'duplicate index-barcode_combination {s}')

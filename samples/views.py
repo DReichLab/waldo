@@ -1134,6 +1134,30 @@ def sequencing_runs(request):
 		
 	sequencing_run_queryset = SequencingRun.objects.all().order_by('-id')
 	return render(request, 'samples/sequencing_runs.html', { 'form': form, 'sequencing_runs': sequencing_run_queryset } )
+	
+@login_required
+def sequencing_run_assign_captures(request):
+	sequencing_run_name = request.GET['sequencing_run_name']
+	sequencing_run = SequencingRun.objects.get(name=sequencing_run_name)
+	if request.method == 'POST':
+		form = SequencingRunForm(request.POST, user=request.user, instance=powder_batch)
+		
+		if form.is_valid():
+			form.save()
+			
+			# these are the ticked checkboxes.
+			capture_or_shotgun_plate_ids = request.POST.getlist('sample_checkboxes[]')
+			sequencing_run.assign_captures(capture_or_shotgun_plate_ids)
+		
+	elif request.method == 'GET':
+		form = SequencingRunForm(user=request.user, instance=sequencing_run)
+	
+	# captures already assigned
+	assigned_captures = sequencing_run.captures.all()
+	# show captures marked as needing sequencing that have not already been assigned
+	captures = CaptureOrShotgunPlate.objects.filter(needs_sequencing=True).annotate(sequencing_count=Count('sequencingrun')).exclude(sequencing_count__gt=0)
+	
+	return render(request, 'samples/sequencing_run_assign_captures.html', { 'sequencing_run_name': sequencing_run_name, 'form': form, } )
 
 @login_required
 def storage_all(request):

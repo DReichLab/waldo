@@ -16,13 +16,16 @@ urlpatterns = [
 	path('control_types', views.control_types, name='control_types'),
 	path('control_sets', views.control_sets, name='control_sets'),
 	path('control_set', views.control_set, name='control_set'),
+	
 	path('powder_batches', views.powder_batches, name='powder_batches'),
 	path('powder_samples', views.powder_samples, name='powder_samples'), # powder samples in a powder batch
 	path('powder_batch_assign_samples', views.powder_batch_assign_samples, name='powder_batch_assign_samples'),
 	path('powder_batch_delete', views.powder_batch_delete, name='powder_batch_delete'),
 	path('powder_samples_spreadsheet', views.powder_samples_spreadsheet, name='powder_samples_spreadsheet'),
 	path('powder_samples_spreadsheet_upload', views.powder_samples_spreadsheet_upload, name='powder_samples_spreadsheet_upload'),
+	
 	path('extraction_protocols', views.extraction_protocols, name='extraction_protocols'),
+	
 	path('lysate_batch', views.lysate_batch, name='lysate_batch'),
 	path('lysate_batch_assign_powder', views.lysate_batch_assign_powder, name='lysate_batch_assign_powder'),
 	path('lysate_batch_delete', views.lysate_batch_delete, name='lysate_batch_delete'),
@@ -31,6 +34,7 @@ urlpatterns = [
 	path('lysates_spreadsheet', views.lysates_spreadsheet, name='lysates_spreadsheet'),
 	path('lysates_spreadsheet_upload', views.lysates_spreadsheet_upload, name='lysates_spreadsheet_upload'),
 	path('lysate_batch_to_extract_batch', views.lysate_batch_to_extract_batch, name='lysate_batch_to_extract_batch'),
+	
 	path('extract_batch', views.extract_batch, name='extract_batch'),
 	path('extract_batch_assign_lysate', views.extract_batch_assign_lysate, name='extract_batch_assign_lysate'),
 	path('extract_batch_add_lysate', views.extract_batch_add_lysate, name='extract_batch_add_lysate'),
@@ -40,8 +44,10 @@ urlpatterns = [
 	path('extracts_spreadsheet', views.extracts_spreadsheet, name='extracts_spreadsheet'),
 	path('extracts_spreadsheet_upload', views.extracts_spreadsheet_upload, name='extracts_spreadsheet_upload'),
 	path('extract_batch_to_library_batch', views.extract_batch_to_library_batch, name='extract_batch_to_library_batch'),
+	
 	path('library_protocols', views.library_protocols, name='library_protocols'),
 	path('library_protocol', views.library_protocol, name='library_protocol'),
+	
 	path('library_batches', views.library_batches, name='library_batches'),
 	path('library_batch_assign_extract', views.library_batch_assign_extract, name='library_batch_assign_extract'),
 	path('library_batch_delete', views.library_batch_delete, name='library_batch_delete'),
@@ -49,15 +55,21 @@ urlpatterns = [
 	path('library_batch_barcodes_spreadsheet', views.library_batch_barcodes_spreadsheet, name='library_batch_barcodes_spreadsheet'),
 	path('libraries_in_batch', views.libraries_in_batch, name='libraries_in_batch'),
 	path('library_batch_to_capture_batch', views.library_batch_to_capture_batch, name='library_batch_to_capture_batch'),
+	
 	path('libraries_spreadsheet', views.libraries_spreadsheet, name='libraries_spreadsheet'),
 	path('libraries_spreadsheet_upload', views.libraries_spreadsheet_upload, name='libraries_spreadsheet_upload'),
+	
 	path('capture_protocols', views.capture_protocols, name='capture_protocols'),
 	path('capture_protocol', views.capture_protocol, name='capture_protocol'),
+	
 	path('capture_batches', views.capture_batches, name='capture_batches'),
 	path('capture_batch_assign_library', views.capture_batch_assign_library, name='capture_batch_assign_library'),
 	path('capture_batch_layout', views.capture_batch_layout, name='capture_batch_layout'),
 	path('capture_batch_delete', views.capture_batch_delete, name='capture_batch_delete'),
+	
 	path('sequencing_runs', views.sequencing_runs, name='sequencing_runs'),
+	path('sequencing_run_assign_captures', views.sequencing_run_assign_captures, name='sequencing_run_assign_captures'),
+	
 	path('lost_powder', views.lost_powder, name='lost_powder'),
 	path('lost_lysate', views.lost_lysate, name='lost_lysate'),
 	path('sample', views.sample, name='sample'),
