@@ -50,6 +50,7 @@ table{
 		<th><button class="sort" data-sort="robot">Robot</button></th>
 		<th><button class="sort" data-sort="hyb_wash_temps">Hyb Wash Temps</button></th>
 		<th><button class="sort" data-sort="p5_index_start">P5 Index Start</button></th>
+		<th><button class="sort" data-sort="needs_sequencing">Needs sequencing</button></th>
 		<th><button class="sort" data-sort="notes">Notes</button></th>
 	</tr>
 	</thead>
@@ -68,6 +69,7 @@ table{
 		<td class="robot">{{capture_batch.robot}}</td>
 		<td class="hyb_wash_temps">{{capture_batch.hyb_wash_temps}}</td>
 		<td class="p5_index_start">{{capture_batch.p5_index_start}}</td>
+		<td class="needs_sequencing">{{capture_batch.needs_sequencing}}</td>
 		<td class="notes">{{capture_batch.prep_note}}</td>
 	</tr>
 	{% endfor %}

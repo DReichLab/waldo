@@ -1318,7 +1318,7 @@ class CaptureOrShotgunPlate(Timestamped):
 	
 	p5_index_start = models.PositiveSmallIntegerField(null=True, validators=[MinValueValidator(1), MaxValueValidator(47), validate_odd], help_text='Must be odd in [1, 48]')# revisit this for single stranded
 	
-	needs_sequencing = models.BooleanField(default=False)
+	needs_sequencing = models.BooleanField(default=True, help_text='True normally. False for historical plates.')
 	
 	def assign_indices(self, user):
 		for layout_element in CaptureLayout.objects.filter(capture_batch=self):
