@@ -1158,6 +1158,31 @@ def sequencing_run_assign_captures(request):
 	captures = CaptureOrShotgunPlate.objects.filter(needs_sequencing=True).annotate(sequencing_count=Count('sequencingrun')).exclude(sequencing_count__gt=0)
 	
 	return render(request, 'samples/sequencing_run_assign_captures.html', { 'sequencing_run_name': sequencing_run_name, 'form': form, } )
+	
+@login_required
+def sequencing_platforms(request):
+	if request.method == 'POST':
+		form = SequencingPlatformForm(request.POST, user=request.user)
+		if form.is_valid():
+			form.save()
+	elif request.method == 'GET':
+		form = SequencingPlatformForm(user=request.user)
+		
+	sequencing_platform_queryset = SequencingPlatform.objects.all().order_by('-id')
+	return render(request, 'samples/sequencing_platforms.html', { 'form': form, 'sequencing_platforms': sequencing_platform_queryset } )
+	
+@login_required
+def sequencing_platform(request):
+	sequencing_platform_id = request.GET['sequencing_platform_id']
+	sequencing_platform = SequencingPlatform.objects.get(id=sequencing_platform_id)
+	if request.method == 'POST':
+		form = SequencingPlatformForm(request.POST, user=request.user)
+		if form.is_valid():
+			form.save()
+	elif request.method == 'GET':
+		form = SequencingPlatformForm(user=request.user, instance=sequencing_platform)
+		
+	return render(request, 'samples/generic_form.html', { 'title': f'Sequencing Platform {str(sequencing_platform)}', 'form': form, } )
 
 @login_required
 def storage_all(request):

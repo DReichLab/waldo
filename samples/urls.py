@@ -70,6 +70,9 @@ urlpatterns = [
 	path('sequencing_runs', views.sequencing_runs, name='sequencing_runs'),
 	path('sequencing_run_assign_captures', views.sequencing_run_assign_captures, name='sequencing_run_assign_captures'),
 	
+	path('sequencing_platforms', views.sequencing_platforms, name='sequencing_platforms'),
+	path('sequencing_platform', views.sequencing_platform, name='sequencing_platform'),
+	
 	path('lost_powder', views.lost_powder, name='lost_powder'),
 	path('lost_lysate', views.lost_lysate, name='lost_lysate'),
 	path('sample', views.sample, name='sample'),
