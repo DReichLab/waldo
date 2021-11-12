@@ -4,7 +4,7 @@ from django.forms import modelformset_factory
 from django.forms.widgets import TextInput
 from django.utils.translation import gettext_lazy as _
 
-from samples.models import PowderBatch, PowderBatchStatus, PowderSample, Sample, SamplePrepProtocol, ControlType, ControlSet, ControlLayout, LysateBatch, ExtractionProtocol, ExpectedComplexity, SamplePrepQueue, Lysate, LysateBatchLayout, ExtractionBatch, ExtractionBatchLayout, LibraryProtocol, LibraryBatch, Extract, Storage, Library, Barcode, CaptureProtocol, CaptureOrShotgunPlate
+from samples.models import PowderBatch, PowderSample, Sample, SamplePrepProtocol, ControlType, ControlSet, ControlLayout, LysateBatch, ExtractionProtocol, ExpectedComplexity, SamplePrepQueue, Lysate, LysateBatchLayout, ExtractionBatch, ExtractionBatchLayout, LibraryProtocol, LibraryBatch, Extract, Storage, Library, Barcode, CaptureProtocol, CaptureOrShotgunPlate, SequencingPlatform, SequencingRun
 
 import datetime
 
@@ -13,11 +13,6 @@ class IndividualForm(forms.Form):
 
 class LibraryIDForm(forms.Form):
 	library_id = forms.CharField(max_length=20, min_length=7, label='Reich Lab Library ID')
-
-# to display the powder batch status description instead of a primary key
-class PowderBatchStatusSelect(ModelChoiceField):
-	def label_from_instance(self, obj):
-		return obj.description
 
 # This is basically a ModelForm with an additional user (Django login object) field for tracking who has modified objects in the save method
 class UserModelForm(ModelForm):
@@ -37,11 +32,10 @@ class UserModelForm(ModelForm):
 
 class PowderBatchForm(UserModelForm):
 	date = forms.DateField(help_text='YYYY-MM-DD', required=False)
-	status = PowderBatchStatusSelect(queryset=PowderBatchStatus.objects.all().order_by('sort_order'), empty_label=None)
 	notes = forms.CharField(required=False, widget=forms.Textarea(attrs={'rows': 2})) 
 	class Meta:
 		model = PowderBatch
-		fields = ['name', 'date', 'technician', 'status', 'notes']
+		fields = ['name', 'date', 'technician', 'status_int', 'notes']
 		
 	def disable_fields(self):
 		for field in PowderBatchForm._meta.fields:
@@ -419,6 +413,17 @@ class CaptureBatchForm(UserModelForm):
 	def disable_fields(self):
 		for field in CaptureBatchForm._meta.fields:
 			self.fields[field].disabled = True
+			
+class SequencingPlatformSelect(ModelChoiceField):
+	def label_from_instance(self, obj):
+		return f'{obj.name} {read_length} {lanes_runs}'
+		
+class SequencingRunForm(UserModelForm):
+	sequencing = SequencingPlatformSelect(queryset=SequencingPlatform.objects.filter(active=True).order_by('-start_date'))
+	
+	class Meta:
+		model = SequencingRun
+		fields = ['name', 'technician', 'date', 'sequencing', 'notes']
 
 class SpreadsheetForm(forms.Form):
 	spreadsheet = forms.FileField(help_text='Retain headers from downloaded spreadsheet')

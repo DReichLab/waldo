@@ -280,17 +280,25 @@ class SamplePrepProtocol(Timestamped):
 	protocol_reference = models.TextField(blank=True, help_text='Protocol citation')
 	notes = models.TextField(blank=True, help_text='Notes about the method used to create bone powder')
 	
-class PowderBatchStatus(models.Model):
-	description = models.CharField(max_length=50, unique=True)
-	sort_order = models.SmallIntegerField()
-	
 class PowderBatch(Timestamped):
 	name = models.CharField(max_length=50, unique=True)
 	date = models.DateField(null=True)
 	technician = models.CharField(max_length=50, blank=True)
 	technician_fk = models.ForeignKey(WetLabStaff, on_delete=models.SET_NULL, null=True)
-	status = models.ForeignKey(PowderBatchStatus, null=True, on_delete=models.SET_NULL)
 	notes = models.TextField(blank=True)
+	STOP = -100
+	OPEN = 0
+	IN_PROGRESS = 100
+	READY_FOR_PLATE = 200
+	
+	POWDER_BATCH_STATES = (
+		(STOP, 'Stop'),
+		(OPEN, 'Open'),
+		(IN_PROGRESS, 'In Progress'),
+		(READY_FOR_PLATE, 'Ready For Plate'),
+	)
+	status_int = models.SmallIntegerField(null=True, default = OPEN, choices=POWDER_BATCH_STATES)
+	
 	
 	# modify powder samples from spreadsheet
 	# it would be better to reuse form validation
