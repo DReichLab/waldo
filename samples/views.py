@@ -116,6 +116,20 @@ def sample_prep_queue_view(request):
 	# show unassigned samples
 	sample_queue = SamplePrepQueue.objects.filter(Q(powder_batch=None)).select_related('sample').select_related('sample_prep_protocol').order_by('priority')
 	return render(request, 'samples/sample_prep_queue_view.html', { 'queued_samples': sample_queue } )
+	
+@login_required
+def sample_prep_queue_spreadsheet(request):
+	sample_queue = SamplePrepQueue.objects.filter(Q(powder_batch=None)).select_related('sample').select_related('sample_prep_protocol').order_by('priority')
+	
+	response = HttpResponse(content_type='text/csv')
+	response['Content-Disposition'] = f'attachment; filename="sample_prep_queue.tsv"'
+
+	writer = csv.writer(response, delimiter='\t')
+	# header
+	writer.writerow(SamplePrepQueue.spreadsheet_header())
+	for x in sample_queue:
+		writer.writerow(x.to_spreadsheet_row())
+	return response
 
 @login_required
 def control_types(request):
