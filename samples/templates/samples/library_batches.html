@@ -64,7 +64,7 @@ table{
 		{% endif %}
 		<td class="date">{{library_batch.get_status}}</td>
 		<td class="date">{{library_batch.prep_date|date:'Y-m-d'}}</td>
-		<td class="protocol">{{library_batch.protocol}}</td>
+		<td class="protocol">{{library_batch.protocol.name}}</td>
 		<td class="technician">{{library_batch.technician}}</td>
 		<td class="prep_robot">{{library_batch.prep_robot}}</td>
 		<td class="cleanup_robot">{{library_batch.cleanup_robot}}</td>
