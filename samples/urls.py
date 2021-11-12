@@ -57,6 +57,7 @@ urlpatterns = [
 	path('capture_batch_assign_library', views.capture_batch_assign_library, name='capture_batch_assign_library'),
 	path('capture_batch_layout', views.capture_batch_layout, name='capture_batch_layout'),
 	path('capture_batch_delete', views.capture_batch_delete, name='capture_batch_delete'),
+	path('sequencing_runs', views.sequencing_runs, name='sequencing_runs'),
 	path('lost_powder', views.lost_powder, name='lost_powder'),
 	path('lost_lysate', views.lost_lysate, name='lost_lysate'),
 	path('sample', views.sample, name='sample'),

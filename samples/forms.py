@@ -416,10 +416,10 @@ class CaptureBatchForm(UserModelForm):
 			
 class SequencingPlatformSelect(ModelChoiceField):
 	def label_from_instance(self, obj):
-		return f'{obj.name} {read_length} {lanes_runs}'
+		return f'{obj}'
 		
 class SequencingRunForm(UserModelForm):
-	sequencing = SequencingPlatformSelect(queryset=SequencingPlatform.objects.filter(active=True).order_by('-start_date'))
+	sequencing = SequencingPlatformSelect(queryset=SequencingPlatform.objects.filter(active=True).order_by('-id'))
 	
 	class Meta:
 		model = SequencingRun

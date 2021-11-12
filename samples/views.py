@@ -1133,7 +1133,7 @@ def sequencing_runs(request):
 		form = SequencingRunForm(user=request.user)
 		
 	sequencing_run_queryset = SequencingRun.objects.all().order_by('-id')
-	return render(request, 'samples/seqeuencing_runs.html', { 'form': form, 'capture_batches': sequencing_run_queryset } )
+	return render(request, 'samples/sequencing_runs.html', { 'form': form, 'sequencing_runs': sequencing_run_queryset } )
 
 @login_required
 def storage_all(request):

@@ -1260,6 +1260,9 @@ class SequencingPlatform(Timestamped):
 	location = models.CharField(max_length=50, blank=True, help_text='location of sequencing platform')
 	
 	active = models.BooleanField(default=True)
+	
+	def __str__(self):
+		return f'{self.platform} {self.read_length} {self.lanes_runs}'
 		
 class CaptureOrShotgunPlate(Timestamped):
 	name = models.CharField(max_length=50)

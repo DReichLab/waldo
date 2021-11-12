@@ -1,0 +1,80 @@
+{% extends "samples/reich_lab_base.html" %}
+
+{% load static %}
+
+{% block title %}Sequencing Runs{% endblock %}
+
+{% block content %}
+<script src="{% static "samples/list.js" %}"></script>
+
+<style>
+th {
+	position: sticky;
+	top: 0;
+	background: #eee;
+}
+
+#table_wrapper{
+	overflow-x: auto;
+	overflow-y: scroll;
+	height: 85vh;
+}
+
+table{
+	border-collapse: collapse;
+	border-spacing: 0;
+	width: 100%;
+}
+</style>
+
+<form action="" method='post'>
+	{% csrf_token %}
+	{{ form.as_p }}
+	<input type='submit' value='Create Sequencing Run'>
+</form>
+
+<hr>
+
+<div id='sequencing_run_rows'>
+
+<input class="search" placeholder="Search" />
+<div id='table_wrapper'>
+<table>
+	<thead>
+	<tr>
+		<th><button class="sort" data-sort="name" data-default-order='desc'>Name</button></th>
+		<th><button class="sort" data-sort="date">Date</button></th>
+		<th><button class="sort" data-sort="sequencing">Sequencing Platform</button></th>
+		<th><button class="sort" data-sort="technician">Technician</button></th>
+		<th><button class="sort" data-sort="notes">Notes</button></th>
+	</tr>
+	</thead>
+	<tbody class="list">
+	{% for sequencing_run in sequencing_runs %}
+	<tr>
+		{% if sequencing_run.status == sequencing_run.OPEN %}
+		<td class="name"><a href="sequencing_run_assign_captures?sequencing_run_name={{sequencing_run.name}}">{{sequencing_run.name}}</a></td>
+		{% else %}
+		<td class="name"><a href="sequencing_run?sequencing_run_name={{sequencing_run.name}}">{{sequencing_run.name}}</a></td>
+		{% endif %}
+		<td class="date">{{sequencing_run.date|date:'Y-m-d'}}</td>
+		<td class="sequencing">{{sequencing_run.sequencing}}</td>
+		<td class="technician">{{sequencing_run.technician}}</td>
+		<td class="notes">{{sequencing_run.prep_note}}</td>
+	</tr>
+	{% endfor %}
+	</tbody>
+</table>
+</div>
+</div>
+
+<script>
+	var list_options = {
+		valueNames: ['name', 'date', 'sequencing', 'technician', 'notes'],
+		searchDelay: 500
+	};
+	var sequencing_run_list = new List('sequencing_run_rows', list_options);
+	//document.addEventListener("load", sequencing_run_list.sort('date', { order: 'desc'}));
+</script>
+
+{% endblock %}
