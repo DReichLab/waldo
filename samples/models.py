@@ -1376,9 +1376,21 @@ class SequencingRun(Timestamped):
 	name = models.CharField(max_length=50, unique=True, db_index=True)
 	technician = models.CharField(max_length=10, blank=True, default='')
 	technician_fk = models.ForeignKey(WetLabStaff, on_delete=models.SET_NULL, null=True)
-	date = models.DateField(null=True)
 	sequencing = models.ForeignKey(SequencingPlatform, on_delete=models.SET_NULL, null=True)
 	notes = models.TextField(blank=True, default='')
+	
+	lanes_estimated = models.PositiveSmallIntegerField(null=True)
+	lanes_sequenced = models.PositiveSmallIntegerField(null=True)
+	
+	date_pooled = models.DateField(null=True)
+	date_ready_for_sequencing = models.DateField(null=True)
+	date_submitted_for_sequencing = models.DateField(null=True)
+	date_data_available = models.DateField(null=True)
+	date_analysis_started = models.DateField(null=True)
+	date_analysis_complete = models.DateField(null=True)
+	date_ready_for_pulldown = models.DateField(null=True)
+	date_pulldown_complete = models.DateField(null=True)
+	reich_lab_release_version = models.CharField(max_length=20, blank=True)
 	
 	indexed_libraries = models.ManyToManyField(CaptureLayout)
 	

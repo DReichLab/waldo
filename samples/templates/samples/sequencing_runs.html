@@ -43,9 +43,20 @@ table{
 	<thead>
 	<tr>
 		<th><button class="sort" data-sort="name" data-default-order='desc'>Name</button></th>
-		<th><button class="sort" data-sort="date">Date</button></th>
+		
 		<th><button class="sort" data-sort="sequencing">Sequencing Platform</button></th>
 		<th><button class="sort" data-sort="technician">Technician</button></th>
+		<th><button class="sort" data-sort="lanes_estimated">Lanes estimated</button></th>
+		<th><button class="sort" data-sort="lanes_sequenced">Lanes sequenced</button></th>
+		<th><button class="sort" data-sort="date_pooled">Date Pooled</button></th>
+		<th><button class="sort" data-sort="date_ready_for_sequencing">Date Ready for Sequencing</button></th>
+		<th><button class="sort" data-sort="date_submitted_for_sequencing">Date Submitted for Sequencing</button></th>
+		<th><button class="sort" data-sort="date_data_available">Date Data Available</button></th>
+		<th><button class="sort" data-sort="date_analysis_started">Date Analysis Started</button></th>
+		<th><button class="sort" data-sort="date_analysis_complete">Date Analysis Complete</button></th>
+		<th><button class="sort" data-sort="date_ready_for_pulldown">Date Ready For Pulldown</button></th>
+		<th><button class="sort" data-sort="date_pulldown_complete">Date Complete</button></th>
+		<th><button class="sort" data-sort="reich_lab_release_version">In release</button></th>
 		<th><button class="sort" data-sort="notes">Notes</button></th>
 	</tr>
 	</thead>
@@ -57,9 +68,20 @@ table{
 		{% else %}
 		<td class="name"><a href="sequencing_run?sequencing_run_name={{sequencing_run.name}}">{{sequencing_run.name}}</a></td>
 		{% endif %}
-		<td class="date">{{sequencing_run.date|date:'Y-m-d'}}</td>
+		
 		<td class="sequencing">{{sequencing_run.sequencing}}</td>
 		<td class="technician">{{sequencing_run.technician}}</td>
+		<td class="lanes_estimated">{{sequencing_run.lanes_estimated}}</td>
+		<td class="lanes_sequenced">{{sequencing_run.lanes_sequenced}}</td>
+		<td class="date_pooled">{{sequencing_run.date_pooled|date:'Y-m-d'}}</td>
+		<td class="date_ready_for_sequencing">{{sequencing_run.date_ready_for_sequencing|date:'Y-m-d'}}</td>
+		<td class="date_submitted_for_sequencing">{{sequencing_run.date_submitted_for_sequencing|date:'Y-m-d'}}</td>
+		<td class="date_data_available">{{sequencing_run.date_data_available|date:'Y-m-d'}}</td>
+		<td class="date_analysis_started">{{sequencing_run.date_analysis_started|date:'Y-m-d'}}</td>
+		<td class="date_analysis_complete">{{sequencing_run.date_analysis_complete|date:'Y-m-d'}}</td>
+		<td class="date_ready_for_pulldown">{{sequencing_run.date_ready_for_pulldown|date:'Y-m-d'}}</td>
+		<td class="date_pulldown_complete">{{sequencing_run.date_pulldown_complete|date:'Y-m-d'}}</td>
+		<td class="reich_lab_release_version">{{sequencing_run.reich_lab_release_version}}</td>
 		<td class="notes">{{sequencing_run.prep_note}}</td>
 	</tr>
 	{% endfor %}

@@ -1,0 +1,131 @@
+{% extends "samples/reich_lab_base.html" %}
+
+{% load static %}
+
+{% block title %}Sequencing Run {{sequencing_run_name}}{% endblock %}
+
+{% block content %}
+<script src="{% static "samples/list.js" %}"></script>
+
+<style>
+th {
+	position: sticky;
+	top: 0;
+	background: #eee;
+}
+
+#table_wrapper{
+	overflow-x: auto;
+	overflow-y: scroll;
+	height: 85vh;
+}
+
+table{
+	border-collapse: collapse;
+	border-spacing: 0;
+	width: 100%;
+}
+</style>
+
+<form action="" method='post'>
+	{% csrf_token %}
+	{{ form.as_p }}
+	<input id="submit_button" type='submit' value='Modify'>
+	
+<a href='sequencing_run_delete?batch_name={{sequencing_run_name}}'>Delete</a>
+
+<legend>Samples</legend>
+<div id='sample_rows'>
+<div id='sample_count'></div>
+
+<input id="list_search_field" class="search" placeholder="Search" />
+<div id='table_wrapper'>
+<table>
+	<thead>
+	<tr>
+		<th><input type="checkbox" name="toggle_all_checkbox" id="toggle_all_checkbox" onclick="toggle_onscreen_all()"></th>
+		<th><button class="sort" type="button" data-sort="capture_batch">Capture or Shotgun Plate</button></th>
+	</tr>
+	</thead>
+	<tbody class="list">
+	{% for plate in capture_or_shotgun_plates %}
+	<tr>
+		<td class="checked">
+			<input class="sample_checkbox" type="checkbox" name="sample_checkboxes[]" id="checkbox{{plate.id}}" value="{{plate.id}}" onclick="update_count()" {% if queued.powder_batch != None %}checked{% endif %}>
+		</td>
+		<td class="capture_batch">{{plate.name}}</td>
+	</tr>
+	{% endfor %}
+	</tbody>
+</table>
+</form>
+</div>
+</div>
+
+<script>
+	var list_options = {
+		valueNames: ['checked', 'capture_batch'],
+		searchDelay: 500
+	};
+	var sample_list = new List('sample_rows', list_options);
+	var overall_count = document.querySelectorAll('input[type="checkbox"].sample_checkbox:checked').length;
+	
+	document.querySelectorAll("input[type=checkbox]").forEach(input => {
+		input.addEventListener("click", (e) => {
+			e.target.checked ? overall_count += 1 : overall_count -= 1;
+			update_count();
+		})
+	})
+	
+	function update_count(){
+		let overall_total = sample_list.size();
+		
+		let filtered_count = document.querySelectorAll('input[type="checkbox"].sample_checkbox:checked').length;
+		let filtered_total = document.querySelectorAll('input[type="checkbox"].sample_checkbox').length;
+		document.getElementById('sample_count').innerHTML = String(filtered_count) + " sample" + (filtered_count != 1 ? "s" : "") + " selected of " + String(filtered_total) + " filtered samples. " + String(overall_count) + " selected of " + String(overall_total) + " total samples.";
+	}
+	
+	sample_list.on('updated', update_count);
+	
+	function clear_search(){
+		var search_field = document.getElementById("list_search_field");
+		search_field.value = "";
+		sample_list.search()
+	}
+	
+	// clear search upon submission
+	let submit_button = document.getElementById("submit_button");
+	if (submit_button.addEventListener)
+		submit_button.addEventListener("click", clear_search);
+	
+	// toggle all checkboxes in current list, which may be search subset
+	function toggle_onscreen_all(){
+		var visible = sample_list.visibleItems;
+		var matching = sample_list.matchingItems;
+		let anybox_checked = false;
+		// first pass to see whether any checkbox in this set is checked
+		for (let i = 0; i < matching.length; i++) {
+			let checkbox_id = 'checkbox' + matching[i]._values['sample_prep_queue_id'];
+			let sample_checkbox = document.getElementById(checkbox_id);
+			anybox_checked ||= sample_checkbox.checked;
+		}
+		// second pass to set checkboxes
+		for (let i = 0; i < matching.length; i++) {
+			let checkbox_id = 'checkbox' + matching[i]._values['sample_prep_queue_id'];
+			let sample_checkbox = document.getElementById(checkbox_id);
+			// box will be changed to unchecked
+			if (sample_checkbox.checked && anybox_checked){
+				overall_count -= 1;
+			}
+			// box will be changed to checked
+			else if (!sample_checkbox.checked && anybox_checked){
+				overall_count += 1;
+			} 
+			sample_checkbox.checked = !anybox_checked;
+		}
+		update_count();
+		//alert('toggle ' + String(visible.length) + " " + String(matching.length));
+	}
+</script>
+
+{% endblock %}

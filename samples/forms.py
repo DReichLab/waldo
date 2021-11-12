@@ -423,7 +423,7 @@ class SequencingRunForm(UserModelForm):
 	
 	class Meta:
 		model = SequencingRun
-		fields = ['name', 'technician', 'date', 'sequencing', 'notes']
+		fields = ['name', 'technician', 'sequencing', 'notes', 'lanes_estimated', 'lanes_sequenced', 'date_pooled', 'date_ready_for_sequencing', 'date_submitted_for_sequencing', 'date_data_available', 'date_analysis_started', 'date_analysis_complete', 'date_ready_for_pulldown', 'date_pulldown_complete', 'reich_lab_release_version',]
 
 class SpreadsheetForm(forms.Form):
 	spreadsheet = forms.FileField(help_text='Retain headers from downloaded spreadsheet')
