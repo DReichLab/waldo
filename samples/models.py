@@ -384,6 +384,47 @@ class SamplePrepQueue(Timestamped):
 	powder_batch = models.ForeignKey(PowderBatch, null=True, on_delete=models.SET_NULL,)
 	powder_sample = models.ForeignKey(PowderSample, null=True, on_delete=models.SET_NULL) # needed to unassign
 	
+	@staticmethod
+	def spreadsheet_header():
+		return ['Sample Queue ID',
+			'Priority',
+			'Expected Complexity',
+			'Sampling Tech',
+			'UDG',
+			'Shipment ID',
+			'Collaborator',
+			'Skeletal Element',
+			'Skeletal Code',
+			'Country',
+			'Region',
+			'Period',
+			'Culture',
+			'Notes',
+			'Notes2',
+			'Sample Prep ID'
+			]
+		
+	# for wetlab spreadsheet, return array to output as tsv
+	# order corresponds to the spreadsheet header
+	def to_spreadsheet_row(self):
+		return [self.sample.queue_id,
+			self.priority,
+			self.sample.expected_complexity.description,
+			self.sample_prep_protocol.preparation_method,
+			self.queued.udg_treatment,
+			self.sample.shipment.shipment_name,
+			f'{self.sample.collaborator.first_name}  {self.sample.collaborator.last_name}',
+			self.sample.skeletal_element,
+			self.sample.skeletal_code,
+			self.sample.country_fk.country_name,
+			self.sample.country_fk.region,
+			self.sample.period,
+			self.sample.culture,
+			self.sample.notes,
+			self.sample.notes_2,
+			self.id,
+		]
+	
 class ExtractionProtocol(Timestamped):
 	name = models.CharField(max_length=150)
 	start_date = models.DateField(null=True, blank=True)
