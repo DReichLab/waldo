@@ -57,7 +57,7 @@ def assign_prep_queue_entries_to_powder_batch(powder_batch, sample_prep_ids, use
 			failed_assignments[sample_prep_entry.id] = sample_prep_entry.powder_batch.name
 	# assign reich lab sample number
 	# Open is the state where samples can be added. If it is not open, then create the powder sample and assign Reich lab sample number
-	if powder_batch.status.description != 'Open':
+	if powder_batch.status not in [powder_batch.OPEN, powder_batch.STOP]:
 		for sample_prep_entry in SamplePrepQueue.objects.filter(powder_batch=powder_batch):
 			new_reich_lab_powder_sample(sample_prep_entry, powder_batch, user)
 	return failed_assignments

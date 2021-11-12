@@ -35,7 +35,7 @@ class PowderBatchForm(UserModelForm):
 	notes = forms.CharField(required=False, widget=forms.Textarea(attrs={'rows': 2})) 
 	class Meta:
 		model = PowderBatch
-		fields = ['name', 'date', 'technician', 'status_int', 'notes']
+		fields = ['name', 'date', 'technician', 'status', 'notes']
 		
 	def disable_fields(self):
 		for field in PowderBatchForm._meta.fields:

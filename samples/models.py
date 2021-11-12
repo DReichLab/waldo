@@ -297,7 +297,7 @@ class PowderBatch(Timestamped):
 		(IN_PROGRESS, 'In Progress'),
 		(READY_FOR_PLATE, 'Ready For Plate'),
 	)
-	status_int = models.SmallIntegerField(null=True, default = OPEN, choices=POWDER_BATCH_STATES)
+	status = models.SmallIntegerField(null=True, default = OPEN, choices=POWDER_BATCH_STATES)
 	
 	
 	# modify powder samples from spreadsheet

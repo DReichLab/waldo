@@ -191,7 +191,7 @@ def powder_batch_assign_samples(request):
 			# accounting for sample prep queue and samples, including assigning Reich Lab sample ID
 			assign_prep_queue_entries_to_powder_batch(powder_batch, sample_prep_ids, request.user)
 			
-			if powder_batch.status.description != 'Open':
+			if powder_batch.status not in [powder_batch.STOP, powder_batch.OPEN]:
 				return redirect(f'{reverse("powder_samples")}?powder_batch={powder_batch_name}')
 		
 	elif request.method == 'GET':
@@ -235,7 +235,7 @@ def powder_samples(request):
 		if powder_batch_sample_formset.is_valid():
 			powder_batch_sample_formset.save()
 		# do not require the formset to be valid to switch back to open
-		if powder_batch_form.is_valid() and powder_batch.status.description == 'Open':
+		if powder_batch_form.is_valid() and (powder_batch.status in [powder_batch.OPEN, powder_batch.STOP]):
 				return redirect(f'{reverse("powder_batch_assign_samples")}?name={powder_batch_name}')
 		
 	elif request.method == 'GET':
@@ -1122,6 +1122,18 @@ def capture_batch_delete(request):
 		return redirect(f'{reverse("capture_batches")}')
 		
 	return render(request, 'samples/delete_batch.html', {'form': capture_batch_form, 'batch_type': 'Capture Batch', 'batch_name': capture_batch_name, 'link': 'capture_batches'})
+	
+@login_required
+def sequencing_runs(request):
+	if request.method == 'POST':
+		form = SequencingRunForm(request.POST, user=request.user)
+		if form.is_valid():
+			form.save()
+	elif request.method == 'GET':
+		form = SequencingRunForm(user=request.user)
+		
+	sequencing_run_queryset = SequencingRun.objects.all().order_by('-id')
+	return render(request, 'samples/seqeuencing_runs.html', { 'form': form, 'capture_batches': sequencing_run_queryset } )
 
 @login_required
 def storage_all(request):
