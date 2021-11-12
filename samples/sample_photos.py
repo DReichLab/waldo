@@ -21,6 +21,9 @@ def photo_list(reich_lab_sample_number):
 	image_absolute_paths = glob.glob(str(expected_image_folder / f'*S{reich_lab_sample_number:04d}_*'))
 	image_urls = [x.replace(settings.MEDIA_ROOT, '') for x in image_absolute_paths]
 	return image_urls
+	
+def num_sample_photos(reich_lab_sample_number):
+	return len(photo_list(reich_lab_sample_number))
 
 # Save a photo with the next version
 # labels are from the web form and are not checked here
