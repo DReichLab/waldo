@@ -280,6 +280,12 @@ class SamplePrepProtocol(Timestamped):
 	protocol_reference = models.TextField(blank=True, help_text='Protocol citation')
 	notes = models.TextField(blank=True, help_text='Notes about the method used to create bone powder')
 	
+def get_status_string(status_value, STATES):
+	for candidate, string in STATES:
+		if candidate == status_value:
+			return string
+	return 'Unknown'
+	
 class PowderBatch(Timestamped):
 	name = models.CharField(max_length=50, unique=True)
 	date = models.DateField(null=True)
@@ -299,6 +305,9 @@ class PowderBatch(Timestamped):
 	)
 	status = models.SmallIntegerField(null=True, default = OPEN, choices=POWDER_BATCH_STATES)
 	
+	# return string representing status. For templates
+	def get_status(self):
+		return get_status_string(self.status, self.POWDER_BATCH_STATES)
 	
 	# modify powder samples from spreadsheet
 	# it would be better to reuse form validation

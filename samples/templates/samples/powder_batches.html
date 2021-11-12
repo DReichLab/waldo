@@ -64,7 +64,7 @@ table{
 		{% endif %}
 		<td class="date">{{powder_batch.date|date:'Y-m-d'}}</td>
 		<td class="technician">{{powder_batch.technician}}</td>
-		<td class="status">{{powder_batch.status}}</td>
+		<td class="status">{{powder_batch.get_status}}</td>
 		<td class="num_sample_prep">{{powder_batch.sampleprepqueue__count}}</td>
 		<td class="num_powder_samples">{{powder_batch.powdersample__count}}</td>
 		<td class="low_complexity_count">{{powder_batch.low_complexity_count}}</td>
