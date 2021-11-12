@@ -1152,7 +1152,11 @@ def storage_all(request):
 		
 	elif request.method == 'GET':
 		formset = StorageFormset(queryset=page_obj, form_kwargs={'user': request.user})
-	return render(request, 'samples/generic_formset.html', { 'title': 'Storage', 'page_obj': page_obj, 'formset': formset, 'submit_button_text': 'Update' } ) 
+	return render(request, 'samples/generic_formset.html', { 'title': 'Storage', 'page_obj': page_obj, 'formset': formset, 'submit_button_text': 'Update' } )
+	
+@login_required
+def setup(request):
+	return render(request, 'samples/setup.html', {})
 		
 def logout_user(request):
 	return logout_then_login(request)

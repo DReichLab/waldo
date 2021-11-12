@@ -63,6 +63,7 @@ urlpatterns = [
 	path('sample', views.sample, name='sample'),
 	
 	path('storage_all', views.storage_all, name='storage_all'),
+	path('setup', views.setup, name='setup'),
 	
 	path('password_change', PasswordChangeView.as_view(success_url='password_changed'), name='password_change'),
 	path('password_changed', views.password_changed, name='password_changed'),
