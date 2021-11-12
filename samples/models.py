@@ -452,7 +452,6 @@ class ControlSet(Timestamped):
 	notes = models.TextField(blank=True)
 	active = models.BooleanField(default=True)
 
-# each control layout comprises rows with the same name
 # a control layout is applied to batch layouts to add controls
 class ControlLayout(TimestampedWellPosition):
 	control_set = models.ForeignKey(ControlSet, on_delete=models.CASCADE, null=True)
@@ -1140,13 +1139,13 @@ class LibraryBatch(Timestamped):
 		# control changes for capture
 		# 1. Move library negative in H12 to H9
 		library_negatives = CaptureLayout.objects.filter(capture_batch=capture_plate, control_type__control_type='Library Negative').order_by('column', 'row')
-		destination = library_negatives[0]
-		print(f'{len(library_negatives)} library_negatives')
-		for to_move in library_negatives: 
-			to_move.row = destination.row
-			to_move.column = destination.column
-			to_move.save(save_user=user)
-			print(f'{to_move} {destination}')
+		destination = library_negatives.get(row='H', column=9)
+		#print(f'{len(library_negatives)} library_negatives')
+		to_move = library_negatives.get(row='H', column=12)
+		to_move.row = destination.row
+		to_move.column = destination.column
+		to_move.save(save_user=user)
+		#print(f'{to_move} {destination}')
 		# 2. Replace library positive with PCR negative (G12)
 		pcr_negative_position = ControlLayout.objects.get(control_set=self.control_set, control_type__control_type='PCR Negative')
 		pcr_negative = CaptureLayout(capture_batch=capture_plate,
@@ -1157,7 +1156,6 @@ class LibraryBatch(Timestamped):
 		capture_positive = CaptureLayout(capture_batch=capture_plate,
 								   control_type=capture_positive_position.control_type, row=capture_positive_position.row, column=capture_positive_position.column)
 		capture_positive.save(save_user=user)
-		# TODO attach library
 	
 def validate_index_dna_sequence(sequence):
 	valid_bases = 'ACGT'
