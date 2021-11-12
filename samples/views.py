@@ -122,7 +122,7 @@ def sample_prep_queue_spreadsheet(request):
 	sample_queue = SamplePrepQueue.objects.filter(Q(powder_batch=None)).select_related('sample').select_related('sample_prep_protocol').order_by('priority')
 	
 	response = HttpResponse(content_type='text/csv')
-	response['Content-Disposition'] = f'attachment; filename="sample_prep_queue.tsv"'
+	response['Content-Disposition'] = f'attachment; filename="sample_prep_queue.txt"'
 
 	writer = csv.writer(response, delimiter='\t')
 	# header
@@ -266,7 +266,7 @@ def powder_samples_spreadsheet(request):
 	powder_batch = PowderBatch.objects.get(name=powder_batch_name)
 	
 	response = HttpResponse(content_type='text/csv')
-	response['Content-Disposition'] = f'attachment; filename="powder_batch_{powder_batch_name}.tsv"'
+	response['Content-Disposition'] = f'attachment; filename="powder_batch_{powder_batch_name}.txt"'
 
 	writer = csv.writer(response, delimiter='\t')
 	# header
@@ -467,7 +467,7 @@ def lysates_spreadsheet(request):
 	lysate_batch = LysateBatch.objects.get(batch_name=lysate_batch_name)
 	
 	response = HttpResponse(content_type='text/csv')
-	response['Content-Disposition'] = f'attachment; filename="lysate_batch_{lysate_batch_name}.tsv"'
+	response['Content-Disposition'] = f'attachment; filename="lysate_batch_{lysate_batch_name}.txt"'
 
 	writer = csv.writer(response, delimiter='\t')
 	# header
@@ -735,7 +735,7 @@ def extracts_spreadsheet(request):
 	extract_batch = ExtractionBatch.objects.get(batch_name=extract_batch_name)
 	
 	response = HttpResponse(content_type='text/csv')
-	response['Content-Disposition'] = f'attachment; filename="extract_batch_{extract_batch_name}.tsv"'
+	response['Content-Disposition'] = f'attachment; filename="extract_batch_{extract_batch_name}.txt"'
 
 	writer = csv.writer(response, delimiter='\t')
 	# header
@@ -900,7 +900,7 @@ def library_batch_barcodes_spreadsheet(request):
 	library_batch = LibraryBatch.objects.get(name=library_batch_name)
 	
 	response = HttpResponse(content_type='text/csv')
-	response['Content-Disposition'] = f'attachment; filename="library_batch_{library_batch_name}_barcodes.tsv"'
+	response['Content-Disposition'] = f'attachment; filename="library_batch_{library_batch_name}_barcodes.csv"'
 
 	writer = csv.writer(response, delimiter=',')
 	# header
@@ -972,7 +972,7 @@ def libraries_spreadsheet(request):
 	library_batch = LibraryBatch.objects.get(name=library_batch_name)
 	
 	response = HttpResponse(content_type='text/csv')
-	response['Content-Disposition'] = f'attachment; filename="library_batch_{library_batch_name}.tsv"'
+	response['Content-Disposition'] = f'attachment; filename="library_batch_{library_batch_name}.txt"'
 
 	writer = csv.writer(response, delimiter='\t')
 	# header
