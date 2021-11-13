@@ -1007,7 +1007,7 @@ def create_library_from_extract(layout_element, user):
 			existing_libraries = libraries_for_extract(extract)
 			next_library_number = existing_libraries + 1
 			reich_lab_library_id = f'{extract.extract_id}.L{next_library_number}'
-		elif layout_element.control_type.control_type == 'Library Positive':
+		elif layout_element.control_type.control_type == LIBRARY_POSITIVE:
 			next_library_number = 1 # if there is more than one library positive, we need to check existing
 			reich_lab_library_id = f'LP{library_batch.id}.L{next_library_number}'
 		else:
@@ -1138,7 +1138,7 @@ class LibraryBatch(Timestamped):
 			)
 		
 		# copy from library layout
-		to_copy = LibraryBatchLayout.objects.filter(library_batch=self).exclude(control_type__control_type='Library Positive')
+		to_copy = LibraryBatchLayout.objects.filter(library_batch=self).exclude(control_type__control_type=LIBRARY_POSITIVE)
 		for x in to_copy:
 			copied = CaptureLayout(capture_batch = capture_plate, 
 								row = x.row,
@@ -1149,7 +1149,7 @@ class LibraryBatch(Timestamped):
 			copied.save(save_user=user)
 		# control changes for capture
 		# 1. Move library negative in H12 to H9
-		library_negatives = CaptureLayout.objects.filter(capture_batch=capture_plate, control_type__control_type='Library Negative').order_by('column', 'row')
+		library_negatives = CaptureLayout.objects.filter(capture_batch=capture_plate, control_type__control_type=LIBRARY_NEGATIVE).order_by('column', 'row')
 		destination = library_negatives.get(row='H', column=9)
 		#print(f'{len(library_negatives)} library_negatives')
 		to_move = library_negatives.get(row='H', column=12)

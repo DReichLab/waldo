@@ -918,7 +918,6 @@ def library_batch_layout(request):
 	except:
 		library_batch_name = request.POST['library_batch_name']
 	library_batch = LibraryBatch.objects.get(name=library_batch_name)
-	layout_element_queryset = LibraryBatchLayout.objects.filter(library_batch=library_batch)
 		
 	if request.method == 'POST' and request.is_ajax():
 		# JSON for a well plate layout
@@ -961,7 +960,7 @@ def libraries_in_batch(request):
 		
 	elif request.method == 'GET':
 		library_batch_form = LibraryBatchForm(instance=library_batch, user=request.user)
-		libraries_formset = LibraryFormset(queryset=Library.objects.filter(library_batch=library_batch).order_by('librarybatchlayout__column', 'librarybatchlayout__row'), form_kwargs={'user': request.user})
+		libraries_formset = LibraryFormset(queryset=Library.objects.filter(library_batch=library_batch).select_related('p5_index', 'p7_index', 'p5_barcode', 'p7_barcode').prefetch_related('librarybatchlayout_set').order_by('librarybatchlayout__column', 'librarybatchlayout__row'), form_kwargs={'user': request.user})
 	
 	return render(request, 'samples/libraries_in_batch.html', { 'library_batch_name': library_batch_name, 'library_batch_form': library_batch_form, 'formset': libraries_formset} )
 	
@@ -1078,7 +1077,7 @@ def capture_batch_assign_library(request):
 		
 	existing_controls = CaptureLayout.objects.filter(capture_batch=capture_batch, control_type__isnull=False).order_by('column', 'row')
 	
-	already_selected_library_layout_elements = CaptureLayout.objects.filter(capture_batch=capture_batch, control_type=None).order_by('column', 'row')
+	already_selected_library_layout_elements = CaptureLayout.objects.filter(capture_batch=capture_batch, control_type=None).select_related('library', 'library__p5_barcode', 'library__p7_barcode', 'p5_index', 'p7_index').order_by('column', 'row')
 	
 	# count distinct libraries
 	libraries = {}
