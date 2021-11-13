@@ -1119,6 +1119,22 @@ def capture_batch_layout(request):
 	return render(request, 'samples/generic_layout.html', { 'layout_title': 'Library Layout For Capture', 'layout_name': capture_batch_name, 'rows':PLATE_ROWS, 'columns':WELL_PLATE_COLUMNS, 'objects_map': objects_map,
 	'allow_layout_modifications': True })
 		#(capture_batch.status == capture_batch.OPEN) } )
+		
+@login_required
+def capture_batch_spreadsheet(request):
+	capture_batch_name = request.GET['capture_batch_name']
+	capture_batch = CaptureOrShotgunPlate.objects.get(name=capture_batch_name)
+	
+	response = HttpResponse(content_type='text/csv')
+	response['Content-Disposition'] = f'attachment; filename="CaptureOrShotgunPlate{capture_batch_name}.tsv"'
+
+	writer = csv.writer(response, delimiter='\t')
+	# header
+	writer.writerow(CaptureLayout.spreadsheet_header())
+	indexed_libraries = CaptureLayout.objects.filter(capture_batch=capture_batch).order_by('column', 'row', 'library__sample__reich_lab_id')
+	for indexed_library in indexed_libraries:
+		writer.writerow(indexed_library.to_spreadsheet_row())
+	return response
 
 @login_required
 def capture_batch_delete(request):

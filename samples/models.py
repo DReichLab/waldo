@@ -1375,6 +1375,76 @@ class CaptureLayout(TimestampedWellPosition):
 								'p5_index_library': self.library.p5_index,
 								'p5_index_library': self.library.p7_index
 				   })
+						
+	@staticmethod
+	def spreadsheet_header():
+		header = ['well_position',
+			'library_id',
+			'plate_id',
+			'experiment',
+			'p5_index_label',
+			'p5_index',
+			'p7_index_label',
+			'p7_index',
+			'p5_barcode_label',
+			'p5_barcode',
+			'p7_barcode_label',
+			'p7_barcode',
+			'udg_treatment',
+			'library_type']
+		return header
+		
+	def to_spreadsheet_row(self):
+		if self.p5_index: # DS
+			p5_index_label = self.p5_index.label
+			p5_index_sequence = self.p5_index.sequence
+		else: # SS
+			p5_index_label = self.library.p5_index.label
+			p5_index_sequence = self.library.p5_index.sequence
+			
+		if self.p7_index: # DS
+			p7_index_label = self.p7_index.label
+			p7_index_sequence = self.p7_index.sequence
+		else: # SS
+			p7_index_label = self.library.p7_index.label
+			p7_index_sequence = self.library.p7_index.sequence
+		
+		p5_barcode_label = ''
+		p5_barcode_sequence = ''
+		p7_barcode_label = ''
+		p7_barcode_sequence = ''
+		if self.library:
+			identifier = self.library.reich_lab_library_id
+			p5_barcode_label = self.library.p5_barcode.label if self.library.p5_barcode else ''
+			p5_barcode_sequence = self.library.p5_barcode.sequence if self.library.p5_barcode else ''
+			p7_barcode_label = self.library.p7_barcode.label if self.library.p7_barcode else ''
+			p7_barcode_sequence = self.library.p7_barcode.sequence if self.library.p7_barcode else ''
+		else:
+			identifier = self.control_type.control_type
+			
+		if self.library:
+			udg = self.library.udg_treatment
+			library_type = self.library.library_type
+		else:
+			udg = 'control'
+			library_type = 'control'
+			
+		line = [str(self),
+				identifier,
+				self.capture_batch.name,
+				self.capture_batch.protocol.name,
+				p5_index_label,
+				p5_index_sequence,
+				p7_index_label,
+				p7_index_sequence,
+				p5_barcode_label,
+				p5_barcode_sequence,
+				p7_barcode_label,
+				p7_barcode_sequence,
+				udg,
+				library_type,
+				]
+		return line
 		
 class SequencingRun(Timestamped):
 	name = models.CharField(max_length=50, unique=True, db_index=True)
@@ -1425,37 +1495,10 @@ class SequencingRun(Timestamped):
 	
 	def to_spreadsheet(self):
 		lines = []
-		header = ['well_position',
-			'library_id',
-			'plate_id',
-			'experiment',
-			'p5_index_label'
-			'p5_index',
-			'p7_index_label',
-			'p7_index',
-			'p5_barcode_label',
-			'p5_barcode',
-			'p7_barcode_label',
-			'p7_barcode',
-			'udg_treatment'
-			'library_type']
+		
 		lines.append(header)
 		for indexed_library in indexed_libraries:
-			line = [str(indexed_library),
-				indexed_library.library.reich_lab_library_id,
-				indexed_library.capture_batch.name,
-				indexed_library.capture_batch.enrichment_type,
-				indexed_library.p5_index.label,
-				indexed_library.p5_index.sequence,
-				indexed_library.p7_index.label,
-				indexed_library.p7_index.sequence,
-				indexed_library.library.p5_index.label,
-				indexed_library.library.p5_index.sequence,
-				indexed_library.library.p7_index.label,
-				indexed_library.library.p7_index.sequence,
-				indexed_library.library.udg_treatment,
-				indexed_library.library.library_type,
-		]
+			
 			lines.append(line)
 		return lines
 	

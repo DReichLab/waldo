@@ -67,6 +67,7 @@ urlpatterns = [
 	path('capture_batches', views.capture_batches, name='capture_batches'),
 	path('capture_batch_assign_library', views.capture_batch_assign_library, name='capture_batch_assign_library'),
 	path('capture_batch_layout', views.capture_batch_layout, name='capture_batch_layout'),
+	path('capture_batch_spreadsheet', views.capture_batch_spreadsheet, name='capture_batch_spreadsheet'),
 	path('capture_batch_delete', views.capture_batch_delete, name='capture_batch_delete'),
 	
 	path('sequencing_runs', views.sequencing_runs, name='sequencing_runs'),
