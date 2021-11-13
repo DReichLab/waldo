@@ -994,18 +994,24 @@ def libraries_for_extract(extract):
 	return len(libraries)
 
 # Create the library corresponding
+# we create library for library positive for record keeping if there is no extract
 def create_library_from_extract(layout_element, user):
 	library_batch = layout_element.library_batch
 	extract = layout_element.extract
+	sample = extract.sample if extract else None
 	
-	# TODO libraries needed for controls?
-	if extract is None:
-		return None
-	elif layout_element.library is not None:
+	if layout_element.library is not None:
 		return layout_element.library
 	else:
-		existing_libraries = libraries_for_extract(extract)
-		next_library_number = existing_libraries + 1
+		if extract:
+			existing_libraries = libraries_for_extract(extract)
+			next_library_number = existing_libraries + 1
+			reich_lab_library_id = f'{extract.extract_id}.L{next_library_number}'
+		elif layout_element.control_type.control_type == 'Library Positive':
+			next_library_number = 1 # if there is more than one library positive, we need to check existing
+			reich_lab_library_id = f'LP{library_batch.id}.L{next_library_number}'
+		else:
+			raise ValueError(f'Unexpected case in creating library, neither extract nor library positive {layout_element.id}')
 		# TODO check existing extract amount
 		# assign barcodes
 		if library_batch.protocol.library_type == 'ds':
@@ -1017,10 +1023,11 @@ def create_library_from_extract(layout_element, user):
 			raise ValueError(f'single stranded TODO')
 		else:
 			raise ValueError(f'unhandled library type {library_batch.protocol.library_type}')
-		library = Library(sample = extract.sample,
+			
+		library = Library(sample = sample,
 						extract = extract,
 						library_batch = library_batch,
-						reich_lab_library_id = f'{extract.extract_id}.L{next_library_number}',
+						reich_lab_library_id = reich_lab_library_id,
 						reich_lab_library_number = next_library_number,
 						udg_treatment = library_batch.protocol.udg_treatment,
 						library_type = library_batch.protocol.library_type,
