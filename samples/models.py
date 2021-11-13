@@ -1245,7 +1245,7 @@ class Library(Timestamped):
 			'nanodrop',
 			'qpcr',
 			'plate_id',
-			'position'
+			'position',
 			'barcode',
 			'notes',
 			#'storage_location',

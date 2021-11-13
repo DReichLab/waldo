@@ -961,7 +961,7 @@ def libraries_in_batch(request):
 		
 	elif request.method == 'GET':
 		library_batch_form = LibraryBatchForm(instance=library_batch, user=request.user)
-		libraries_formset = LibraryFormset(queryset=Library.objects.filter(library_batch=library_batch), form_kwargs={'user': request.user})
+		libraries_formset = LibraryFormset(queryset=Library.objects.filter(library_batch=library_batch).order_by('librarybatchlayout__column', 'librarybatchlayout__row'), form_kwargs={'user': request.user})
 	
 	return render(request, 'samples/libraries_in_batch.html', { 'library_batch_name': library_batch_name, 'library_batch_form': library_batch_form, 'formset': libraries_formset} )
 	

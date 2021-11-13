@@ -363,12 +363,13 @@ class BarcodeSelect(ModelChoiceField):
 		return obj.label
 			
 class LibraryForm(UserModelForm):
+	well_position = forms.CharField(disabled=True)
 	p5_barcode = BarcodeSelect(queryset=Barcode.objects.all())
 	p7_barcode = BarcodeSelect(queryset=Barcode.objects.all())
 	
 	class Meta:
 		model = Library
-		fields = ['reich_lab_library_id', 'p5_barcode', 'p7_barcode', 'nanodrop', 'qpcr', 'plate_id', 'position', 'barcode', 'notes']
+		fields = ['well_position', 'reich_lab_library_id', 'p5_barcode', 'p7_barcode', 'nanodrop', 'qpcr', 'plate_id', 'barcode', 'notes']
 		widgets = {
 			'notes': Textarea(attrs={'cols': 60, 'rows': 2}),
 		}
@@ -378,6 +379,10 @@ class LibraryForm(UserModelForm):
 		self.fields['reich_lab_library_id'].disabled = True
 		for option in ['nanodrop', 'qpcr']:
 			self.fields[option].required = False
+		if self.instance:
+			layout_elements = self.instance.librarybatchlayout_set
+			layout_element = layout_elements.get(library=self.instance)
+			self.initial['well_position'] = str(layout_element)
 
 LibraryFormset = modelformset_factory(Library, form=LibraryForm, extra=0)
 
@@ -409,7 +414,7 @@ class CaptureBatchForm(UserModelForm):
 	
 	class Meta:
 		model = CaptureOrShotgunPlate
-		fields = ['name', 'enrichment_type', 'protocol', 'technician', 'date', 'robot', 'hyb_wash_temps', 'p5_index_start', 'needs_sequencing', 'notes']
+		fields = ['name', 'protocol', 'technician', 'date', 'robot', 'hyb_wash_temps', 'p5_index_start', 'needs_sequencing', 'notes']
 		widgets = {
 			'notes': Textarea(attrs={'cols': 60, 'rows': 2}),
 		}
