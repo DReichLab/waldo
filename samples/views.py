@@ -1125,7 +1125,7 @@ def capture_batch_spreadsheet(request):
 	capture_batch = CaptureOrShotgunPlate.objects.get(name=capture_batch_name)
 	
 	response = HttpResponse(content_type='text/csv')
-	response['Content-Disposition'] = f'attachment; filename="CaptureOrShotgunPlate{capture_batch_name}.tsv"'
+	response['Content-Disposition'] = f'attachment; filename="CaptureOrShotgunPlate_{capture_batch_name}.txt"'
 
 	writer = csv.writer(response, delimiter='\t')
 	# header
@@ -1153,6 +1153,27 @@ def capture_batch_delete(request):
 	return render(request, 'samples/delete_batch.html', {'form': capture_batch_form, 'batch_type': 'Capture Batch', 'batch_name': capture_batch_name, 'link': 'capture_batches'})
 	
 @login_required
+def capture_batch_to_sequencing_run(request):
+	capture_batch_name = request.GET['capture_batch_name']
+	capture_batch = CaptureOrShotgunPlate.objects.get(name=capture_batch_name)
+	if request.method == 'POST':
+		form = CaptureBatchToSequencingRunForm(request.POST)
+		if form.is_valid():
+			sequencing_run_name = form.cleaned_data['sequencing_run_name']
+			capture_batch.create_sequencing_run(sequencing_run_name, request.user)
+			return redirect(f'{reverse("sequencing_runs")}?sequencing_run_name={sequencing_run_name}')
+	elif request.method == 'GET':
+		form = CaptureBatchToSequencingRunForm()
+		# For now, manual only
+		form.initial['sequencing_run_name'] = f'{capture_batch_name.rsplit("_")[0]}'
+		
+	return render(request, 'samples/batch_transition.html', { 'form': form, 
+						'source_batch_name': capture_batch_name,
+						'source_batch_type': 'Capture Batch',
+						'new_batch_type': 'Sequencing Run'
+						} )
+	
+@login_required
 def sequencing_runs(request):
 	if request.method == 'POST':
 		form = SequencingRunForm(request.POST, user=request.user)
@@ -1169,7 +1190,7 @@ def sequencing_run_assign_captures(request):
 	sequencing_run_name = request.GET['sequencing_run_name']
 	sequencing_run = SequencingRun.objects.get(name=sequencing_run_name)
 	if request.method == 'POST':
-		form = SequencingRunForm(request.POST, user=request.user, instance=powder_batch)
+		form = SequencingRunForm(request.POST, user=request.user, instance=sequencing_run)
 		
 		if form.is_valid():
 			form.save()
@@ -1186,7 +1207,40 @@ def sequencing_run_assign_captures(request):
 	# show captures marked as needing sequencing that have not already been assigned
 	captures = CaptureOrShotgunPlate.objects.filter(needs_sequencing=True).annotate(sequencing_count=Count('sequencingrun')).exclude(sequencing_count__gt=0)
 	
-	return render(request, 'samples/sequencing_run_assign_captures.html', { 'sequencing_run_name': sequencing_run_name, 'form': form, } )
+	return render(request, 'samples/sequencing_run_assign_captures.html', { 'sequencing_run_name': sequencing_run_name, 'form': form, 'assigned_captures': assigned_captures, 'unassigned_captures': captures} )
+	
+@login_required
+def sequencing_run_spreadsheet(request):
+	sequencing_run_name = request.GET['sequencing_run_name']
+	sequencing_run = SequencingRun.objects.get(name=sequencing_run_name)
+	
+	response = HttpResponse(content_type='text/csv')
+	response['Content-Disposition'] = f'attachment; filename="{sequencing_run_name}_ESS.txt"'
+
+	writer = csv.writer(response, delimiter='\t')
+	# header
+	writer.writerow(CaptureLayout.spreadsheet_header())
+	# TODO sorting?
+	for indexed_library in sequencing_run.indexed_libraries.all():
+		writer.writerow(indexed_library.to_spreadsheet_row())
+	return response
+
+@login_required
+def sequencing_run_delete(request):
+	sequencing_run_name = request.GET['batch_name']
+	try:
+		sequencing_run = SequencingRun.objects.get(name=sequencing_run_name)
+		sequencing_run_form = SequencingRunForm(instance=sequencing_run, user=request.user)
+		sequencing_run_form.disable_fields()
+	except CaptureOrShotgunPlate.DoesNotExist:
+		return HttpResponse(f'{sequencing_run_name} no longer exists.')
+	
+	if request.method == 'POST':
+		print(f'request to delete {sequencing_run_name}')
+		sequencing_run.delete()
+		return redirect(f'{reverse("sequencing_runs")}')
+		
+	return render(request, 'samples/delete_batch.html', {'form': sequencing_run_form, 'batch_type': 'Sequencing Run', 'batch_name': sequencing_run_name, 'link': 'sequencing_runs'})
 	
 @login_required
 def sequencing_platforms(request):

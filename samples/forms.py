@@ -423,6 +423,19 @@ class CaptureBatchForm(UserModelForm):
 		for field in CaptureBatchForm._meta.fields:
 			self.fields[field].disabled = True
 			
+# raise validation error if sequencing run name already exists
+def validate_sequencing_run_does_not_exist(sequencing_run_name):
+	try:
+		sequencing_run = SequencingRun.objects.get(name=sequencing_run_name)
+		raise ValidationError(_('SequencingRun already exists: %(sequencing_run_name)s'), 
+						code='exists', 
+						params={'sequencing_run_name': sequencing_run_name})
+	except SequencingRun.DoesNotExist:
+		pass
+			
+class CaptureBatchToSequencingRunForm(forms.Form):
+	sequencing_run_name = forms.CharField(max_length=50, label='Sequencing run name', validators=[validate_sequencing_run_does_not_exist])
+			
 class SequencingPlatformSelect(ModelChoiceField):
 	def label_from_instance(self, obj):
 		return f'{obj}'
@@ -439,6 +452,15 @@ class SequencingRunForm(UserModelForm):
 	class Meta:
 		model = SequencingRun
 		fields = ['name', 'technician', 'sequencing', 'notes', 'lanes_estimated', 'lanes_sequenced', 'date_pooled', 'date_ready_for_sequencing', 'date_submitted_for_sequencing', 'date_data_available', 'date_analysis_started', 'date_analysis_complete', 'date_ready_for_pulldown', 'date_pulldown_complete', 'reich_lab_release_version',]
+	
+	def __init__(self, *args, **kwargs):
+		super().__init__(*args, **kwargs)
+		for option in ['lanes_sequenced', 'date_ready_for_sequencing', 'date_submitted_for_sequencing', 'date_data_available', 'date_analysis_started', 'date_analysis_complete', 'date_ready_for_pulldown', 'date_pulldown_complete', 'reich_lab_release_version',]:
+			self.fields[option].required = False
+		
+	def disable_fields(self):
+		for field in SequencingRunForm._meta.fields:
+			self.fields[field].disabled = True
 
 class SpreadsheetForm(forms.Form):
 	spreadsheet = forms.FileField(help_text='Retain headers from downloaded spreadsheet')

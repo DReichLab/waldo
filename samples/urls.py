@@ -69,9 +69,13 @@ urlpatterns = [
 	path('capture_batch_layout', views.capture_batch_layout, name='capture_batch_layout'),
 	path('capture_batch_spreadsheet', views.capture_batch_spreadsheet, name='capture_batch_spreadsheet'),
 	path('capture_batch_delete', views.capture_batch_delete, name='capture_batch_delete'),
+	#path('capture_batch_spreadsheet', views.capture_batch_spreadsheet, name='capture_batch_spreadsheet'),
+	path('capture_batch_to_sequencing_run', views.capture_batch_to_sequencing_run, name='capture_batch_to_sequencing_run'),
 	
 	path('sequencing_runs', views.sequencing_runs, name='sequencing_runs'),
 	path('sequencing_run_assign_captures', views.sequencing_run_assign_captures, name='sequencing_run_assign_captures'),
+	path('sequencing_run_spreadsheet', views.sequencing_run_spreadsheet, name='sequencing_run_spreadsheet'),
+	path('sequencing_run_delete', views.sequencing_run_delete, name='sequencing_run_delete'),
 	
 	path('sequencing_platforms', views.sequencing_platforms, name='sequencing_platforms'),
 	path('sequencing_platform', views.sequencing_platform, name='sequencing_platform'),

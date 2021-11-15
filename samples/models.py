@@ -1357,7 +1357,9 @@ class CaptureOrShotgunPlate(Timestamped):
 		super(CaptureOrShotgunPlate, self).clean()
 	
 	def create_sequencing_run(self, sequencing_run_name, user):
-		pass # TODO
+		sequencing_run, created = SequencingRun.objects.get_or_create(name=sequencing_run_name)
+		if not created:
+			raise ValueError(f'SequencingRun {sequencing_run_name} already exists')
 	
 # library -> indices added
 class CaptureLayout(TimestampedWellPosition):
@@ -1478,11 +1480,11 @@ class SequencingRun(Timestamped):
 	
 	def assign_captures(self, capture_ids):
 		# remove captures that are not in list
-		for capture in self.captures:
+		for capture in self.captures.all():
 			if capture.id not in capture_ids:
 				self.captures.remove(capture)
 		# add captures in list
-		for capture_id in captures_ids:
+		for capture_id in capture_ids:
 			capture = CaptureOrShotgunPlate.objects.get(id=capture_id)
 			self.captures.add(capture)
 		# TODO indexed_libraries
