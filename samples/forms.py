@@ -99,11 +99,12 @@ SamplePrepQueueFormset = modelformset_factory(SamplePrepQueue, form=SamplePrepQu
 	
 class PowderSampleForm(UserModelForm):
 	reich_lab_sample = CharField(disabled=True)
+	num_photos = IntegerField(disabled=True)
 	sample_prep_protocol = SamplePrepProtocolSelect(queryset=SamplePrepProtocol.objects.all(), empty_label=None)
 	class Meta:
 		model = PowderSample
 		#'powder_sample_id', 
-		fields = ['reich_lab_sample', 'powder_sample_id', 'sampling_notes', 'total_powder_produced_mg', 'powder_for_extract', 'storage_location', 'sample_prep_lab', 'sample_prep_protocol']
+		fields = ['num_photos', 'reich_lab_sample', 'powder_sample_id', 'sampling_notes', 'total_powder_produced_mg', 'powder_for_extract', 'storage_location', 'sample_prep_lab', 'sample_prep_protocol']
 		widgets = {
             'sampling_notes': Textarea(attrs={'cols': 60, 'rows': 2}),
         }
@@ -112,6 +113,8 @@ class PowderSampleForm(UserModelForm):
 		super(PowderSampleForm, self).__init__(*args, **kwargs)
 		if self.instance.pk:
 			self.fields['reich_lab_sample'].initial = f'S{self.instance.sample.reich_lab_id}'
+			if self.instance.sample:
+				self.fields['num_photos'].initial = self.instance.sample.num_existing_photos()
 		self.fields['powder_sample_id'].disabled = True
 		
 PowderSampleFormset = modelformset_factory(PowderSample, form=PowderSampleForm, extra=0, max_num=200)

@@ -11,6 +11,7 @@ from django.utils.translation import gettext_lazy as _
 from django.db.models import Max, Min
 
 from .layout import PLATE_ROWS, PLATE_WELL_COUNT, PLATE_WELL_COUNT_HALF, validate_row_letter, plate_location, reverse_plate_location_coordinate, reverse_plate_location, duplicate_positions_check_db, p7_qbarcode_source, barcodes_for_location, indices_for_location
+from .sample_photos import num_sample_photos
 from .spreadsheet import spreadsheet_headers_and_data_rows
 from .validation import *
 
@@ -274,6 +275,12 @@ class Sample(Timestamped):
 	
 	def __str__(self):
 		return f'S{self.reich_lab_id:04d}{self.control}'
+		
+	def num_existing_photos(self):
+		if self.reich_lab_id:
+			return num_sample_photos(self.reich_lab_id)
+		else:
+			return 0
 		
 class SamplePrepProtocol(Timestamped):
 	preparation_method = models.CharField(max_length=50, help_text='Method used to produce bone powder')
