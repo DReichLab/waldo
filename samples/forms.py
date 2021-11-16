@@ -264,12 +264,13 @@ class ControlTypeForm(UserModelForm):
 ControlTypeFormset = modelformset_factory(ControlType, form=ControlTypeForm, max_num=20)
 
 class ControlLayoutForm(UserModelForm):
+	control_set = ControlSetSelect(queryset=ControlSet.objects.all())
 	control_type = ControlTypeSelect(queryset=ControlType.objects.all())
 	class Meta:
 		model = ControlLayout
-		fields = ['row', 'column', 'control_type', 'active']
+		fields = ['control_set', 'row', 'column', 'control_type', 'active']
 
-ControlLayoutFormset = modelformset_factory(ControlLayout, form=ControlLayoutForm, extra=7)
+ControlLayoutFormset = modelformset_factory(ControlLayout, form=ControlLayoutForm, extra=20)
 
 LOST_ROW = 'H'
 LOST_COLUMN = 6

@@ -149,25 +149,6 @@ def control_types(request):
 		formset = ControlTypeFormset(queryset=page_obj, form_kwargs={'user': request.user})
 	return render(request, 'samples/generic_formset.html', { 'title': 'Control Types', 'page_obj': page_obj, 'formset': formset, 'submit_button_text': 'Update control types' } )
 
-@login_required
-def control_layout(request):
-	page_number = request.GET.get('page', 1)
-	page_size = request.GET.get('page_size', 25)
-	whole_queue = ControlLayout.objects.all().order_by('layout_name')
-	paginator = Paginator(whole_queue, page_size)
-	page_obj = paginator.get_page(page_number)
-	page_obj.ordered = True
-		
-	if request.method == 'POST':
-		formset = ControlLayoutFormset(request.POST, form_kwargs={'user': request.user})
-		
-		if formset.is_valid():
-			formset.save()
-		
-	elif request.method == 'GET':
-		formset = ControlLayoutFormset(queryset=page_obj, form_kwargs={'user': request.user})
-	return render(request, 'samples/generic_formset.html', { 'title': 'Control Layout', 'page_obj': page_obj, 'formset': formset, 'submit_button_text': 'Update control layout' } )
-
 # show all powder batches
 @login_required
 def powder_batches(request):
