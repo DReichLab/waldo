@@ -1360,6 +1360,8 @@ class CaptureOrShotgunPlate(Timestamped):
 		sequencing_run, created = SequencingRun.objects.get_or_create(name=sequencing_run_name)
 		if not created:
 			raise ValueError(f'SequencingRun {sequencing_run_name} already exists')
+		sequencing_run.assign_captures([self.id])
+		return sequencing_run
 	
 # library -> indices added
 class CaptureLayout(TimestampedWellPosition):
@@ -1483,15 +1485,19 @@ class SequencingRun(Timestamped):
 		for capture in self.captures.all():
 			if capture.id not in capture_ids:
 				self.captures.remove(capture)
+				for element_to_remove in CaptureLayout.objects.filter(capture_batch__id=capture.id):
+					self.indexed_libraries.remove(element_to_remove)
 		# add captures in list
 		for capture_id in capture_ids:
 			capture = CaptureOrShotgunPlate.objects.get(id=capture_id)
 			self.captures.add(capture)
-		# TODO indexed_libraries
+			for element_to_add in CaptureLayout.objects.filter(capture_batch=capture):
+				self.indexed_libraries.add(element_to_add)
 	
 	# only one library type is allowed
 	def check_library_type(self):
-		pass # TODO
+		for indexed_library in indexed_libraries:
+			pass
 		
 	def check_index_barcode_combinations(self):
 		# TODO

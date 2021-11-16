@@ -1220,8 +1220,7 @@ def sequencing_run_spreadsheet(request):
 	writer = csv.writer(response, delimiter='\t')
 	# header
 	writer.writerow(CaptureLayout.spreadsheet_header())
-	# TODO sorting?
-	for indexed_library in sequencing_run.indexed_libraries.all():
+	for indexed_library in sequencing_run.indexed_libraries.all().order_by('column', 'row'):
 		writer.writerow(indexed_library.to_spreadsheet_row())
 	return response
 
