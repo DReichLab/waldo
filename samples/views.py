@@ -405,7 +405,7 @@ def lysate_batch_assign_powder(request):
 	'''
 	layout_powder_samples_already_selected = LysateBatchLayout.objects.filter(lysate_batch=lysate_batch, control_type=None).order_by('row', 'column').select_related('powder_sample')
 	powder_samples_unselected = PowderSample.objects.annotate(num_assignments=Count('lysatebatchlayout')).annotate(assigned_to_lysate_batch=Count('lysatebatchlayout', filter=Q(lysatebatchlayout__lysate_batch=lysate_batch))).filter(
-		Q(powder_batch__status__description='Ready For Plate', num_assignments=0)
+		Q(powder_batch__status=PowderBatch.READY_FOR_PLATE, num_assignments=0)
 		| (Q(powder_batch=None) & ~Q(powder_sample_id__endswith='NP'))# powder samples directly from collaborators will not have powder batch. Exclude controls. 
 	).order_by('powder_batch', 'sample__reich_lab_id')
 	#powder_samples = powder_samples_already_selected.union(powder_samples_unselected).order_by('id')
