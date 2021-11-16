@@ -12,7 +12,7 @@ from pathlib import Path
 
 # the subfolder for images depends on the thousands
 def photo_folder(reich_lab_sample_number):
-	return Path(f'{settings.MEDIA_ROOT}/S{reich_lab_sample_number/1000:.0f}')
+	return Path(f'{settings.MEDIA_ROOT}/S{reich_lab_sample_number//1000:d}')
 
 # List all of the photos for a sample
 def photo_list(reich_lab_sample_number):
@@ -29,6 +29,12 @@ def num_sample_photos(reich_lab_sample_number):
 # labels are from the web form and are not checked here
 def save_sample_photo(uploaded_photo, reich_lab_sample_number, label):
 	folder = photo_folder(reich_lab_sample_number)
+	if not folder.exists():
+		folder.mkdir()
+	try: # in case we are not the owner, don't fail trying to change permissions
+		folder.chmod(0o775)
+	except:
+		pass
 	extension = Path(uploaded_photo.name).suffix.lower()
 	
 	version = 1
@@ -40,3 +46,4 @@ def save_sample_photo(uploaded_photo, reich_lab_sample_number, label):
 	with open(photo_path, 'wb') as destination:
 		for chunk in uploaded_photo.chunks():
 			destination.write(chunk)
+	Path(photo_path).chmod(0o664)
