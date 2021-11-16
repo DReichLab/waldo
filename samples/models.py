@@ -12,6 +12,7 @@ from django.db.models import Max, Min
 
 from .layout import PLATE_ROWS, PLATE_WELL_COUNT, PLATE_WELL_COUNT_HALF, validate_row_letter, plate_location, reverse_plate_location_coordinate, reverse_plate_location, duplicate_positions_check_db, p7_qbarcode_source, barcodes_for_location, indices_for_location
 from .spreadsheet import spreadsheet_headers_and_data_rows
+from .validation import *
 
 import re, string
 
@@ -1294,7 +1295,7 @@ class LibraryBatchLayout(TimestampedWellPosition):
 	library = models.ForeignKey(Library, on_delete=models.SET_NULL, null=True, help_text='')
 	
 class CaptureProtocol(Timestamped):
-	name = models.CharField(max_length=150, unique=True)
+	name = models.CharField(max_length=150, unique=True, validators=[validate_no_whitespace, validate_no_underscore])
 	start_date = models.DateField(null=True)
 	end_date = models.DateField(null=True)
 	description = models.TextField(blank=True)
