@@ -1015,7 +1015,7 @@ def library_batch_to_capture_batch(request):
 	return render(request, 'samples/batch_transition.html', { 'form': form, 
 						'source_batch_name': library_batch_name,
 						'source_batch_type': 'Library Batch',
-						'new_batch_type': 'Capture Batch'
+						'new_batch_type': 'Capture or Shotgun Batch'
 						} )
 	
 @login_required
@@ -1150,7 +1150,7 @@ def capture_batch_delete(request):
 		capture_batch.delete()
 		return redirect(f'{reverse("capture_batches")}')
 		
-	return render(request, 'samples/delete_batch.html', {'form': capture_batch_form, 'batch_type': 'Capture Batch', 'batch_name': capture_batch_name, 'link': 'capture_batches'})
+	return render(request, 'samples/delete_batch.html', {'form': capture_batch_form, 'batch_type': 'Capture or Shotgun Batch', 'batch_name': capture_batch_name, 'link': 'capture_batches'})
 	
 @login_required
 def capture_batch_to_sequencing_run(request):
@@ -1169,7 +1169,7 @@ def capture_batch_to_sequencing_run(request):
 		
 	return render(request, 'samples/batch_transition.html', { 'form': form, 
 						'source_batch_name': capture_batch_name,
-						'source_batch_type': 'Capture Batch',
+						'source_batch_type': 'Capture or Shotgun Batch',
 						'new_batch_type': 'Sequencing Run'
 						} )
 	
