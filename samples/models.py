@@ -325,7 +325,7 @@ class PowderBatch(Timestamped):
 		if headers[0] != 'powder_sample_id':
 			raise ValueError('powder_sample_id is not first')
 			
-		for line in data_rows[1:]:
+		for line in data_rows:
 			fields = re.split('\t', line)
 			powder_sample_id = fields[0]
 			if len(powder_sample_id) > 0:
