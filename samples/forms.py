@@ -101,10 +101,17 @@ class PowderSampleForm(UserModelForm):
 	reich_lab_sample = CharField(disabled=True)
 	num_photos = IntegerField(disabled=True)
 	sample_prep_protocol = SamplePrepProtocolSelect(queryset=SamplePrepProtocol.objects.all(), empty_label=None)
+	
+	collaborator_id = CharField(disabled=True)
+	shipment_id = CharField(disabled=True)
+	notes = CharField(disabled=True)
+	notes2 = CharField(disabled=True)
+	location = CharField(disabled=True)
+	
 	class Meta:
 		model = PowderSample
 		#'powder_sample_id', 
-		fields = ['num_photos', 'reich_lab_sample', 'powder_sample_id', 'sampling_notes', 'total_powder_produced_mg', 'powder_for_extract', 'storage_location', 'sample_prep_lab', 'sample_prep_protocol']
+		fields = ['collaborator_id', 'num_photos', 'reich_lab_sample', 'powder_sample_id', 'sampling_notes', 'total_powder_produced_mg', 'powder_for_extract', 'storage_location', 'shipment_id', 'notes', 'notes2', 'location', 'sample_prep_lab', 'sample_prep_protocol']
 		widgets = {
             'sampling_notes': Textarea(attrs={'cols': 60, 'rows': 2}),
         }
@@ -115,6 +122,12 @@ class PowderSampleForm(UserModelForm):
 			self.fields['reich_lab_sample'].initial = f'S{self.instance.sample.reich_lab_id}'
 			if self.instance.sample:
 				self.fields['num_photos'].initial = self.instance.sample.num_existing_photos()
+				
+				self.fields['collaborator_id'].initial = self.instance.sample.skeletal_code
+				self.fields['shipment_id'].initial = self.instance.sample.shipment.shipment_name
+				self.fields['notes'].initial = self.instance.sample.notes
+				self.fields['notes2'].initial = self.instance.sample.notes_2
+				self.fields['location'].initial = f'{self.instance.sample.locality} {self.instance.sample.country}'
 		self.fields['powder_sample_id'].disabled = True
 		
 PowderSampleFormset = modelformset_factory(PowderSample, form=PowderSampleForm, extra=0, max_num=200)
