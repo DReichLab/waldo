@@ -522,7 +522,7 @@ def create_lysate(lysate_layout_element, lysate_batch, user):
 
 # turn powders into lysates
 class LysateBatch(Timestamped):
-	batch_name = models.CharField(max_length=50, unique=True)
+	batch_name = models.CharField(max_length=50, unique=True, help_text='Usually ends with _LY')
 	protocol = models.ForeignKey(ExtractionProtocol, on_delete=models.PROTECT, null=True)
 	technician = models.CharField(max_length=50, blank=True)
 	technician_fk = models.ForeignKey(WetLabStaff, on_delete=models.SET_NULL, null=True)
@@ -865,7 +865,7 @@ def create_extract_from_lysate(extract_layout_element, user):
 		return extract
 	
 class ExtractionBatch(Timestamped):
-	batch_name = models.CharField(max_length=50, unique=True)
+	batch_name = models.CharField(max_length=50, unique=True, help_text='Usually ends with _RE')
 	protocol = models.ForeignKey(ExtractionProtocol, on_delete=models.PROTECT, null=True)
 	technician = models.CharField(max_length=50, blank=True)
 	technician_fk = models.ForeignKey(WetLabStaff, on_delete=models.SET_NULL, null=True)
@@ -1068,7 +1068,7 @@ def validate_even(value):
 		)
 
 class LibraryBatch(Timestamped):
-	name = models.CharField(max_length=150, blank=True)
+	name = models.CharField(max_length=150, blank=True, help_text='Usually ends with _DS')
 	protocol = models.ForeignKey(LibraryProtocol, on_delete=models.PROTECT, null=True)
 	technician = models.CharField(max_length=50, blank=True)
 	prep_date = models.DateField(null=True, help_text='YYYY-MM-DD')
@@ -1326,7 +1326,7 @@ class SequencingPlatform(Timestamped):
 		return f'{self.platform} {self.read_length} {self.lanes_runs}'
 		
 class CaptureOrShotgunPlate(Timestamped):
-	name = models.CharField(max_length=50)
+	name = models.CharField(max_length=50, help_text='Usually ends with _TW or _RW')
 	enrichment_type = models.CharField(max_length=20, blank=True)
 	protocol = models.ForeignKey(CaptureProtocol, on_delete=models.PROTECT, null=True)
 	technician = models.CharField(max_length=10, blank=True)
