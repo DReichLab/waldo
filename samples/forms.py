@@ -180,11 +180,12 @@ class LysateBatchForm(UserModelForm):
 			
 class LysateForm(UserModelForm):
 	well_position = forms.CharField(disabled=True)
+	powder_batch_name = forms.CharField(disabled=True)
 	class Meta:
 		model = Lysate
-		fields = ['well_position', 'lysate_id', 'powder_used_mg', 'total_volume_produced', 'plate_id', 'barcode', 'notes']
+		fields = ['well_position', 'lysate_id', 'powder_batch_name', 'powder_used_mg', 'total_volume_produced', 'plate_id', 'barcode', 'notes']
 		widgets = {
-			'note': Textarea(attrs={'cols': 60, 'rows': 2}),
+			'notes': Textarea(attrs={'cols': 60, 'rows': 2}),
 		}
 	
 	def __init__(self, *args, **kwargs):
@@ -195,6 +196,8 @@ class LysateForm(UserModelForm):
 			layout_elements = self.instance.lysatebatchlayout_set
 			layout_element = layout_elements.get(lysate=self.instance)
 			self.initial['well_position'] = str(layout_element)
+			if self.instance.powder_sample and self.instance.powder_sample.powder_batch:
+				self.initial['powder_batch_name'] =  self.instance.powder_sample.powder_batch.name
 		
 LysateFormset = modelformset_factory(Lysate, form=LysateForm, extra=0)
 
