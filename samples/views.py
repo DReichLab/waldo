@@ -452,8 +452,8 @@ def lysates_spreadsheet(request):
 
 	writer = csv.writer(response, delimiter='\t')
 	# header
-	writer.writerow(Lysate.spreadsheet_header())
-	lysates = Lysate.objects.filter(lysate_batch=lysate_batch)
+	writer.writerow(LysateBatchLayout.spreadsheet_header())
+	lysates = LysateBatchLayout.objects.filter(lysate_batch=lysate_batch).order_by('column', 'row')
 	for lysate in lysates:
 		writer.writerow(lysate.to_spreadsheet_row())
 	return response

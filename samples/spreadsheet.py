@@ -14,3 +14,8 @@ def spreadsheet_headers_and_data_rows(spreadsheet_file):
 			raise ValueError(f'mismatch between number of header fields {len(headers)} and number of data fields {len(fields)}. Avoid using tabs and newlines in text fields. Data row is: {data_row}')
 	
 	return headers, data_rows
+
+def get_spreadsheet_value(headers, data_row, desired_header):
+	index = headers.index(desired_header)
+	fields = data_row.split('\t')
+	return fields[index]

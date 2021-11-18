@@ -12,7 +12,7 @@ from django.db.models import Max, Min
 
 from .layout import PLATE_ROWS, PLATE_WELL_COUNT, PLATE_WELL_COUNT_HALF, validate_row_letter, plate_location, reverse_plate_location_coordinate, reverse_plate_location, duplicate_positions_check_db, p7_qbarcode_source, barcodes_for_location, indices_for_location
 from .sample_photos import num_sample_photos
-from .spreadsheet import spreadsheet_headers_and_data_rows
+from .spreadsheet import spreadsheet_headers_and_data_rows, get_spreadsheet_value
 from .validation import *
 
 import re, string
@@ -29,6 +29,12 @@ def parse_sample_string(s):
 		return sample_number, control
 	else:
 		raise ValueError('Error parsing sample {}'.format(s))
+
+def get_value(obj, property_name, default=''):
+	if obj is None:
+		return default
+	else:
+		return getattr(obj, property_name)
 
 class Timestamped(models.Model):
 	creation_timestamp = models.DateTimeField(default=timezone.now, null=True)
@@ -729,17 +735,19 @@ class LysateBatch(Timestamped):
 		return extract_batch
 		
 	def lysates_from_spreadsheet(self, spreadsheet, user):
-		lysates = Lysate.objects.filter(lysate_batch=self)
+		layout_elements = LysateBatchLayout.objects.filter(lysate_batch=self)
 		headers, data_rows = spreadsheet_headers_and_data_rows(spreadsheet)
-		if headers[0] != 'lysate_id':
-			raise ValueError('lysate_id is not first')
-			
+		
 		for line in data_rows:
 			fields = re.split('\t', line)
-			lysate_id = fields[0]
-			if len(lysate_id) > 0:
-				lysate = lysates.get(lysate_id=lysate_id)
-				lysate.from_spreadsheet_row(headers, fields, user)
+			
+			well_position = get_spreadsheet_value(headers, line, 'well_position-')
+			print(well_position)
+			temp = TimestampedWellPosition()
+			temp.set_position(well_position)
+			
+			layout_element = layout_elements.get(column=temp.column, row=temp.row)
+			layout_element.from_spreadsheet_row(headers, fields, user)
 
 class Lysate(Timestamped):
 	lysate_id = models.CharField(max_length=15, unique=True, null=False, db_index=True)
@@ -756,34 +764,6 @@ class Lysate(Timestamped):
 	barcode = models.CharField(max_length=12, blank=True, help_text='Physical barcode on FluidX tube')
 	notes = models.TextField(blank=True)
 	
-	@staticmethod
-	def spreadsheet_header():
-		return ['lysate_id',
-			'powder_used_mg',
-			'total_volume_produced',
-			'plate_id',
-			'position',
-			'barcode',
-			'notes']
-		
-	def to_spreadsheet_row(self):
-		field_list = Lysate.spreadsheet_header()
-		values = []
-		for field in field_list:
-			values.append(getattr(self, field))
-		return values
-		
-	def from_spreadsheet_row(self, headers, arg_array, user):
-		row_lysate_id = arg_array[headers.index('lysate_id')]
-		if self.lysate_id != row_lysate_id:
-			raise ValueError(f'lysate_id mismatch {self.lysate_id} {row_lysate_id}')
-		self.powder_used_mg = float(arg_array[headers.index('powder_used_mg')])
-		self.total_volume_produced = float(arg_array[headers.index('total_volume_produced')])
-		self.position = arg_array[headers.index('position')]
-		self.barcode = arg_array[headers.index('barcode')]
-		self.notes = arg_array[headers.index('notes')]
-		self.save(save_user=user)
-		
 	# Compute how much lysate is left based on original lysate amount generated minus:
 	# 1. lysate used to make extracts
 	# 2. lost lysate
@@ -811,7 +791,7 @@ class LysateBatchLayout(TimestampedWellPosition):
 	lysate_batch = models.ForeignKey(LysateBatch, on_delete=models.CASCADE, null=True) # use a null lysate batch to mark lost powder
 	powder_sample = models.ForeignKey(PowderSample, on_delete=models.CASCADE, null=True)
 	control_type = models.ForeignKey(ControlType, on_delete=models.PROTECT, null=True)
-	powder_used_mg = models.FloatField()
+	powder_used_mg = models.FloatField() # currently only for lost powder
 	notes = models.TextField(blank=True)
 	lysate = models.ForeignKey(Lysate, on_delete=models.SET_NULL, null=True, help_text='Lysate created in this well from powder')
 	
@@ -834,6 +814,47 @@ class LysateBatchLayout(TimestampedWellPosition):
 		if self.powder_sample is None and (self.lysate_batch is None or self.control_type is None):
 			print('Null powder samples must be extract batch controls')
 			raise ValidationError(_('Null powder samples must be extract batch controls'))
+			
+	@staticmethod
+	def spreadsheet_header():
+		return ['well_position-', 
+			'lysate_id-',
+			'powder_batch_name-',
+			'powder_used_mg',
+			'total_volume_produced',
+			'plate_id',
+			'barcode',
+			'notes']
+		
+	def to_spreadsheet_row(self):
+		values = []
+		values.append(str(self))
+		
+		values.append(get_value(self.lysate, 'lysate_id'))
+		
+		powder_batch_name = self.powder_sample.powder_batch.name if (self.powder_sample and self.powder_sample.powder_batch) else ''
+		values.append(powder_batch_name)
+		
+		values.append(get_value(self.lysate, 'powder_used_mg'))
+		values.append(get_value(self.lysate, 'total_volume_produced'))
+		values.append(get_value(self.lysate, 'plate_id'))
+		values.append(get_value(self.lysate, 'barcode'))
+		values.append(get_value(self.lysate, 'notes'))
+		
+		return values
+		
+	def from_spreadsheet_row(self, headers, arg_array, user):
+		row_lysate_id = arg_array[headers.index('lysate_id-')]
+		if self.lysate:
+			lysate = self.lysate
+			if lysate.lysate_id != row_lysate_id:
+				raise ValueError(f'lysate_id mismatch {lysate.lysate_id} {row_lysate_id}')
+			lysate.powder_used_mg = float(arg_array[headers.index('powder_used_mg')])
+			lysate.total_volume_produced = float(arg_array[headers.index('total_volume_produced')])
+			lysate.plate_id = arg_array[headers.index('plate_id')]
+			lysate.barcode = arg_array[headers.index('barcode')]
+			lysate.notes = arg_array[headers.index('notes')]
+			lysate.save(save_user=user)
 	
 def create_extract_from_lysate(extract_layout_element, user):
 	lysate = extract_layout_element.lysate
