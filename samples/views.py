@@ -371,7 +371,7 @@ def lysate_batch_assign_powder(request):
 			elif lysate_batch.status == lysate_batch.LYSATES_CREATED:
 				lysate_batch.create_lysates(request.user)
 				return redirect(f'{reverse("lysates_in_batch")}?lysate_batch_name={lysate_batch_name}')
-			
+			lysate_batch_form = LysateBatchForm(instance=lysate_batch, user=request.user)
 		
 	elif request.method == 'GET':
 		lysate_batch_form = LysateBatchForm(instance=lysate_batch, user=request.user)
