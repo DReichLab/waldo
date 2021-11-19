@@ -102,7 +102,7 @@ class PowderSampleForm(UserModelForm):
 	num_photos = IntegerField(disabled=True)
 	sample_prep_protocol = SamplePrepProtocolSelect(queryset=SamplePrepProtocol.objects.all(), empty_label=None)
 	
-	collaborator_id = CharField(disabled=True)
+	collaborator_id = CharField(disabled=True, help_text='Sample identification code assigned by the collaborator')
 	shipment_id = CharField(disabled=True)
 	notes = CharField(disabled=True)
 	notes2 = CharField(disabled=True)
