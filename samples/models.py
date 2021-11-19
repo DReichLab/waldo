@@ -1266,7 +1266,7 @@ class Library(Timestamped):
 	storage = models.ForeignKey(Storage, on_delete=models.PROTECT, null=True)
 	plate_id = models.CharField(max_length=12, blank=True, help_text='FluidX rack barcode')
 	position = models.CharField(max_length=3, blank=True, help_text='well/tube position in plate/rack')
-	barcode = models.CharField(max_length=12, blank=True, help_text='Physical barcode on FluidX tube')
+	fluidx_barcode = models.CharField(max_length=12, blank=True, help_text='Physical barcode on FluidX tube')
 	
 	nanodrop = models.FloatField(null=True)
 	qpcr = models.FloatField(null=True)
@@ -1303,7 +1303,7 @@ class LibraryBatchLayout(TimestampedWellPosition):
 			'nanodrop',
 			'qpcr',
 			'plate_id',
-			'barcode',
+			'fluidx_barcode',
 			'notes',
 			#'storage_location',
 			]
@@ -1316,7 +1316,7 @@ class LibraryBatchLayout(TimestampedWellPosition):
 			get_value(self.library, 'nanodrop'),
 			get_value(self.library, 'qpcr'),
 			get_value(self.library, 'plate_id'),
-			get_value(self.library, 'barcode'),
+			get_value(self.library, 'fluidx_barcode'),
 			get_value(self.library, 'notes')
 			]
 		
@@ -1328,7 +1328,7 @@ class LibraryBatchLayout(TimestampedWellPosition):
 		library.nanodrop = float(arg_array[headers.index('nanodrop')])
 		library.qpcr = float(arg_array[headers.index('qpcr')])
 		library.plate_id = arg_array[headers.index('plate_id')]
-		library.barcode = arg_array[headers.index('barcode')]
+		library.fluidx_barcode = arg_array[headers.index('fluidx_barcode')]
 		library.notes = arg_array[headers.index('notes')]
 		library.save(save_user=user)
 		

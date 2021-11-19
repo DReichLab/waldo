@@ -389,7 +389,7 @@ class LibraryForm(UserModelForm):
 	
 	class Meta:
 		model = Library
-		fields = ['well_position', 'reich_lab_library_id', 'p5_barcode', 'p7_barcode', 'nanodrop', 'qpcr', 'plate_id', 'barcode', 'notes']
+		fields = ['well_position', 'reich_lab_library_id', 'p5_barcode', 'p7_barcode', 'nanodrop', 'qpcr', 'plate_id', 'fluidx_barcode', 'notes']
 		widgets = {
 			'notes': Textarea(attrs={'cols': 60, 'rows': 2}),
 		}
