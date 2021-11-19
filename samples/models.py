@@ -741,7 +741,7 @@ class LysateBatch(Timestamped):
 		for line in data_rows:
 			fields = re.split('\t', line)
 			
-			well_position = get_spreadsheet_value(headers, line, 'well_position-')
+			well_position = get_spreadsheet_value(headers, fields, 'well_position-')
 			print(well_position)
 			temp = TimestampedWellPosition()
 			temp.set_position(well_position)
@@ -948,17 +948,19 @@ class ExtractionBatch(Timestamped):
 				library_batch_layout_element.save(save_user=user)
 	
 	def extracts_from_spreadsheet(self, spreadsheet, user):
-		extracts = Extract.objects.filter(extract_batch=self)
+		layout_elements = ExtractionBatchLayout.objects.filter(extract_batch=self)
 		headers, data_rows = spreadsheet_headers_and_data_rows(spreadsheet)
-		if headers[0] != 'extract_id':
-			raise ValueError('extract_id is not first')
 			
 		for line in data_rows:
 			fields = re.split('\t', line)
-			extract_id = fields[0]
-			if len(extract_id) > 0:
-				extract = extracts.get(extract_id=extract_id)
-				extract.from_spreadsheet_row(headers, fields, user)
+			
+			well_position = get_spreadsheet_value(headers, fields, 'well_position-')
+			print(well_position)
+			temp = TimestampedWellPosition()
+			temp.set_position(well_position)
+			
+			layout_element = layout_elements.get(column=temp.column, row=temp.row)
+			layout_element.from_spreadsheet_row(headers, fields, user)
 	
 class Extract(Timestamped):
 	extract_id = models.CharField(max_length=20, unique=True, db_index=True)
@@ -974,38 +976,42 @@ class Extract(Timestamped):
 	storage_location = models.TextField(blank=True)
 	extraction_lab = models.CharField(max_length=50, blank=True, help_text='Name of lab where DNA extraction was done')
 	
+# lysate -> extract
+class ExtractionBatchLayout(TimestampedWellPosition):
+	extract_batch = models.ForeignKey(ExtractionBatch, on_delete=models.CASCADE, null=True) # use a null extract batch to mark lost lysate
+	lysate = models.ForeignKey(Lysate, on_delete=models.CASCADE, null=True)
+	control_type = models.ForeignKey(ControlType, on_delete=models.PROTECT, null=True)
+	lysate_volume_used = models.FloatField() # for lost only, until we can migrate all values in extracts
+	notes = models.TextField(blank=True)
+	extract = models.ForeignKey(Extract, on_delete=models.SET_NULL, null=True, help_text='extract created in this well location')
+	
 	@staticmethod
 	def spreadsheet_header():
-		return ['extract_id',
+		return ['well_position-', 
+			'extract_id-',
 			'lysis_volume_extracted',
 			'notes',
 			#'storage_location',
 			]
 		
 	def to_spreadsheet_row(self):
-		field_list = Extract.spreadsheet_header()
+		field_list = ExtractionBatchLayout.spreadsheet_header()
 		values = []
-		for field in field_list:
-			values.append(getattr(self, field))
+		values.append(str(self)) # well position
+		values.append(get_value(self.extract, 'extract_id'))
+		values.append(get_value(self.extract, 'lysis_volume_extracted'))
+		values.append(get_value(self.extract, 'notes'))
 		return values
 		
 	def from_spreadsheet_row(self, headers, arg_array, user):
-		row_extract_id = arg_array[headers.index('extract_id')]
-		if self.extract_id != row_extract_id:
-			raise ValueError(f'extract_id mismatch {self.extract_id} {row_extract_id}')
-		self.lysis_volume_extracted = float(arg_array[headers.index('lysis_volume_extracted')])
-		self.notes = arg_array[headers.index('notes')]
-		self.storage_location = arg_array[headers.index('storage_location')]
-		self.save(save_user=user)
-	
-# lysate -> extract
-class ExtractionBatchLayout(TimestampedWellPosition):
-	extract_batch = models.ForeignKey(ExtractionBatch, on_delete=models.CASCADE, null=True) # use a null extract batch to mark lost lysate
-	lysate = models.ForeignKey(Lysate, on_delete=models.CASCADE, null=True)
-	control_type = models.ForeignKey(ControlType, on_delete=models.PROTECT, null=True)
-	lysate_volume_used = models.FloatField()
-	notes = models.TextField(blank=True)
-	extract = models.ForeignKey(Extract, on_delete=models.SET_NULL, null=True, help_text='extract created in this well location')
+		row_extract_id = get_spreadsheet_value(headers, arg_array, 'extract_id-')
+		if self.extract:
+			extract = self.extract
+			if extract.extract_id != row_extract_id:
+				raise ValueError(f'extract_id mismatch {extract.extract_id} {row_extract_id}')
+			extract.lysis_volume_extracted = float(get_spreadsheet_value(headers, arg_array, 'lysis_volume_extracted'))
+			extract.notes = get_spreadsheet_value(headers, arg_array, 'notes')
+			extract.save(save_user=user)
 	
 class LibraryProtocol(Timestamped):
 	name = models.CharField(max_length=50, unique=True)

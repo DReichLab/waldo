@@ -720,8 +720,8 @@ def extracts_spreadsheet(request):
 
 	writer = csv.writer(response, delimiter='\t')
 	# header
-	writer.writerow(Extract.spreadsheet_header())
-	extracts = Extract.objects.filter(extract_batch=extract_batch)
+	writer.writerow(ExtractionBatchLayout.spreadsheet_header())
+	extracts = ExtractionBatchLayout.objects.filter(extract_batch=extract_batch).order_by('column', 'row')
 	for extract in extracts:
 		writer.writerow(extract.to_spreadsheet_row())
 	return response
