@@ -77,7 +77,7 @@ Lysate Batch: {{lysate_batch_name}} has {{assigned_powder_samples_count}} distin
 		<td class="powder_sample_id">{{powder_sample.powder_sample_id}}</td>
 		<td class="sample">S{{powder_sample.sample.reich_lab_id}}</td>
 		<td class="powder_batch">{{powder_sample.powder_batch.name}}</td>
-		<td class="expected_complexity">{{powder_sample.sample.expected_complexity}}</td>
+		<td class="expected_complexity">{{powder_sample.sample.expected_complexity.description}}</td>
 	</tr>
 	{% endfor %}
 	</tbody>
