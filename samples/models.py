@@ -9,6 +9,8 @@ from django.core.validators import MaxValueValidator, MinValueValidator
 from django.utils.translation import gettext_lazy as _
 
 from django.db.models import Max, Min
+from django.db.models.signals import pre_delete
+from django.dispatch import receiver
 
 from .layout import PLATE_ROWS, PLATE_WELL_COUNT, PLATE_WELL_COUNT_HALF, validate_row_letter, plate_location, reverse_plate_location_coordinate, reverse_plate_location, duplicate_positions_check_db, p7_qbarcode_source, barcodes_for_location, indices_for_location
 from .sample_photos import num_sample_photos
@@ -884,6 +886,11 @@ def create_extract_from_lysate(extract_layout_element, user):
 		extract_layout_element.lysate_volume_used = lysis_volume_extracted
 		extract_layout_element.save(save_user=user)
 		return extract
+		
+@receiver(pre_delete, sender=LysateBatchLayout, dispatch_uid='lysatebatchlayout_delete_signal')
+def delete_dependent_lysate(sender, instance, using, **kwargs):
+	if instance.lysate:
+		instance.lysate.delete()
 	
 class ExtractionBatch(Timestamped):
 	batch_name = models.CharField(max_length=50, unique=True, help_text='Usually ends with _RE')
@@ -1012,6 +1019,11 @@ class ExtractionBatchLayout(TimestampedWellPosition):
 			extract.lysis_volume_extracted = float(get_spreadsheet_value(headers, arg_array, 'lysis_volume_extracted'))
 			extract.notes = get_spreadsheet_value(headers, arg_array, 'notes')
 			extract.save(save_user=user)
+			
+@receiver(pre_delete, sender=ExtractionBatchLayout, dispatch_uid='extractionbatchlayout_delete_signal')
+def delete_dependent_extract(sender, instance, using, **kwargs):
+	if instance.extract:
+		instance.extract.delete()
 	
 class LibraryProtocol(Timestamped):
 	name = models.CharField(max_length=50, unique=True)
@@ -1319,6 +1331,11 @@ class LibraryBatchLayout(TimestampedWellPosition):
 		library.barcode = arg_array[headers.index('barcode')]
 		library.notes = arg_array[headers.index('notes')]
 		library.save(save_user=user)
+		
+@receiver(pre_delete, sender=LibraryBatchLayout, dispatch_uid='librarybatchlayout_delete_signal')
+def delete_dependent_library(sender, instance, using, **kwargs):
+	if instance.library:
+		instance.library.delete()
 	
 class CaptureProtocol(Timestamped):
 	name = models.CharField(max_length=150, unique=True, validators=[validate_no_whitespace, validate_no_underscore])
