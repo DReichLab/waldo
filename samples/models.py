@@ -742,7 +742,7 @@ class LysateBatch(Timestamped):
 			fields = re.split('\t', line)
 			
 			well_position = get_spreadsheet_value(headers, fields, 'well_position-')
-			print(well_position)
+			#print(well_position)
 			temp = TimestampedWellPosition()
 			temp.set_position(well_position)
 			
@@ -955,7 +955,7 @@ class ExtractionBatch(Timestamped):
 			fields = re.split('\t', line)
 			
 			well_position = get_spreadsheet_value(headers, fields, 'well_position-')
-			print(well_position)
+			#print(well_position)
 			temp = TimestampedWellPosition()
 			temp.set_position(well_position)
 			
@@ -1153,19 +1153,18 @@ class LibraryBatch(Timestamped):
 		to_clear.delete()
 		
 	def libraries_from_spreadsheet(self, spreadsheet, user):
-		libraries = Library.objects.filter(library_batch=self)
+		layout_elements = LibraryBatchLayout.objects.filter(library_batch=self)
 		headers, data_rows = spreadsheet_headers_and_data_rows(spreadsheet)
-		if headers[0] != 'well_position':
-			raise ValueError('well_position is not first')
-		if headers[0] != 'reich_lab_library_id':
-			raise ValueError('reich_lab_library_id is not second')
-			
+		
 		for line in data_rows:
 			fields = re.split('\t', line)
-			reich_lab_library_id = fields[1]
-			if len(reich_lab_library_id) > 0:
-				library = libraries.get(reich_lab_library_id=reich_lab_library_id)
-				library.from_spreadsheet_row(headers, fields, user)
+			
+			well_position = get_spreadsheet_value(headers, fields, 'well_position-')
+			temp = TimestampedWellPosition()
+			temp.set_position(well_position)
+			
+			layout_element = layout_elements.get(column=temp.column, row=temp.row)
+			layout_element.from_spreadsheet_row(headers, fields, user)
 		
 	
 	def create_capture(self, capture_name, user):
@@ -1273,54 +1272,6 @@ class Library(Timestamped):
 			raise ValidationError(_('Library cannot have both indices and barcodes. Single-stranded libraries should have only indices, and double-stranded libraries should have only barcodes.'))
 		if self.p5_index is None and self.p7_index is None and self.p5_barcode is None and self.p7_barcode is None:
 			raise ValidationError(_('Library must have either indices or barcodes')) 
-			
-	@staticmethod
-	def spreadsheet_header():
-		return ['well_position',
-			'reich_lab_library_id',
-			'p5_barcode',
-			'p7_barcode',
-			'nanodrop',
-			'qpcr',
-			'plate_id',
-			'position',
-			'barcode',
-			'notes',
-			#'storage_location',
-			]
-		
-	def to_spreadsheet_row(self):
-		layout_element = LibraryBatchLayout.objects.get(library_batch=self.library_batch, library=self)
-		return [ str(layout_element),
-			self.reich_lab_library_id,
-			self.p5_barcode.label,
-			self.p7_barcode.label,
-			self.nanodrop,
-			self.qpcr,
-			self.plate_id,
-			self.position,
-			self.barcode,
-			self.notes
-			]
-		
-	def from_spreadsheet_row(self, headers, arg_array, user):
-		reich_lab_library_id = arg_array[headers.index('reich_lab_library_id')]
-		if self.reich_lab_library_id != reich_lab_library_id:
-			raise ValueError(f'reich_lab_library_id mismatch {self.reich_lab_library_id} {reich_lab_library_id}')
-		
-		layout_element = LibraryBatchLayout.objects.get(library_batch=self.library_batch, library=self)
-		position_from_sheet = arg_array[headers.index('well_position')]
-		if str(layout_element) != position_from_sheet:
-			raise ValueError(f'cannot change position of {reich_lab_library_id}')
-			
-		self.nanodrop = float(arg_array[headers.index('nanodrop')])
-		self.qpcr = float(arg_array[headers.index('qpcr')])
-		self.plate_id = arg_array[headers.index('plate_id')]
-		self.position = arg_array[headers.index('position')]
-		self.barcode = arg_array[headers.index('barcode')]
-		self.notes = arg_array[headers.index('notes')]
-		self.save(save_user=user)
-	
 	
 # extract -> library
 class LibraryBatchLayout(TimestampedWellPosition):
@@ -1330,6 +1281,44 @@ class LibraryBatchLayout(TimestampedWellPosition):
 	ul_extract_used = models.FloatField(null=True) # populated from library protocol, needs to done after layout elements are created
 	notes = models.TextField(blank=True)
 	library = models.ForeignKey(Library, on_delete=models.SET_NULL, null=True, help_text='')
+	
+	@staticmethod
+	def spreadsheet_header():
+		return ['well_position-',
+			'reich_lab_library_id-',
+			'p5_barcode',
+			'p7_barcode',
+			'nanodrop',
+			'qpcr',
+			'plate_id',
+			'barcode',
+			'notes',
+			#'storage_location',
+			]
+		
+	def to_spreadsheet_row(self):
+		return [ str(self),
+			get_value(self.library, 'reich_lab_library_id'),
+			get_value(self.library.p5_barcode, 'label'),
+			get_value(self.library.p7_barcode, 'label'),
+			get_value(self.library, 'nanodrop'),
+			get_value(self.library, 'qpcr'),
+			get_value(self.library, 'plate_id'),
+			get_value(self.library, 'barcode'),
+			get_value(self.library, 'notes')
+			]
+		
+	def from_spreadsheet_row(self, headers, arg_array, user):
+		reich_lab_library_id = get_spreadsheet_value(headers, arg_array, 'reich_lab_library_id-')
+		if self.library.reich_lab_library_id != reich_lab_library_id:
+			raise ValueError(f'reich_lab_library_id mismatch {self.reich_lab_library_id} {reich_lab_library_id}')
+		library = self.library
+		library.nanodrop = float(arg_array[headers.index('nanodrop')])
+		library.qpcr = float(arg_array[headers.index('qpcr')])
+		library.plate_id = arg_array[headers.index('plate_id')]
+		library.barcode = arg_array[headers.index('barcode')]
+		library.notes = arg_array[headers.index('notes')]
+		library.save(save_user=user)
 	
 class CaptureProtocol(Timestamped):
 	name = models.CharField(max_length=150, unique=True, validators=[validate_no_whitespace, validate_no_underscore])

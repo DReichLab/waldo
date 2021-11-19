@@ -956,10 +956,10 @@ def libraries_spreadsheet(request):
 
 	writer = csv.writer(response, delimiter='\t')
 	# header
-	writer.writerow(Library.spreadsheet_header())
-	libraries = Library.objects.filter(library_batch=library_batch)
-	for library in libraries:
-		writer.writerow(library.to_spreadsheet_row())
+	writer.writerow(LibraryBatchLayout.spreadsheet_header())
+	layout_elements = LibraryBatchLayout.objects.filter(library_batch=library_batch).order_by('column', 'row')
+	for layout_element in layout_elements:
+		writer.writerow(layout_element.to_spreadsheet_row())
 	return response
 
 @login_required
