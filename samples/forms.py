@@ -180,7 +180,7 @@ class LysateBatchForm(UserModelForm):
 			
 class LysateForm(UserModelForm):
 	well_position = forms.CharField(disabled=True)
-	powder_batch_name = forms.CharField(disabled=True)
+	powder_batch_name = forms.CharField(disabled=True, required=False)
 	class Meta:
 		model = Lysate
 		fields = ['well_position', 'lysate_id', 'powder_batch_name', 'powder_used_mg', 'total_volume_produced', 'plate_id', 'barcode', 'notes']
