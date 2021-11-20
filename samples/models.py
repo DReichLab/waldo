@@ -1367,6 +1367,7 @@ class CaptureOrShotgunPlate(Timestamped):
 	date = models.DateField(null=True)
 	robot = models.CharField(max_length=50, blank=True)
 	hyb_wash_temps = models.CharField(max_length=50, blank=True)
+	reagent_batch = models.PositiveSmallIntegerField(null=True, help_text='Twist batch or bait batch number')
 	notes = models.TextField(blank=True)
 	
 	p5_index_start = models.PositiveSmallIntegerField(null=True, validators=[MinValueValidator(1), MaxValueValidator(47), validate_odd], help_text='Must be odd in [1, 48]')# revisit this for single stranded
