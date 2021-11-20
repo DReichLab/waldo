@@ -1268,8 +1268,8 @@ class Library(Timestamped):
 	position = models.CharField(max_length=3, blank=True, help_text='well/tube position in plate/rack')
 	fluidx_barcode = models.CharField(max_length=12, blank=True, help_text='Physical barcode on FluidX tube')
 	
-	nanodrop = models.FloatField(null=True)
-	qpcr = models.FloatField(null=True)
+	nanodrop = models.DecimalField(max_digits=5, decimal_places=2, null=True)
+	qpcr = models.DecimalField(max_digits=4, decimal_places=2, null=True)
 	
 	# single stranded libraries have indices directly assigned
 	p5_index = models.ForeignKey(P5_Index, on_delete=models.PROTECT, null=True)
