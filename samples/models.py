@@ -1438,7 +1438,10 @@ class CaptureLayout(TimestampedWellPosition):
 	@staticmethod
 	def spreadsheet_header():
 		header = ['well_position',
+			'nanodrop',
 			'library_id',
+			'library_batch',
+			'well_position_library_batch'
 			'plate_id',
 			'experiment',
 			'p5_index_label',
@@ -1468,16 +1471,22 @@ class CaptureLayout(TimestampedWellPosition):
 			p7_index_label = self.library.p7_index.label
 			p7_index_sequence = self.library.p7_index.sequence
 		
+		library_batch = ''
+		well_position_library_batch = ''
 		p5_barcode_label = ''
 		p5_barcode_sequence = ''
 		p7_barcode_label = ''
 		p7_barcode_sequence = ''
 		if self.library:
 			identifier = self.library.reich_lab_library_id
+			library_batch = self.library.library_batch.name
 			p5_barcode_label = self.library.p5_barcode.label if self.library.p5_barcode else ''
 			p5_barcode_sequence = self.library.p5_barcode.sequence if self.library.p5_barcode else ''
 			p7_barcode_label = self.library.p7_barcode.label if self.library.p7_barcode else ''
 			p7_barcode_sequence = self.library.p7_barcode.sequence if self.library.p7_barcode else ''
+			
+			library_layout_element = LibraryBatchLayout.objects.filter(library_batch=library_batch).get(library=self.library)
+			well_position_library_batch = str(library_layout_element)
 		else:
 			identifier = self.control_type.control_type
 			
@@ -1489,7 +1498,10 @@ class CaptureLayout(TimestampedWellPosition):
 			library_type = 'control'
 			
 		line = [str(self),
+				self.nanodrop,
 				identifier,
+				library_batch,
+				well_position_library_batch,
 				self.capture_batch.name,
 				self.capture_batch.protocol.name,
 				p5_index_label,

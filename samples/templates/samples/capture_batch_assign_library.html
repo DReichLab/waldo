@@ -51,6 +51,7 @@ Capture Batch: {{capture_batch_name}} has {{assigned_extracts_count}} distinct e
 		<th><input type="checkbox" name="toggle_all_checkbox" id="toggle_all_checkbox" onclick="toggle_onscreen_all()"></th>
 		<th><button class="sort" type="button" data-sort="position">Position</button></th>
 		<th><button class="sort" type="button" data-sort="library_id">Library ID</button></th>
+		<th><button class="sort" type="button" data-sort="library_batch">Library Batch</button></th>
 		<th><button class="sort" type="button" data-sort="p5_index">P5 Index</button></th>
 		<th><button class="sort" type="button" data-sort="p7_index">P7 Index</button></th>
 		<th><button class="sort" type="button" data-sort="p5_barcode">P5 Barcode</button></th>
@@ -65,6 +66,7 @@ Capture Batch: {{capture_batch_name}} has {{assigned_extracts_count}} distinct e
 		</td>
 		<td class="position">{{layout_element}}</td>
 		<td class="library_id">{{layout_element.library.reich_lab_library_id}}</td>
+		<td class="library_id">{{layout_element.library.library_batch.name}}</td>
 		<td class="p5_index">{{layout_element.p5_index.label}}</td>
 		<td class="p7_index">{{layout_element.p7_index.label}}</td>
 		<td class="p5_barcode">{{layout_element.library.p5_barcode.label}}</td>
