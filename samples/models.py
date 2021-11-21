@@ -1418,6 +1418,8 @@ class CaptureLayout(TimestampedWellPosition):
 	p5_index = models.ForeignKey(P5_Index, on_delete=models.PROTECT, null=True)
 	p7_index = models.ForeignKey(P7_Index, on_delete=models.PROTECT, null=True)
 	
+	nanodrop = models.DecimalField(max_digits=5, decimal_places=2, null=True)
+	
 	def clean(self):
 		super(CaptureLayout, self).clean()
 		has_library_indices = self.library.p5_index is not None and self.library.p7_index is not None
