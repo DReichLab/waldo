@@ -1375,6 +1375,18 @@ class CaptureOrShotgunPlate(Timestamped):
 	
 	needs_sequencing = models.BooleanField(default=True, help_text='True for new plates. False for plates sequenced before website switchover.')
 	
+	STOP = -100
+	OPEN = 0
+	IN_PROGRESS = 100
+	CLOSED = 200
+	CAPTURE_BATCH_STATES = (
+		(STOP, 'Stop'),
+		(OPEN, 'Open'),
+		(IN_PROGRESS, 'In Progress'),
+		(CLOSED, 'Closed')
+	)
+	status = models.SmallIntegerField(default = CLOSED, choices=CAPTURE_BATCH_STATES)
+	
 	def assign_indices(self, user):
 		for layout_element in CaptureLayout.objects.filter(capture_batch=self):
 			int_position = reverse_plate_location_coordinate(layout_element.row, layout_element.column)
