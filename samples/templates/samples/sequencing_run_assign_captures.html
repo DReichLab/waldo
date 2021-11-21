@@ -52,11 +52,12 @@ table{
 	{% for plate in assigned_captures %}
 	<tr>
 		<td class="checked">
-			<input class="sample_checkbox" type="checkbox" name="sample_checkboxes[]" id="checkbox{{plate.id}}" value="{{plate.id}}" onclick="update_count()" checked>
+			<input class="sample_checkbox" type="checkbox" name="sample_checkboxes[]" id="checkbox{{plate.id}}" value="{{plate.id}}" onclick="update_count()" checked {% if sequencing_run.date_pooled is not None %}disabled{% endif %}>
 		</td>
 		<td class="capture_batch">{{plate.name}}</td>
 	</tr>
 	{% endfor %}
+	{% if sequencing_run.date_pooled is None %}
 	{% for plate in unassigned_captures %}
 	<tr>
 		<td class="checked">
@@ -66,6 +67,7 @@ table{
 	</tr>
 	{% endfor %}
 	</tbody>
+	{% endif %}
 </table>
 </form>
 </div>
@@ -85,14 +87,6 @@ table{
 			update_count();
 		})
 	})
-	
-	function update_count(){
-		let overall_total = sample_list.size();
-		
-		let filtered_count = document.querySelectorAll('input[type="checkbox"].sample_checkbox:checked').length;
-		let filtered_total = document.querySelectorAll('input[type="checkbox"].sample_checkbox').length;
-		document.getElementById('sample_count').innerHTML = String(filtered_count) + " sample" + (filtered_count != 1 ? "s" : "") + " selected of " + String(filtered_total) + " filtered samples. " + String(overall_count) + " selected of " + String(overall_total) + " total samples.";
-	}
 	
 	sample_list.on('updated', update_count);
 	

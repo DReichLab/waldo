@@ -1189,7 +1189,7 @@ def sequencing_run_assign_captures(request):
 	# show captures marked as needing sequencing that have not already been assigned
 	captures = CaptureOrShotgunPlate.objects.filter(needs_sequencing=True).annotate(sequencing_count=Count('sequencingrun')).exclude(sequencing_count__gt=0)
 	
-	return render(request, 'samples/sequencing_run_assign_captures.html', { 'sequencing_run_name': sequencing_run_name, 'form': form, 'assigned_captures': assigned_captures, 'unassigned_captures': captures} )
+	return render(request, 'samples/sequencing_run_assign_captures.html', { 'sequencing_run_name': sequencing_run_name, 'sequencing_run': sequencing_run,  'form': form, 'assigned_captures': assigned_captures, 'unassigned_captures': captures} )
 	
 @login_required
 def sequencing_run_spreadsheet(request):
