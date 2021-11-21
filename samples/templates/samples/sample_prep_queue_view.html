@@ -89,6 +89,14 @@ table{
 		searchDelay: 500
 	};
 	var sample_list = new List('sample_rows', list_options);
+	
+	function update_count(){
+		let overall_total = sample_list.size();
+		let filtered_total = sample_list.matchingItems.length;
+		document.getElementById('sample_count').innerHTML = String(filtered_total) + " sample" + (filtered_total != 1 ? "s" : "") + " selected of " + String(overall_total) + " total in queue.";
+	}
+	sample_list.on('updated', update_count);
+	update_count();
 </script>
 
 {% endblock %}
