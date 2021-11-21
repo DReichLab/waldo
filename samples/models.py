@@ -479,6 +479,7 @@ class ControlLayout(TimestampedWellPosition):
 	control_set = models.ForeignKey(ControlSet, on_delete=models.CASCADE)
 	control_type = models.ForeignKey(ControlType, on_delete=models.PROTECT)
 	active = models.BooleanField(default=True)
+	notes = models.TextField(blank=True)
 
 EXTRACT_NEGATIVE = 'Extract Negative'
 LIBRARY_NEGATIVE = 'Library Negative'

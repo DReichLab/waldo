@@ -284,7 +284,10 @@ class ControlLayoutForm(UserModelForm):
 	control_type = ControlTypeSelect(queryset=ControlType.objects.all())
 	class Meta:
 		model = ControlLayout
-		fields = ['control_set', 'row', 'column', 'control_type', 'active']
+		fields = ['control_set', 'row', 'column', 'control_type', 'active', 'notes']
+		widgets = {
+			'notes': Textarea(attrs={'cols': 60, 'rows': 2}),
+		}
 
 ControlLayoutFormset = modelformset_factory(ControlLayout, form=ControlLayoutForm, extra=20)
 
