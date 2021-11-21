@@ -437,10 +437,15 @@ class CaptureBatchForm(UserModelForm):
 	
 	class Meta:
 		model = CaptureOrShotgunPlate
-		fields = ['name', 'protocol', 'technician', 'date', 'robot', 'hyb_wash_temps', 'p5_index_start', 'reagent_batch', 'needs_sequencing', 'notes']
+		fields = ['name', 'protocol', 'technician', 'date', 'status', 'robot', 'hyb_wash_temps', 'p5_index_start', 'reagent_batch', 'needs_sequencing', 'notes']
 		widgets = {
 			'notes': Textarea(attrs={'cols': 60, 'rows': 2}),
 		}
+		
+	def __init__(self, *args, **kwargs):
+		super().__init__(*args, **kwargs)
+		for option in ['date', 'robot', 'hyb_wash_temps', 'reagent_batch']:
+			self.fields[option].required = False
 	
 	def disable_fields(self):
 		for field in CaptureBatchForm._meta.fields:

@@ -1385,7 +1385,7 @@ class CaptureOrShotgunPlate(Timestamped):
 		(IN_PROGRESS, 'In Progress'),
 		(CLOSED, 'Closed')
 	)
-	status = models.SmallIntegerField(default = CLOSED, choices=CAPTURE_BATCH_STATES)
+	status = models.SmallIntegerField(default = OPEN, choices=CAPTURE_BATCH_STATES)
 	
 	def assign_indices(self, user):
 		for layout_element in CaptureLayout.objects.filter(capture_batch=self):
