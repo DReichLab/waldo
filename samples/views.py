@@ -1054,6 +1054,9 @@ def capture_batch_assign_library(request):
 			
 			if 'assign_plus_indices' in request.POST:
 				capture_batch.assign_indices(request.user)
+				
+			if capture_batch.status in [capture_batch.IN_PROGRESS, capture_batch.CLOSED]:
+				return redirect(f'{reverse("captures_in_batch")}?capture_batch_name={capture_batch_name}')
 		
 	elif request.method == 'GET':
 		capture_batch_form = CaptureBatchForm(instance=capture_batch, user=request.user)
@@ -1220,6 +1223,7 @@ def sequencing_run_assign_captures(request):
 def sequencing_run_spreadsheet(request):
 	sequencing_run_name = request.GET['sequencing_run_name']
 	sequencing_run = SequencingRun.objects.get(name=sequencing_run_name)
+	sequencing_run.check_index_barcode_combinations()
 	
 	response = HttpResponse(content_type='text/csv')
 	response['Content-Disposition'] = f'attachment; filename="{sequencing_run_name}_ESS.txt"'

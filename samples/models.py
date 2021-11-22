@@ -1502,7 +1502,7 @@ class CaptureLayout(TimestampedWellPosition):
 			p7_barcode_label = self.library.p7_barcode.label if self.library.p7_barcode else ''
 			p7_barcode_sequence = self.library.p7_barcode.sequence if self.library.p7_barcode else ''
 			
-			library_layout_element = LibraryBatchLayout.objects.filter(library_batch=library_batch).get(library=self.library)
+			library_layout_element = LibraryBatchLayout.objects.filter(library_batch__name=library_batch).get(library=self.library)
 			well_position_library_batch = str(library_layout_element)
 		else:
 			identifier = self.control_type.control_type
@@ -1578,13 +1578,23 @@ class SequencingRun(Timestamped):
 			pass
 		
 	def check_index_barcode_combinations(self):
-		# TODO
 		combinations = {}
-		for layout_element in indexed_libraries:
-			s = f'{layout_element.p5_index.sequence}_{layout_element.p7_index.sequence}_{layout_element.library.p5_barcode}_{layout_element.library.p5_barcode}'
-			if s in combinations:
-				raise ValueError(f'duplicate index-barcode_combination {s}')
-			combinations[s] = True
+		for layout_element in self.indexed_libraries.all():
+			try:
+				p5_index = layout_element.p5_index.sequence
+				p7_index = layout_element.p7_index.sequence
+				p5_barcode = layout_element.library.p5_barcode.sequence if layout_element.library else ''
+				p7_barcode = layout_element.library.p7_barcode.sequence if layout_element.library else ''
+				
+				s = f'{p5_index}_{p7_index}_{p5_barcode}_{p7_barcode}'
+				if s in combinations:
+					raise ValueError(f'duplicate index-barcode_combination {s}')
+				combinations[s] = True
+			except Exception as e:
+				library = layout_element.library.reich_lab_library_id if  layout_element.library else ''
+				control = layout_element.control_type.control_type if layout_element.control_type else ''
+				print(f'error checking {layout_element} {library} {control}')
+				raise
 	
 	def to_spreadsheet(self):
 		lines = []
