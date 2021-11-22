@@ -4,7 +4,7 @@ from django.forms import modelformset_factory
 from django.forms.widgets import TextInput
 from django.utils.translation import gettext_lazy as _
 
-from samples.models import PowderBatch, PowderSample, Sample, SamplePrepProtocol, ControlType, ControlSet, ControlLayout, LysateBatch, ExtractionProtocol, ExpectedComplexity, SamplePrepQueue, Lysate, LysateBatchLayout, ExtractionBatch, ExtractionBatchLayout, LibraryProtocol, LibraryBatch, Extract, Storage, Library, LibraryBatchLayout, Barcode, CaptureProtocol, CaptureOrShotgunPlate, CaptureLayout, SequencingPlatform, SequencingRun
+from samples.models import PowderBatch, PowderSample, Sample, SamplePrepProtocol, ControlType, ControlSet, ControlLayout, LysateBatch, ExtractionProtocol, ExpectedComplexity, SamplePrepQueue, Lysate, LysateBatchLayout, ExtractionBatch, ExtractionBatchLayout, LibraryProtocol, LibraryBatch, Extract, Storage, Library, LibraryBatchLayout, P5_Index, P7_Index, Barcode, CaptureProtocol, CaptureOrShotgunPlate, CaptureLayout, SequencingPlatform, SequencingRun
 
 import datetime
 
@@ -466,9 +466,13 @@ class CapturedLibraryForm(UserModelForm):
 	library_id = forms.CharField(disabled=True)
 	library_batch = forms.CharField(disabled=True, required=False)
 	well_position_library_batch = forms.CharField(disabled=True, required=False)
+	p5_index = BarcodeSelect(queryset=P5_Index.objects.all(), disabled=True)
+	p7_index = BarcodeSelect(queryset=P7_Index.objects.all(), disabled=True)
+	p5_barcode = forms.CharField(disabled=True, required=False)
+	p7_barcode = forms.CharField(disabled=True, required=False)
 	class Meta:
 		model = CaptureLayout
-		fields = ['well_position', 'library_id', 'nanodrop', 'library_batch', 'well_position_library_batch']
+		fields = ['well_position', 'library_id', 'nanodrop', 'library_batch', 'well_position_library_batch', 'p5_index', 'p7_index', 'p5_barcode', 'p5_barcode']
 		
 	def __init__(self, *args, **kwargs):
 		super().__init__(*args, **kwargs)
@@ -481,6 +485,9 @@ class CapturedLibraryForm(UserModelForm):
 				self.initial['library_batch'] = self.instance.library.library_batch.name
 				library_layout_element = LibraryBatchLayout.objects.get(library_batch=self.instance.library.library_batch, library=self.instance.library)
 				self.initial['well_position_library_batch'] = str(library_layout_element)
+				
+				self.initial['p5_barcode'] = self.instance.library.p5_barcode.label
+				self.initial['p7_barcode'] = self.instance.library.p7_barcode.label
 			elif self.instance.control_type:
 				self.initial['library_id'] = self.instance.control_type.control_type
 		
@@ -534,3 +541,4 @@ class StorageForm(UserModelForm):
 		fields = ['equipment_type', 'equipment_location', 'equipment_name', 'shelf', 'rack', 'drawer', 'unit_name', 'unit_type']
 
 StorageFormset = modelformset_factory(Storage, form=StorageForm)
+
