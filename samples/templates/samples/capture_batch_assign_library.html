@@ -62,7 +62,8 @@ Capture Batch: {{capture_batch_name}} has {{assigned_extracts_count}} distinct e
 	{% for layout_element in assigned_libraries %}
 	<tr>
 		<td class="checked">
-			<input class="sample_checkbox" type="checkbox" name="library_checkboxes[]" id="checkbox{{layout_element.library.reich_lab_library_id}}" value="{{layout_element.id}}_{{layout_element.library.id}}" onclick="update_count()" checked>
+			<input class="sample_checkbox" type="checkbox" name="library_checkboxes[]" id="checkbox{{layout_element.library.reich_lab_library_id}}" value="{{layout_element.id}}_{{layout_element.library.id}}" onclick="update_count()" 
+			checked >
 		</td>
 		<td class="position">{{layout_element}}</td>
 		<td class="library_id">{{layout_element.library.reich_lab_library_id}}</td>

@@ -60,7 +60,7 @@ table{
 		{% if capture_batch.status == capture_batch.OPEN %}
 		<td class="name"><a href="capture_batch_assign_library?capture_batch_name={{capture_batch.name}}">{{capture_batch.name}}</a></td>
 		{% else %}
-		<td class="name"><a href="libraries_in_batch?capture_batch_name={{capture_batch.name}}">{{capture_batch.name}}</a></td>
+		<td class="name"><a href="captures_in_batch?capture_batch_name={{capture_batch.name}}">{{capture_batch.name}}</a></td>
 		{% endif %}
 		<td class="date">{{capture_batch.prep_date|date:'Y-m-d'}}</td>
 		<td class="protocol">{{capture_batch.protocol.name}}</td>

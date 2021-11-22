@@ -4,7 +4,7 @@ from django.forms import modelformset_factory
 from django.forms.widgets import TextInput
 from django.utils.translation import gettext_lazy as _
 
-from samples.models import PowderBatch, PowderSample, Sample, SamplePrepProtocol, ControlType, ControlSet, ControlLayout, LysateBatch, ExtractionProtocol, ExpectedComplexity, SamplePrepQueue, Lysate, LysateBatchLayout, ExtractionBatch, ExtractionBatchLayout, LibraryProtocol, LibraryBatch, Extract, Storage, Library, Barcode, CaptureProtocol, CaptureOrShotgunPlate, SequencingPlatform, SequencingRun
+from samples.models import PowderBatch, PowderSample, Sample, SamplePrepProtocol, ControlType, ControlSet, ControlLayout, LysateBatch, ExtractionProtocol, ExpectedComplexity, SamplePrepQueue, Lysate, LysateBatchLayout, ExtractionBatch, ExtractionBatchLayout, LibraryProtocol, LibraryBatch, Extract, Storage, Library, LibraryBatchLayout, Barcode, CaptureProtocol, CaptureOrShotgunPlate, CaptureLayout, SequencingPlatform, SequencingRun
 
 import datetime
 
@@ -450,6 +450,31 @@ class CaptureBatchForm(UserModelForm):
 	def disable_fields(self):
 		for field in CaptureBatchForm._meta.fields:
 			self.fields[field].disabled = True
+			
+class CapturedLibraryForm(UserModelForm):
+	well_position = forms.CharField(disabled=True)
+	library_id = forms.CharField(disabled=True)
+	library_batch = forms.CharField(disabled=True, required=False)
+	well_position_library_batch = forms.CharField(disabled=True, required=False)
+	class Meta:
+		model = CaptureLayout
+		fields = ['well_position', 'nanodrop', 'library_id', 'library_batch', 'well_position_library_batch']
+		
+	def __init__(self, *args, **kwargs):
+		super().__init__(*args, **kwargs)
+		for option in ['nanodrop']:
+			self.fields[option].required = False
+		if self.instance:
+			self.initial['well_position'] = str(self.instance)
+			if self.instance.library:
+				self.initial['library_id'] = self.instance.library.reich_lab_library_id
+				self.initial['library_batch'] = self.instance.library.library_batch.name
+				library_layout_element = LibraryBatchLayout.objects.get(library_batch=self.instance.library.library_batch, library=self.instance.library)
+				self.initial['well_position_library_batch'] = str(library_layout_element)
+			elif self.instance.control_type:
+				self.initial['library_id'] = self.instance.control_type.control_type
+		
+CapturedLibraryFormset = modelformset_factory(CaptureLayout, form=CapturedLibraryForm, extra=0)
 			
 # raise validation error if sequencing run name already exists
 def validate_sequencing_run_does_not_exist(sequencing_run_name):

@@ -1070,7 +1070,30 @@ def capture_batch_assign_library(request):
 	# count wells
 	occupied_well_count, num_non_control_assignments = occupied_wells(CaptureLayout.objects.filter(capture_batch=capture_batch))
 	
-	return render(request, 'samples/capture_batch_assign_library.html', { 'capture_batch_name': capture_batch_name, 'assigned_libraries': already_selected_library_layout_elements, 'assigned_libraries_count': assigned_libraries_count, 'control_count': len(existing_controls), 'num_assignments': num_non_control_assignments, 'occupied_wells': occupied_well_count, 'form': capture_batch_form  } )
+	return render(request, 'samples/capture_batch_assign_library.html', { 'capture_batch_name': capture_batch_name, 'capture_batch': capture_batch, 'assigned_libraries': already_selected_library_layout_elements, 'assigned_libraries_count': assigned_libraries_count, 'control_count': len(existing_controls), 'num_assignments': num_non_control_assignments, 'occupied_wells': occupied_well_count, 'form': capture_batch_form  } )
+	
+@login_required
+def captures_in_batch(request):
+	capture_batch_name = request.GET['capture_batch_name']
+	capture_batch = CaptureOrShotgunPlate.objects.get(name=capture_batch_name)
+	
+	if request.method == 'POST':
+		form = CaptureBatchForm(request.POST, instance=capture_batch, user=request.user)
+		captures_formset = CapturedLibraryFormset(request.POST, request.FILES, form_kwargs={'user': request.user})
+		
+		if form.is_valid():
+			form.save()
+		if captures_formset.is_valid():
+			captures_formset.save()
+		if form.is_valid() and captures_formset.is_valid():
+			if capture_batch.status == capture_batch.OPEN:
+				return redirect(f'{reverse("capture_batch_assign_library")}?capture_batch_name={capture_batch_name}')
+		
+	elif request.method == 'GET':
+		form = CaptureBatchForm(instance=capture_batch, user=request.user)
+		captures_formset = CapturedLibraryFormset(queryset=CaptureLayout.objects.filter(capture_batch=capture_batch).order_by('column', 'row'), form_kwargs={'user': request.user})
+	
+	return render(request, 'samples/captures_in_batch.html', { 'capture_batch_name': capture_batch_name, 'form': form, 'formset': captures_formset} )
 	
 @login_required
 def capture_batch_layout(request):

@@ -1434,18 +1434,21 @@ class CaptureLayout(TimestampedWellPosition):
 	
 	def clean(self):
 		super(CaptureLayout, self).clean()
-		has_library_indices = self.library.p5_index is not None and self.library.p7_index is not None
-		has_capture_indices = self.p5_index is not None and self.p7_index is not None
-		
-		exactly_one_index_pair = has_library_indices ^ has_capture_indices
-		
-		if not exactly_one_index_pair:
-			raise ValidationError(_('Captured library should have exactly one pair of indices between capture and library %(p5_index_capture)s %(p7_index_capture)s  %(p5_index_library)s %(p7_index_library)s'), 
-						 params={'p5_index_capture': self.p5_index,
-								'p7_index_capture': self.p7_index,
-								'p5_index_library': self.library.p5_index,
-								'p5_index_library': self.library.p7_index
-				   })
+		if self.library:
+			has_library_indices = self.library.p5_index is not None and self.library.p7_index is not None
+			has_capture_indices = self.p5_index is not None and self.p7_index is not None
+			
+			exactly_one_index_pair = has_library_indices ^ has_capture_indices
+			
+			if not exactly_one_index_pair:
+				raise ValidationError(_('Captured library should have exactly one pair of indices between capture and library %(p5_index_capture)s %(p7_index_capture)s  %(p5_index_library)s %(p7_index_library)s'), 
+							params={'p5_index_capture': self.p5_index,
+									'p7_index_capture': self.p7_index,
+									'p5_index_library': self.library.p5_index,
+									'p5_index_library': self.library.p7_index
+					})
+		elif self.control_type is None:
+			raise ValidationError(_('Should have either library or control'))
 						
 	@staticmethod
 	def spreadsheet_header():

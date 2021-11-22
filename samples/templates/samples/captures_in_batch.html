@@ -1,0 +1,53 @@
+{% extends "samples/reich_lab_base.html" %}
+
+{% load static %}
+
+{% block title %}Capture or Shotgun Batch {{capture_batch_name}} {% endblock %}
+
+{% block content %}
+
+<form action="" method='post'>
+	{% csrf_token %}
+	{{ form.as_p }}
+
+<hr>
+
+	<input type='submit' value='Update'>
+	<a href='capture_batch_spreadsheet?capture_batch_name={{capture_batch_name}}'>Spreadsheet</a>
+	<input id="submit_button_plus" type='submit' name='assign_plus_indices' value='Update and Assign Indices'>
+	<a href='capture_batch_to_sequencing_run?capture_batch_name={{capture_batch_name}}'>Create sequencing run</a>
+	
+	{{ formset.management_form }}
+	
+	<table>
+	<thead>
+	<tr>
+		{% for field in formset.0.visible_fields %}
+			<th>{{ field.label_tag }}</th>
+		{% endfor %}
+	</tr>
+	</thead>
+	
+	<tr>
+		{% for field in formset.0.visible_fields %}
+			<td>
+				{{ field.help_text }}
+			</td>
+		{% endfor %}
+	</tr>
+	
+	{% for form in formset %}
+	<tr>
+		{{ form.id }}
+		{% for field in form.visible_fields %}
+			<td>
+			{{ field.errors }}
+			{{ field }}
+			</td>
+		{% endfor %}
+	</tr>
+	{% endfor %}
+	</table>
+</form>
+
+{% endblock %}
