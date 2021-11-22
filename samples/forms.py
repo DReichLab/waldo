@@ -358,6 +358,11 @@ class LibraryProtocolForm(UserModelForm):
 	class Meta:
 		model = LibraryProtocol
 		fields = ['name', 'start_date', 'end_date', 'description', 'manuscript_summary', 'protocol_reference', 'manual_robotic', 'volume_extract_used_standard', 'udg_treatment', 'library_type', 'active']
+		
+	def __init__(self, *args, **kwargs):
+		super().__init__(*args, **kwargs)
+		for option in ['start_date', 'end_date', 'description', 'manuscript_summary', 'protocol_reference', 'manual_robotic', 'volume_extract_used_standard']:
+			self.fields[option].required = False
 
 class LibraryBatchForm(UserModelForm):
 	protocol = LibraryProtocolSelect(queryset=LibraryProtocol.objects.filter(active=True))
@@ -426,6 +431,11 @@ class CaptureProtocolForm(UserModelForm):
 	class Meta:
 		model = CaptureProtocol
 		fields = ['name', 'start_date', 'end_date', 'description', 'manuscript_summary', 'protocol_reference', 'active']
+	
+	def __init__(self, *args, **kwargs):
+		super().__init__(*args, **kwargs)
+		for option in ['start_date', 'end_date', 'description']:
+			self.fields[option].required = False
 
 class CaptureProtocolSelect(ModelChoiceField):
 	def label_from_instance(self, obj):

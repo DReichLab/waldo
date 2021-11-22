@@ -799,13 +799,13 @@ def library_protocols(request):
 @login_required
 def library_protocol(request):
 	library_protocol_name = request.GET['library_protocol_name']
+	library_protocol_instance = LibraryProtocol.objects.get(name=library_protocol_name)
 	if request.method == 'POST':
-		form = LibraryProtocolForm(request.POST, user=request.user)
+		form = LibraryProtocolForm(request.POST, user=request.user, instance=library_protocol_instance)
 		if form.is_valid():
 			form.save()
 	elif request.method == 'GET':
-		library_protocol = LibraryProtocol.objects.get(name=library_protocol_name)
-		form = LibraryProtocolForm(user=request.user, instance=library_protocol)
+		form = LibraryProtocolForm(user=request.user, instance=library_protocol_instance)
 		
 	return render(request, 'samples/generic_form.html', { 'title': f'Library Protocol {library_protocol_name}', 'form': form, } )
 	
@@ -1015,13 +1015,13 @@ def capture_protocols(request):
 @login_required
 def capture_protocol(request):
 	capture_protocol_name = request.GET['capture_protocol_name']
+	capture_protocol_instance = CaptureProtocol.objects.get(name=capture_protocol_name)
 	if request.method == 'POST':
-		form = CaptureProtocolForm(request.POST, user=request.user)
+		form = CaptureProtocolForm(request.POST, user=request.user,instance=capture_protocol_instance)
 		if form.is_valid():
 			form.save()
 	elif request.method == 'GET':
-		library_protocol = CaptureProtocol.objects.get(name=capture_protocol_name)
-		form = CaptureProtocolForm(user=request.user, instance=library_protocol)
+		form = CaptureProtocolForm(instance=capture_protocol_instance, user=request.user)
 		
 	return render(request, 'samples/generic_form.html', { 'title': f'Capture Protocol {capture_protocol_name}', 'form': form, } )
 	
@@ -1267,15 +1267,15 @@ def sequencing_platforms(request):
 @login_required
 def sequencing_platform(request):
 	sequencing_platform_id = request.GET['sequencing_platform_id']
-	sequencing_platform = SequencingPlatform.objects.get(id=sequencing_platform_id)
+	sequencing_platform_instance = SequencingPlatform.objects.get(id=sequencing_platform_id)
 	if request.method == 'POST':
-		form = SequencingPlatformForm(request.POST, user=request.user)
+		form = SequencingPlatformForm(request.POST, user=request.user, instance=sequencing_platform_instance)
 		if form.is_valid():
 			form.save()
 	elif request.method == 'GET':
-		form = SequencingPlatformForm(user=request.user, instance=sequencing_platform)
+		form = SequencingPlatformForm(user=request.user, instance=sequencing_platform_instance)
 		
-	return render(request, 'samples/generic_form.html', { 'title': f'Sequencing Platform {str(sequencing_platform)}', 'form': form, } )
+	return render(request, 'samples/generic_form.html', { 'title': f'Sequencing Platform {str(sequencing_platform_instance)}', 'form': form, } )
 
 @login_required
 def storage_all(request):
