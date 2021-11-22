@@ -504,11 +504,11 @@ class SequencingRunForm(UserModelForm):
 	
 	class Meta:
 		model = SequencingRun
-		fields = ['name', 'technician', 'sequencing', 'notes', 'lanes_estimated', 'lanes_sequenced', 'date_pooled', 'date_ready_for_sequencing', 'date_submitted_for_sequencing', 'date_data_available', 'date_analysis_started', 'date_analysis_complete', 'date_ready_for_pulldown', 'date_pulldown_complete', 'reich_lab_release_version',]
+		fields = ['name', 'technician', 'sequencing', 'notes', 'read_length', 'lanes_estimated', 'lanes_sequenced', 'date_pooled', 'date_ready_for_sequencing', 'date_submitted_for_sequencing', 'date_data_available', 'date_analysis_started', 'date_analysis_complete', 'date_ready_for_pulldown', 'date_pulldown_complete', 'reich_lab_release_version',]
 	
 	def __init__(self, *args, **kwargs):
 		super().__init__(*args, **kwargs)
-		for option in ['sequencing', 'lanes_estimated', 'lanes_sequenced', 'date_ready_for_sequencing', 'date_submitted_for_sequencing', 'date_data_available', 'date_analysis_started', 'date_analysis_complete', 'date_ready_for_pulldown', 'date_pulldown_complete', 'reich_lab_release_version',]:
+		for option in ['sequencing', 'read_length', 'lanes_estimated', 'lanes_sequenced', 'date_ready_for_sequencing', 'date_submitted_for_sequencing', 'date_data_available', 'date_analysis_started', 'date_analysis_complete', 'date_ready_for_pulldown', 'date_pulldown_complete', 'reich_lab_release_version',]:
 			self.fields[option].required = False
 		
 	def disable_fields(self):

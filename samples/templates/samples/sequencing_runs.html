@@ -46,6 +46,7 @@ table{
 		
 		<th><button class="sort" data-sort="sequencing">Sequencing Platform</button></th>
 		<th><button class="sort" data-sort="technician">Technician</button></th>
+		<th><button class="sort" data-sort="read_length">Read Length</button></th>
 		<th><button class="sort" data-sort="lanes_estimated">Lanes estimated</button></th>
 		<th><button class="sort" data-sort="lanes_sequenced">Lanes/Runs sequenced</button></th>
 		<th><button class="sort" data-sort="date_pooled">Date Pooled</button></th>
@@ -71,6 +72,7 @@ table{
 		
 		<td class="sequencing">{{sequencing_run.sequencing}}</td>
 		<td class="technician">{{sequencing_run.technician}}</td>
+		<td class="read_length">{{sequencing_run.read_length}}</td>
 		<td class="lanes_estimated">{{sequencing_run.lanes_estimated}}</td>
 		<td class="lanes_sequenced">{{sequencing_run.lanes_sequenced}}</td>
 		<td class="date_pooled">{{sequencing_run.date_pooled|date:'Y-m-d'}}</td>

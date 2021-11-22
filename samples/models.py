@@ -1543,6 +1543,7 @@ class SequencingRun(Timestamped):
 	sequencing = models.ForeignKey(SequencingPlatform, on_delete=models.SET_NULL, null=True)
 	notes = models.TextField(blank=True, default='')
 	
+	read_length = models.CharField(max_length=20, blank=True)
 	lanes_estimated = models.PositiveSmallIntegerField(null=True)
 	lanes_sequenced = models.PositiveSmallIntegerField(null=True, help_text='number of lanes for HISeqs or number of runs for Miseq and NextSeq')
 	
