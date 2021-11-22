@@ -1023,7 +1023,7 @@ def capture_protocol(request):
 		library_protocol = CaptureProtocol.objects.get(name=capture_protocol_name)
 		form = CaptureProtocolForm(user=request.user, instance=library_protocol)
 		
-	return render(request, 'samples/generic_form.html', { 'title': f'Capture Protocol {library_protocol_name}', 'form': form, } )
+	return render(request, 'samples/generic_form.html', { 'title': f'Capture Protocol {capture_protocol_name}', 'form': form, } )
 	
 @login_required
 def capture_batches(request):
