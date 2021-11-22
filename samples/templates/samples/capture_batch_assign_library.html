@@ -100,7 +100,7 @@ Capture Batch: {{capture_batch_name}} has {{assigned_extracts_count}} distinct e
 		
 		let filtered_count = document.querySelectorAll('input[type="checkbox"].sample_checkbox:checked').length;
 		let filtered_total = document.querySelectorAll('input[type="checkbox"].sample_checkbox').length;
-		document.getElementById('sample_count').innerHTML = String(filtered_count) + " sample" + (filtered_count != 1 ? "s" : "") + " selected of " + String(filtered_total) + " filtered extracts. " + String(overall_count) + " selected of " + String(overall_total) + " total extracts."
+		document.getElementById('sample_count').innerHTML = String(filtered_count) + " sample" + (filtered_count != 1 ? "s" : "") + " selected of " + String(filtered_total) + " filtered extracts. ";// + String(overall_count) + " selected of " + String(overall_total) + " total extracts."
 	}
 	
 	sample_list.on('updated', update_count);

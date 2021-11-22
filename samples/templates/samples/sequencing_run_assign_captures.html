@@ -81,6 +81,9 @@ table{
 	var sample_list = new List('sample_rows', list_options);
 	var overall_count = document.querySelectorAll('input[type="checkbox"].sample_checkbox:checked').length;
 	
+	function update_count(){
+	}
+	
 	document.querySelectorAll("input[type=checkbox]").forEach(input => {
 		input.addEventListener("click", (e) => {
 			e.target.checked ? overall_count += 1 : overall_count -= 1;
