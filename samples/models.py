@@ -423,7 +423,7 @@ class SamplePrepQueue(Timestamped):
 	# for wetlab spreadsheet, return array to output as tsv
 	# order corresponds to the spreadsheet header
 	def to_spreadsheet_row(self):
-		name = f'{self.sample.collaborator.first_name}  {self.sample.collaborator.last_name}'
+		name = f'{self.sample.collaborator.first_name}  {self.sample.collaborator.last_name}' if self.sample.collaborator else ''
 		expected_complexity = self.sample.expected_complexity.description if self.sample.expected_complexity else ''
 		
 		preparation_method = self.sample_prep_protocol.preparation_method if self.sample_prep_protocol else ''
