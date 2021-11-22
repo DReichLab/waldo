@@ -1046,10 +1046,11 @@ def capture_batch_assign_library(request):
 		if capture_batch_form.is_valid():
 			capture_batch_form.save()
 			
-			# iterate through the checkboxes and change states
-			ticked_checkboxes = request.POST.getlist('library_checkboxes[]')
-			layout_ids, extract_ids = layout_and_content_lists(ticked_checkboxes)
-			capture_batch.restrict_layout_elements(layout_ids, request.user)
+			if capture_batch.status != capture_batch.STOP:
+				# iterate through the checkboxes and change states
+				ticked_checkboxes = request.POST.getlist('library_checkboxes[]')
+				layout_ids, extract_ids = layout_and_content_lists(ticked_checkboxes)
+				capture_batch.restrict_layout_elements(layout_ids, request.user)
 			
 			if 'assign_plus_indices' in request.POST:
 				capture_batch.assign_indices(request.user)
@@ -1085,8 +1086,7 @@ def captures_in_batch(request):
 			form.save()
 		if captures_formset.is_valid():
 			captures_formset.save()
-		if form.is_valid() and captures_formset.is_valid():
-			if capture_batch.status == capture_batch.OPEN:
+		if form.is_valid() and capture_batch.status == capture_batch.OPEN:
 				return redirect(f'{reverse("capture_batch_assign_library")}?capture_batch_name={capture_batch_name}')
 		
 	elif request.method == 'GET':
@@ -1200,9 +1200,11 @@ def sequencing_run_assign_captures(request):
 		if form.is_valid():
 			form.save()
 			
-			# these are the ticked checkboxes.
-			capture_or_shotgun_plate_ids = request.POST.getlist('sample_checkboxes[]')
-			sequencing_run.assign_captures(capture_or_shotgun_plate_ids)
+			# disable checkboxes are not in this list, so everything gets removed unless we disable changes
+			if sequencing_run.date_pooled is None:
+				# these are the ticked checkboxes.
+				capture_or_shotgun_plate_ids = request.POST.getlist('sample_checkboxes[]')
+				sequencing_run.assign_captures(capture_or_shotgun_plate_ids)
 		
 	elif request.method == 'GET':
 		form = SequencingRunForm(user=request.user, instance=sequencing_run)
