@@ -496,7 +496,7 @@ class SequencingPlatformSelect(ModelChoiceField):
 class SequencingPlatformForm(UserModelForm):
 	class Meta:
 		model = SequencingPlatform
-		fields = ['platform', 'read_length', 'note', 'lanes_runs', 'location', 'active']
+		fields = ['platform', 'note', 'location', 'active']
 		
 class SequencingRunForm(UserModelForm):
 	sequencing = SequencingPlatformSelect(queryset=SequencingPlatform.objects.filter(active=True).order_by('-id'))

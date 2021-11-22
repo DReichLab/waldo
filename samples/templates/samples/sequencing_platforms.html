@@ -43,8 +43,6 @@ table{
 	<thead>
 	<tr>
 		<th><button class="sort" data-sort="platform">Name</button></th>
-		<th><button class="sort" data-sort="read_length">Read Length</button></th>
-		<th><button class="sort" data-sort="lanes_runs">Lanes Runs</button></th>
 		<th><button class="sort" data-sort="location">Location</button></th>
 		<th><button class="sort" data-sort="active">Active</button></th>
 		<th><button class="sort" data-sort="notes">Notes</button></th>
@@ -54,8 +52,6 @@ table{
 	{% for sequencing_platform in sequencing_platforms %}
 	<tr>
 		<td class="platform"><a href="sequencing_platform?sequencing_platform_id={{sequencing_platform.id}}">{{sequencing_platform.platform}}</a></td>
-		<td class="read_length">{{sequencing_platform.read_length}}</td>
-		<td class="lanes_runs">{{sequencing_platform.lanes_runs}}</td>
 		<td class="location">{{sequencing_platform.location}}</td>
 		<td class="active">{{sequencing_platform.active}}</td>
 		<td class="notes">{{sequencing_platform.note}}</td>
@@ -68,7 +64,7 @@ table{
 
 <script>
 	var list_options = {
-		valueNames: ['platform', 'read_length', 'lanes_runs', 'location', 'active', 'notes'],
+		valueNames: ['platform', 'location', 'active', 'notes'],
 		searchDelay: 500
 	};
 	var sequencing_platform_list = new List('sequencing_platforms', list_options);

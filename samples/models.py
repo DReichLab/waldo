@@ -1353,15 +1353,13 @@ class CaptureProtocol(Timestamped):
 	
 class SequencingPlatform(Timestamped):
 	platform = models.CharField(max_length=20)
-	read_length = models.CharField(max_length=20, blank=True)
 	note = models.TextField(blank=True)
-	lanes_runs = models.FloatField(null=True, help_text='number of lanes for HISeqs or number of runs for Miseq and NextSeq')
 	location = models.CharField(max_length=50, blank=True, help_text='location of sequencing platform')
 	
 	active = models.BooleanField(default=True)
 	
 	def __str__(self):
-		return f'{self.platform} {self.read_length} {self.lanes_runs}'
+		return f'{self.platform}'
 		
 class CaptureOrShotgunPlate(Timestamped):
 	name = models.CharField(max_length=50, help_text='Usually ends with _TW or _RW')
