@@ -458,7 +458,7 @@ class CapturedLibraryForm(UserModelForm):
 	well_position_library_batch = forms.CharField(disabled=True, required=False)
 	class Meta:
 		model = CaptureLayout
-		fields = ['well_position', 'nanodrop', 'library_id', 'library_batch', 'well_position_library_batch']
+		fields = ['well_position', 'library_id', 'nanodrop', 'library_batch', 'well_position_library_batch']
 		
 	def __init__(self, *args, **kwargs):
 		super().__init__(*args, **kwargs)
