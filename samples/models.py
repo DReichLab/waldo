@@ -426,15 +426,19 @@ class SamplePrepQueue(Timestamped):
 		name = f'{self.sample.collaborator.first_name}  {self.sample.collaborator.last_name}'
 		expected_complexity = self.sample.expected_complexity.description if self.sample.expected_complexity else ''
 		
+		preparation_method = self.sample_prep_protocol.preparation_method if self.sample_prep_protocol else ''
+		
+		shipment = self.sample.shipment.shipment_name if self.sample.shipment else ''
+		
 		country_name = self.sample.country_fk.country_name if self.sample.country_fk else ''
 		country_region = self.sample.country_fk.region if self.sample.country_fk else ''
 		
 		return [self.sample.queue_id,
 			self.priority,
 			expected_complexity,
-			self.sample_prep_protocol.preparation_method,
+			preparation_method,
 			self.udg_treatment,
-			self.sample.shipment.shipment_name,
+			shipment,
 			name,
 			self.sample.skeletal_element,
 			self.sample.skeletal_code,
