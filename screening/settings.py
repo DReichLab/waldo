@@ -37,9 +37,8 @@ INSTALLED_APPS = (
     'django.contrib.staticfiles',
     'django_static_jquery_ui',
     'samples',
-    'sequencing_run'
-    'broad_download',
     'sequencing_run',
+    'broad_download',
 )
 
 MIDDLEWARE = (
