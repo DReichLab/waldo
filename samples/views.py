@@ -1216,11 +1216,12 @@ def sequencing_run_assign_captures(request):
 	if request.method == 'POST':
 		form = SequencingRunForm(request.POST, user=request.user, instance=sequencing_run)
 		
+		enable_assignments = sequencing_run.date_pooled is None
 		if form.is_valid():
 			form.save()
 			
 			# disable checkboxes are not in this list, so everything gets removed unless we disable changes
-			if sequencing_run.date_pooled is None:
+			if enable_assignments:
 				# these are the ticked checkboxes.
 				capture_or_shotgun_plate_ids = request.POST.getlist('sample_checkboxes[]')
 				sequencing_run.assign_captures(capture_or_shotgun_plate_ids)
