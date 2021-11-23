@@ -1142,6 +1142,22 @@ def capture_batch_spreadsheet(request):
 	for indexed_library in indexed_libraries:
 		writer.writerow(indexed_library.to_spreadsheet_row())
 	return response
+	
+@login_required
+def capture_spreadsheet_upload(request):
+	capture_batch_name = request.GET['capture_batch_name']
+	if request.method == 'POST':
+		spreadsheet_form = SpreadsheetForm(request.POST, request.FILES)
+		print(f'capture spreadsheet {capture_batch_name}')
+		if spreadsheet_form.is_valid():
+			spreadsheet = request.FILES.get('spreadsheet')
+			capture_batch = CaptureOrShotgunPlate.objects.get(name=capture_batch_name)
+			capture_batch.from_spreadsheet(spreadsheet, request.user)
+			message = 'Values updated'
+	else:
+		spreadsheet_form = SpreadsheetForm()
+		message = ''
+	return render(request, 'samples/spreadsheet_upload.html', { 'title': f'Captures for {capture_batch_name}', 'form': spreadsheet_form, 'message': message} )
 
 @login_required
 def capture_batch_delete(request):
@@ -1230,7 +1246,7 @@ def sequencing_run_spreadsheet(request):
 
 	writer = csv.writer(response, delimiter='\t')
 	# header
-	writer.writerow(CaptureLayout.spreadsheet_header())
+	writer.writerow(CaptureLayout.spreadsheet_header(True))
 	for indexed_library in sequencing_run.indexed_libraries.all().order_by('column', 'row'):
 		writer.writerow(indexed_library.to_spreadsheet_row())
 	return response

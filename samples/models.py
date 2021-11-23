@@ -1329,7 +1329,7 @@ class LibraryBatchLayout(TimestampedWellPosition):
 	def from_spreadsheet_row(self, headers, arg_array, user):
 		reich_lab_library_id = get_spreadsheet_value(headers, arg_array, 'reich_lab_library_id-')
 		if self.library.reich_lab_library_id != reich_lab_library_id:
-			raise ValueError(f'reich_lab_library_id mismatch {self.reich_lab_library_id} {reich_lab_library_id}')
+			raise ValueError(f'reich_lab_library_id mismatch {self.library.reich_lab_library_id} {reich_lab_library_id}')
 		library = self.library
 		library.nanodrop = float(arg_array[headers.index('nanodrop')])
 		library.qpcr = float(arg_array[headers.index('qpcr')])
@@ -1416,6 +1416,25 @@ class CaptureOrShotgunPlate(Timestamped):
 			
 	def clean(self):
 		super(CaptureOrShotgunPlate, self).clean()
+		
+	def from_spreadsheet(self, spreadsheet, user):
+		layout_elements = CaptureLayout.objects.filter(capture_batch=self)
+		headers, data_rows = spreadsheet_headers_and_data_rows(spreadsheet)
+		
+		for line in data_rows:
+			fields = re.split('\t', line)
+			
+			well_position = get_spreadsheet_value(headers, fields, 'well_position-')
+			temp = TimestampedWellPosition()
+			temp.set_position(well_position)
+			library_id = get_spreadsheet_value(headers, fields, 'library_id-')
+			
+			try:
+				layout_element = layout_elements.get(column=temp.column, row=temp.row, library__reich_lab_library_id=library_id)
+			except (CaptureLayout.DoesNotExist, AttributeError) as e:
+				print(f'cannot find layout element {temp.row}{temp.column} {library_id}, trying without library id')
+				layout_element = layout_elements.get(column=temp.column, row=temp.row) # PCR Negative, for example
+			layout_element.from_spreadsheet_row(headers, fields, user)
 	
 	def create_sequencing_run(self, sequencing_run_name, user):
 		sequencing_run, created = SequencingRun.objects.get_or_create(name=sequencing_run_name)
@@ -1454,25 +1473,28 @@ class CaptureLayout(TimestampedWellPosition):
 			raise ValidationError(_('Should have either library or control'))
 						
 	@staticmethod
-	def spreadsheet_header():
-		header = ['well_position',
+	def spreadsheet_header(no_dashes=False):
+		header = ['well_position-',
+			'library_id-',
 			'nanodrop',
-			'library_id',
-			'library_batch',
-			'well_position_library_batch'
-			'plate_id',
-			'experiment',
-			'p5_index_label',
-			'p5_index',
-			'p7_index_label',
-			'p7_index',
-			'p5_barcode_label',
-			'p5_barcode',
-			'p7_barcode_label',
-			'p7_barcode',
-			'udg_treatment',
-			'library_type']
-		return header
+			'library_batch-',
+			'well_position_library_batch-'
+			'plate_id-',
+			'experiment-',
+			'p5_index_label-',
+			'p5_index-',
+			'p7_index_label-',
+			'p7_index-',
+			'p5_barcode_label-',
+			'p5_barcode-',
+			'p7_barcode_label-',
+			'p7_barcode-',
+			'udg_treatment-',
+			'library_type-']
+		if no_dashes:
+			return [x.rstrip('-') for x in header]
+		else:
+			return header
 		
 	def to_spreadsheet_row(self):
 		if self.p5_index: # DS
@@ -1516,11 +1538,11 @@ class CaptureLayout(TimestampedWellPosition):
 			library_type = 'control'
 			
 		line = [str(self),
-				self.nanodrop,
 				identifier,
+				self.nanodrop,
 				library_batch,
 				well_position_library_batch,
-				self.capture_batch.name,
+				#self.capture_batch.name,
 				self.capture_batch.protocol.name,
 				p5_index_label,
 				p5_index_sequence,
@@ -1534,6 +1556,14 @@ class CaptureLayout(TimestampedWellPosition):
 				library_type,
 				]
 		return line
+		
+	def from_spreadsheet_row(self, headers, arg_array, user):
+		reich_lab_library_id = get_spreadsheet_value(headers, arg_array, 'library_id-')
+		if self.library and self.library.reich_lab_library_id != reich_lab_library_id:
+			raise ValueError(f'reich_lab_library_id mismatch {self.library.reich_lab_library_id} {reich_lab_library_id}')
+		library = self.library
+		self.nanodrop = float(arg_array[headers.index('nanodrop')])
+		self.save(save_user=user)
 		
 class SequencingRun(Timestamped):
 	name = models.CharField(max_length=50, unique=True, db_index=True)
@@ -1597,13 +1627,13 @@ class SequencingRun(Timestamped):
 				print(f'error checking {layout_element} {library} {control}')
 				raise
 	
+	# currently unused, implemented in view
 	def to_spreadsheet(self):
 		lines = []
-		
+		header = CaptureLayout.spreadsheet_header(True)
 		lines.append(header)
-		for indexed_library in indexed_libraries:
-			
-			lines.append(line)
+		for indexed_library in indexed_libraries.all().order_by('column', 'row', 'library__sample__reich_lab_sample_id'):
+			lines.append(indexed_library.to_spreadsheet_row())
 		return lines
 	
 class ControlsExtract(Timestamped):
