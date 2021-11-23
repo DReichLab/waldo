@@ -38,6 +38,8 @@ INSTALLED_APPS = (
     'django_static_jquery_ui',
     'samples',
     'sequencing_run'
+    'broad_download',
+    'sequencing_run',
 )
 
 MIDDLEWARE = (
@@ -126,10 +128,10 @@ MEDIA_ROOT = '/n/www/dev.reichdna.hms.harvard.edu/docroot/E-photo/'
 MEDIA_URL = 'samples/sample_photos/'
 
 # O2 specific settings
-COMMAND_HOST = "mym11@o2.hms.harvard.edu"
-TRANSFER_HOST = "mym11@transfer.rc.hms.harvard.edu"
+PIPELINE_USERS = ['mym11', 'adm515']
+COMMAND_HOST = "o2.hms.harvard.edu"
+TRANSFER_HOST = "transfer.rc.hms.harvard.edu"
 FILES_SERVER_DIRECTORY = "/files/Genetics/reichseq/reich/reichseq/reich"
-SCRATCH_PARENT_DIRECTORY = "/n/scratch3/users/m/mym11/automated_pipeline"
 
 GROUPS_DIRECTORY = "/n/groups/reich/matt/pipeline/"
 RUN_FILES_DIRECTORY = os.path.join(GROUPS_DIRECTORY, 'run')

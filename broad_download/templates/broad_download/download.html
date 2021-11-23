@@ -1,0 +1,18 @@
+<form action="/broad_download/" method="post">
+	{% csrf_token %}
+	{{ form }}
+	<input type="submit" value="Start download" />
+	
+	<table>
+		<tr>
+			<th>Download IDs</th>
+			<th>Start Time</th>
+		</tr>
+		{% for download in downloads %}
+		<tr>
+			<td>{{download.name}}</td>
+			<td>{{download.start_time|date:'Y-m-d H:i e'}}</td>
+		</tr>
+		{% endfor %}
+	</table>
+</form>

@@ -4,6 +4,7 @@ from sequencing_run.barcode_prep import barcodes_set, i5_set, i7_set
 import os
 import re
 import datetime
+import getpass
 
 from django.utils import timezone
 from django.conf import settings
@@ -21,14 +22,20 @@ index_additions = '''  ,
   "demultiplex_align_bams.merge_and_trim_lane.fixed_i7": "{1}"
 }}'''
 
+# dynamic scratch parent directory that depends on user
+def get_scratch_directory():
+	user = getpass.getuser()
+	directory = "/n/scratch3/users/{}/{}/automated_pipeline".format(user[0], user)
+	return directory
+
 # additional_replacements is for string replacements in json and sh template files. These are used for i5 and i7 index labels for Broad shotgun sequencing. 
-def start_analysis(source_illumina_dir, combined_sequencing_run_name, sequencing_date, number_top_samples_to_demultiplex, sequencing_run_names, copy_illumina=True, hold=False, allow_new_sequencing_run_id=False, is_broad=False, is_broad_shotgun=False, library_ids=[], additional_replacements={}, query_names = None):
+def start_analysis(source_illumina_dir, combined_sequencing_run_name, sequencing_date, number_top_samples_to_demultiplex, sequencing_run_names, copy_illumina=True, hold=False, allow_new_sequencing_run_id=False, is_broad=False, is_broad_shotgun=False, library_ids=[], additional_replacements={}, query_names = None, ignore_barcodes=False, threshold_reads=-1):
 	date_string = sequencing_date.strftime('%Y%m%d')
 	destination_directory = date_string + '_' + combined_sequencing_run_name
 	
 	# the source_illumina_dir is the directory name only, not the full path
 	# we need the scratch directory to include the full path including the illumina directory name for bcl2fastq in the analysis pipeline to find it
-	scratch_illumina_parent_path = settings.SCRATCH_PARENT_DIRECTORY + "/" + destination_directory
+	scratch_illumina_parent_path = get_scratch_directory() + "/" + destination_directory
 	scratch_illumina_directory_path = scratch_illumina_parent_path + "/" + source_illumina_dir
 	
 	run_entry, created = SequencingAnalysisRun.objects.update_or_create(
@@ -56,11 +63,19 @@ def start_analysis(source_illumina_dir, combined_sequencing_run_name, sequencing
 		print('building input files')
 		names_for_queries = sequencing_run_names if query_names is None else query_names
 		# index-barcode key file
-		index_barcode_keys_used(date_string, combined_sequencing_run_name, names_for_queries, library_ids)
+		index_barcode_keys_used(date_string, combined_sequencing_run_name, names_for_queries, library_ids, ignore_barcodes)
 		# barcode and index files for run
 		barcodes_set(date_string, combined_sequencing_run_name, names_for_queries)
-		i5_set(date_string, combined_sequencing_run_name, names_for_queries)
-		i7_set(date_string, combined_sequencing_run_name, names_for_queries)
+		# include explicit i5 and i7 in the allowed lists
+		explicit_i5 = []
+		if 'I5_INDEX' in additional_replacements:
+			explicit_i5.append(additional_replacements['I5_INDEX'])
+		i5_set(date_string, combined_sequencing_run_name, names_for_queries, explicit_i5)
+		
+		explicit_i7 = []
+		if 'I7_INDEX' in additional_replacements:
+			explicit_i7.append(additional_replacements['I7_INDEX'])
+		i7_set(date_string, combined_sequencing_run_name, names_for_queries, explicit_i7)
 	
 		print('building input files with replacement')
 		# generate json input file
@@ -70,9 +85,16 @@ def start_analysis(source_illumina_dir, combined_sequencing_run_name, sequencing
 		if is_broad_shotgun:
 			additional_replacements[settings.HUMAN_REFERENCE] = settings.SHOTGUN_HUMAN_REFERENCE
 			additional_replacements[settings.DEMULTIPLEXED_PARENT_DIRECTORY] = settings.DEMULTIPLEXED_BROAD_SHOTGUN_PARENT_DIRECTORY
-			if 'I5_INDEX' in additional_replacements and 'I7_INDEX' in additional_replacements:
-				# insert index reads to end of json options file
-				additional_replacements['^}$'] = index_additions.format(additional_replacements['I5_INDEX'], additional_replacements['I7_INDEX'])
+		if 'I5_INDEX' in additional_replacements and 'I7_INDEX' in additional_replacements:
+			# insert index reads to end of json options file
+			additional_replacements['^}$'] = index_additions.format(additional_replacements['I5_INDEX'], additional_replacements['I7_INDEX'])
+		if threshold_reads > 0:
+			# insert new lines for threshold reads with other task parameter
+			search1 = '"demultiplex_align_bams.demultiplex_nuclear.barcodes"'
+			search2 = '"demultiplex_align_bams.demultiplex_rsrs.barcodes"'
+			additional_replacements[search1] = '{}: "{:d}",\n{}'.format(search1.replace('barcodes', 'threshold_reads'), threshold_reads, search1)
+			additional_replacements[search2] = '{}: "{:d}",\n{}'.format(search2.replace('barcodes', 'threshold_reads'), threshold_reads, search2)
+				
 		replace_parameters(json_source_file, DEMULTIPLEX_COMMAND_LABEL, combined_sequencing_run_name, date_string, scratch_illumina_directory_path, run_entry.id, number_top_samples_to_demultiplex, additional_replacements)
 		# generate SLURM script
 		run_entry.processing_state = SequencingAnalysisRun.PREPARING_RUN_SCRIPT
@@ -151,7 +173,8 @@ def replace_parameters(source_filename, command_label, combined_sequencing_run_n
 		"INPUT_DATE": date_string,
 		"INPUT_DIRECTORY": scratch_illumina_directory,
 		"INPUT_NUM_SAMPLES": str(number_top_samples_to_demultiplex),
-		"INPUT_DJANGO_ANALYSIS_RUN": str(run_entry_id)
+		"INPUT_DJANGO_ANALYSIS_RUN": str(run_entry_id),
+		"INPUT_SCRATCH": get_scratch_directory() # used to build fastq file directory
 	}
 	replacement_dictionary.update(additional_replacements)
 	source_path = '{}/{}'.format(settings.RUN_FILES_DIRECTORY, source_filename)
@@ -175,7 +198,7 @@ def start_cromwell(date_string, run_name, command_label, hold=False):
 # acquire list of SLURM jobs that are running tied to a known sequencing run
 def query_job_status():
 	host = settings.COMMAND_HOST
-	command = 'squeue -u mym11 -o "%.18i %.9P %.45j %.8u %.8T %.10M %.9l %.6D %.3C %R"'
+	command = 'squeue -u {} -o "%.18i %.9P %.45j %.8u %.8T %.10M %.9l %.6D %.3C %R"'.format(','.join(settings.PIPELINE_USERS))
 	ssh_result = ssh_command(host, command)
 	
 	stdout_result = ssh_result.stdout.readlines()
@@ -192,14 +215,18 @@ def query_job_status():
 	# iterate over running sequencing analysis runs
 	# if the slurm job is not present
 	expectedRunningJobs = SequencingAnalysisRun.objects.filter(processing_state__gte=SequencingAnalysisRun.DEMULTIPLEXING).exclude(processing_state__gte=SequencingAnalysisRun.FINISHED)
+	
+	job_strings = [str(j.slurm_job_number) for j in expectedRunningJobs]
+	sacct_command = 'sacct -j ' + ','.join(job_strings) + ' -o "JobID,State"'
+	sacct_result = ssh_command(host, sacct_command)
+	sacct_stdout = sacct_result.stdout.readlines()
+	
 	for expectedRunningJob in expectedRunningJobs:
 		# query for sacct info and check for COMPLETED state
 		#sacct -j 5790362 -o "JobID,State"
 		jobID = str(expectedRunningJob.slurm_job_number)
 		print ('checking SLURM job state for job ' + jobID)
-		sacct_command = 'sacct -j ' + jobID + ' -o "JobID,State"'
-		sacct_result = ssh_command(host, sacct_command)
-		sacct_stdout = sacct_result.stdout.readlines()
+		
 		for line in sacct_stdout:			
 			fields = line.split()
 			#print('debugging: ', fields)
@@ -244,13 +271,14 @@ def get_demultiplex_report(sequencing_date_string, combined_sequencing_run_name)
 
 # specify library_ids to restrict by library_id. 
 # This is designed for Broad shotgun sequencing, where the sample sheet has multiple libraries, but a lane is processed separately with only one library
-def index_barcode_keys_used(sequencing_date_string, combined_sequencing_run_name, sequencing_run_names, library_ids=[]):
+def index_barcode_keys_used(sequencing_date_string, combined_sequencing_run_name, sequencing_run_names, library_ids=[], ignore_barcodes=False):
 	where_clauses = " OR ".join(['sequencing_id="{}"'.format(name) for name in sequencing_run_names])
+	barcodes_for_concat = '"_", UPPER(p5_barcode), "_", UPPER(p7_barcode)'
 	if library_ids is not None and len(library_ids) > 0:
 		library_ids_as_strings = ['"{}"'.format(library_id) for library_id in library_ids]
 		where_clauses = '({}) AND library_id IN ({})'.format(where_clauses, ','.join(library_ids_as_strings) )
 
-	queryForKeys = 'SELECT CONCAT(UPPER(p5_index), "_", UPPER(p7_index), "_", UPPER(p5_barcode), "_", UPPER(p7_barcode)), library_id, plate_id, experiment FROM sequenced_library WHERE {};'.format(where_clauses)
+	queryForKeys = 'SELECT DISTINCT CONCAT(UPPER(p5_index), "_", UPPER(p7_index), {}), library_id, plate_id, experiment FROM sequenced_library WHERE {};'.format(barcodes_for_concat if not ignore_barcodes else '"__"', where_clauses)
 	
 	host = settings.COMMAND_HOST
 	command = "mysql devadna -N -e '{0}' > {1}/{2}_{3}/{2}_{3}.index_barcode_keys".format(queryForKeys, settings.RUN_FILES_DIRECTORY, sequencing_date_string, combined_sequencing_run_name)
@@ -260,7 +288,8 @@ def index_barcode_keys_used(sequencing_date_string, combined_sequencing_run_name
 # One use is the replacement these indices in the JSON parameter file
 def single_indices_only(sequencing_run_names, library_id):
 	where_clauses = "({}) AND {}".format(" OR ".join(['sequencing_id="{}"'.format(name) for name in sequencing_run_names]), 'library_id="{}"'.format(library_id))
-	queryForIndices = 'SELECT UPPER(p5_index), UPPER(p7_index) FROM sequenced_library WHERE {};'.format(where_clauses)
+	# this query is DISTINCT because there have been duplicate entries in Zhao's database
+	queryForIndices = 'SELECT DISTINCT UPPER(p5_index), UPPER(p7_index) FROM sequenced_library WHERE {};'.format(where_clauses)
 	host = settings.COMMAND_HOST
 	command = "mysql devadna -N -e '{0}'".format(queryForIndices)
 	#print(command)

@@ -20,11 +20,13 @@ class Command(BaseCommand):
 		parser.add_argument('--allow_new_sequencing_run_id', action='store_true')
 		parser.add_argument('--broad', action='store_true')
 		parser.add_argument('--broad_shotgun', action='store_true')
-		parser.add_argument('--i5', action='store_true')
-		parser.add_argument('--i7', action='store_true')
+		parser.add_argument('--i5', nargs='?', const=True, default=False)
+		parser.add_argument('--i7', nargs='?', const=True, default=False)
 		parser.add_argument('--library_id', nargs='*')
 		parser.add_argument('--query_name', help='This is the sequencing_id under which the indices are stored in sequenced_library')
 		parser.add_argument('--medium_priority', action='store_true')
+		parser.add_argument('--ignore_barcodes', action='store_true')
+		parser.add_argument('--threshold_reads', type=int, default=-1)
 		
 	def handle(self, *args, **options):
 		date_string = options['date_string']
@@ -36,6 +38,8 @@ class Command(BaseCommand):
 		copy = options['skip_copy'] and not create_illumina_entry
 		hold = options['hold']
 		allow_new_sequencing_run_id = options['allow_new_sequencing_run_id']
+		ignore_barcodes = options['ignore_barcodes']
+		threshold_reads = options['threshold_reads']
 		
 		combined_sequencing_run_name = '_'.join(sequencing_run_names)
 		
@@ -47,8 +51,11 @@ class Command(BaseCommand):
 			ssh_result = ssh_command(settings.COMMAND_HOST, command, True, True)
 		
 		library_ids = options['library_id']
-		# read I5 and I7 indices from Zhao's MySQL database
+		# if there are command line options specified for i5 and i7, then use those
+		i5 = options['i5']
+		i7 = options['i7']
 		query_name = None
+		# if query options are set, read I5 and I7 indices from Zhao's MySQL database
 		if library_ids is not None and len(library_ids) == 1:
 			query_name = [options['query_name']]
 			i5, i7 = single_indices_only(query_name, library_ids[0]) 
@@ -65,4 +72,4 @@ class Command(BaseCommand):
 		if create_illumina_entry:
 			seq_run, created = SequencingRun.objects.get_or_create(illumina_directory=source_illumina_dir)
 		
-		start_analysis(source_illumina_dir, combined_sequencing_run_name, sequencing_date, number_top_samples_to_demultiplex, sequencing_run_names, copy, hold, allow_new_sequencing_run_id, is_broad, is_broad_shotgun, library_ids, additional_replacements, query_name)
+		start_analysis(source_illumina_dir, combined_sequencing_run_name, sequencing_date, number_top_samples_to_demultiplex, sequencing_run_names, copy, hold, allow_new_sequencing_run_id, is_broad, is_broad_shotgun, library_ids, additional_replacements, query_name, ignore_barcodes, threshold_reads)

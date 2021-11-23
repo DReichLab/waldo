@@ -3,7 +3,7 @@ from django.conf import settings
 from django.utils import timezone
 import datetime
 from sequencing_run.models import SequencingRun, SequencingAnalysisRun
-from sequencing_run.analysis import copy_illumina_directory
+from sequencing_run.analysis import copy_illumina_directory, get_scratch_directory
 
 class Command(BaseCommand):
 	help = 'recopy illumina directory for a sequencing run'
@@ -23,7 +23,7 @@ class Command(BaseCommand):
 		)
 
 		destination_directory = date_string + '_' + name
-		scratch_illumina_parent_path = settings.SCRATCH_PARENT_DIRECTORY + "/" + destination_directory
+		scratch_illumina_parent_path = get_scratch_directory() + "/" + destination_directory
 		
 		illumina_directory = run_entry.sequencing_run.illumina_directory
 		copy_illumina_directory(illumina_directory, scratch_illumina_parent_path)
