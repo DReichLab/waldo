@@ -442,7 +442,7 @@ class CaptureProtocolSelect(ModelChoiceField):
 		return obj.name
 
 class CaptureBatchForm(UserModelForm):
-	protocol = CaptureProtocolSelect(queryset=CaptureProtocol.objects.all())
+	protocol = CaptureProtocolSelect(queryset=CaptureProtocol.objects.filter(active=True))
 	date = forms.DateField(help_text='YYYY-MM-DD', required=False)
 	
 	class Meta:
