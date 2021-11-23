@@ -1043,10 +1043,11 @@ def capture_batch_assign_library(request):
 	capture_batch = CaptureOrShotgunPlate.objects.get(name=capture_batch_name)
 	if request.method == 'POST':
 		capture_batch_form = CaptureBatchForm(request.POST, instance=capture_batch, user=request.user)
+		enable_assignments = (capture_batch.status != capture_batch.STOP)
 		if capture_batch_form.is_valid():
 			capture_batch_form.save()
 			
-			if capture_batch.status != capture_batch.STOP:
+			if enable_assignments:
 				# iterate through the checkboxes and change states
 				ticked_checkboxes = request.POST.getlist('library_checkboxes[]')
 				layout_ids, extract_ids = layout_and_content_lists(ticked_checkboxes)
@@ -1089,7 +1090,7 @@ def captures_in_batch(request):
 			form.save()
 		if captures_formset.is_valid():
 			captures_formset.save()
-		if form.is_valid() and capture_batch.status == capture_batch.OPEN:
+		if form.is_valid() and capture_batch.status in [capture_batch.OPEN, capture_batch.STOP]:
 				return redirect(f'{reverse("capture_batch_assign_library")}?capture_batch_name={capture_batch_name}')
 		
 	elif request.method == 'GET':
