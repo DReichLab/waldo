@@ -73,7 +73,7 @@ Library Batch: {{library_batch_name}} has {{assigned_extracts_count}} distinct e
 
 <script>
 	var list_options = {
-		valueNames: ['checked', 'extract_id', 'sample', 'extract_batch'],
+		valueNames: ['checked', 'position', 'extract_id', 'sample', 'extract_batch'],
 		searchDelay: 500
 	};
 	var sample_list = new List('sample_rows', list_options);
@@ -116,13 +116,13 @@ Library Batch: {{library_batch_name}} has {{assigned_extracts_count}} distinct e
 		let anybox_checked = false;
 		// first pass to see whether any checkbox in this set is checked
 		for (let i = 0; i < matching.length; i++) {
-			let checkbox_id = 'checkbox' + matching[i]._values['lysate_id'];
+			let checkbox_id = 'checkbox' + matching[i]._values['extract_id'];
 			let sample_checkbox = document.getElementById(checkbox_id);
 			anybox_checked ||= sample_checkbox.checked;
 		}
 		// second pass to set checkboxes
 		for (let i = 0; i < matching.length; i++) {
-			let checkbox_id = 'checkbox' + matching[i]._values['lysate_id'];
+			let checkbox_id = 'checkbox' + matching[i]._values['extract_id'];
 			let sample_checkbox = document.getElementById(checkbox_id);
 			// box will be changed to unchecked
 			if (sample_checkbox.checked && anybox_checked){

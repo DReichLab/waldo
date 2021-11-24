@@ -66,7 +66,7 @@ Capture Batch: {{capture_batch_name}} has {{assigned_extracts_count}} distinct e
 		</td>
 		<td class="position">{{layout_element}}</td>
 		<td class="library_id">{{layout_element.library.reich_lab_library_id}}</td>
-		<td class="library_id">{{layout_element.library.library_batch.name}}</td>
+		<td class="library_batch">{{layout_element.library.library_batch.name}}</td>
 		<td class="p5_index">{{layout_element.p5_index.label}}</td>
 		<td class="p7_index">{{layout_element.p7_index.label}}</td>
 		<td class="p5_barcode">{{layout_element.library.p5_barcode.label}}</td>
@@ -81,7 +81,8 @@ Capture Batch: {{capture_batch_name}} has {{assigned_extracts_count}} distinct e
 
 <script>
 	var list_options = {
-		valueNames: ['checked', 'position', 'library_id'],
+		valueNames: ['checked', 'position', 'library_id', 'library_batch', 'p5_index', 'p7_index', 'p5_barcode', 'p7_barcode'],
+		searchColumns: ['checked', 'position', 'library_id'],
 		searchDelay: 500
 	};
 	var sample_list = new List('sample_rows', list_options);
@@ -124,13 +125,13 @@ Capture Batch: {{capture_batch_name}} has {{assigned_extracts_count}} distinct e
 		let anybox_checked = false;
 		// first pass to see whether any checkbox in this set is checked
 		for (let i = 0; i < matching.length; i++) {
-			let checkbox_id = 'checkbox' + matching[i]._values['lysate_id'];
+			let checkbox_id = 'checkbox' + matching[i]._values['library_id'];
 			let sample_checkbox = document.getElementById(checkbox_id);
 			anybox_checked ||= sample_checkbox.checked;
 		}
 		// second pass to set checkboxes
 		for (let i = 0; i < matching.length; i++) {
-			let checkbox_id = 'checkbox' + matching[i]._values['lysate_id'];
+			let checkbox_id = 'checkbox' + matching[i]._values['library_id'];
 			let sample_checkbox = document.getElementById(checkbox_id);
 			// box will be changed to unchecked
 			if (sample_checkbox.checked && anybox_checked){

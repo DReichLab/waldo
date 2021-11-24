@@ -52,7 +52,7 @@ table{
 	{% for plate in assigned_captures %}
 	<tr>
 		<td class="checked">
-			<input class="sample_checkbox" type="checkbox" name="sample_checkboxes[]" id="checkbox{{plate.id}}" value="{{plate.id}}" onclick="update_count()" checked {% if sequencing_run.date_pooled is not None %}disabled{% endif %}>
+			<input class="sample_checkbox" type="checkbox" name="sample_checkboxes[]" id="checkbox{{plate.name}}" value="{{plate.id}}" onclick="update_count()" checked {% if sequencing_run.date_pooled is not None %}disabled{% endif %}>
 		</td>
 		<td class="capture_batch">{{plate.name}}</td>
 	</tr>
@@ -61,7 +61,7 @@ table{
 	{% for plate in unassigned_captures %}
 	<tr>
 		<td class="checked">
-			<input class="sample_checkbox" type="checkbox" name="sample_checkboxes[]" id="checkbox{{plate.id}}" value="{{plate.id}}" onclick="update_count()">
+			<input class="sample_checkbox" type="checkbox" name="sample_checkboxes[]" id="checkbox{{plate.name}}" value="{{plate.id}}" onclick="update_count()">
 		</td>
 		<td class="capture_batch">{{plate.name}}</td>
 	</tr>
@@ -111,13 +111,13 @@ table{
 		let anybox_checked = false;
 		// first pass to see whether any checkbox in this set is checked
 		for (let i = 0; i < matching.length; i++) {
-			let checkbox_id = 'checkbox' + matching[i]._values['sample_prep_queue_id'];
+			let checkbox_id = 'checkbox' + matching[i]._values['capture_batch'];
 			let sample_checkbox = document.getElementById(checkbox_id);
 			anybox_checked ||= sample_checkbox.checked;
 		}
 		// second pass to set checkboxes
 		for (let i = 0; i < matching.length; i++) {
-			let checkbox_id = 'checkbox' + matching[i]._values['sample_prep_queue_id'];
+			let checkbox_id = 'checkbox' + matching[i]._values['capture_batch'];
 			let sample_checkbox = document.getElementById(checkbox_id);
 			// box will be changed to unchecked
 			if (sample_checkbox.checked && anybox_checked){

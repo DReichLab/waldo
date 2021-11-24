@@ -88,7 +88,8 @@ Lysate Batch: {{lysate_batch_name}} has {{assigned_powder_samples_count}} distin
 
 <script>
 	var list_options = {
-		valueNames: ['powder_batch', 'expected_complexity'],
+		valueNames: ['checked', 'position', 'powder_sample_id', 'sample', 'powder_batch', 'expected_complexity'],
+		searchColumns: ['powder_batch', 'expected_complexity'],
 		searchDelay: 500
 	};
 	var sample_list = new List('sample_rows', list_options);
