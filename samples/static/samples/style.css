@@ -50,3 +50,16 @@
   display: table;
   clear: both;
 }
+
+tr:nth-child(even){
+	background-color: #c0e5b0;
+}
+
+tr:hover {
+	background-color: #ddd;
+}
+
+table, th, td{
+	border: 1px black solid;
+	border-collapse: collapse;
+}
