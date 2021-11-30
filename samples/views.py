@@ -154,6 +154,7 @@ def control_types(request):
 def powder_batches(request):
 	wetlab_staff = WetLabStaff.objects.get(login_user=request.user)
 	form = PowderBatchForm(user=request.user, initial={'technician': wetlab_staff.initials()})
+	perform_plated_count = 'plated_count' in request.GET
 	
 	if request.method == 'POST':
 		form = PowderBatchForm(request.POST, user=request.user)
@@ -169,7 +170,7 @@ def powder_batches(request):
 					low_complexity_count=Count('sampleprepqueue', distinct=True, filter=Q(sampleprepqueue__sample__expected_complexity__description__iexact='low')),
 					high_complexity_count=Count('sampleprepqueue', distinct=True, filter=Q(sampleprepqueue__sample__expected_complexity__description__iexact='high')),
 					).order_by('-id')
-	return render(request, 'samples/powder_batches.html', {'powder_batches' : batches, 'form' : form} )
+	return render(request, 'samples/powder_batches.html', {'powder_batches' : batches, 'form' : form, 'plated_count': perform_plated_count, } )
 
 @login_required
 def powder_batch_assign_samples(request):
