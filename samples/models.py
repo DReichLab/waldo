@@ -63,8 +63,8 @@ class Timestamped(models.Model):
 		super(Timestamped, self).save(*args, **kwargs)
 		
 class TimestampedWellPosition(Timestamped):
-	row = models.CharField(max_length=1, validators=[validate_row_letter])
-	column = models.PositiveSmallIntegerField(validators=[MinValueValidator(1), MaxValueValidator(12)])
+	row = models.CharField(max_length=1, validators=[validate_row_letter], null=True)
+	column = models.PositiveSmallIntegerField(validators=[MinValueValidator(1), MaxValueValidator(12)], null=True)
 	
 	class Meta:
 		abstract = True
@@ -72,12 +72,26 @@ class TimestampedWellPosition(Timestamped):
 	def same_position(self, other_position):
 		return self.row == other_position.row and self.column == other_position.column
 	
+	# This intentionally does not save the model so we can apply it to a temporary instance in memory
 	def set_position(self, position_string):
-		self.row = position_string[0]
-		self.column = int(position_string[1:])
+		if len(position_string) > 0:
+			self.row = position_string[0]
+			self.column = int(position_string[1:])
+		else:
+			self.row = None
+			self.column = None
 	
 	def __str__(self):
-		return f'{self.row}{self.column}'
+		row_str = f'{self.row}' if self.row else ''
+		column_str =  f'{self.column}' if self.column else ''
+		return f'{row_str}{column_str}'
+		
+	def clean(self):
+		super(TimestampedWellPosition, self).clean()
+		has_row = self.row is not None
+		has_column = self.column is not None
+		if (has_row and not has_column) or (not has_row and has_column):
+			raise ValidationError(_('well positions cannot have only one of row and column specified')) 
 
 class Shipment(Timestamped):
 	shipment_name = models.CharField(max_length=30, db_index=True, unique=True)
