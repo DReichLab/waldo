@@ -124,7 +124,7 @@ class PowderSampleForm(UserModelForm):
 				self.fields['num_photos'].initial = self.instance.sample.num_existing_photos()
 				
 				self.fields['collaborator_id'].initial = self.instance.sample.skeletal_code
-				self.fields['shipment_id'].initial = self.instance.sample.shipment.shipment_name
+				self.fields['shipment_id'].initial = self.instance.sample.shipment.shipment_name if self.instance.sample.shipment else ''
 				self.fields['notes'].initial = self.instance.sample.notes
 				self.fields['notes2'].initial = self.instance.sample.notes_2
 				self.fields['location'].initial = f'{self.instance.sample.locality} {self.instance.sample.country}'
