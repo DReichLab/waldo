@@ -741,7 +741,7 @@ module.exports = function (_list) {
     },
     setSearchString: function setSearchString(s) {
       s = _list.utils.toString(s).toLowerCase();
-      s = s.replace(/[-[\]{}()*+?.,\\^$|#]/g, '\\$&'); // Escape regular expression characters
+      //s = s.replace(/[-[\]{}()*+?.,\\^$|#]/g, '\\$&'); // Escape regular expression characters
 
       searchString = s;
     },
