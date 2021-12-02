@@ -290,6 +290,7 @@ class Sample(Timestamped):
 			max_sample_number = Sample.objects.all().aggregate(Max('reich_lab_id'))['reich_lab_id__max']
 			next_sample_number = max_sample_number + 1
 			self.reich_lab_id = next_sample_number
+			self.individual_id = f'I{self.reich_lab_id:04d}'
 			self.save(**kwargs)
 		return self.reich_lab_id
 	
