@@ -320,7 +320,7 @@ def get_status_string(status_value, STATES):
 	
 class PowderBatch(Timestamped):
 	name = models.CharField(max_length=50, unique=True)
-	date = models.DateField(null=True)
+	date = models.DateField(null=True, help_text='Date batch was powdered: YYYY-MM-DD')
 	technician = models.CharField(max_length=50, blank=True)
 	technician_fk = models.ForeignKey(WetLabStaff, on_delete=models.SET_NULL, null=True)
 	notes = models.TextField(blank=True)

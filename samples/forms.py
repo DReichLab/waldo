@@ -31,11 +31,15 @@ class UserModelForm(ModelForm):
 		abstract = True
 
 class PowderBatchForm(UserModelForm):
-	date = forms.DateField(help_text='YYYY-MM-DD', required=False)
 	notes = forms.CharField(required=False, widget=forms.Textarea(attrs={'rows': 2})) 
 	class Meta:
 		model = PowderBatch
 		fields = ['name', 'date', 'technician', 'status', 'notes']
+		
+	def __init__(self, *args, **kwargs):
+		super().__init__(*args, **kwargs)
+		for option in ['date']:
+			self.fields[option].required = False
 		
 	def disable_fields(self):
 		for field in PowderBatchForm._meta.fields:
