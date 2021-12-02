@@ -8,7 +8,7 @@ from django.core.exceptions import ValidationError
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.utils.translation import gettext_lazy as _
 
-from django.db.models import Max, Min
+from django.db.models import Max, Min, Count, Q
 from django.db.models.signals import pre_delete
 from django.dispatch import receiver
 
@@ -58,7 +58,8 @@ class Timestamped(models.Model):
 			self.modified_by = save_user.username
 			if self.pk is None:
 				self.created_by = save_user.username
-				self.creation_timestamp = current_time
+		if self.pk is None:
+			self.creation_timestamp = current_time
 		self.modification_timestamp = current_time
 		super(Timestamped, self).save(*args, **kwargs)
 		
@@ -326,12 +327,14 @@ class PowderBatch(Timestamped):
 	OPEN = 0
 	IN_PROGRESS = 100
 	READY_FOR_PLATE = 200
+	CLOSED = 300
 	
 	POWDER_BATCH_STATES = (
 		(STOP, 'Stop'),
 		(OPEN, 'Open'),
 		(IN_PROGRESS, 'In Progress'),
 		(READY_FOR_PLATE, 'Ready For Plate'),
+		(CLOSED, 'Closed')
 	)
 	status = models.SmallIntegerField(null=True, default = OPEN, choices=POWDER_BATCH_STATES)
 	
@@ -354,6 +357,21 @@ class PowderBatch(Timestamped):
 				print(powder_sample_id)
 				powder_sample = powder_samples.get(powder_sample_id=powder_sample_id)
 				powder_sample.from_spreadsheet_row(headers[1:], fields[1:], user)
+				
+	# Return number of powder samples in this powder batch that have been assigned to a lysate batch. Missing powder has a LysateBatchLayout object with null lysate batch and does not count. 
+	def number_plated_powder_samples(self):
+		return self.powdersample_set.annotate(num_assignments=Count('lysatebatchlayout', Q(lysatebatchlayout__lysate_batch__isnull=False))).filter(num_assignments__gte=1).count()
+		
+	def close_if_finished(self, any_status=False):
+		expected = self.powdersample_set.all().count()
+		assigned = self.number_plated_powder_samples()
+		if assigned == expected:
+			if any_status or self.status == self.READY_FOR_PLATE:
+				self.status = self.CLOSED
+				self.save()
+		elif assigned > expected:
+			raise ValueError(f'more powder samples plated than available {assigned} {expected}')
+		return assigned
 
 class PowderSample(Timestamped):
 	powder_sample_id = models.CharField(max_length=15, unique=True, null=False, db_index=True)
@@ -594,6 +612,9 @@ class LysateBatch(Timestamped):
 									powder_used_mg = powder_sample_mass_for_extract,
 									)
 			lysate_batch_layout.save(save_user = user)
+		# update status of powder batches for new samples
+		for powder_batch in PowderBatch.objects.filter():
+			powder_batch.close_if_finished()
 			
 	def num_controls(self):
 		existing_controls = LysateBatchLayout.objects.filter(lysate_batch=self, control_type__isnull=False)
@@ -813,7 +834,7 @@ class LysateBatchLayout(TimestampedWellPosition):
 	lysate_batch = models.ForeignKey(LysateBatch, on_delete=models.CASCADE, null=True) # use a null lysate batch to mark lost powder
 	powder_sample = models.ForeignKey(PowderSample, on_delete=models.CASCADE, null=True)
 	control_type = models.ForeignKey(ControlType, on_delete=models.PROTECT, null=True)
-	powder_used_mg = models.FloatField() # currently only for lost powder
+	powder_used_mg = models.FloatField(null=True) # currently only for lost powder
 	notes = models.TextField(blank=True)
 	lysate = models.ForeignKey(Lysate, on_delete=models.SET_NULL, null=True, help_text='Lysate created in this well from powder')
 	
@@ -1008,7 +1029,7 @@ class ExtractionBatchLayout(TimestampedWellPosition):
 	extract_batch = models.ForeignKey(ExtractionBatch, on_delete=models.CASCADE, null=True) # use a null extract batch to mark lost lysate
 	lysate = models.ForeignKey(Lysate, on_delete=models.CASCADE, null=True)
 	control_type = models.ForeignKey(ControlType, on_delete=models.PROTECT, null=True)
-	lysate_volume_used = models.FloatField() # for lost only, until we can migrate all values in extracts
+	lysate_volume_used = models.FloatField(null=True) # for lost only, until we can migrate all values in extracts
 	notes = models.TextField(blank=True)
 	extract = models.ForeignKey(Extract, on_delete=models.SET_NULL, null=True, help_text='extract created in this well location')
 	
