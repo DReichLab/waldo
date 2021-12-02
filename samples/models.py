@@ -362,6 +362,8 @@ class PowderBatch(Timestamped):
 	def number_plated_powder_samples(self):
 		return self.powdersample_set.annotate(num_assignments=Count('lysatebatchlayout', Q(lysatebatchlayout__lysate_batch__isnull=False))).filter(num_assignments__gte=1).count()
 		
+	# close status if all powders have been assigned and status is ready to plate
+	# ready to plate status if status was closed but not all powders are assigned
 	def close_if_finished(self, any_status=False):
 		expected = self.powdersample_set.all().count()
 		assigned = self.number_plated_powder_samples()
@@ -371,6 +373,9 @@ class PowderBatch(Timestamped):
 				self.save()
 		elif assigned > expected:
 			raise ValueError(f'more powder samples plated than available {assigned} {expected}')
+		elif assigned < expected and (self.status == self.CLOSED):
+			self.status = self.READY_FOR_PLATE
+			self.save()
 		return assigned
 
 class PowderSample(Timestamped):
@@ -592,15 +597,20 @@ class LysateBatch(Timestamped):
 		
 	# retain only powder samples in layout_element_ids
 	# in addition, preserve controls
+	# update status for affected powder batches
 	def restrict_layout_elements(self, layout_element_ids):
 		to_clear = LysateBatchLayout.objects.filter(lysate_batch=self).exclude(id__in=layout_element_ids).exclude(control_type__isnull=False)
+		powder_batch_ids = [x.powder_sample.powder_batch.id for x in to_clear]
 		to_clear.delete()
+		for powder_batch in PowderBatch.objects.filter(id__in=powder_batch_ids):
+			powder_batch.close_if_finished()
 	
 	# add LysateBatchLayout for powder samples
 	# this always adds a new layout element
 	def assign_powder_samples(self, new_powder_sample_ids, user):
 		DEFAULT_ROW = 'A'
 		DEFAULT_COLUMN = 1
+		powder_batch_ids = []
 		for powder_sample_id in new_powder_sample_ids:
 			powder_sample = PowderSample.objects.get(id=powder_sample_id)
 			powder_sample_mass_for_extract = powder_sample.powder_for_extract
@@ -612,8 +622,12 @@ class LysateBatch(Timestamped):
 									powder_used_mg = powder_sample_mass_for_extract,
 									)
 			lysate_batch_layout.save(save_user = user)
+			
+			if powder_sample.powder_batch not in powder_batch_ids:
+				powder_batch_ids.append(powder_sample.powder_batch.id)
+			
 		# update status of powder batches for new samples
-		for powder_batch in PowderBatch.objects.filter():
+		for powder_batch in PowderBatch.objects.filter(id__in=powder_batch_ids):
 			powder_batch.close_if_finished()
 			
 	def num_controls(self):
