@@ -48,9 +48,7 @@ table{
 		<th><button class="sort" data-sort="status">Status</button></th>
 		<th><button class="sort" data-sort="num_sample_prep">Num Sample Prep Entries</button></th>
 		<th><button class="sort" data-sort="num_powder_samples">Num Powder Samples</button></th>
-		{% if plated_count %}
 		<th><button class="sort" data-sort="num_plated_powder_samples">Num Plated Powder Samples</button></th>
-		{% endif %}
 		<th><button class="sort" data-sort="low_complexity">Low complexity</button></th>
 		<th><button class="sort" data-sort="high_complexity">High complexity</button></th>
 		<th><button class="sort" data-sort="notes">Notes</button></th>
@@ -69,9 +67,14 @@ table{
 		<td class="status">{{powder_batch.get_status}}</td>
 		<td class="num_sample_prep">{{powder_batch.sampleprepqueue__count}}</td>
 		<td class="num_powder_samples">{{powder_batch.powdersample__count}}</td>
-		{% if plated_count %}
-		<td class="num_plated_powder_samples">{{powder_batch.number_plated_powder_samples}}</td>
+		
+		<td class="num_plated_powder_samples">
+		{% if powder_batch.status == powder_batch.CLOSED and not plated_count %}
+			{{powder_batch.powdersample__count}}
+		{% else %}
+			{{powder_batch.number_plated_powder_samples}}
 		{% endif %}
+		</td>
 		<td class="low_complexity_count">{{powder_batch.low_complexity_count}}</td>
 		<td class="high_complexity_count">{{powder_batch.high_complexity_count}}</td>
 		<td class="notes">{{powder_batch.notes}}</td>
@@ -84,10 +87,9 @@ table{
 
 <script>
 	var list_options = {
-		valueNames: ['name', 'date', 'technician', 'status', 'num_sample_prep', 'num_powder_samples', 'low_complexity_count', 'high_complexity_count', 'notes',
-		{% if plated_count %}'num_plated_powder_samples',{% endif %}
+		valueNames: ['name', 'date', 'technician', 'status', 'num_sample_prep', 'num_powder_samples', 'num_plated_powder_samples', 'low_complexity_count', 'high_complexity_count', 'notes',
 		],
-		searchColumns: ['name', 'date', 'technician', 'status', 'notes']
+		searchColumns: ['name', 'date', 'technician', 'status', 'notes'],
 		searchDelay: 500
 	};
 	var powder_batch_list = new List('powder_batch_rows', list_options);
