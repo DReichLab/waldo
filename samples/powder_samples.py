@@ -6,7 +6,7 @@ from .models import LysateBatchLayout, ExtractionBatchLayout
 # create a PowderSample and assign Reich Lab Sample Number
 def new_reich_lab_powder_sample(sample_prep_entry, powder_batch, user):
 	SAMPLE_PREP_LAB = 'Reich Lab'
-	sample = Sample.objects.get(queue_id=sample_prep_entry.sample.queue_id)
+	sample = sample_prep_entry.sample
 	# if the corresponding sample does not have Reich Lab sample number, then assign it the next one
 	if sample.reich_lab_id is None:
 		sample.assign_reich_lab_sample_number()
