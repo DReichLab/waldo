@@ -38,7 +38,6 @@ table{
 <table>
 	<thead>
 	<tr>
-		<th><button class="sort" type="button" data-sort="queue_id">Sample Queue ID</button></th>
 		<th><button class="sort" type="button" data-sort="priority">Priority</button></th>
 		<th><button class="sort" type="button" data-sort="expected_complexity">Expected Complexity</button></th>
 		<th><button class="sort" type="button" data-sort="sampling_tech">Sampling Tech</button></th>
@@ -59,7 +58,6 @@ table{
 	<tbody class="list">
 	{% for queued in queued_samples %}
 	<tr>
-		<td class="queue_id">{{queued.sample.queue_id}}</td>
 		<td class="priority">{{queued.priority}}</td>
 		<td class="expected_complexity">{{queued.sample.expected_complexity.description}}</td>
 		<td class="sampling_tech">{{queued.sample_prep_protocol.preparation_method}}</td>
@@ -85,7 +83,8 @@ table{
 
 <script>
 	var list_options = {
-		valueNames: ['priority', 'expected_complexity', 'sampling_tech', 'udg', 'shipment_id', 'collaborator', 'skeletal_element', 'country', 'region', 'period', 'culture'],
+		valueNames: ['priority', 'expected_complexity', 'sampling_tech', 'udg', 'shipment_id', 'collaborator', 'skeletal_element', 'skeletal_code', 'country', 'region', 'period', 'culture', 'notes', 'notes_2', 'sample_prep_queue_id'],
+		searchColumns: ['priority', 'expected_complexity', 'sampling_tech', 'udg', 'shipment_id', 'collaborator', 'skeletal_element', 'country', 'region', 'period', 'culture'],
 		searchDelay: 500
 	};
 	var sample_list = new List('sample_rows', list_options);

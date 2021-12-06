@@ -441,7 +441,7 @@ class SamplePrepQueue(Timestamped):
 	
 	@staticmethod
 	def spreadsheet_header():
-		return ['Sample Queue ID',
+		return [
 			'Priority',
 			'Expected Complexity',
 			'Sampling Tech',
@@ -472,7 +472,7 @@ class SamplePrepQueue(Timestamped):
 		country_name = self.sample.country_fk.country_name if self.sample.country_fk else ''
 		country_region = self.sample.country_fk.region if self.sample.country_fk else ''
 		
-		return [self.sample.queue_id,
+		return [
 			self.priority,
 			expected_complexity,
 			preparation_method,

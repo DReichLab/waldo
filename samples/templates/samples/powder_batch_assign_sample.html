@@ -46,7 +46,6 @@ Powder Batch: {{powder_batch_name}} has {{num_sample_prep}} sample prep entries 
 	<thead>
 	<tr>
 		<th><input type="checkbox" name="toggle_all_checkbox" id="toggle_all_checkbox" onclick="toggle_onscreen_all()"></th>
-		<th><button class="sort" type="button" data-sort="queue_id">Sample Queue ID</button></th>
 		<th><button class="sort" type="button" data-sort="priority">Priority</button></th>
 		<th><button class="sort" type="button" data-sort="expected_complexity">Expected Complexity</button></th>
 		<th><button class="sort" type="button" data-sort="sampling_tech">Sampling Tech</button></th>
@@ -70,7 +69,6 @@ Powder Batch: {{powder_batch_name}} has {{num_sample_prep}} sample prep entries 
 		<td class="checked">
 			<input class="sample_checkbox" type="checkbox" name="sample_checkboxes[]" id="checkbox{{queued.id}}" value="{{queued.id}}" onclick="update_count()" {% if queued.powder_batch != None %}checked{% endif %}>
 		</td>
-		<td class="queue_id">{{queued.sample.queue_id}}</td>
 		<td class="priority">{{queued.priority}}</td>
 		<td class="expected_complexity">{{queued.sample.expected_complexity.description}}</td>
 		<td class="sampling_tech">{{queued.sample_prep_protocol.preparation_method}}</td>
@@ -96,7 +94,7 @@ Powder Batch: {{powder_batch_name}} has {{num_sample_prep}} sample prep entries 
 
 <script>
 	var list_options = {
-		valueNames: ['checked', 'queue_id', 'priority', 'expected_complexity', 'sampling_tech', 'udg', 'shipment_id', 'collaborator', 'skeletal_element', 'country', 'region', 'period', 'culture', 'sample_prep_queue_id'],
+		valueNames: ['checked', 'priority', 'expected_complexity', 'sampling_tech', 'udg', 'shipment_id', 'collaborator', 'skeletal_element', 'country', 'region', 'period', 'culture', 'sample_prep_queue_id'],
 		searchDelay: 500
 	};
 	var sample_list = new List('sample_rows', list_options);
