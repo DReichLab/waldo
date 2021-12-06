@@ -104,7 +104,7 @@ SamplePrepQueueFormset = modelformset_factory(SamplePrepQueue, form=SamplePrepQu
 class PowderSampleForm(UserModelForm):
 	reich_lab_sample = CharField(disabled=True)
 	num_photos = IntegerField(disabled=True)
-	sample_prep_protocol = SamplePrepProtocolSelect(queryset=SamplePrepProtocol.objects.all(), empty_label=None)
+	sample_prep_protocol = SamplePrepProtocolSelect(queryset=SamplePrepProtocol.objects.all())
 	
 	collaborator_id = CharField(disabled=True, help_text='Sample identification code assigned by the collaborator')
 	shipment_id = CharField(disabled=True, required=False)
@@ -162,7 +162,7 @@ class ControlSetForm(UserModelForm):
 		}
 		
 class LysateBatchForm(UserModelForm):
-	protocol = ExtractionProtocolSelect(queryset=ExtractionProtocol.objects.filter(active=True).order_by('-start_date'))
+	protocol = ExtractionProtocolSelect(queryset=ExtractionProtocol.objects.filter(active=True).order_by('-start_date'), empty_label=None)
 	control_set = ControlSetSelect(queryset=ControlSet.objects.filter(active=True).order_by('layout_name'))
 	date = forms.DateField(help_text='YYYY-MM-DD', required=False)
 	
@@ -220,7 +220,7 @@ class LysateBatchToExtractBatchForm(forms.Form):
 	extract_batch_name = forms.CharField(max_length=50, label='Extract Batch name', validators=[validate_extract_batch_does_not_exist])
 		
 class ExtractionBatchForm(UserModelForm):
-	protocol = ExtractionProtocolSelect(queryset=ExtractionProtocol.objects.filter(active=True).order_by('-start_date'))
+	protocol = ExtractionProtocolSelect(queryset=ExtractionProtocol.objects.filter(active=True).order_by('-start_date'), empty_label=None)
 	control_set = ControlSetSelect(queryset=ControlSet.objects.filter(active=True).order_by('layout_name'))
 	date = forms.DateField(help_text='YYYY-MM-DD', required=False)
 	
@@ -369,7 +369,7 @@ class LibraryProtocolForm(UserModelForm):
 			self.fields[option].required = False
 
 class LibraryBatchForm(UserModelForm):
-	protocol = LibraryProtocolSelect(queryset=LibraryProtocol.objects.filter(active=True))
+	protocol = LibraryProtocolSelect(queryset=LibraryProtocol.objects.filter(active=True), empty_label=None)
 	prep_date = forms.DateField(help_text='YYYY-MM-DD', required=False)
 	control_set = ControlSetSelect(queryset=ControlSet.objects.filter(active=True).order_by('layout_name'))
 	
