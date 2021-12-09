@@ -1217,7 +1217,7 @@ class LibraryBatch(Timestamped):
 	
 	def create_libraries(self, user):
 		self.check_p7_offset()
-		layout = LibraryBatchLayout.objects.filter(library_batch=self)
+		layout = LibraryBatchLayout.objects.filter(library_batch=self).order_by('column', 'row')
 		duplicate_positions_check_db(layout)
 		
 		for layout_element in layout:
