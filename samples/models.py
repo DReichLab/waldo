@@ -305,6 +305,23 @@ class Sample(Timestamped):
 			return num_sample_photos(self.reich_lab_id)
 		else:
 			return 0
+			
+	# 1. Used to generate extract object for an external sample received as an extract.
+	# 2. Used for library negative controls starting at the library batch step. 
+	# Any sample should only have one of these. Additional extracts will be recognized as duplicate after genotyping. 
+	def originating_extract(self, extraction_lab):
+		self.assign_reich_lab_sample_number()
+		try:
+			extract = Extract.objects.get(sample=self)
+		except Extract.DoesNotExist: # 
+			extract_id = f'{str(self)}.E1'
+			extract = Extract.objects.create(extract_id=extract_id,
+					reich_lab_extract_number=1,
+					sample=self,
+					extract_batch=None,
+					extraction_lab=extraction_lab)
+		return extract
+		
 		
 class SamplePrepProtocol(Timestamped):
 	preparation_method = models.CharField(max_length=50, help_text='Method used to produce bone powder')
@@ -1039,6 +1056,10 @@ class Extract(Timestamped):
 	storage_location = models.TextField(blank=True)
 	extraction_lab = models.CharField(max_length=50, blank=True, help_text='Name of lab where DNA extraction was done')
 	
+	# ensure this extract has a Reich lab sample number
+	def ensure_ids(self):
+		self.sample.assign_reich_lab_sample_number()
+	
 # lysate -> extract
 class ExtractionBatchLayout(TimestampedWellPosition):
 	extract_batch = models.ForeignKey(ExtractionBatch, on_delete=models.CASCADE, null=True) # use a null extract batch to mark lost lysate
@@ -1272,6 +1293,23 @@ class LibraryBatch(Timestamped):
 		capture_positive = CaptureLayout(capture_batch=capture_plate,
 								   control_type=capture_positive_position.control_type, row=capture_positive_position.row, column=capture_positive_position.column)
 		capture_positive.save(save_user=user)
+		
+	def assign_extract(self, extract, row, column, control_type=None):
+		# ensure this extract has a sample number
+		extract.ensure_ids()
+		try:
+			library_batch_layout_element = LibraryBatchLayout.objects.get(library_batch=self,
+									extract=extract,
+									control_type = control_type,
+									row = row,
+									column = column)
+		except LibraryBatchLayout.DoesNotExist:
+			library_batch_layout_element = LibraryBatchLayout(library_batch=self,
+									extract=extract,
+									control_type = control_type,
+									row = row,
+									column = column)
+			library_batch_layout_element.save()
 	
 def validate_index_dna_sequence(sequence):
 	valid_bases = 'ACGT'
