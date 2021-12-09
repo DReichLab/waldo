@@ -295,8 +295,8 @@ class ControlLayoutForm(UserModelForm):
 
 ControlLayoutFormset = modelformset_factory(ControlLayout, form=ControlLayoutForm, extra=20)
 
-LOST_ROW = 'H'
-LOST_COLUMN = 6
+LOST_ROW = None
+LOST_COLUMN = None
 
 class LostPowderForm(UserModelForm):
 	powder_sample = ModelChoiceField(queryset=PowderSample.objects.all(), widget=TextInput, help_text='Powder Sample ID string', to_field_name='powder_sample_id')
