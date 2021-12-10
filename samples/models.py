@@ -862,6 +862,7 @@ def extracts_for_lysate(lysate):
 	return len(existing_extracts)
 	
 # powder -> lysate
+# This holds powder that has been weighed in preparation for lysate creation
 class LysateBatchLayout(TimestampedWellPosition):
 	lysate_batch = models.ForeignKey(LysateBatch, on_delete=models.CASCADE, null=True) # use a null lysate batch to mark lost powder
 	powder_sample = models.ForeignKey(PowderSample, on_delete=models.CASCADE, null=True)
@@ -869,6 +870,7 @@ class LysateBatchLayout(TimestampedWellPosition):
 	powder_used_mg = models.FloatField(null=True) # currently only for lost powder
 	notes = models.TextField(blank=True)
 	lysate = models.ForeignKey(Lysate, on_delete=models.SET_NULL, null=True, help_text='Lysate created in this well from powder')
+	is_lost = models.BooleanField(default=False)
 	
 	def destroy_control(self, user):
 		if self.control_type is not None:

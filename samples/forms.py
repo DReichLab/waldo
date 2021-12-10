@@ -321,6 +321,7 @@ class LostPowderForm(UserModelForm):
 		lost_powder = super().save(commit=False)
 		lost_powder.row = LOST_ROW
 		lost_powder.column = LOST_COLUMN
+		lost_powder.is_lost = True
 		lost_powder.save()
 		return lost_powder
 		
