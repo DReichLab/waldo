@@ -1025,7 +1025,7 @@ def create_extract_from_lysate(extract_layout_element, user):
 def delete_dependent_lysate(sender, instance, using, **kwargs):
 	if instance.lysate:
 		instance.lysate.delete()
-	
+		
 class ExtractionBatch(Timestamped):
 	batch_name = models.CharField(max_length=50, unique=True, help_text='Usually ends with _RE')
 	protocol = models.ForeignKey(ExtractionProtocol, on_delete=models.PROTECT, null=True)
@@ -1120,6 +1120,9 @@ class Extract(Timestamped):
 	# ensure this extract has a Reich lab sample number
 	def ensure_ids(self):
 		self.sample.assign_reich_lab_sample_number()
+		
+	def num_libraries(self):
+		return self.library_set.count()
 	
 # lysate -> extract
 class ExtractionBatchLayout(TimestampedWellPosition):
@@ -1176,10 +1179,6 @@ class LibraryProtocol(Timestamped):
 	udg_treatment = models.CharField(max_length=10, null=True)
 	library_type = models.CharField(max_length=2, null=True)
 	active = models.BooleanField(default=True)
-	
-def libraries_for_extract(extract):
-	libraries = Library.objects.filter(extract=extract)
-	return len(libraries)
 
 # Create the library corresponding
 # we create library for library positive for record keeping if there is no extract
@@ -1192,7 +1191,7 @@ def create_library_from_extract(layout_element, user):
 		return layout_element.library
 	else:
 		if extract:
-			existing_libraries = libraries_for_extract(extract)
+			existing_libraries = extract.num_libraries()
 			next_library_number = existing_libraries + 1
 			reich_lab_library_id = f'{extract.extract_id}.L{next_library_number}'
 		elif layout_element.control_type.control_type == LIBRARY_POSITIVE:
