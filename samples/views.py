@@ -17,7 +17,6 @@ from samples.models import Results, Library, Sample, PowderBatch, WetLabStaff, P
 from .forms import *
 from sequencing_run.models import MTAnalysis
 
-from .powder_samples import new_reich_lab_powder_sample, assign_prep_queue_entries_to_powder_batch
 from .layout import duplicate_positions_check, update_db_layout,  layout_objects_map_for_rendering, occupied_wells, layout_and_content_lists, PLATE_WELL_COUNT
 
 from samples.sample_photos import photo_list, save_sample_photo
@@ -185,7 +184,7 @@ def powder_batch_assign_samples(request):
 			# these are the ticked checkboxes. Values are the ids of SamplePrepQueue objects
 			sample_prep_ids = request.POST.getlist('sample_checkboxes[]')
 			# accounting for sample prep queue and samples, including assigning Reich Lab sample ID
-			assign_prep_queue_entries_to_powder_batch(powder_batch, sample_prep_ids, request.user)
+			powder_batch.assign_prep_queue_entries_to_powder_batch(sample_prep_ids, request.user)
 			
 			if powder_batch.status not in [powder_batch.STOP, powder_batch.OPEN]:
 				return redirect(f'{reverse("powder_samples")}?powder_batch={powder_batch_name}')
