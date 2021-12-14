@@ -1553,10 +1553,16 @@ class CaptureOrShotgunPlate(Timestamped):
 	def check_library_inputs(self):
 		combinations = {}
 		for layout_element in CaptureLayout.objects.filter(capture_batch=self):
-			s = f'{layout_element.library.p5_barcode}_{layout_element.library.p7_barcode}'
-			if s in combinations:
-				raise ValueError(f'duplicate barcodes {s} in {self.name}')
-			combinations[s] = True
+			# TODO fix barcodes for capture positive and PCR negative
+			if layout_element.library:
+				s = f'{layout_element.library.p5_barcode}_{layout_element.library.p7_barcode}'
+				if s in combinations:
+					raise ValueError(f'duplicate barcodes {s} in {self.name}. Existing is {combinations[s]}. Current id is {layout_element.id}.')
+				
+				if layout_element.library:
+					combinations[s] = layout_element.library.reich_lab_library_id
+				else:
+					combinations[s] = layout_element.control_type.control_type
 			
 	def restrict_layout_elements(self, layout_ids, user):
 		to_clear = CaptureLayout.objects.filter(capture_batch=self).exclude(id__in=layout_ids).exclude(control_type__isnull=False)
@@ -1754,7 +1760,7 @@ class SequencingRun(Timestamped):
 	# only one library type is allowed
 	def check_library_type(self):
 		for indexed_library in indexed_libraries:
-			pass
+			pass # TODO
 		
 	def check_index_barcode_combinations(self):
 		combinations = {}
