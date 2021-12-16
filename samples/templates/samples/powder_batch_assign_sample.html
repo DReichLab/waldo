@@ -27,7 +27,7 @@ table{
 }
 </style>
 
-Powder Batch: {{powder_batch_name}} has {{num_sample_prep}} sample prep entries and {{num_powder_samples}} powder samples. 
+Powder Batch: {{powder_batch_name}} has {{num_sample_prep}} sample prep entries and {{num_powder_prep}} powder prep entries assigned. It has generated {{num_powder_samples}} new powder samples. 
 
 <form action="" method='post'>
 	{% csrf_token %}
@@ -47,6 +47,7 @@ Powder Batch: {{powder_batch_name}} has {{num_sample_prep}} sample prep entries 
 	<tr>
 		<th><input type="checkbox" name="toggle_all_checkbox" id="toggle_all_checkbox" onclick="toggle_onscreen_all()"></th>
 		<th><button class="sort" type="button" data-sort="priority">Priority</button></th>
+		<th><button class="sort" type="button" data-sort="starting_material">Starting Material</button></th>
 		<th><button class="sort" type="button" data-sort="expected_complexity">Expected Complexity</button></th>
 		<th><button class="sort" type="button" data-sort="sampling_tech">Sampling Tech</button></th>
 		<th><button class="sort" type="button" data-sort="sampling_tech">UDG</button></th>
@@ -60,16 +61,17 @@ Powder Batch: {{powder_batch_name}} has {{num_sample_prep}} sample prep entries 
 		<th><button class="sort" type="button" data-sort="culture">Culture</button></th>
 		<th><button class="sort" type="button" data-sort="notes">Notes</button></th>
 		<th><button class="sort" type="button" data-sort="notes_2">Notes 2</button></th>
-		<th><button class="sort" type="button" data-sort="sample_prep_queue_id">Sample Prep ID</button></th>
+		<th><button class="sort" type="button" data-sort="prep_queue_id">Sample Prep ID</button></th>
 	</tr>
 	</thead>
 	<tbody class="list">
 	{% for queued in queued_samples %}
 	<tr>
 		<td class="checked">
-			<input class="sample_checkbox" type="checkbox" name="sample_checkboxes[]" id="checkbox{{queued.id}}" value="{{queued.id}}" onclick="update_count()" {% if queued.powder_batch != None %}checked{% endif %}>
+			<input class="sample_checkbox" type="checkbox" name="sample_checkboxes[]" id="checkboxS{{queued.id}}" value="{{queued.id}}" onclick="update_count()" {% if queued.powder_batch != None %}checked{% endif %}>
 		</td>
 		<td class="priority">{{queued.priority}}</td>
+		<td class="starting_material"></td>
 		<td class="expected_complexity">{{queued.sample.expected_complexity.description}}</td>
 		<td class="sampling_tech">{{queued.sample_prep_protocol.preparation_method}}</td>
 		<td class="udg">{{queued.udg_treatment}}</td>
@@ -83,7 +85,30 @@ Powder Batch: {{powder_batch_name}} has {{num_sample_prep}} sample prep entries 
 		<td class="culture">{{queued.sample.culture}}</td>
 		<td class="notes">{{queued.sample.notes}}</td>
 		<td class="notes_2">{{queued.sample.notes_2}}</td>
-		<td class="sample_prep_queue_id">{{queued.id}}</td>
+		<td class="prep_queue_id">S{{queued.id}}</td>
+	</tr>
+	{% endfor %}
+	{% for queued in queued_powders %}
+	<tr>
+		<td class="checked">
+			<input class="sample_checkbox" type="checkbox" name="powder_checkboxes[]" id="checkboxP{{queued.id}}" value="{{queued.id}}" onclick="update_count()" {% if queued.powder_batch != None %}checked{% endif %}>
+		</td>
+		<td class="priority">{{queued.priority}}</td>
+		<td class="starting_material">Powder</td>
+		<td class="expected_complexity">{{queued.sample.expected_complexity.description}}</td>
+		<td class="sampling_tech"></td>
+		<td class="udg">{{queued.udg_treatment}}</td>
+		<td class="shipment_id">{{queued.sample.shipment.shipment_name}}</td>
+		<td class="collaborator">{{queued.sample.collaborator.first_name}} {{queued.sample.collaborator.last_name}}</td>
+		<td class="skeletal_element">{{queued.sample.skeletal_element}}</td>
+		<td class="skeletal_code">{{queued.sample.skeletal_code}}</td>
+		<td class="country">{{queued.sample.country_fk.country_name}}</td>
+		<td class="region">{{queued.sample.country_fk.region}}</td>
+		<td class="period">{{queued.sample.period}}</td>
+		<td class="culture">{{queued.sample.culture}}</td>
+		<td class="notes">{{queued.sample.notes}}</td>
+		<td class="notes_2">{{queued.sample.notes_2}}</td>
+		<td class="prep_queue_id">P{{queued.id}}</td>
 	</tr>
 	{% endfor %}
 	</tbody>
@@ -94,7 +119,7 @@ Powder Batch: {{powder_batch_name}} has {{num_sample_prep}} sample prep entries 
 
 <script>
 	var list_options = {
-		valueNames: ['checked', 'priority', 'expected_complexity', 'sampling_tech', 'udg', 'shipment_id', 'collaborator', 'skeletal_element', 'country', 'region', 'period', 'culture', 'sample_prep_queue_id'],
+		valueNames: ['checked', 'priority', 'starting_material', 'expected_complexity', 'sampling_tech', 'udg', 'shipment_id', 'collaborator', 'skeletal_element', 'country', 'region', 'period', 'culture', 'prep_queue_id'],
 		searchDelay: 500
 	};
 	var sample_list = new List('sample_rows', list_options);
@@ -135,13 +160,13 @@ Powder Batch: {{powder_batch_name}} has {{num_sample_prep}} sample prep entries 
 		let anybox_checked = false;
 		// first pass to see whether any checkbox in this set is checked
 		for (let i = 0; i < matching.length; i++) {
-			let checkbox_id = 'checkbox' + matching[i]._values['sample_prep_queue_id'];
+			let checkbox_id = 'checkbox' + matching[i]._values['prep_queue_id'];
 			let sample_checkbox = document.getElementById(checkbox_id);
 			anybox_checked ||= sample_checkbox.checked;
 		}
 		// second pass to set checkboxes
 		for (let i = 0; i < matching.length; i++) {
-			let checkbox_id = 'checkbox' + matching[i]._values['sample_prep_queue_id'];
+			let checkbox_id = 'checkbox' + matching[i]._values['prep_queue_id'];
 			let sample_checkbox = document.getElementById(checkbox_id);
 			// box will be changed to unchecked
 			if (sample_checkbox.checked && anybox_checked){

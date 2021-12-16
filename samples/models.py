@@ -360,7 +360,7 @@ class PowderBatch(Timestamped):
 	def get_status(self):
 		return get_status_string(self.status, self.POWDER_BATCH_STATES)
 		
-	def assign_prep_queue_entries_to_powder_batch(self, sample_prep_ids, user):
+	def assign_sample_prep_queue_entries(self, sample_prep_ids, user):
 		failed_assignments = {}
 		# first clear powder batch
 		to_clear = SamplePrepQueue.objects.filter(powder_batch=self).exclude(id__in=sample_prep_ids)
@@ -371,6 +371,8 @@ class PowderBatch(Timestamped):
 				# in models, powder sample is protected if there is a lysate
 				# sample prep entry sets reference to null
 				sample_prep_entry.powder_sample.delete()
+			if sample_prep_entry.prepared_powder != None:
+				sample_prep_entry.prepared_powder.delete()
 			sample_prep_entry.save(save_user=user)
 		# add samples prep queue entries to powder batch
 		for sample_prep_entry in SamplePrepQueue.objects.filter(id__in=sample_prep_ids):
@@ -390,6 +392,25 @@ class PowderBatch(Timestamped):
 			for sample_prep_entry in SamplePrepQueue.objects.filter(powder_batch=self):
 				sample_prep_entry.new_reich_lab_powder_sample(user)
 		return failed_assignments
+		
+	def assign_powder_prep_queue_entries(self, powder_prep_ids, user):
+		# remove unassigned entries
+		to_clear = PowderPrepQueue.objects.filter(powder_batch=self).exclude(id__in=powder_prep_ids)
+		for powder_prep_entry in to_clear:
+			if powder_prep_entry.prepared_powder != None:
+				powder_prep_entry.prepared_powder.delete()
+			powder_prep_entry.powder_batch = None
+			powder_prep_entry.save(save_user=user)
+		# assign entries
+		for powder_prep_entry in PowderPrepQueue.objects.filter(id__in=powder_prep_ids):
+			existing_powder_batch = powder_prep_entry.powder_batch
+			if existing_powder_batch == None or existing_powder_batch == self:
+				powder_prep_entry.powder_batch = self
+				powder_prep_entry.save(save_user=user)
+		# Open is the state where samples can be added. If it is not open, then create the powder sample and assign Reich lab sample number
+		if self.status not in [self.OPEN, self.STOP]:
+			for powder_prep_entry in PowderPrepQueue.objects.filter(powder_batch=self):
+				powder_prep_entry.new_reich_lab_powder_sample(user)
 	
 	# modify powder samples from spreadsheet
 	# it would be better to reuse form validation
@@ -407,7 +428,7 @@ class PowderBatch(Timestamped):
 				powder_sample = powder_samples.get(powder_sample_id=powder_sample_id)
 				powder_sample.from_spreadsheet_row(headers[1:], fields[1:], user)
 				
-	# Return number of powder samples in this powder batch that have been assigned to a lysate batch. Missing powder has a LysateBatchLayout object with null lysate batch and does not count. 
+	# Return number of powder samples in this powder batch that have been assigned to a lysate batch. Missing and unassigned powders have a LysateBatchLayout object with null lysate batch and do not count. 
 	def number_plated_powder_samples(self):
 		return self.powdersample_set.annotate(num_assignments=Count('lysatebatchlayout', Q(lysatebatchlayout__lysate_batch__isnull=False))).filter(num_assignments__gte=1).count()
 		
@@ -477,94 +498,6 @@ class PowderSample(Timestamped):
 		preparation_method = arg_array[headers.index('sample_prep_protocol')]
 		self.sample_prep_protocol = SamplePrepProtocol.objects.get(preparation_method=preparation_method)
 		self.save(save_user=user)
-	
-# Wetlab consumes samples from this queue for powder batches
-class SamplePrepQueue(Timestamped):
-	priority = models.SmallIntegerField(help_text='Lower is higher priority')
-	sample = models.ForeignKey(Sample, on_delete=models.CASCADE)
-	sample_prep_protocol = models.ForeignKey(SamplePrepProtocol, on_delete=models.SET_NULL, null=True)
-	udg_treatment = models.CharField(max_length=10)
-	powder_batch = models.ForeignKey(PowderBatch, null=True, on_delete=models.SET_NULL,)
-	powder_sample = models.ForeignKey(PowderSample, null=True, on_delete=models.SET_NULL) # needed to unassign
-	
-	# create a PowderSample and assign Reich Lab Sample Number
-	def new_reich_lab_powder_sample(self, user):
-		SAMPLE_PREP_LAB = 'Reich Lab'
-		sample = self.sample
-		# if the corresponding sample does not have Reich Lab sample number, then assign it the next one
-		if sample.reich_lab_id is None:
-			sample.assign_reich_lab_sample_number()
-		try:
-			if self.powder_sample != None:
-				powder_sample = self.powder_sample
-			else:
-				powder_sample = PowderSample.objects.get(sample=sample, powder_batch=self.powder_batch)
-		except PowderSample.DoesNotExist:
-			# count how many powder samples there for this sample
-			existing_powder_samples = PowderSample.objects.filter(sample=sample)
-			powder_sample_int = len(existing_powder_samples) + 1
-			
-			powder_sample_id = f'S{sample.reich_lab_id}.P{powder_sample_int}'
-			powder_sample = PowderSample.objects.create(sample=sample, powder_batch=self.powder_batch, powder_sample_id=powder_sample_id)
-		powder_sample.sample_prep_protocol=self.sample_prep_protocol
-		powder_sample.sample_prep_lab=SAMPLE_PREP_LAB
-		powder_sample.save_user = user
-		powder_sample.save()
-		
-		self.powder_sample = powder_sample
-		self.save_user = user
-		self.save()
-	
-	@staticmethod
-	def spreadsheet_header():
-		return [
-			'Priority',
-			'Expected Complexity',
-			'Sampling Tech',
-			'UDG',
-			'Shipment ID',
-			'Collaborator',
-			'Skeletal Element',
-			'Skeletal Code',
-			'Country',
-			'Region',
-			'Period',
-			'Culture',
-			'Notes',
-			'Notes2',
-			'Sample Prep ID'
-			]
-		
-	# for wetlab spreadsheet, return array to output as tsv
-	# order corresponds to the spreadsheet header
-	def to_spreadsheet_row(self):
-		name = f'{self.sample.collaborator.first_name}  {self.sample.collaborator.last_name}' if self.sample.collaborator else ''
-		expected_complexity = self.sample.expected_complexity.description if self.sample.expected_complexity else ''
-		
-		preparation_method = self.sample_prep_protocol.preparation_method if self.sample_prep_protocol else ''
-		
-		shipment = self.sample.shipment.shipment_name if self.sample.shipment else ''
-		
-		country_name = self.sample.country_fk.country_name if self.sample.country_fk else ''
-		country_region = self.sample.country_fk.region if self.sample.country_fk else ''
-		
-		return [
-			self.priority,
-			expected_complexity,
-			preparation_method,
-			self.udg_treatment,
-			shipment,
-			name,
-			self.sample.skeletal_element,
-			self.sample.skeletal_code,
-			country_name,
-			country_region,
-			self.sample.period,
-			self.sample.culture,
-			self.sample.notes,
-			self.sample.notes_2,
-			self.id,
-		]
 	
 class ExtractionProtocol(Timestamped):
 	name = models.CharField(max_length=150)
@@ -684,6 +617,7 @@ class LysateBatch(Timestamped):
 	
 	# add LysateBatchLayout for powder samples
 	# this always adds a new layout element
+	# TODO needs to be redone because LysateBatchLayout objects already exist
 	def assign_powder_samples(self, new_powder_sample_ids, user):
 		DEFAULT_ROW = 'A'
 		DEFAULT_COLUMN = 1
@@ -950,6 +884,8 @@ class LysateBatchLayout(TimestampedWellPosition):
 		if self.powder_sample is None and (self.lysate_batch is None or self.control_type is None):
 			print('Null powder samples must be extract batch controls')
 			raise ValidationError(_('Null powder samples must be extract batch controls'))
+		if is_lost and lysate_batch is not None:
+			raise ValidationError(_('Lost powder cannot have lysate batch.'))
 			
 	@staticmethod
 	def spreadsheet_header():
@@ -1026,6 +962,159 @@ def delete_dependent_lysate(sender, instance, using, **kwargs):
 	if instance.lysate:
 		instance.lysate.delete()
 		
+# Wetlab consumes samples from this queue for powder batches
+class SamplePrepQueue(Timestamped):
+	priority = models.SmallIntegerField(help_text='Lower is higher priority')
+	sample = models.ForeignKey(Sample, on_delete=models.CASCADE)
+	sample_prep_protocol = models.ForeignKey(SamplePrepProtocol, on_delete=models.SET_NULL, null=True)
+	udg_treatment = models.CharField(max_length=10)
+	powder_batch = models.ForeignKey(PowderBatch, null=True, on_delete=models.SET_NULL,)
+	powder_sample = models.ForeignKey(PowderSample, null=True, on_delete=models.SET_NULL) # needed to unassign
+	prepared_powder = models.ForeignKey(LysateBatchLayout, on_delete=models.SET_NULL, null=True)
+	
+	# create a PowderSample and assign Reich Lab Sample Number
+	def new_reich_lab_powder_sample(self, user):
+		SAMPLE_PREP_LAB = 'Reich Lab'
+		sample = self.sample
+		# if the corresponding sample does not have Reich Lab sample number, then assign it the next one
+		if sample.reich_lab_id is None:
+			sample.assign_reich_lab_sample_number()
+		try:
+			if self.powder_sample != None:
+				powder_sample = self.powder_sample
+			else:
+				powder_sample = PowderSample.objects.get(sample=sample, powder_batch=self.powder_batch)
+		except PowderSample.DoesNotExist:
+			# count how many powder samples for this sample
+			existing_powder_samples = PowderSample.objects.filter(sample=sample)
+			powder_sample_int = existing_powder_samples.count() + 1
+			
+			powder_sample_id = f'S{sample.reich_lab_id}.P{powder_sample_int}'
+			powder_sample = PowderSample.objects.create(sample=sample, powder_batch=self.powder_batch, powder_sample_id=powder_sample_id)
+		powder_sample.sample_prep_protocol=self.sample_prep_protocol
+		powder_sample.sample_prep_lab=SAMPLE_PREP_LAB
+		powder_sample.save_user = user
+		powder_sample.save()
+		
+		# LysateBatchLayout element for assignment to LysateBatch
+		# This represents a tube with powder weighed
+		try:
+			prepared_powder = LysateBatchLayout.objects.get(lysate_batch=None, powder_sample=powder_sample, control_type=None, lysate=None)
+		except LysateBatchLayout.DoesNotExist:
+			prepared_powder = LysateBatchLayout(lysate_batch=None, powder_sample=powder_sample, control_type=None, lysate=None)
+			prepared_powder.save(save_user=user)
+		
+		self.prepared_powder = prepared_powder
+		self.powder_sample = powder_sample
+		self.save_user = user
+		self.save()
+	
+	@staticmethod
+	def spreadsheet_header():
+		return [
+			'Priority',
+			'Expected Complexity',
+			'Sampling Tech',
+			'UDG',
+			'Shipment ID',
+			'Collaborator',
+			'Skeletal Element',
+			'Skeletal Code',
+			'Country',
+			'Region',
+			'Period',
+			'Culture',
+			'Notes',
+			'Notes2',
+			'Sample Prep ID'
+			]
+		
+	# for wetlab spreadsheet, return array to output as tsv
+	# order corresponds to the spreadsheet header
+	def to_spreadsheet_row(self):
+		name = f'{self.sample.collaborator.first_name}  {self.sample.collaborator.last_name}' if self.sample.collaborator else ''
+		expected_complexity = self.sample.expected_complexity.description if self.sample.expected_complexity else ''
+		
+		preparation_method = self.sample_prep_protocol.preparation_method if self.sample_prep_protocol else ''
+		
+		shipment = self.sample.shipment.shipment_name if self.sample.shipment else ''
+		
+		country_name = self.sample.country_fk.country_name if self.sample.country_fk else ''
+		country_region = self.sample.country_fk.region if self.sample.country_fk else ''
+		
+		return [
+			self.priority,
+			expected_complexity,
+			preparation_method,
+			self.udg_treatment,
+			shipment,
+			name,
+			self.sample.skeletal_element,
+			self.sample.skeletal_code,
+			country_name,
+			country_region,
+			self.sample.period,
+			self.sample.culture,
+			self.sample.notes,
+			self.sample.notes_2,
+			self.id,
+		]
+		
+class PowderPrepQueue(Timestamped):
+	priority = models.SmallIntegerField(help_text='Lower is higher priority')
+	sample = models.ForeignKey(Sample, on_delete=models.CASCADE)
+	powder_sample = models.ForeignKey(PowderSample, on_delete=models.SET_NULL, null=True)
+	udg_treatment = models.CharField(max_length=10)
+	powder_batch = models.ForeignKey(PowderBatch, null=True, on_delete=models.SET_NULL, help_text='Powder batch where weighed for lysate')
+	prepared_powder = models.ForeignKey(LysateBatchLayout, on_delete=models.SET_NULL, null=True)
+	sample_prep_lab = models.CharField(max_length=50, blank=True, help_text='Name of lab where bone powder was produced')
+	
+	# this always creates a new object for assignment to LysateBatch, in case we want more than one lysate for the sample powder sample
+	def create_prepared_powder(self, user):
+		self.powder_sample.sample.assign_reich_lab_sample_number()
+		# LysateBatchLayout element for assignment to LysateBatch
+		# This represents a tube with powder weighed
+		prepared_powder = LysateBatchLayout(lysate_batch=None, powder_sample=powder_sample, control_type=None, lysate=None)
+		prepared_powder.save(save_user=user)
+		self.prepared_powder = prepared_powder
+		self.save(save_user=user)
+		
+	# create a PowderSample and assign Reich Lab Sample Number
+	def new_reich_lab_powder_sample(self, user):
+		if self.powder_batch is None:
+			raise ValueError('Cannot create PowderPrepQueue objects without powder batch')
+		# if the corresponding sample does not have Reich Lab sample number, then assign it the next one
+		self.sample.assign_reich_lab_sample_number()
+		
+		try:
+			if self.powder_sample != None:
+				powder_sample = self.powder_sample
+			else:
+				powder_sample = PowderSample.objects.get(sample=sample, powder_batch=self.powder_batch)
+		except PowderSample.DoesNotExist:
+			# count how many powder samples for this sample
+			existing_powder_samples = PowderSample.objects.filter(sample=sample)
+			powder_sample_int = existing_powder_samples.count() + 1
+			
+			powder_sample_id = f'S{sample.reich_lab_id}.P{powder_sample_int}'
+			powder_sample = PowderSample.objects.create(sample=sample, powder_batch=self.powder_batch, powder_sample_id=powder_sample_id)
+		powder_sample.sample_prep_protocol=self.sample_prep_protocol
+		powder_sample.sample_prep_lab = self.sample_prep_lab
+		powder_sample.save(save_user=user)
+		
+		# LysateBatchLayout element for assignment to LysateBatch
+		# This represents a tube with powder weighed
+		try:
+			prepared_powder = LysateBatchLayout.objects.get(lysate_batch=None, powder_sample=powder_sample, control_type=None, lysate=None)
+		except LysateBatchLayout.DoesNotExist:
+			prepared_powder = LysateBatchLayout(lysate_batch=None, powder_sample=powder_sample, control_type=None, lysate=None)
+			prepared_powder.save(save_user=user)
+		
+		self.prepared_powder = prepared_powder
+		self.powder_sample = powder_sample
+		self.save_user = user
+		self.save()
+	
 class ExtractionBatch(Timestamped):
 	batch_name = models.CharField(max_length=50, unique=True, help_text='Usually ends with _RE')
 	protocol = models.ForeignKey(ExtractionProtocol, on_delete=models.PROTECT, null=True)
@@ -1907,3 +1996,4 @@ class Instance(Timestamped):
 	data_type = models.CharField(max_length=20) # TODO enumerate this 1240k, shotgun, BigYoruba, etc.
 	family = models.TextField(blank=True, help_text='family id and position within family')
 	assessment_notes = models.TextField(help_text='Xcontam listed if |Z|>2 standard errors from zero: 0.02-0.05="QUESTIONABLE", >0.05="QUESTIONABLE_CRITICAL" or "FAIL") (mtcontam 97.5th percentile estimates listed if coverage >2: <0.8 is "QUESTIONABLE_CRITICAL", 0.8-0.95 is "QUESTIONABLE", and 0.95-0.98 is recorded but "PASS", gets overriden by ANGSD')
+
