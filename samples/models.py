@@ -306,6 +306,9 @@ class Sample(Timestamped):
 		else:
 			return 0
 			
+	def location_str(self):
+		return f'{self.locality} {self.country}'
+			
 	# 1. Used to generate extract object for an external sample received as an extract.
 	# 2. Used for library negative controls starting at the library batch step. 
 	# Any sample should only have one of these. Additional extracts will be recognized as duplicate after genotyping. 
@@ -421,7 +424,12 @@ class PowderSample(Timestamped):
 			'powder_for_extract',
 			'storage_location',
 			'sample_prep_lab',
-			'sample_prep_protocol']
+			'sample_prep_protocol',
+			'collaborator_id-',
+			'notes-',
+			'notes2-',
+			'location-',
+			]
 		
 	# for wetlab spreadsheet, return array to output as tsv
 	# order corresponds to the spreadsheet header
@@ -433,7 +441,11 @@ class PowderSample(Timestamped):
 			self.powder_for_extract,
 			self.storage_location,
 			self.sample_prep_lab,
-			preparation_method
+			preparation_method,
+			self.sample.skeletal_code,
+			self.sample.notes,
+			self.sample.notes_2,
+			self.sample.location_str(),
 		]
 	# from wetlab spreadsheet
 	def from_spreadsheet_row(self, headers, arg_array, user):

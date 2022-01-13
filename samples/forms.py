@@ -131,7 +131,7 @@ class PowderSampleForm(UserModelForm):
 				self.fields['shipment_id'].initial = self.instance.sample.shipment.shipment_name if self.instance.sample.shipment else ''
 				self.fields['notes'].initial = self.instance.sample.notes
 				self.fields['notes2'].initial = self.instance.sample.notes_2
-				self.fields['location'].initial = f'{self.instance.sample.locality} {self.instance.sample.country}'
+				self.fields['location'].initial = self.instance.sample.location_str()
 		self.fields['powder_sample_id'].disabled = True
 		
 PowderSampleFormset = modelformset_factory(PowderSample, form=PowderSampleForm, extra=0, max_num=200)
