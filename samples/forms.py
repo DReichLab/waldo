@@ -101,7 +101,56 @@ class SamplePrepQueueForm(UserModelForm):
         
 SamplePrepQueueFormset = modelformset_factory(SamplePrepQueue, form=SamplePrepQueueForm, extra=0)
 	
-class PowderSampleForm(UserModelForm):
+class PowderSampleSharedForm(UserModelForm):
+	collaborator_id = CharField(disabled=True, help_text='Sample identification code assigned by the collaborator')
+	num_photos = IntegerField(disabled=True)
+	reich_lab_sample = CharField(disabled=True)
+	
+	
+	
+	shipment_id = CharField(disabled=True, required=False)
+	notes = CharField(disabled=True, required=False)
+	notes2 = CharField(disabled=True, required=False)
+	location = CharField(disabled=True)
+	sample_prep_protocol = SamplePrepProtocolSelect(queryset=SamplePrepProtocol.objects.all())
+	
+	class Meta:
+		
+		fields = ['collaborator_id', 'num_photos', 'reich_lab_sample', 'powder_sample_id', 'sampling_notes', 'total_powder_produced_mg', 'powder_for_extract', 'storage_location', 'shipment_id', 'notes', 'notes2', 'location', 'sample_prep_lab', 'sample_prep_protocol']
+		widgets = {
+            'sampling_notes': Textarea(attrs={'cols': 60, 'rows': 2}),
+        }
+		
+	def __init__(self, *args, **kwargs):
+		super(PowderSampleForm, self).__init__(*args, **kwargs)
+		if self.instance.pk:
+			if self.instance.sample: # instance is a PowderSample
+				sample = self.instance.sample
+				self.fields['powder_for_extract'].disabled = True
+			elif self.instance.powder_sample.sample: # instance is a LysateBatchLayout
+				sample = self.instance.powder_sample.sample
+				
+			self.fields['reich_lab_sample'].initial = f'S{sample.reich_lab_id}'
+		
+			self.fields['num_photos'].initial = sample.num_existing_photos()
+			
+			self.fields['collaborator_id'].initial = sample.skeletal_code
+			self.fields['shipment_id'].initial = sample.shipment.shipment_name if sample.shipment else ''
+			self.fields['notes'].initial = sample.notes
+			self.fields['notes2'].initial = sample.notes_2
+			self.fields['location'].initial = f'{sample.locality} {sample.country}'
+		self.fields['powder_sample_id'].disabled = True
+		
+class PowderSampleForm(PowderSampleSharedForm):
+	class Meta(PowderSampleSharedForm.Meta):
+		model = PowderSample
+		
+PowderSampleFormset = modelformset_factory(PowderSample, form=PowderSampleForm, extra=0, max_num=200)
+
+class PowderSampleStandaloneForm(forms.Form):
+	powder_sample = None
+	layout_element = None
+	
 	reich_lab_sample = CharField(disabled=True)
 	num_photos = IntegerField(disabled=True)
 	sample_prep_protocol = SamplePrepProtocolSelect(queryset=SamplePrepProtocol.objects.all())
@@ -111,30 +160,13 @@ class PowderSampleForm(UserModelForm):
 	notes = CharField(disabled=True, required=False)
 	notes2 = CharField(disabled=True, required=False)
 	location = CharField(disabled=True)
+
+class LysateBatchLayoutForm(UserModelForm):
+	
 	
 	class Meta:
-		model = PowderSample
-		#'powder_sample_id', 
-		fields = ['collaborator_id', 'num_photos', 'reich_lab_sample', 'powder_sample_id', 'sampling_notes', 'total_powder_produced_mg', 'powder_for_extract', 'storage_location', 'shipment_id', 'notes', 'notes2', 'location', 'sample_prep_lab', 'sample_prep_protocol']
-		widgets = {
-            'sampling_notes': Textarea(attrs={'cols': 60, 'rows': 2}),
-        }
-		
-	def __init__(self, *args, **kwargs):
-		super(PowderSampleForm, self).__init__(*args, **kwargs)
-		if self.instance.pk:
-			self.fields['reich_lab_sample'].initial = f'S{self.instance.sample.reich_lab_id}'
-			if self.instance.sample:
-				self.fields['num_photos'].initial = self.instance.sample.num_existing_photos()
-				
-				self.fields['collaborator_id'].initial = self.instance.sample.skeletal_code
-				self.fields['shipment_id'].initial = self.instance.sample.shipment.shipment_name if self.instance.sample.shipment else ''
-				self.fields['notes'].initial = self.instance.sample.notes
-				self.fields['notes2'].initial = self.instance.sample.notes_2
-				self.fields['location'].initial = f'{self.instance.sample.locality} {self.instance.sample.country}'
-		self.fields['powder_sample_id'].disabled = True
-		
-PowderSampleFormset = modelformset_factory(PowderSample, form=PowderSampleForm, extra=0, max_num=200)
+		model = LysateBatchLayout
+		fields = '__all__'
 		
 class ExtractionProtocolForm(UserModelForm):
 	class Meta:

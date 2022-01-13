@@ -615,27 +615,23 @@ class LysateBatch(Timestamped):
 		for powder_batch in PowderBatch.objects.filter(id__in=powder_batch_ids):
 			powder_batch.close_if_finished()
 	
-	# add LysateBatchLayout for powder samples
-	# this always adds a new layout element
-	# TODO needs to be redone because LysateBatchLayout objects already exist
-	def assign_powder_samples(self, new_powder_sample_ids, user):
+	# assign LysateBatchLayout elements
+	def assign_powder_samples(self, layout_element_ids, user):
 		DEFAULT_ROW = 'A'
 		DEFAULT_COLUMN = 1
-		powder_batch_ids = []
-		for powder_sample_id in new_powder_sample_ids:
-			powder_sample = PowderSample.objects.get(id=powder_sample_id)
-			powder_sample_mass_for_extract = powder_sample.powder_for_extract
-			
-			lysate_batch_layout = LysateBatchLayout(lysate_batch=self,
-									powder_sample=powder_sample,
-									row=DEFAULT_ROW,
-									column=DEFAULT_COLUMN,
-									powder_used_mg = powder_sample_mass_for_extract,
-									)
+		print(f'assign_powder_samples layout_element_ids {layout_element_ids}')
+		
+		powder_batch_ids = [] # to update powder batch status
+		for lysate_batch_layout in LysateBatchLayout.objects.filter(id__in=layout_element_ids):
+			lysate_batch_layout.lysate_batch = self
+			if lysate_batch_layout.row is None:
+				lysate_batch_layout.row = DEFAULT_ROW
+			if lysate_batch_layout.column is None:
+				lysate_batch_layout.column = DEFAULT_COLUMN
 			lysate_batch_layout.save(save_user = user)
 			
-			if powder_sample.powder_batch not in powder_batch_ids:
-				powder_batch_ids.append(powder_sample.powder_batch.id)
+			if lysate_batch_layout.powder_sample.powder_batch not in powder_batch_ids:
+				powder_batch_ids.append(lysate_batch_layout.powder_sample.powder_batch.id)
 			
 		# update status of powder batches for new samples
 		for powder_batch in PowderBatch.objects.filter(id__in=powder_batch_ids):
@@ -1067,6 +1063,7 @@ class PowderPrepQueue(Timestamped):
 	udg_treatment = models.CharField(max_length=10)
 	powder_batch = models.ForeignKey(PowderBatch, null=True, on_delete=models.SET_NULL, help_text='Powder batch where weighed for lysate')
 	prepared_powder = models.ForeignKey(LysateBatchLayout, on_delete=models.SET_NULL, null=True)
+	sample_prep_protocol = models.ForeignKey(SamplePrepProtocol, on_delete=models.SET_NULL, null=True)
 	sample_prep_lab = models.CharField(max_length=50, blank=True, help_text='Name of lab where bone powder was produced')
 	
 	# this always creates a new object for assignment to LysateBatch, in case we want more than one lysate for the sample powder sample
@@ -1090,14 +1087,14 @@ class PowderPrepQueue(Timestamped):
 			if self.powder_sample != None:
 				powder_sample = self.powder_sample
 			else:
-				powder_sample = PowderSample.objects.get(sample=sample, powder_batch=self.powder_batch)
-		except PowderSample.DoesNotExist:
+				powder_sample = PowderSample.objects.get(sample=self.sample, powder_batch=self.powder_batch)
+		except PowderSample.DoesNotExist: # create a powder sample entry
 			# count how many powder samples for this sample
-			existing_powder_samples = PowderSample.objects.filter(sample=sample)
+			existing_powder_samples = PowderSample.objects.filter(sample=self.sample)
 			powder_sample_int = existing_powder_samples.count() + 1
 			
-			powder_sample_id = f'S{sample.reich_lab_id}.P{powder_sample_int}'
-			powder_sample = PowderSample.objects.create(sample=sample, powder_batch=self.powder_batch, powder_sample_id=powder_sample_id)
+			powder_sample_id = f'S{self.sample.reich_lab_id}.P{powder_sample_int}'
+			powder_sample = PowderSample.objects.create(sample=self.sample, powder_batch=self.powder_batch, powder_sample_id=powder_sample_id)
 		powder_sample.sample_prep_protocol=self.sample_prep_protocol
 		powder_sample.sample_prep_lab = self.sample_prep_lab
 		powder_sample.save(save_user=user)

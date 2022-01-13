@@ -56,28 +56,21 @@ Lysate Batch: {{lysate_batch_name}} has {{assigned_powder_samples_count}} distin
 	</tr>
 	</thead>
 	<tbody class="list">
-	{% for layout_element in assigned_powder_samples %}
+	{% for layout_element in powder_samples %}
 	<tr>
 		<td class="checked">
-			<input class="sample_checkbox" type="checkbox" name="powder_sample_checkboxes[]" id="checkbox{{layout_element.powder_sample.powder_sample_id}}" value="{{layout_element.id}}_{{layout_element.powder_sample.id}}" onclick="update_count()" checked>
+			<input class="sample_checkbox" type="checkbox" name="powder_sample_checkboxes[]" id="checkbox{{layout_element.powder_sample.powder_sample_id}}" value="{{layout_element.id}}_{{layout_element.powder_sample.id}}" onclick="update_count()" 
+			{% if layout_element.lysate_batch is not None %}checked{% endif %}>
 		</td>
 		<td class="position">{{layout_element}}</td>
 		<td class="powder_sample_id">{{layout_element.powder_sample.powder_sample_id}}</td>
 		<td class="sample">S{{layout_element.powder_sample.sample.reich_lab_id}}</td>
-		<td class="powder_batch">{{layout_element.powder_sample.powder_batch.name}}</td>
-		<td class="expected_complexity">{{layout_element.powder_sample.sample.expected_complexity.description}}</td>
-	</tr>
-	{% endfor %}
-	{% for powder_sample in powder_samples %}
-	<tr>
-		<td class="checked">
-			<input class="sample_checkbox" type="checkbox" name="powder_sample_checkboxes[]" id="checkbox{{powder_sample.powder_sample_id}}" value="_{{powder_sample.id}}" onclick="update_count()" {% if powder_sample.assigned_to_lysate_batch > 0 %}checked{% endif %}>
+		<td class="powder_batch">
+			{% if layout_element.powder_sample.powder_batch %}
+				{{layout_element.powder_sample.powder_batch.name}}
+			{% endif %}
 		</td>
-		<td class="position">N/A</td>
-		<td class="powder_sample_id">{{powder_sample.powder_sample_id}}</td>
-		<td class="sample">S{{powder_sample.sample.reich_lab_id}}</td>
-		<td class="powder_batch">{{powder_sample.powder_batch.name}}</td>
-		<td class="expected_complexity">{{powder_sample.sample.expected_complexity.description}}</td>
+		<td class="expected_complexity">{{layout_element.powder_sample.sample.expected_complexity.description}}</td>
 	</tr>
 	{% endfor %}
 	</tbody>

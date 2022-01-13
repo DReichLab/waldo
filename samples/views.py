@@ -242,6 +242,12 @@ def powder_samples(request):
 		
 	elif request.method == 'GET':
 		powder_batch_form = PowderBatchForm(initial={'name': powder_batch_name, 'date': powder_batch.date, 'status': powder_batch.status, 'notes': powder_batch.notes}, instance=powder_batch, user=request.user)
+		# prepared powder for two cases
+		# 1. powder for sample powdered directly in this batch
+		#powdered_in_this_batch = PowderSample.objects.filter(powder_batch=powder_batch)
+		LysateBatchLayout.objects.filter(sampleprepqueue_)
+		# 2. powder prep (weighed) for powder sample produced previously, either externally or internally # TODO
+		powders_in_lysate_layouts = LysateBatchLayout.objects.filter(lysate_batch=None, is_lost=False).filter(Q(powder_sample__powder_batch=powder_batch) | Q() )
 		powder_batch_sample_formset = PowderSampleFormset(queryset=PowderSample.objects.filter(powder_batch=powder_batch).order_by('sample__reich_lab_id'), form_kwargs={'user': request.user})
 	
 	# open can have new samples assigned
@@ -360,13 +366,14 @@ def lysate_batch_assign_powder(request):
 			
 			ticked_checkboxes = request.POST.getlist('powder_sample_checkboxes[]')
 			layout_ids, powder_sample_ids =layout_and_content_lists(ticked_checkboxes)
+			print(f'layout_ids {layout_ids}')
 			# validate number of selections
 			total_wells = lysate_batch.num_controls() + len(layout_ids) + len(powder_sample_ids)
 			if total_wells > PLATE_WELL_COUNT:
 				return HttpResponse(f'Too many powders and controls {total_wells}')
 			
 			lysate_batch.restrict_layout_elements(layout_ids)
-			lysate_batch.assign_powder_samples(powder_sample_ids, request.user)
+			lysate_batch.assign_powder_samples(layout_ids, request.user)
 			if 'assign_and_layout' in request.POST:
 				print(f'lysate batch layout {lysate_batch_name}')
 				lysate_batch.assign_layout(request.user)
@@ -385,20 +392,11 @@ def lysate_batch_assign_powder(request):
 		
 	existing_controls = LysateBatchLayout.objects.filter(lysate_batch=lysate_batch, control_type__isnull=False)
 	
-	'''
-	already_selected_powder_sample_ids = LysateBatchLayout.objects.filter(lysate_batch=lysate_batch, control_type=None).values_list('powder_sample', flat=True)
-	powder_samples_already_selected = PowderSample.objects.annotate(num_assignments=Count('lysatebatchlayout')).annotate(assigned_to_lysate_batch=Count('lysatebatchlayout', filter=Q(lysatebatchlayout__lysate_batch=lysate_batch))).filter(
-		Q(id__in=already_selected_powder_sample_ids)
-	)
-	'''
-	layout_powder_samples_already_selected = LysateBatchLayout.objects.filter(lysate_batch=lysate_batch, control_type=None).order_by('row', 'column').select_related('powder_sample')
-	powder_samples_unselected = PowderSample.objects.annotate(num_assignments=Count('lysatebatchlayout')).annotate(assigned_to_lysate_batch=Count('lysatebatchlayout', filter=Q(lysatebatchlayout__lysate_batch=lysate_batch))).filter(
-		Q(num_assignments=0) &
-		(Q(powder_batch__status=PowderBatch.READY_FOR_PLATE)
-		| (Q(powder_batch=None) & ~Q(powder_sample_id__endswith='NP')))# powder samples directly from collaborators will not have powder batch. Exclude controls. 
-	).order_by('powder_batch', 'sample__reich_lab_id')
-	#powder_samples = powder_samples_already_selected.union(powder_samples_unselected).order_by('id')
+	layout_powder_samples_already_selected = LysateBatchLayout.objects.filter(lysate_batch=lysate_batch, control_type=None)
+	powder_samples_unselected = LysateBatchLayout.objects.filter(lysate_batch=None, is_lost=False, powder_sample__powder_batch__status=PowderBatch.READY_FOR_PLATE).order_by()
+	all_available_powder_samples = (layout_powder_samples_already_selected | powder_samples_unselected ).distinct().order_by('row', 'column', 'powder_sample__powder_batch', 'powder_sample__sample__reich_lab_id').select_related('powder_sample')
 	
+	# count distinct powder samples
 	powder_samples = {}
 	for layout_element in layout_powder_samples_already_selected:
 		powder_samples[layout_element.powder_sample] = True
@@ -406,7 +404,7 @@ def lysate_batch_assign_powder(request):
 	# count wells
 	occupied_well_count, num_non_control_assignments = occupied_wells(LysateBatchLayout.objects.filter(lysate_batch=lysate_batch))
 	
-	return render(request, 'samples/lysate_batch_assign_powder.html', { 'lysate_batch_name': lysate_batch_name, 'assigned_powder_samples': layout_powder_samples_already_selected, 'powder_samples': powder_samples_unselected, 'assigned_powder_samples_count': assigned_powder_samples_count, 'control_count': len(existing_controls), 'num_assignments': num_non_control_assignments, 'occupied_wells': occupied_well_count, 'form': lysate_batch_form  } )
+	return render(request, 'samples/lysate_batch_assign_powder.html', { 'lysate_batch_name': lysate_batch_name, 'powder_samples': all_available_powder_samples, 'assigned_powder_samples_count': assigned_powder_samples_count, 'control_count': len(existing_controls), 'num_assignments': num_non_control_assignments, 'occupied_wells': occupied_well_count, 'form': lysate_batch_form  } )
 	
 @login_required
 def lysate_batch_delete(request):
