@@ -286,20 +286,20 @@ def index_barcode_keys_used(sequencing_date_string, combined_sequencing_run_name
 	command = "mysql devadna -N -e '{0}' > {1}/{2}_{3}/{2}_{3}.index_barcode_keys".format(queryForKeys, settings.RUN_FILES_DIRECTORY, sequencing_date_string, combined_sequencing_run_name)
 	ssh_command(host, command, True, True)
 
-def adna2_index_barcode_keys_used(sequencing_date_string, combined_sequencing_run_name, sequencing_run_names, library_ids=[], ignore_barcodes=False):
+# Pull index_barcode_keys from adna2 and create *.index_barcode_keys file in the rundirectory
+def adna2_index_barcode_keys_used(sequencing_date_string, combined_sequencing_run_name, sequencing_run_names):
 	keys_queryset = CaptureLayout.objects.filter(sequencingrun__name__in=sequencing_run_names)
 	with open("{0}/{1}_{2}/{1}_{2}.index_barcode_keys".format(settings.RUN_FILES_DIRECTORY, sequencing_date_string, combined_sequencing_run_name), 'w') as f:
 		for key in keys_queryset:
+			# Try to grab indices and barcodes, make blank if not in database
 			try:
 				p5_index = key.p5_index.sequence
 			except:
 				p5_index = ''
-			
 			try:
 				p7_index = key.p7_index.sequence
 			except:
 				p7_index = ''
-			
 			try:
 				p5_barcode = key.library.p5_barcode.sequence
 			except:
@@ -308,6 +308,9 @@ def adna2_index_barcode_keys_used(sequencing_date_string, combined_sequencing_ru
 				p7_barcode = key.library.p7_barcode.sequence
 			except:
 				p7_barcode = ''
+			
+			# Determine if this is a library or a control.
+			# If it's a control, parse the name for the output file
 			library = key.library
 			if library is None:
 				library = key.control_type.control_type
@@ -318,12 +321,17 @@ def adna2_index_barcode_keys_used(sequencing_date_string, combined_sequencing_ru
 			else:
 				library = library.reich_lab_library_id
 			
+			# Grab capture batch id
 			capture_batch = key.capture_batch.name
+
+			# Grab and parse experiment names
 			experiment = key.capture_batch.protocol.name
 			if 'Twist' in experiment:
 					experiment = 'Twist1.4M'
 			elif '1240k' in experiment:
 					experiment = '1240K+'
+			
+			# Format and write index_barcode_key line to the file
 			f.write("{}_{}_{}_{}\t{}\t{}\t{}\n".format(p5_index, p7_index, p5_barcode, p7_barcode, library, capture_batch, experiment))
 	pass
 
