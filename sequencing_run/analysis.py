@@ -1,5 +1,7 @@
+from types import NoneType
 from sequencing_run.ssh_command import ssh_command
 from sequencing_run.models import SequencingRun, SequencingRunID, SequencingAnalysisRun, Flowcell, OrderedSequencingRunID
+from samples.models import CaptureLayout
 from sequencing_run.barcode_prep import barcodes_set, i5_set, i7_set
 import os
 import re
@@ -283,6 +285,47 @@ def index_barcode_keys_used(sequencing_date_string, combined_sequencing_run_name
 	host = settings.COMMAND_HOST
 	command = "mysql devadna -N -e '{0}' > {1}/{2}_{3}/{2}_{3}.index_barcode_keys".format(queryForKeys, settings.RUN_FILES_DIRECTORY, sequencing_date_string, combined_sequencing_run_name)
 	ssh_command(host, command, True, True)
+
+def adna2_index_barcode_keys_used(sequencing_date_string, combined_sequencing_run_name, sequencing_run_names, library_ids=[], ignore_barcodes=False):
+	keys_queryset = CaptureLayout.objects.filter(sequencingrun__name__in=sequencing_run_names)
+	with open("{0}/{1}_{2}/{1}_{2}.index_barcode_keys".format(settings.RUN_FILES_DIRECTORY, sequencing_date_string, combined_sequencing_run_name), 'w') as f:
+		for key in keys_queryset:
+			try:
+				p5_index = key.p5_index.sequence
+			except:
+				p5_index = ''
+			
+			try:
+				p7_index = key.p7_index.sequence
+			except:
+				p7_index = ''
+			
+			try:
+				p5_barcode = key.library.p5_barcode.sequence
+			except:
+				p5_barcode = ''
+			try:
+				p7_barcode = key.library.p7_barcode.sequence
+			except:
+				p7_barcode = ''
+			library = key.library
+			if library is None:
+				library = key.control_type.control_type
+				if library == 'PCR Negative':
+					library = 'Contl.PCR'
+				elif library == 'Capture Positive':
+					library = 'Contl.Capture'
+			else:
+				library = library.reich_lab_library_id
+			
+			capture_batch = key.capture_batch.name
+			experiment = key.capture_batch.protocol.name
+			if 'Twist' in experiment:
+					experiment = 'Twist1.4M'
+			elif '1240k' in experiment:
+					experiment = '1240K+'
+			f.write("{}_{}_{}_{}\t{}\t{}\t{}\n".format(p5_index, p7_index, p5_barcode, p7_barcode, library, capture_batch, experiment))
+	pass
 
 # Shotgun data may arrive with no indices. Find the i5 and i7 indices for a library. 
 # One use is the replacement these indices in the JSON parameter file
