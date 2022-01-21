@@ -1,4 +1,3 @@
-from types import NoneType
 from sequencing_run.ssh_command import ssh_command
 from sequencing_run.models import SequencingRun, SequencingRunID, SequencingAnalysisRun, Flowcell, OrderedSequencingRunID
 from samples.models import CaptureLayout
@@ -31,7 +30,7 @@ def get_scratch_directory():
 	return directory
 
 # additional_replacements is for string replacements in json and sh template files. These are used for i5 and i7 index labels for Broad shotgun sequencing. 
-def start_analysis(source_illumina_dir, combined_sequencing_run_name, sequencing_date, number_top_samples_to_demultiplex, sequencing_run_names, copy_illumina=True, hold=False, allow_new_sequencing_run_id=False, is_broad=False, is_broad_shotgun=False, library_ids=[], additional_replacements={}, query_names = None, ignore_barcodes=False, threshold_reads=-1):
+def start_analysis(source_illumina_dir, combined_sequencing_run_name, sequencing_date, number_top_samples_to_demultiplex, sequencing_run_names, copy_illumina=True, hold=False, allow_new_sequencing_run_id=False, is_broad=False, is_broad_shotgun=False, library_ids=[], additional_replacements={}, query_names = None, ignore_barcodes=False, threshold_reads=-1, mysql_ibk=False):
 	date_string = sequencing_date.strftime('%Y%m%d')
 	destination_directory = date_string + '_' + combined_sequencing_run_name
 	
@@ -64,8 +63,11 @@ def start_analysis(source_illumina_dir, combined_sequencing_run_name, sequencing
 
 		print('building input files')
 		names_for_queries = sequencing_run_names if query_names is None else query_names
-		# index-barcode key file
-		index_barcode_keys_used(date_string, combined_sequencing_run_name, names_for_queries, library_ids, ignore_barcodes)
+		# index-barcode key file should be generated from adna2 unless specified otherwise
+		if mysql_ibk:
+			index_barcode_keys_used(date_string, combined_sequencing_run_name, names_for_queries, library_ids, ignore_barcodes)
+		else:
+			adna2_index_barcode_keys_used(date_string, combined_sequencing_run_name, names_for_queries)
 		# barcode and index files for run
 		barcodes_set(date_string, combined_sequencing_run_name, names_for_queries)
 		# include explicit i5 and i7 in the allowed lists
