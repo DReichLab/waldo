@@ -68,4 +68,4 @@ class Command(BaseCommand):
 			if header:
 				out.write("\t".join(["library_id", "seq_name", "seq_date", "experiment", "index-barcode_key", "nuclear_bam_path", "mt_bam_path"]) + "\n")
 			for key, value in output_dict.items():
-				out.write("/t".join([key[0], value[0], value[1], value[2], key[1], value[3], value[4]]))
+				out.write("/t".join(map(str, [key[0], value[0], value[1], value[2], key[1], value[3], value[4]])))
