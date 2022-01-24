@@ -64,7 +64,7 @@ class Command(BaseCommand):
 					mt_demultiplex_bam = "/".join([demultiplex_path_head, "{}_{}".format(seq_date, seq_name), mt_subdirectory, index_barcode_key.replace(":", "-")]) + ".bam"
 					output_dict.update({(library_id, index_barcode_key) : (seq_name, seq_date, experiment, nuclear_demultiplex_bam, mt_demultiplex_bam)})
 	
-		with open("{}/{}.index_barcode_map".format(output_dir, label)) as out:
+		with open("{}/{}.index_barcode_map".format(output_dir, label), 'w') as out:
 			if header:
 				out.write("\t".join(["library_id", "seq_name", "seq_date", "experiment", "index-barcode_key", "nuclear_bam_path", "mt_bam_path"]) + "\n")
 			for key, value in output_dict.items():
