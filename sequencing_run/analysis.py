@@ -275,7 +275,12 @@ def get_demultiplex_report(sequencing_date_string, combined_sequencing_run_name)
 
 # specify library_ids to restrict by library_id. 
 # This is designed for Broad shotgun sequencing, where the sample sheet has multiple libraries, but a lane is processed separately with only one library
-def index_barcode_keys_used(sequencing_date_string, combined_sequencing_run_name, sequencing_run_names, library_ids=[], ignore_barcodes=False):
+def index_barcode_keys_used(sequencing_date_string, combined_sequencing_run_name, sequencing_run_names, library_ids=[], ignore_barcodes=False, output_dir=""):
+	file_name = "{}_{}.index_barcode_keys".format(sequencing_date_string, combined_sequencing_run_name)
+	if output_dir == "":
+		target_file = "{0}/{1}_{2}/{3}".format(settings.RUN_FILES_DIRECTORY, sequencing_date_string, combined_sequencing_run_name, file_name)
+	else:
+		target_file = os.path.abspath("{}/{}".format(output_dir, file_name))
 	where_clauses = " OR ".join(['sequencing_id="{}"'.format(name) for name in sequencing_run_names])
 	barcodes_for_concat = '"_", UPPER(p5_barcode), "_", UPPER(p7_barcode)'
 	if library_ids is not None and len(library_ids) > 0:
@@ -285,13 +290,18 @@ def index_barcode_keys_used(sequencing_date_string, combined_sequencing_run_name
 	queryForKeys = 'SELECT DISTINCT CONCAT(UPPER(p5_index), "_", UPPER(p7_index), {}), library_id, plate_id, experiment FROM sequenced_library WHERE {};'.format(barcodes_for_concat if not ignore_barcodes else '"__"', where_clauses)
 	
 	host = settings.COMMAND_HOST
-	command = "mysql devadna -N -e '{0}' > {1}/{2}_{3}/{2}_{3}.index_barcode_keys".format(queryForKeys, settings.RUN_FILES_DIRECTORY, sequencing_date_string, combined_sequencing_run_name)
+	command = "mysql devadna -N -e '{}' > {}".format(queryForKeys, target_file)
 	ssh_command(host, command, True, True)
 
 # Pull index_barcode_keys from adna2 and create *.index_barcode_keys file in the rundirectory
-def adna2_index_barcode_keys_used(sequencing_date_string, combined_sequencing_run_name, sequencing_run_names):
+def adna2_index_barcode_keys_used(sequencing_date_string, combined_sequencing_run_name, sequencing_run_names, output_dir=""):
+	file_name = "{}_{}.index_barcode_keys".format(sequencing_date_string, combined_sequencing_run_name)
+	if output_dir == "":
+		target_file = "{0}/{1}_{2}/{3}".format(settings.RUN_FILES_DIRECTORY, sequencing_date_string, combined_sequencing_run_name, file_name)
+	else:
+		target_file = os.path.abspath("{}/{}".format(output_dir, file_name))
 	keys_queryset = CaptureLayout.objects.filter(sequencingrun__name__in=sequencing_run_names)
-	with open("{0}/{1}_{2}/{1}_{2}.index_barcode_keys".format(settings.RUN_FILES_DIRECTORY, sequencing_date_string, combined_sequencing_run_name), 'w') as f:
+	with open(target_file, 'w') as f:
 		for key in keys_queryset:
 			# Try to grab indices and barcodes, make blank if not in database
 			try:
