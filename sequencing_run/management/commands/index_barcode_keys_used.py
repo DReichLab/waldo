@@ -13,6 +13,7 @@ class Command(BaseCommand):
 		parser.add_argument('--name', required=True)
 		parser.add_argument('--ignore_barcodes', action='store_true')
 		parser.add_argument('--mysql_ibk', action='store_true')
+		parser.add_argument('--output_dir', default="")
 		
 	def handle(self, *args, **options):
 		date_string = options['date_string']
@@ -20,17 +21,19 @@ class Command(BaseCommand):
 		date = datetime.datetime.strptime(date_string, "%Y%m%d").date()
 		ignore_barcodes = options['ignore_barcodes']
 		mysql_ibk = options['mysql_ibk']
+		output_dir = options['output_dir']
 		
 		analysis_run = SequencingAnalysisRun.objects.get(name=name, sequencing_date=date)
 		sequencing_run_ids = list(analysis_run.sample_set_names.all())
 		separate_sequencing_run_names = [run.name for run in sequencing_run_ids]
 		#print(names)
 		if mysql_ibk:
-			index_barcode_keys_used(date_string, name, separate_sequencing_run_names, ignore_barcodes)
+			index_barcode_keys_used(date_string, name, separate_sequencing_run_names, ignore_barcodes, output_dir)
 		else:
-			adna2_index_barcode_keys_used(date_string, name, separate_sequencing_run_names)
+			adna2_index_barcode_keys_used(date_string, name, separate_sequencing_run_names, output_dir)
 		
-		# create barcode file too
-		barcodes_set(date_string, name, separate_sequencing_run_names)
-		i5_set(date_string, name, separate_sequencing_run_names)
-		i7_set(date_string, name, separate_sequencing_run_names)
+		# create barcode file too but only if we're not in output_dir mode
+		if output_dir == "":
+			barcodes_set(date_string, name, separate_sequencing_run_names)
+			i5_set(date_string, name, separate_sequencing_run_names)
+			i7_set(date_string, name, separate_sequencing_run_names)
