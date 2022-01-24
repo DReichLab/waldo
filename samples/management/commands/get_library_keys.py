@@ -2,7 +2,7 @@ import os.path
 from django.core.management.base import BaseCommand, CommandError
 from django.conf import settings
 import datetime
-from samples.models import CaptureLayout
+from samples.models import CaptureLayout, SequencingRun
 from sequencing_run import library_id
 from sequencing_run.assemble_libraries import output_bam_list
 from sequencing_run.ssh_command import ssh_command
@@ -56,16 +56,16 @@ class Command(BaseCommand):
 						p7_barcode = result.library.p7_barcode.sequence
 					except:
 						p7_barcode = ''
-					index_barcode_key = "_".join(p5_index, p7_index, p5_barcode, p7_barcode)
+					index_barcode_key = "_".join([p5_index, p7_index, p5_barcode, p7_barcode])
 					experiment = result.capture_batch.protocol.name
-					seq_name = result.sequencingrun.name
+					seq_name = SequencingRun.objects.filter(indexed_libraries__id=result.id).first().name
 					seq_date = SequencingAnalysisRun.objects.filter(name=seq_name).first().sequencing_date.strftime('%Y%m%d')
-					nuclear_demultiplex_bam = "/".join(demultiplex_path_head, "{}_{}".format(seq_date, seq_name), nuclear_subdirectory, index_barcode_key.replace(":", "-")) + ".bam"
-					mt_demultiplex_bam = "/".join(demultiplex_path_head, "{}_{}".format(seq_date, seq_name), mt_subdirectory, index_barcode_key.replace(":", "-")) + ".bam"
+					nuclear_demultiplex_bam = "/".join([demultiplex_path_head, "{}_{}".format(seq_date, seq_name), nuclear_subdirectory, index_barcode_key.replace(":", "-")]) + ".bam"
+					mt_demultiplex_bam = "/".join([demultiplex_path_head, "{}_{}".format(seq_date, seq_name), mt_subdirectory, index_barcode_key.replace(":", "-")]) + ".bam"
 					output_dict.update({(library_id, index_barcode_key) : (seq_name, seq_date, experiment, nuclear_demultiplex_bam, mt_demultiplex_bam)})
 	
 		with open("{}/{}.index_barcode_map".format(output_dir, label)) as out:
 			if header:
-				out.write("\t".join("library_id", "seq_name", "seq_date", "experiment", "index-barcode_key", "nuclear_bam_path", "mt_bam_path") + "\n")
+				out.write("\t".join(["library_id", "seq_name", "seq_date", "experiment", "index-barcode_key", "nuclear_bam_path", "mt_bam_path"]) + "\n")
 			for key, value in output_dict.items():
-				out.write("/t".join(key[0], value[0], value[1], value[2], key[1], value[3], value[4]))
+				out.write("/t".join([key[0], value[0], value[1], value[2], key[1], value[3], value[4]]))
