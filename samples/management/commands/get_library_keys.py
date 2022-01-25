@@ -79,7 +79,7 @@ class Command(BaseCommand):
 
 			host = settings.COMMAND_HOST
 			command = "mysql devadna -N -e '{}'".format(queryForKeys)
-			query_result = ssh_command(host, command).communicate()[0].decode('utf-8')
+			query_result = ssh_command(host, command).communicate()[0]
 			
 			for result in query_result.splitlines():
 				feilds = result.split("\t")
