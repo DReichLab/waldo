@@ -87,8 +87,10 @@ class Command(BaseCommand):
 				seq_name = feilds[1]
 				experiment = feilds[2]
 				index_barcode_key = feilds[3]
-
-				seq_date = os.path.basename(glob.glob(demultiplex_path_head + "/*_{}".format(seq_name))[0]).split("_")[0]
+				try:
+					seq_date = os.path.basename(glob.glob(demultiplex_path_head + "/*_{}".format(seq_name))[0]).split("_")[0]
+				except:
+					continue
 				
 				nuclear_demultiplex_bam = "/".join([demultiplex_path_head, "{}_{}".format(seq_date, seq_name), nuclear_subdirectory, index_barcode_key.replace(":", "-")]) + ".bam"
 				mt_demultiplex_bam = "/".join([demultiplex_path_head, "{}_{}".format(seq_date, seq_name), mt_subdirectory, index_barcode_key.replace(":", "-")]) + ".bam"
