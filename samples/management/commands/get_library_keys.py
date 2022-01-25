@@ -19,6 +19,7 @@ class Command(BaseCommand):
 		parser.add_argument('--label', required=True)
 		# parser.add_argument('--mysql_ibk', action='store_true')
 		parser.add_argument('--no_header', action='store_true')
+		parser.add_argument('--demultiplex_dir', default='')
 		
 	def handle(self, *args, **options):
 		library_file = os.path.abspath(options['library_file'])
@@ -27,7 +28,10 @@ class Command(BaseCommand):
 		label = options['label']
 		header = not(options['no_header'])
 
-		demultiplex_path_head = '/n/groups/reich/matt/pipeline/demultiplex'
+		if options['demultiplex_dir'] != '':
+			demultiplex_path_head = os.path.abspath(options['demultiplex_dir'])
+		else:
+			demultiplex_path_head = '/n/groups/reich/matt/pipeline/demultiplex'
 		nuclear_subdirectory = 'nuclear_aligned_unfiltered'
 		mt_subdirectory = 'rsrs_aligned_filtered'
 
