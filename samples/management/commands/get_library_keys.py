@@ -80,7 +80,7 @@ class Command(BaseCommand):
 			host = settings.COMMAND_HOST
 			command = "mysql devadna -N -e '{}'".format(queryForKeys)
 			query_result = ssh_command(host, command).communicate()[0]
-			
+
 			for result in query_result.splitlines():
 				feilds = result.split("\t")
 				library_id = feilds[0]
@@ -88,7 +88,7 @@ class Command(BaseCommand):
 				experiment = feilds[2]
 				index_barcode_key = feilds[3]
 
-				seq_date = os.path.basename(glob.glob(demultiplex_path_head + "/*_{}".format(seq_name))).split("_")[0]
+				seq_date = os.path.basename(glob.glob(demultiplex_path_head + "/*_{}".format(seq_name))[0]).split("_")[0]
 				
 				nuclear_demultiplex_bam = "/".join([demultiplex_path_head, "{}_{}".format(seq_date, seq_name), nuclear_subdirectory, index_barcode_key.replace(":", "-")]) + ".bam"
 				mt_demultiplex_bam = "/".join([demultiplex_path_head, "{}_{}".format(seq_date, seq_name), mt_subdirectory, index_barcode_key.replace(":", "-")]) + ".bam"
