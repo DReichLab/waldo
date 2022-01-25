@@ -79,8 +79,9 @@ class Command(BaseCommand):
 
 			host = settings.COMMAND_HOST
 			command = "mysql devadna -N -e '{}'".format(queryForKeys)
-			query_result = ssh_command(host, command)
-			for result in query_result:
+			query_result = ssh_command(host, command).communicate()[0].decode('utf-8')
+			
+			for result in query_result.splitlines():
 				feilds = result.split("\t")
 				library_id = feilds[0]
 				seq_name = feilds[1]
