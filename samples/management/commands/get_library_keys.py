@@ -69,7 +69,7 @@ class Command(BaseCommand):
 				# If we cannot get library information from adna2, check Zhao's DB...
 				else:
 					not_found.append(library)
-		if len(not_found > 0):
+		if len(not_found) > 0:
 			library_ids_as_strings = ['"{}"'.format(library_id) for library_id in not_found]
 			where_clauses = 'UPPER(experiment)<>"RAW" AND library_id IN ({})'.format(','.join(library_ids_as_strings))
 
