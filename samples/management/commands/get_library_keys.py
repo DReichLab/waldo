@@ -63,8 +63,9 @@ class Command(BaseCommand):
 						experiment = result.capture_batch.protocol.name
 						seq_name = SequencingRun.objects.filter(indexed_libraries__id=result.id).first().name
 						seq_date = SequencingAnalysisRun.objects.filter(name=seq_name).first().sequencing_date.strftime('%Y%m%d')
-						nuclear_demultiplex_bam = "/".join([demultiplex_path_head, "{}_{}".format(seq_date, seq_name), nuclear_subdirectory, index_barcode_key.replace(":", "-")]) + ".bam"
-						mt_demultiplex_bam = "/".join([demultiplex_path_head, "{}_{}".format(seq_date, seq_name), mt_subdirectory, index_barcode_key.replace(":", "-")]) + ".bam"
+						nuclear_demultiplex_bam = glob.glob("/".join([demultiplex_path_head, "{}_{}".format(seq_date, seq_name), "*nuc*", index_barcode_key.replace(":", "-")]) + ".bam")
+						mt_demultiplex_bam = glob.glob("/".join([demultiplex_path_head, "{}_{}".format(seq_date, seq_name), "*rsrs*", index_barcode_key.replace(":", "-")]) + ".bam")
+
 						output_dict.update({(library, index_barcode_key) : (seq_name, seq_date, experiment, nuclear_demultiplex_bam, mt_demultiplex_bam)})
 				# If we cannot get library information from adna2, check Zhao's DB...
 				else:
@@ -92,8 +93,8 @@ class Command(BaseCommand):
 				except:
 					continue
 				
-				nuclear_demultiplex_bam = "/".join([demultiplex_path_head, "{}_{}".format(seq_date, seq_name), nuclear_subdirectory, index_barcode_key.replace(":", "-")]) + ".bam"
-				mt_demultiplex_bam = "/".join([demultiplex_path_head, "{}_{}".format(seq_date, seq_name), mt_subdirectory, index_barcode_key.replace(":", "-")]) + ".bam"
+				nuclear_demultiplex_bam = glob.glob("/".join([demultiplex_path_head, "{}_{}".format(seq_date, seq_name), "*nuc*", index_barcode_key.replace(":", "-")]) + ".bam")
+				mt_demultiplex_bam = glob.glob("/".join([demultiplex_path_head, "{}_{}".format(seq_date, seq_name), "*rsrs*", index_barcode_key.replace(":", "-")]) + ".bam")
 
 				output_dict.update({(library_id, index_barcode_key) : (seq_name, seq_date, experiment, nuclear_demultiplex_bam, mt_demultiplex_bam)})
 	
