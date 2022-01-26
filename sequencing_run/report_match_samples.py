@@ -66,14 +66,14 @@ def readSampleSheet_array(sample_sheet_contents_array, adna2=False):
 		udg_index = headers.index('UDG_treatment')
 		
 		lowercase_headers = [header.lower() for header in headers]
-		try:
-			do_not_use_index = lowercase_headers.index('do_not_use')
-		except ValueError:
-			do_not_use_index = -1
-		try:
-			wetlab_notes_index = lowercase_headers.index('wetlab_notes')
-		except:
-			wetlab_notes_index = -1
+	try:
+		do_not_use_index = lowercase_headers.index('do_not_use')
+	except ValueError:
+		do_not_use_index = -1
+	try:
+		wetlab_notes_index = lowercase_headers.index('wetlab_notes')
+	except:
+		wetlab_notes_index = -1
 	
 	data_lines = sample_sheet_contents_array[1:]
 	duplicates = [] # if there is a problem with duplicate entries, find all of them before failing
