@@ -29,18 +29,18 @@ class SampleInfo:
 
 # create dictionaries from sample sheet that map index-barcodes to library IDs (S1.E1.L1) and plate IDs(Sugarplum)
 # lookup is based on column headers
-def readSampleSheet(sample_sheet_filename, adna2=True):	
+def readSampleSheet(sample_sheet_filename, adna2=False):	
 	try:
-		return readSampleSheet_encoding(sample_sheet_filename, 'utf-8')
+		return readSampleSheet_encoding(sample_sheet_filename, 'utf-8', adna2)
 	except:
-		return readSampleSheet_encoding(sample_sheet_filename, 'windows-1252')
+		return readSampleSheet_encoding(sample_sheet_filename, 'windows-1252', adna2)
 
-def readSampleSheet_encoding(sample_sheet_filename, encoding):
+def readSampleSheet_encoding(sample_sheet_filename, encoding, adna2):
 	with open(sample_sheet_filename, encoding=encoding, errors='surrogateescape') as f:
 		sample_sheet_contents_array = f.readlines()
-		return readSampleSheet_array(sample_sheet_contents_array)
+		return readSampleSheet_array(sample_sheet_contents_array, adna2)
 
-def readSampleSheet_array(sample_sheet_contents_array, adna2):
+def readSampleSheet_array(sample_sheet_contents_array, adna2=False):
 	samples_parameters = {}
 	
 	header_line = sample_sheet_contents_array[0]
@@ -160,7 +160,7 @@ if __name__ == "__main__":
 	report_filename = sys.argv[1]
 	sample_sheet_filename = sys.argv[2]
 	
-	samples_parameters = readSampleSheet(sample_sheet_filename, adna2=True)
+	samples_parameters = readSampleSheet(sample_sheet_filename)
 
 	sampleLines = relabelSampleLines(report_filename, samples_parameters)
 	for sample in sampleLines:
