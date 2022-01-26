@@ -1,3 +1,5 @@
+from ast import parse
+from email import parser
 import os.path
 import glob
 from django.core.management.base import BaseCommand, CommandError
@@ -20,6 +22,7 @@ class Command(BaseCommand):
 		# parser.add_argument('--mysql_ibk', action='store_true')
 		parser.add_argument('--no_header', action='store_true')
 		parser.add_argument('--demultiplex_dir', default='')
+		parser.add_argument('--raw', action='store_true')
 		
 	def handle(self, *args, **options):
 		library_file = os.path.abspath(options['library_file'])
@@ -27,6 +30,7 @@ class Command(BaseCommand):
 		# mysql_ibk = options['mysql_ibk']
 		label = options['label']
 		header = not(options['no_header'])
+		raw = parser.add_argument['raw']
 
 		if options['demultiplex_dir'] != '':
 			demultiplex_path_head = os.path.abspath(options['demultiplex_dir'])
@@ -42,7 +46,10 @@ class Command(BaseCommand):
 		with open(library_file, 'r') as f:
 			for line in f:
 				library = line.strip()
-				library_queryset = CaptureLayout.objects.filter(library__reich_lab_library_id=library).exclude(capture_batch__protocol__name="Raw")
+				if raw:
+					library_queryset = CaptureLayout.objects.filter(library__reich_lab_library_id=library, capture_batch__protocol__name="Raw")
+				else:
+					library_queryset = CaptureLayout.objects.filter(library__reich_lab_library_id=library).exclude(capture_batch__protocol__name="Raw")
 				# with open("{}/{}.index_barcode_map".format(output_dir, label)) as out:
 				if len(library_queryset) > 0:
 					for result in library_queryset:
@@ -76,7 +83,7 @@ class Command(BaseCommand):
 					not_found.append(library)
 		if len(not_found) > 0:
 			library_ids_as_strings = ['"{}"'.format(library_id) for library_id in not_found]
-			where_clauses = 'UPPER(experiment)<>"RAW" AND library_id IN ({})'.format(','.join(library_ids_as_strings))
+			where_clauses = 'UPPER(experiment){}"RAW" AND library_id IN ({})'.format("<>" if raw else "=",','.join(library_ids_as_strings))
 
 			barcodes_for_concat = '"_", UPPER(p5_barcode), "_", UPPER(p7_barcode)'
 
