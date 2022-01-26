@@ -160,7 +160,7 @@ if __name__ == "__main__":
 	report_filename = sys.argv[1]
 	sample_sheet_filename = sys.argv[2]
 	
-	samples_parameters = readSampleSheet(sample_sheet_filename)
+	samples_parameters = readSampleSheet(sample_sheet_filename, adna2=True)
 
 	sampleLines = relabelSampleLines(report_filename, samples_parameters)
 	for sample in sampleLines:
