@@ -45,6 +45,7 @@ def readSampleSheet_array(sample_sheet_contents_array, adna2=False):
 	
 	header_line = sample_sheet_contents_array[0]
 	headers = re.split('\t|\n', header_line)
+	lowercase_headers = [header.lower() for header in headers]
 
 	if adna2:
 		libraryID_index = headers.index('library_id')
@@ -65,7 +66,6 @@ def readSampleSheet_array(sample_sheet_contents_array, adna2=False):
 		plateID_index = headers.index('Capture_Name')
 		udg_index = headers.index('UDG_treatment')
 		
-		lowercase_headers = [header.lower() for header in headers]
 	try:
 		do_not_use_index = lowercase_headers.index('do_not_use')
 	except ValueError:
