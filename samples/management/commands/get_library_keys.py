@@ -1,3 +1,5 @@
+from ast import parse
+from email import parser
 import os.path
 import glob
 from django.core.management.base import BaseCommand, CommandError
@@ -81,7 +83,7 @@ class Command(BaseCommand):
 					not_found.append(library)
 		if len(not_found) > 0:
 			library_ids_as_strings = ['"{}"'.format(library_id) for library_id in not_found]
-			where_clauses = 'UPPER(experiment){}"RAW" AND library_id IN ({})'.format("<>" if raw else "=",','.join(library_ids_as_strings))
+			where_clauses = 'UPPER(experiment){}"RAW" AND library_id IN ({})'.format("=" if raw else "<>",','.join(library_ids_as_strings))
 
 			barcodes_for_concat = '"_", UPPER(p5_barcode), "_", UPPER(p7_barcode)'
 
