@@ -234,6 +234,10 @@ for c in string.ascii_lowercase:
 	c_controls += [f'c{c}']
 CONTROL_CHARACTERS = single_controls + a_controls + b_controls + c_controls
 
+class SkeletalElementCategory(models.Model):
+	category = models.CharField(max_length=50, blank=True)
+	sort_order = models.PositiveSmallIntegerField(default=1, help_text='For changing display order of categories in web interface')
+
 class Sample(Timestamped):
 	reich_lab_id = models.PositiveIntegerField(db_index=True, null=True, help_text=' assigned when a sample is selected from the queue by the wetlab')
 	control = models.CharField(max_length=2, blank=True, help_text='Non-empty value indicates this is a control')
@@ -252,6 +256,7 @@ class Sample(Timestamped):
 	individual_id = models.CharField(max_length=15, blank=True)
 	
 	skeletal_element = models.CharField(max_length=50, blank=True, help_text='Type of bone sample submitted for aDNA analysis')
+	skeletal_element_category = models.ForeignKey(SkeletalElementCategory, null=True, on_delete=models.PROTECT)
 	skeletal_code = models.CharField(max_length=150, blank=True, help_text='Sample identification code assigned by the collaborator')
 	skeletal_code_renamed = models.TextField(blank=True, help_text='Sample identification code assigned by the Reich Lab')
 	sample_date = models.TextField(blank=True, help_text='Age of sample; either a radiocarbon date or a date interval.')
