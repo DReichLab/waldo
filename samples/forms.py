@@ -4,7 +4,7 @@ from django.forms import modelformset_factory
 from django.forms.widgets import TextInput
 from django.utils.translation import gettext_lazy as _
 
-from samples.models import PowderBatch, PowderSample, Sample, SamplePrepProtocol, ControlType, ControlSet, ControlLayout, LysateBatch, ExtractionProtocol, ExpectedComplexity, SamplePrepQueue, Lysate, LysateBatchLayout, ExtractionBatch, ExtractionBatchLayout, LibraryProtocol, LibraryBatch, Extract, Storage, Library, LibraryBatchLayout, P5_Index, P7_Index, Barcode, CaptureProtocol, CaptureOrShotgunPlate, CaptureLayout, SequencingPlatform, SequencingRun
+from samples.models import PowderBatch, PowderSample, Sample, SamplePrepProtocol, ControlType, ControlSet, ControlLayout, LysateBatch, ExtractionProtocol, ExpectedComplexity, SamplePrepQueue, Lysate, LysateBatchLayout, ExtractionBatch, ExtractionBatchLayout, LibraryProtocol, LibraryBatch, Extract, Storage, Library, LibraryBatchLayout, P5_Index, P7_Index, Barcode, CaptureProtocol, CaptureOrShotgunPlate, CaptureLayout, SequencingPlatform, SequencingRun, SkeletalElementCategory
 
 import datetime
 
@@ -100,6 +100,10 @@ class SamplePrepQueueForm(UserModelForm):
 		return model
         
 SamplePrepQueueFormset = modelformset_factory(SamplePrepQueue, form=SamplePrepQueueForm, extra=0)
+
+class SkeletalElementCategorySelect(ModelChoiceField):
+	def label_from_instance(self, obj):
+		return obj.category
 	
 class PowderSampleForm(UserModelForm):
 	reich_lab_sample = CharField(disabled=True)
@@ -107,6 +111,7 @@ class PowderSampleForm(UserModelForm):
 	sample_prep_protocol = SamplePrepProtocolSelect(queryset=SamplePrepProtocol.objects.all())
 	
 	collaborator_id = CharField(disabled=True, help_text='Sample identification code assigned by the collaborator')
+	skeletal_element_category = SkeletalElementCategorySelect(queryset=SkeletalElementCategory.objects.filter().order_by('sort_order'))
 	shipment_id = CharField(disabled=True, required=False)
 	notes = CharField(disabled=True, required=False)
 	notes2 = CharField(disabled=True, required=False)
@@ -115,7 +120,7 @@ class PowderSampleForm(UserModelForm):
 	class Meta:
 		model = PowderSample
 		#'powder_sample_id', 
-		fields = ['collaborator_id', 'num_photos', 'reich_lab_sample', 'powder_sample_id', 'sampling_notes', 'total_powder_produced_mg', 'powder_for_extract', 'storage_location', 'shipment_id', 'notes', 'notes2', 'location', 'sample_prep_lab', 'sample_prep_protocol']
+		fields = ['collaborator_id', 'num_photos', 'reich_lab_sample', 'skeletal_element_category', 'powder_sample_id', 'sampling_notes', 'total_powder_produced_mg', 'powder_for_extract', 'storage_location', 'shipment_id', 'notes', 'notes2', 'location', 'sample_prep_lab', 'sample_prep_protocol']
 		widgets = {
             'sampling_notes': Textarea(attrs={'cols': 60, 'rows': 2}),
         }
@@ -128,11 +133,18 @@ class PowderSampleForm(UserModelForm):
 				self.fields['num_photos'].initial = self.instance.sample.num_existing_photos()
 				
 				self.fields['collaborator_id'].initial = self.instance.sample.skeletal_code
+				self.fields['skeletal_element_category'].initial = self.instance.sample.skeletal_element_category
 				self.fields['shipment_id'].initial = self.instance.sample.shipment.shipment_name if self.instance.sample.shipment else ''
 				self.fields['notes'].initial = self.instance.sample.notes
 				self.fields['notes2'].initial = self.instance.sample.notes_2
 				self.fields['location'].initial = self.instance.sample.location_str()
 		self.fields['powder_sample_id'].disabled = True
+		
+	def save(self, commit=True):
+		sample = self.instance.sample
+		sample.skeletal_element_category = self.cleaned_data['skeletal_element_category']
+		sample.save(save_user=self.user)
+		return super().save(commit=commit)
 		
 PowderSampleFormset = modelformset_factory(PowderSample, form=PowderSampleForm, extra=0, max_num=200)
 		

@@ -373,7 +373,7 @@ class PowderBatch(Timestamped):
 	def powder_samples_from_spreadsheet(self, spreadsheet_file, user):
 		headers, data_rows = spreadsheet_headers_and_data_rows(spreadsheet_file)
 		powder_samples = PowderSample.objects.filter(powder_batch=self)
-		if headers[0] != 'powder_sample_id':
+		if headers[0] != 'powder_sample_id-':
 			raise ValueError('powder_sample_id is not first')
 			
 		for line in data_rows:
@@ -423,7 +423,8 @@ class PowderSample(Timestamped):
 		
 	@staticmethod
 	def spreadsheet_header():
-		return ['powder_sample_id',
+		return ['powder_sample_id-',
+			'skeletal_element_category',
 			'sampling_notes',
 			'total_powder_produced_mg',
 			'powder_for_extract',
@@ -441,6 +442,7 @@ class PowderSample(Timestamped):
 	def to_spreadsheet_row(self):
 		preparation_method = self.sample_prep_protocol.preparation_method if self.sample_prep_protocol else ''
 		return [self.powder_sample_id,
+			self.sample.skeletal_element_category.category,
 			self.sampling_notes,
 			self.total_powder_produced_mg,
 			self.powder_for_extract,
@@ -454,6 +456,11 @@ class PowderSample(Timestamped):
 		]
 	# from wetlab spreadsheet
 	def from_spreadsheet_row(self, headers, arg_array, user):
+		skeletal_element_category = arg_array[headers.index('skeletal_element_category')]
+		if self.sample.skeletal_element_category.category != skeletal_element_category:
+			self.sample.skeletal_element_category = SkeletalElementCategory.objects.get(category=skeletal_element_category)
+			self.sample.save(save_user=user)
+		
 		self.sampling_notes = arg_array[headers.index('sampling_notes')]
 		self.total_powder_produced_mg = float( arg_array[headers.index('total_powder_produced_mg')])
 		self.powder_for_extract = float(arg_array[headers.index('powder_for_extract')])
