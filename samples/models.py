@@ -923,6 +923,7 @@ class LysateBatchLayout(TimestampedWellPosition):
 	def spreadsheet_header():
 		return ['well_position-', 
 			'lysate_id-',
+			'collaborator_id-',
 			'powder_batch_name-',
 			'powder_used_mg',
 			'total_volume_produced',
@@ -935,6 +936,9 @@ class LysateBatchLayout(TimestampedWellPosition):
 		values.append(str(self))
 		
 		values.append(get_value(self.lysate, 'lysate_id'))
+		
+		collaborator_id = self.powder_sample.sample.skeletal_code if self.powder_sample else ''
+		values.append(collaborator_id)
 		
 		powder_batch_name = self.powder_sample.powder_batch.name if (self.powder_sample and self.powder_sample.powder_batch) else ''
 		values.append(powder_batch_name)

@@ -51,6 +51,7 @@ Lysate Batch: {{lysate_batch_name}} has {{assigned_powder_samples_count}} distin
 		<th><button class="sort" type="button" data-sort="position">Position</button></th>
 		<th><button class="sort" type="button" data-sort="powder_sample_id">Powder Sample ID</button></th>
 		<th><button class="sort" type="button" data-sort="sample">Sample</button></th>
+		<th><button class="sort" type="button" data-sort="collaborator_id">Collaborator ID</button></th>
 		<th><button class="sort" type="button" data-sort="powder_batch">Powder Batch</button></th>
 		<th><button class="sort" type="button" data-sort="expected_complexity">Expected Complexity</button></th>
 	</tr>
@@ -64,6 +65,7 @@ Lysate Batch: {{lysate_batch_name}} has {{assigned_powder_samples_count}} distin
 		<td class="position">{{layout_element}}</td>
 		<td class="powder_sample_id">{{layout_element.powder_sample.powder_sample_id}}</td>
 		<td class="sample">S{{layout_element.powder_sample.sample.reich_lab_id}}</td>
+		<td class="collaborator_id">S{{layout_element.powder_sample.sample.skeletal_code}}</td>
 		<td class="powder_batch">{{layout_element.powder_sample.powder_batch.name}}</td>
 		<td class="expected_complexity">{{layout_element.powder_sample.sample.expected_complexity.description}}</td>
 	</tr>
@@ -76,6 +78,7 @@ Lysate Batch: {{lysate_batch_name}} has {{assigned_powder_samples_count}} distin
 		<td class="position">N/A</td>
 		<td class="powder_sample_id">{{powder_sample.powder_sample_id}}</td>
 		<td class="sample">S{{powder_sample.sample.reich_lab_id}}</td>
+		<td class="collaborator_id">S{{powder_sample.sample.skeletal_code}}</td>
 		<td class="powder_batch">{{powder_sample.powder_batch.name}}</td>
 		<td class="expected_complexity">{{powder_sample.sample.expected_complexity.description}}</td>
 	</tr>
@@ -88,7 +91,7 @@ Lysate Batch: {{lysate_batch_name}} has {{assigned_powder_samples_count}} distin
 
 <script>
 	var list_options = {
-		valueNames: ['checked', 'position', 'powder_sample_id', 'sample', 'powder_batch', 'expected_complexity'],
+		valueNames: ['checked', 'position', 'powder_sample_id', 'sample', 'collaborator_id', 'powder_batch', 'expected_complexity'],
 		searchColumns: ['powder_batch', 'expected_complexity'],
 		searchDelay: 500
 	};
