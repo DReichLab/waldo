@@ -113,6 +113,7 @@ class PowderSampleForm(UserModelForm):
 	collaborator_id = CharField(disabled=True, help_text='Sample identification code assigned by the collaborator')
 	skeletal_element_category = SkeletalElementCategorySelect(queryset=SkeletalElementCategory.objects.filter().order_by('sort_order'))
 	shipment_id = CharField(disabled=True, required=False)
+	group_label = CharField(disabled=True, required=False)
 	notes = CharField(disabled=True, required=False)
 	notes2 = CharField(disabled=True, required=False)
 	location = CharField(disabled=True)
@@ -120,7 +121,7 @@ class PowderSampleForm(UserModelForm):
 	class Meta:
 		model = PowderSample
 		#'powder_sample_id', 
-		fields = ['collaborator_id', 'num_photos', 'reich_lab_sample', 'skeletal_element_category', 'powder_sample_id', 'sampling_notes', 'total_powder_produced_mg', 'powder_for_extract', 'storage_location', 'shipment_id', 'notes', 'notes2', 'location', 'sample_prep_lab', 'sample_prep_protocol']
+		fields = ['collaborator_id', 'num_photos', 'reich_lab_sample', 'skeletal_element_category', 'powder_sample_id', 'sampling_notes', 'total_powder_produced_mg', 'powder_for_extract', 'storage_location', 'shipment_id', 'group_label', 'notes', 'notes2', 'location', 'sample_prep_lab', 'sample_prep_protocol']
 		widgets = {
             'sampling_notes': Textarea(attrs={'cols': 60, 'rows': 2}),
         }
@@ -135,6 +136,7 @@ class PowderSampleForm(UserModelForm):
 				self.fields['collaborator_id'].initial = self.instance.sample.skeletal_code
 				self.fields['skeletal_element_category'].initial = self.instance.sample.skeletal_element_category
 				self.fields['shipment_id'].initial = self.instance.sample.shipment.shipment_name if self.instance.sample.shipment else ''
+				self.fields['group_label'].initial = self.instance.sample.group_label
 				self.fields['notes'].initial = self.instance.sample.notes
 				self.fields['notes2'].initial = self.instance.sample.notes_2
 				self.fields['location'].initial = self.instance.sample.location_str()

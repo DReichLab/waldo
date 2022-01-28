@@ -431,7 +431,9 @@ class PowderSample(Timestamped):
 			'storage_location',
 			'sample_prep_lab',
 			'sample_prep_protocol',
+			'shipment_name-',
 			'collaborator_id-',
+			'group_label-',
 			'notes-',
 			'notes2-',
 			'location-',
@@ -441,6 +443,7 @@ class PowderSample(Timestamped):
 	# order corresponds to the spreadsheet header
 	def to_spreadsheet_row(self):
 		preparation_method = self.sample_prep_protocol.preparation_method if self.sample_prep_protocol else ''
+		shipment_name = self.sample.shipment.shipment_name if self.sample.shipment else ''
 		return [self.powder_sample_id,
 			self.sample.skeletal_element_category.category,
 			self.sampling_notes,
@@ -449,7 +452,9 @@ class PowderSample(Timestamped):
 			self.storage_location,
 			self.sample_prep_lab,
 			preparation_method,
+			shipment_name,
 			self.sample.skeletal_code,
+			self.sample.group_label,
 			self.sample.notes,
 			self.sample.notes_2,
 			self.sample.location_str(),
