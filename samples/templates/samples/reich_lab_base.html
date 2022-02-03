@@ -3,35 +3,49 @@
 <head>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 {% load static %}
+<link rel="stylesheet" type="text/css" href="{% static 'samples/w3.css' %}" >
 <link rel="stylesheet" type="text/css" href="{% static 'samples/style.css' %}" >
 <title>{% block title %}Reich Lab Ancient DNA{% endblock %}</title>
+
+<style>
+#reich_lab_navbar{
+	background-color: #01f1f1;
+}
+</style>
 </head>
 
 <body>
-	<div class="row">
-		<div id="sidebar" class="column side">
-			{% block sidebar %}
-			<ul>
-				<li><a href="/samples/landing">Home</a></li>
-				<!--<li><a href="/samples/sample_prep_queue">Edit Sample Prep Queue</a></li>-->
-				<li><a href="/samples/sample_prep_queue_view">See Sample Prep Queue</a></li>
-				<li><a href="/samples/powder_batches">Powder Batches</a></li>
-				<li><a href="/samples/lysate_batch">Lysate Batch</a></li>
-				<li><a href="/samples/extract_batch">Extract Batch</a></li>
-				<li><a href="/samples/library_batches">Library Batches</a></li>
-				<li><a href="/samples/capture_batches">Capture or Shotgun Batches</a></li>
-				<li><a href="/samples/sequencing_runs">Sequencing Runs</a></li>
-				<li><a href="/samples/setup">Setup and Lost Materials</a></li>
-				<li>{% if user.is_authenticated %} Logged in as: {{ user.username }} {% endif %}</li>
-				<li><a href="/samples/logout">Logout</a></li>
-				<li><a href="/samples/password_change">Change Password</a></li>
-			</ul>
-			{% endblock %}
-		</div>
-
-		<div id="content" class="column middle">
-			{% block content %}{% endblock %}
-		</div>
+	{% block sidebar %}
+	<div class="w3-sidebar w3-bar-block" style="width:200px;" id="reich_lab_navbar" >
+			<a href="/samples/landing" class="w3-bar-item w3-button">Home</a>
+			<!--<a href="/samples/sample_prep_queue" class="w3-bar-item w3-button">Edit Sample Prep Queue</a>-->
+			<a href="/samples/sample_prep_queue_view" class="w3-bar-item w3-button">See Sample Prep Queue</a>
+			<a href="/samples/powder_batches" class="w3-bar-item w3-button">Powder Batches</a>
+			<a href="/samples/lysate_batch" class="w3-bar-item w3-button">Lysate Batch</a>
+			<a href="/samples/extract_batch" class="w3-bar-item w3-button">Extract Batch</a>
+			<a href="/samples/library_batches" class="w3-bar-item w3-button">Library Batches</a>
+			<a href="/samples/capture_batches" class="w3-bar-item w3-button">Capture or Shotgun Batches</a>
+			<a href="/samples/sequencing_runs" class="w3-bar-item w3-button">Sequencing Runs</a>
+			<a href="/samples/setup" class="w3-bar-item w3-button">Setup and Lost Materials</a>
+			{% if user.is_authenticated %} Logged in as: {{ user.username }} {% endif %}
+			<a href="/samples/logout" class="w3-bar-item w3-button">Logout</a>
+			<a href="/samples/password_change" class="w3-bar-item w3-button">Change Password</a>
+		
 	</div>
+	{% endblock %}
+
+	<div class="w3-responsive" style="overflow-x:auto; height:100vh; margin-left:200px" id="content">
+		{% block content %}{% endblock %}
+	</div>
+	
+<script>
+function w3_open() {
+  document.getElementById("reich_lab_navbar").style.display = "block";
+}
+
+function w3_close() {
+  document.getElementById("reich_lab_navbar").style.display = "none";
+}
+</script>
 </body>
 </html> 
