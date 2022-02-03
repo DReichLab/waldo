@@ -2,6 +2,7 @@ from django.core.paginator import Paginator
 from django.shortcuts import redirect, render, reverse
 
 from django.http import HttpResponse, HttpResponseBadRequest
+from django.utils.http import urlencode
 
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.views import logout_then_login
@@ -20,7 +21,7 @@ from sequencing_run.models import MTAnalysis
 from .powder_samples import new_reich_lab_powder_sample, assign_prep_queue_entries_to_powder_batch
 from .layout import duplicate_positions_check, update_db_layout,  layout_objects_map_for_rendering, occupied_wells, layout_and_content_lists, PLATE_WELL_COUNT
 
-from samples.sample_photos import photo_list, save_sample_photo
+from samples.sample_photos import photo_list, save_sample_photo, delete_photo
 
 # Create your views here.
 
@@ -502,6 +503,22 @@ def sample(request):
 	
 	images = photo_list(reich_lab_sample_number)
 	return render(request, 'samples/sample.html', { 'reich_lab_sample_number': reich_lab_sample_number, 'images': images, 'form': form} )
+	
+@login_required
+def delete_sample_photo(request):
+	photo_filename = request.GET['photo_filename']
+	reich_lab_sample_number = int(request.GET['reich_lab_sample_number'])
+	
+	sample_redirect_url = reverse("sample")
+	query_string = urlencode({'sample': reich_lab_sample_number})
+	url = f'{sample_redirect_url}?{query_string}'
+	
+	if request.method == 'POST':
+		print(f'request to delete {photo_filename}')
+		delete_photo(photo_filename, reich_lab_sample_number)
+		return redirect(url)
+		
+	return render(request, 'samples/confirm_delete_sample_photo.html', {'image': photo_filename, 'link': url } )
 
 PLATE_ROWS = 'ABCDEFGH'
 WELL_PLATE_COLUMNS = range(1,13)

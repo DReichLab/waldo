@@ -1,0 +1,33 @@
+{% extends "samples/reich_lab_base.html" %}
+
+{% load static %}
+
+{% block title %} Delete {{image}} {% endblock %}
+
+{% block content %}
+
+<style>
+img{
+	max-width: 50%;
+	height: auto;
+}
+
+figure{
+	border: 4px solid blue;
+}
+</style>
+
+<form action="" method='post'>
+	{% csrf_token %}
+	Are you sure you want to delete {{image}}?
+	<input type='submit' value='DELETE {{image}}'/>
+</form>
+
+<a href={{link}}>Cancel</a>
+
+<br>
+
+<img src="{{MEDIA_URL}}{{image}}" alt="{{image}}">
+
+{% endblock %}
+
