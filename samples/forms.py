@@ -264,7 +264,7 @@ class ExtractForm(UserModelForm):
 		model = Extract
 		fields = ['well_position', 'extract_id', 'lysis_volume_extracted', 'notes']
 		widgets = {
-			'note': Textarea(attrs={'cols': 60, 'rows': 2}),
+			'notes': Textarea(attrs={'cols': 60, 'rows': 2}),
 		}
 	
 	def __init__(self, *args, **kwargs):
