@@ -519,6 +519,33 @@ def delete_sample_photo(request):
 		return redirect(url)
 		
 	return render(request, 'samples/confirm_delete_sample_photo.html', {'image': photo_filename, 'link': url } )
+	
+@login_required
+def sample_summary(request):
+	if request.method == 'POST':
+		form = SampleSelectByReichLabID(request.POST)
+		if form.is_valid():
+			sample = form.cleaned_data['sample']
+			reich_lab_sample_number = sample.reich_lab_id
+	else:
+		form = SampleSelectByReichLabID()
+		sample = None
+		sample_str = request.GET.get('sample', None)
+		if sample_str:
+			reich_lab_sample_number = reich_lab_sample_number_from_string(sample_str)
+			sample = Sample.objects.get(reich_lab_id=reich_lab_sample_number)
+	
+	if sample:
+		powder_samples = PowderSample.objects.filter(sample=sample)
+		lysate_batches = LysateBatch.objects.filter()
+		lysates = Lysate.objects.filter(powder_sample__sample=sample)
+		extracts = Extract.objects.filter(sample=sample)
+		# 
+		libraries = Library.objects.filter(Q(sample=sample) | Q(extract__sample=sample) ).distinct()
+		
+		return render(request, 'samples/sample_summary.html', { 'form': form, 'reich_lab_sample_number': reich_lab_sample_number, 'powder_samples': powder_samples, 'lysates': lysates, 'extracts': extracts, 'libraries': libraries } )
+	else:
+		return render(request, 'samples/sample_summary.html', { 'form': form, } )
 
 PLATE_ROWS = 'ABCDEFGH'
 WELL_PLATE_COLUMNS = range(1,13)

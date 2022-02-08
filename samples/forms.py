@@ -1,7 +1,7 @@
 from django import forms
 from django.forms import ModelChoiceField, ChoiceField, FileField, ModelForm, Textarea, IntegerField, CharField, BoundField, ValidationError
 from django.forms import modelformset_factory
-from django.forms.widgets import TextInput
+from django.forms.widgets import TextInput, NumberInput
 from django.utils.translation import gettext_lazy as _
 
 from samples.models import PowderBatch, PowderSample, Sample, SamplePrepProtocol, ControlType, ControlSet, ControlLayout, LysateBatch, ExtractionProtocol, ExpectedComplexity, SamplePrepQueue, Lysate, LysateBatchLayout, ExtractionBatch, ExtractionBatchLayout, LibraryProtocol, LibraryBatch, Extract, Storage, Library, LibraryBatchLayout, P5_Index, P7_Index, Barcode, CaptureProtocol, CaptureOrShotgunPlate, CaptureLayout, SequencingPlatform, SequencingRun, SkeletalElementCategory
@@ -100,6 +100,14 @@ class SamplePrepQueueForm(UserModelForm):
 		return model
         
 SamplePrepQueueFormset = modelformset_factory(SamplePrepQueue, form=SamplePrepQueueForm, extra=0)
+
+class SampleSelectByReichLabID(forms.Form):
+	sample = ModelChoiceField(
+        queryset=Sample.objects.all(),
+        widget=NumberInput,
+        help_text="Reich Lab Sample Number",
+        to_field_name='reich_lab_id'
+    )
 
 class SkeletalElementCategorySelect(ModelChoiceField):
 	def label_from_instance(self, obj):

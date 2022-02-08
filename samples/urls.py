@@ -85,6 +85,7 @@ urlpatterns = [
 	path('lost_lysate', views.lost_lysate, name='lost_lysate'),
 	path('sample', views.sample, name='sample'),
 	path('delete_sample_photo', views.delete_sample_photo, name='delete_sample_photo'),
+	path('sample_summary', views.sample_summary, name='sample_summary'),
 	
 	path('storage_all', views.storage_all, name='storage_all'),
 	path('setup', views.setup, name='setup'),
