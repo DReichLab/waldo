@@ -115,7 +115,7 @@ def sample_prep_queue(request):
 @login_required
 def sample_prep_queue_view(request):
 	# show unassigned samples
-	sample_queue = SamplePrepQueue.objects.filter(Q(powder_batch=None)).select_related('sample').select_related('sample_prep_protocol').order_by('priority')
+	sample_queue = SamplePrepQueue.objects.filter(Q(powder_batch=None)).select_related('sample').select_related('sample_prep_protocol').order_by('priority', 'id')
 	return render(request, 'samples/sample_prep_queue_view.html', { 'queued_samples': sample_queue } )
 	
 @login_required
