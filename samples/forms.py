@@ -190,14 +190,14 @@ class LysateBatchForm(UserModelForm):
 	
 	class Meta:
 		model = LysateBatch
-		fields = ['batch_name', 'protocol', 'control_set', 'date', 'robot', 'note', 'technician', 'status']
+		fields = ['batch_name', 'protocol', 'control_set', 'date', 'note', 'technician', 'status']
 		widgets = {
 			'note': Textarea(attrs={'cols': 60, 'rows': 2}),
 		}
 		
 	def __init__(self, *args, **kwargs):
 		super().__init__(*args, **kwargs)
-		for option in ['protocol', 'date', 'robot']:
+		for option in ['protocol', 'date']:
 			self.fields[option].required = False
 			
 	def disable_fields(self):
