@@ -195,7 +195,7 @@ def powder_batch_assign_samples(request):
 		form = PowderBatchForm(user=request.user, initial={'name': powder_batch_name, 'date': powder_batch.date, 'status': powder_batch.status, 'notes': powder_batch.notes}, instance=powder_batch)
 	
 	# show samples assigned to this powder batch and unassigned samples
-	sample_queue = SamplePrepQueue.objects.filter(Q(powder_batch=None, powder_sample=None) | Q(powder_batch=powder_batch)).select_related('sample').select_related('sample_prep_protocol').order_by('priority')
+	sample_queue = SamplePrepQueue.objects.filter(Q(powder_batch=None, powder_sample=None) | Q(powder_batch=powder_batch)).select_related('sample').select_related('sample_prep_protocol').order_by('priority', 'id')
 	# count for feedback
 	num_sample_prep = SamplePrepQueue.objects.filter(powder_batch=powder_batch).count()
 	num_powder_samples = PowderSample.objects.filter(powder_batch=powder_batch).count()
