@@ -606,12 +606,15 @@ def create_lysate(lysate_layout_element, lysate_batch, user):
 		next_lysate_number = lysates_for_sample(sample) +1
 		lysate_id = f'{str(sample)}.Y{next_lysate_number}'
 		print(f'created lysate id {lysate_id}')
+		# library negatives have no lysis volume
+		is_library_negative = (lysate_layout_element.control_type is not None) and (lysate_layout_element.control_type.control_type == LIBRARY_NEGATIVE)
+		total_volume_produced = lysate_batch.protocol.total_lysis_volume if not is_library_negative else 0
 		lysate = Lysate(lysate_id=lysate_id,
 					reich_lab_lysate_number=next_lysate_number,
 					powder_sample=powder_sample,
 					lysate_batch=lysate_batch,
 					powder_used_mg=powder_sample.powder_for_extract,
-					total_volume_produced=lysate_batch.protocol.total_lysis_volume)
+					total_volume_produced=total_volume_produced)
 		lysate.save(save_user=user)
 		lysate_layout_element.lysate = lysate
 		lysate_layout_element.save(save_user=user)
@@ -973,7 +976,9 @@ def create_extract_from_lysate(extract_layout_element, user):
 		return extract_layout_element.extract
 	else:
 		extract_batch = extract_layout_element.extract_batch
-		lysis_volume_extracted = extract_batch.protocol.total_lysis_volume * extract_batch.protocol.lysate_fraction_extracted
+		# library negatives have no lysis volume
+		is_library_negative = (extract_layout_element.control_type is not None) and  (extract_layout_element.control_type.control_type == LIBRARY_NEGATIVE)
+		lysis_volume_extracted = extract_batch.protocol.total_lysis_volume * extract_batch.protocol.lysate_fraction_extracted if not is_library_negative else 0
 		
 		sample = lysate.powder_sample.sample
 		next_extract_number = extracts_for_lysate(lysate) +1
