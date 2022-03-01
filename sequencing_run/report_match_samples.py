@@ -10,7 +10,8 @@ import re
 MINUS = 'minus'
 HALF = 'half'
 PLUS = 'plus'
-ALLOWED_UDG_VALUES = [MINUS, HALF, PLUS]
+CONTROL = 'control'
+ALLOWED_UDG_VALUES = [MINUS, HALF, PLUS, CONTROL]
 
 class SampleInfo:
 	def __init__(self, libraryID, plateID, experiment, udg, do_not_use, wetlab_notes):
@@ -29,7 +30,7 @@ class SampleInfo:
 
 # create dictionaries from sample sheet that map index-barcodes to library IDs (S1.E1.L1) and plate IDs(Sugarplum)
 # lookup is based on column headers
-def readSampleSheet(sample_sheet_filename, adna2=False):	
+def readSampleSheet(sample_sheet_filename, adna2=True):	
 	try:
 		return readSampleSheet_encoding(sample_sheet_filename, 'utf-8', adna2)
 	except:
@@ -40,7 +41,7 @@ def readSampleSheet_encoding(sample_sheet_filename, encoding, adna2):
 		sample_sheet_contents_array = f.readlines()
 		return readSampleSheet_array(sample_sheet_contents_array, adna2)
 
-def readSampleSheet_array(sample_sheet_contents_array, adna2=False):
+def readSampleSheet_array(sample_sheet_contents_array, adna2=True):
 	samples_parameters = {}
 	
 	header_line = sample_sheet_contents_array[0]
@@ -54,7 +55,7 @@ def readSampleSheet_array(sample_sheet_contents_array, adna2=False):
 		p5_barcode = headers.index('p5_barcode')
 		p7_barcode = headers.index('p7_barcode')
 		experiment_index = headers.index('experiment')
-		plateID_index = headers.index('p5_index')
+		plateID_index = headers.index('library_batch')
 		udg_index = headers.index('udg_treatment')
 	else:
 		libraryID_index = headers.index('Sample_Name')
