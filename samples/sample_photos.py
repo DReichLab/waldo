@@ -47,3 +47,13 @@ def save_sample_photo(uploaded_photo, reich_lab_sample_number, label):
 		for chunk in uploaded_photo.chunks():
 			destination.write(chunk)
 	Path(photo_path).chmod(0o664)
+
+# photo_relative_path is relative to settings.MEDIA_ROOT
+def delete_photo(photo_relative_path, reich_lab_sample_number):
+	photo = Path(f'{settings.MEDIA_ROOT}/{photo_relative_path}')
+	# check that the reich lab sample number is in the filename
+	if str(reich_lab_sample_number) in photo.stem:
+		photo.unlink()
+	else:
+		raise ValueError('S{reich_lab_sample_number} is not in {photo_relative_path} file name')
+	

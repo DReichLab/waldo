@@ -1,10 +1,10 @@
 from django import forms
-from django.forms import ModelChoiceField, ChoiceField, FileField, ModelForm, Textarea, IntegerField, CharField, BoundField, ValidationError
+from django.forms import ModelChoiceField, ChoiceField, FileField, ModelForm, Textarea, IntegerField, CharField, BoundField, ValidationError, FloatField
 from django.forms import modelformset_factory
-from django.forms.widgets import TextInput
+from django.forms.widgets import TextInput, NumberInput
 from django.utils.translation import gettext_lazy as _
 
-from samples.models import PowderBatch, PowderSample, Sample, SamplePrepProtocol, ControlType, ControlSet, ControlLayout, LysateBatch, ExtractionProtocol, ExpectedComplexity, SamplePrepQueue, Lysate, LysateBatchLayout, ExtractionBatch, ExtractionBatchLayout, LibraryProtocol, LibraryBatch, Extract, Storage, Library, LibraryBatchLayout, P5_Index, P7_Index, Barcode, CaptureProtocol, CaptureOrShotgunPlate, CaptureLayout, SequencingPlatform, SequencingRun
+from samples.models import PowderBatch, PowderSample, Sample, SamplePrepProtocol, ControlType, ControlSet, ControlLayout, LysateBatch, ExtractionProtocol, ExpectedComplexity, SamplePrepQueue, Lysate, LysateBatchLayout, ExtractionBatch, ExtractionBatchLayout, LibraryProtocol, LibraryBatch, Extract, Storage, Library, LibraryBatchLayout, P5_Index, P7_Index, Barcode, CaptureProtocol, CaptureOrShotgunPlate, CaptureLayout, SequencingPlatform, SequencingRun, SkeletalElementCategory
 
 import datetime
 
@@ -100,73 +100,108 @@ class SamplePrepQueueForm(UserModelForm):
 		return model
         
 SamplePrepQueueFormset = modelformset_factory(SamplePrepQueue, form=SamplePrepQueueForm, extra=0)
+
+class SampleSelectByReichLabID(forms.Form):
+	sample = ModelChoiceField(
+        queryset=Sample.objects.all(),
+        widget=NumberInput,
+        help_text="Reich Lab Sample Number",
+        to_field_name='reich_lab_id'
+    )
+
+class SkeletalElementCategorySelect(ModelChoiceField):
+	def label_from_instance(self, obj):
+		return obj.category
 	
+# base class for PowderSampleForm and LysateBatchLayoutForm
 class PowderSampleSharedForm(UserModelForm):
 	collaborator_id = CharField(disabled=True, help_text='Sample identification code assigned by the collaborator')
 	num_photos = IntegerField(disabled=True)
 	reich_lab_sample = CharField(disabled=True)
 	
-	
-	
+	skeletal_element_category = SkeletalElementCategorySelect(queryset=SkeletalElementCategory.objects.filter().order_by('sort_order'))
 	shipment_id = CharField(disabled=True, required=False)
+	group_label = CharField(disabled=True, required=False)
 	notes = CharField(disabled=True, required=False)
 	notes2 = CharField(disabled=True, required=False)
 	location = CharField(disabled=True)
 	sample_prep_protocol = SamplePrepProtocolSelect(queryset=SamplePrepProtocol.objects.all())
 	
 	class Meta:
-		
-		fields = ['collaborator_id', 'num_photos', 'reich_lab_sample', 'powder_sample_id', 'sampling_notes', 'total_powder_produced_mg', 'powder_for_extract', 'storage_location', 'shipment_id', 'notes', 'notes2', 'location', 'sample_prep_lab', 'sample_prep_protocol']
+		# the subclass will define the model
+		fields = ['collaborator_id', 'num_photos', 'reich_lab_sample', 'skeletal_element_category', 'powder_sample_id', 'sampling_notes', 'total_powder_produced_mg', 'powder_used_mg', 'storage_location', 'shipment_id', 'group_label', 'notes', 'notes2', 'location', 'sample_prep_lab', 'sample_prep_protocol']
 		widgets = {
             'sampling_notes': Textarea(attrs={'cols': 60, 'rows': 2}),
         }
 		
-	def __init__(self, *args, **kwargs):
-		super(PowderSampleForm, self).__init__(*args, **kwargs)
+	def get_sample(self):
 		if self.instance.pk:
 			if self.instance.sample: # instance is a PowderSample
 				sample = self.instance.sample
-				self.fields['powder_for_extract'].disabled = True
+				#self.fields['powder_used_mg'].disabled = True
 			elif self.instance.powder_sample.sample: # instance is a LysateBatchLayout
 				sample = self.instance.powder_sample.sample
-				
-			self.fields['reich_lab_sample'].initial = f'S{sample.reich_lab_id}'
+			else:
+				raise ValueError('No sample')
+			return sample
 		
-			self.fields['num_photos'].initial = sample.num_existing_photos()
+	def __init__(self, *args, **kwargs):
+		super().__init__(*args, **kwargs)
+		if self.instance.pk:
+			sample = self.get_sample()
+			if sample:
+				self.fields['reich_lab_sample'].initial = f'S{sample.reich_lab_id}'
 			
-			self.fields['collaborator_id'].initial = sample.skeletal_code
-			self.fields['shipment_id'].initial = sample.shipment.shipment_name if sample.shipment else ''
-			self.fields['notes'].initial = sample.notes
-			self.fields['notes2'].initial = sample.notes_2
-			self.fields['location'].initial = f'{sample.locality} {sample.country}'
+				self.fields['num_photos'].initial = sample.num_existing_photos()
+				
+				self.fields['collaborator_id'].initial = sample.skeletal_code
+				self.fields['skeletal_element_category'].initial = sample.skeletal_element_category
+				self.fields['shipment_id'].initial = sample.shipment.shipment_name if sample.shipment else ''
+				self.fields['group_label'].initial = sample.group_label
+				self.fields['notes'].initial = sample.notes
+				self.fields['notes2'].initial = sample.notes_2
+				self.fields['location'].initial = f'{sample.locality} {sample.country}'
 		self.fields['powder_sample_id'].disabled = True
 		
+	def save(self, commit=True):
+		sample = self.instance.sample
+		sample.skeletal_element_category = self.cleaned_data['skeletal_element_category']
+		sample.save(save_user=self.user)
+		return super().save(commit=commit)
+		
 class PowderSampleForm(PowderSampleSharedForm):
+	
 	class Meta(PowderSampleSharedForm.Meta):
 		model = PowderSample
 		
+		fields = PowderSampleSharedForm.Meta.fields.copy()
+		to_replace = fields.index('powder_used_mg') # if prepared powder for lysis is not needed for powders (rather than LysateBatchLayout), then we can remove this
+		fields[to_replace] = 'powder_for_extract'
+		
+	def __init__(self, *args, **kwargs):
+		super().__init__(*args, **kwargs)
+		
 PowderSampleFormset = modelformset_factory(PowderSample, form=PowderSampleForm, extra=0, max_num=200)
 
-class PowderSampleStandaloneForm(forms.Form):
-	powder_sample = None
-	layout_element = None
+# Powder batches generate a lysate batch layout element for each powder sample
+# This is separately weighed and stored for use in the next lysate batch
+# 
+class LysateBatchLayoutForm(PowderSampleSharedForm):
+	# These are 
+	powder_sample_id = CharField(disabled=True, required=False)
+	sampling_notes = CharField(required=True)
 	
-	reich_lab_sample = CharField(disabled=True)
-	num_photos = IntegerField(disabled=True)
-	sample_prep_protocol = SamplePrepProtocolSelect(queryset=SamplePrepProtocol.objects.all())
+	total_powder_produced_mg = FloatField(min_value=0)
+	storage_location = CharField(required=False)
+	sample_prep_lab  = CharField(required=False)
 	
-	collaborator_id = CharField(disabled=True, help_text='Sample identification code assigned by the collaborator')
-	shipment_id = CharField(disabled=True, required=False)
-	notes = CharField(disabled=True, required=False)
-	notes2 = CharField(disabled=True, required=False)
-	location = CharField(disabled=True)
-
-class LysateBatchLayoutForm(UserModelForm):
-	
-	
-	class Meta:
+	class Meta(PowderSampleSharedForm.Meta):
 		model = LysateBatchLayout
-		fields = '__all__'
+		
+	def __init__(self, *args, **kwargs):
+		super().__init__(*args, **kwargs)
+		
+PowderSampleFormset = modelformset_factory(PowderSample, form=PowderSampleForm, extra=0, max_num=200)
 		
 class ExtractionProtocolForm(UserModelForm):
 	class Meta:
@@ -200,14 +235,14 @@ class LysateBatchForm(UserModelForm):
 	
 	class Meta:
 		model = LysateBatch
-		fields = ['batch_name', 'protocol', 'control_set', 'date', 'robot', 'note', 'technician', 'status']
+		fields = ['batch_name', 'protocol', 'control_set', 'date', 'note', 'technician', 'status']
 		widgets = {
 			'note': Textarea(attrs={'cols': 60, 'rows': 2}),
 		}
 		
 	def __init__(self, *args, **kwargs):
 		super().__init__(*args, **kwargs)
-		for option in ['protocol', 'date', 'robot']:
+		for option in ['protocol', 'date']:
 			self.fields[option].required = False
 			
 	def disable_fields(self):
@@ -216,10 +251,11 @@ class LysateBatchForm(UserModelForm):
 			
 class LysateForm(UserModelForm):
 	well_position = forms.CharField(disabled=True)
+	collaborator_id = forms.CharField(disabled=True, required=False)
 	powder_batch_name = forms.CharField(disabled=True, required=False)
 	class Meta:
 		model = Lysate
-		fields = ['well_position', 'lysate_id', 'powder_batch_name', 'powder_used_mg', 'total_volume_produced', 'plate_id', 'barcode', 'notes']
+		fields = ['well_position', 'lysate_id', 'collaborator_id', 'powder_batch_name', 'powder_used_mg', 'total_volume_produced', 'plate_id', 'barcode', 'notes']
 		widgets = {
 			'notes': Textarea(attrs={'cols': 60, 'rows': 2}),
 		}
@@ -232,8 +268,11 @@ class LysateForm(UserModelForm):
 			layout_elements = self.instance.lysatebatchlayout_set
 			layout_element = layout_elements.get(lysate=self.instance)
 			self.initial['well_position'] = str(layout_element)
-			if self.instance.powder_sample and self.instance.powder_sample.powder_batch:
-				self.initial['powder_batch_name'] =  self.instance.powder_sample.powder_batch.name
+			if self.instance.powder_sample:
+				if self.instance.powder_sample.sample:
+					self.initial['collaborator_id'] = self.instance.powder_sample.sample.skeletal_code
+				if self.instance.powder_sample.powder_batch:
+					self.initial['powder_batch_name'] =  self.instance.powder_sample.powder_batch.name
 		
 LysateFormset = modelformset_factory(Lysate, form=LysateForm, extra=0)
 
@@ -278,7 +317,7 @@ class ExtractForm(UserModelForm):
 		model = Extract
 		fields = ['well_position', 'extract_id', 'lysis_volume_extracted', 'notes']
 		widgets = {
-			'note': Textarea(attrs={'cols': 60, 'rows': 2}),
+			'notes': Textarea(attrs={'cols': 60, 'rows': 2}),
 		}
 	
 	def __init__(self, *args, **kwargs):

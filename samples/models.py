@@ -234,6 +234,10 @@ for c in string.ascii_lowercase:
 	c_controls += [f'c{c}']
 CONTROL_CHARACTERS = single_controls + a_controls + b_controls + c_controls
 
+class SkeletalElementCategory(models.Model):
+	category = models.CharField(max_length=50, blank=True)
+	sort_order = models.PositiveSmallIntegerField(default=1, help_text='For changing display order of categories in web interface')
+
 class Sample(Timestamped):
 	reich_lab_id = models.PositiveIntegerField(db_index=True, null=True, help_text=' assigned when a sample is selected from the queue by the wetlab')
 	control = models.CharField(max_length=2, blank=True, help_text='Non-empty value indicates this is a control')
@@ -252,6 +256,7 @@ class Sample(Timestamped):
 	individual_id = models.CharField(max_length=15, blank=True)
 	
 	skeletal_element = models.CharField(max_length=50, blank=True, help_text='Type of bone sample submitted for aDNA analysis')
+	skeletal_element_category = models.ForeignKey(SkeletalElementCategory, null=True, on_delete=models.PROTECT)
 	skeletal_code = models.CharField(max_length=150, blank=True, help_text='Sample identification code assigned by the collaborator')
 	skeletal_code_renamed = models.TextField(blank=True, help_text='Sample identification code assigned by the Reich Lab')
 	sample_date = models.TextField(blank=True, help_text='Age of sample; either a radiocarbon date or a date interval.')
@@ -305,6 +310,9 @@ class Sample(Timestamped):
 			return num_sample_photos(self.reich_lab_id)
 		else:
 			return 0
+			
+	def location_str(self):
+		return f'{self.locality} {self.country}'
 			
 	# 1. Used to generate extract object for an external sample received as an extract.
 	# 2. Used for library negative controls starting at the library batch step. 
@@ -389,7 +397,7 @@ class PowderBatch(Timestamped):
 		# assign reich lab sample number
 		# Open is the state where samples can be added. If it is not open, then create the powder sample and assign Reich lab sample number
 		if self.status not in [self.OPEN, self.STOP]:
-			for sample_prep_entry in SamplePrepQueue.objects.filter(powder_batch=self):
+			for sample_prep_entry in SamplePrepQueue.objects.filter(powder_batch=self).order_by('id'):
 				sample_prep_entry.new_reich_lab_powder_sample(user)
 		return failed_assignments
 		
@@ -409,7 +417,7 @@ class PowderBatch(Timestamped):
 				powder_prep_entry.save(save_user=user)
 		# Open is the state where samples can be added. If it is not open, then create the powder sample and assign Reich lab sample number
 		if self.status not in [self.OPEN, self.STOP]:
-			for powder_prep_entry in PowderPrepQueue.objects.filter(powder_batch=self):
+			for powder_prep_entry in PowderPrepQueue.objects.filter(powder_batch=self).order_by('id'):
 				powder_prep_entry.new_reich_lab_powder_sample(user)
 	
 	# modify powder samples from spreadsheet
@@ -417,7 +425,7 @@ class PowderBatch(Timestamped):
 	def powder_samples_from_spreadsheet(self, spreadsheet_file, user):
 		headers, data_rows = spreadsheet_headers_and_data_rows(spreadsheet_file)
 		powder_samples = PowderSample.objects.filter(powder_batch=self)
-		if headers[0] != 'powder_sample_id':
+		if headers[0] != 'powder_sample_id-':
 			raise ValueError('powder_sample_id is not first')
 			
 		for line in data_rows:
@@ -434,6 +442,7 @@ class PowderBatch(Timestamped):
 		
 	# close status if all powders have been assigned and status is ready to plate
 	# ready to plate status if status was closed but not all powders are assigned
+	# FIXME account for powder preps too
 	def close_if_finished(self, any_status=False):
 		expected = self.powdersample_set.all().count()
 		assigned = self.number_plated_powder_samples()
@@ -467,28 +476,49 @@ class PowderSample(Timestamped):
 		
 	@staticmethod
 	def spreadsheet_header():
-		return ['powder_sample_id',
+		return ['powder_sample_id-',
+			'skeletal_element_category',
 			'sampling_notes',
 			'total_powder_produced_mg',
 			'powder_for_extract',
 			'storage_location',
 			'sample_prep_lab',
-			'sample_prep_protocol']
+			'sample_prep_protocol',
+			'shipment_name-',
+			'collaborator_id-',
+			'group_label-',
+			'notes-',
+			'notes2-',
+			'location-',
+			]
 		
 	# for wetlab spreadsheet, return array to output as tsv
 	# order corresponds to the spreadsheet header
 	def to_spreadsheet_row(self):
 		preparation_method = self.sample_prep_protocol.preparation_method if self.sample_prep_protocol else ''
+		shipment_name = self.sample.shipment.shipment_name if self.sample.shipment else ''
 		return [self.powder_sample_id,
+			self.sample.skeletal_element_category.category,
 			self.sampling_notes,
 			self.total_powder_produced_mg,
 			self.powder_for_extract,
 			self.storage_location,
 			self.sample_prep_lab,
-			preparation_method
+			preparation_method,
+			shipment_name,
+			self.sample.skeletal_code,
+			self.sample.group_label,
+			self.sample.notes,
+			self.sample.notes_2,
+			self.sample.location_str(),
 		]
 	# from wetlab spreadsheet
 	def from_spreadsheet_row(self, headers, arg_array, user):
+		skeletal_element_category = arg_array[headers.index('skeletal_element_category')]
+		if self.sample.skeletal_element_category.category != skeletal_element_category:
+			self.sample.skeletal_element_category = SkeletalElementCategory.objects.get(category=skeletal_element_category)
+			self.sample.save(save_user=user)
+		
 		self.sampling_notes = arg_array[headers.index('sampling_notes')]
 		self.total_powder_produced_mg = float( arg_array[headers.index('total_powder_produced_mg')])
 		self.powder_for_extract = float(arg_array[headers.index('powder_for_extract')])
@@ -569,12 +599,15 @@ def create_lysate(lysate_layout_element, lysate_batch, user):
 		next_lysate_number = lysates_for_sample(sample) +1
 		lysate_id = f'{str(sample)}.Y{next_lysate_number}'
 		print(f'created lysate id {lysate_id}')
+		# library negatives have no lysis volume
+		is_library_negative = (lysate_layout_element.control_type is not None) and (lysate_layout_element.control_type.control_type == LIBRARY_NEGATIVE)
+		total_volume_produced = lysate_batch.protocol.total_lysis_volume if not is_library_negative else 0
 		lysate = Lysate(lysate_id=lysate_id,
 					reich_lab_lysate_number=next_lysate_number,
 					powder_sample=powder_sample,
 					lysate_batch=lysate_batch,
 					powder_used_mg=powder_sample.powder_for_extract,
-					total_volume_produced=lysate_batch.protocol.total_lysis_volume)
+					total_volume_produced=total_volume_produced)
 		lysate.save(save_user=user)
 		lysate_layout_element.lysate = lysate
 		lysate_layout_element.save(save_user=user)
@@ -887,6 +920,7 @@ class LysateBatchLayout(TimestampedWellPosition):
 	def spreadsheet_header():
 		return ['well_position-', 
 			'lysate_id-',
+			'collaborator_id-',
 			'powder_batch_name-',
 			'powder_used_mg',
 			'total_volume_produced',
@@ -899,6 +933,9 @@ class LysateBatchLayout(TimestampedWellPosition):
 		values.append(str(self))
 		
 		values.append(get_value(self.lysate, 'lysate_id'))
+		
+		collaborator_id = self.powder_sample.sample.skeletal_code if self.powder_sample else ''
+		values.append(collaborator_id)
 		
 		powder_batch_name = self.powder_sample.powder_batch.name if (self.powder_sample and self.powder_sample.powder_batch) else ''
 		values.append(powder_batch_name)
@@ -933,7 +970,9 @@ def create_extract_from_lysate(extract_layout_element, user):
 		return extract_layout_element.extract
 	else:
 		extract_batch = extract_layout_element.extract_batch
-		lysis_volume_extracted = extract_batch.protocol.total_lysis_volume * extract_batch.protocol.lysate_fraction_extracted
+		# library negatives have no lysis volume
+		is_library_negative = (extract_layout_element.control_type is not None) and  (extract_layout_element.control_type.control_type == LIBRARY_NEGATIVE)
+		lysis_volume_extracted = extract_batch.protocol.total_lysis_volume * extract_batch.protocol.lysate_fraction_extracted if not is_library_negative else 0
 		
 		sample = lysate.powder_sample.sample
 		next_extract_number = extracts_for_lysate(lysate) +1

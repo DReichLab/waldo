@@ -29,32 +29,43 @@ class SampleInfo:
 
 # create dictionaries from sample sheet that map index-barcodes to library IDs (S1.E1.L1) and plate IDs(Sugarplum)
 # lookup is based on column headers
-def readSampleSheet(sample_sheet_filename):	
+def readSampleSheet(sample_sheet_filename, adna2=False):	
 	try:
-		return readSampleSheet_encoding(sample_sheet_filename, 'utf-8')
+		return readSampleSheet_encoding(sample_sheet_filename, 'utf-8', adna2)
 	except:
-		return readSampleSheet_encoding(sample_sheet_filename, 'windows-1252')
+		return readSampleSheet_encoding(sample_sheet_filename, 'windows-1252', adna2)
 
-def readSampleSheet_encoding(sample_sheet_filename, encoding):
+def readSampleSheet_encoding(sample_sheet_filename, encoding, adna2):
 	with open(sample_sheet_filename, encoding=encoding, errors='surrogateescape') as f:
 		sample_sheet_contents_array = f.readlines()
-		return readSampleSheet_array(sample_sheet_contents_array)
+		return readSampleSheet_array(sample_sheet_contents_array, adna2)
 
-def readSampleSheet_array(sample_sheet_contents_array):
+def readSampleSheet_array(sample_sheet_contents_array, adna2=False):
 	samples_parameters = {}
 	
 	header_line = sample_sheet_contents_array[0]
 	headers = re.split('\t|\n', header_line)
-	libraryID_index = headers.index('Sample_Name')
-	i5_index = headers.index('Index2')
-	i7_index = headers.index('Index')
-	p5_barcode = headers.index('P5_barcode')
-	p7_barcode = headers.index('P7_barcode')
-	experiment_index = headers.index('Experiment')
-	plateID_index = headers.index('Capture_Name')
-	udg_index = headers.index('UDG_treatment')
-	
 	lowercase_headers = [header.lower() for header in headers]
+
+	if adna2:
+		libraryID_index = headers.index('library_id')
+		i5_index = headers.index('p5_index')
+		i7_index = headers.index('p7_index')
+		p5_barcode = headers.index('p5_barcode')
+		p7_barcode = headers.index('p7_barcode')
+		experiment_index = headers.index('experiment')
+		plateID_index = headers.index('p5_index')
+		udg_index = headers.index('udg_treatment')
+	else:
+		libraryID_index = headers.index('Sample_Name')
+		i5_index = headers.index('Index2')
+		i7_index = headers.index('Index')
+		p5_barcode = headers.index('P5_barcode')
+		p7_barcode = headers.index('P7_barcode')
+		experiment_index = headers.index('Experiment')
+		plateID_index = headers.index('Capture_Name')
+		udg_index = headers.index('UDG_treatment')
+		
 	try:
 		do_not_use_index = lowercase_headers.index('do_not_use')
 	except ValueError:

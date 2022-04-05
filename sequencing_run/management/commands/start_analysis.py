@@ -1,3 +1,4 @@
+from email.policy import default
 from django.core.management.base import BaseCommand, CommandError
 from django.conf import settings
 from django.utils import timezone
@@ -27,6 +28,7 @@ class Command(BaseCommand):
 		parser.add_argument('--medium_priority', action='store_true')
 		parser.add_argument('--ignore_barcodes', action='store_true')
 		parser.add_argument('--threshold_reads', type=int, default=-1)
+		parser.add_argument('--mysql_ibk', action='store_true')
 		
 	def handle(self, *args, **options):
 		date_string = options['date_string']
@@ -40,6 +42,7 @@ class Command(BaseCommand):
 		allow_new_sequencing_run_id = options['allow_new_sequencing_run_id']
 		ignore_barcodes = options['ignore_barcodes']
 		threshold_reads = options['threshold_reads']
+		mysql_ibk = options['mysql_ibk']
 		
 		combined_sequencing_run_name = '_'.join(sequencing_run_names)
 		
@@ -72,4 +75,4 @@ class Command(BaseCommand):
 		if create_illumina_entry:
 			seq_run, created = SequencingRun.objects.get_or_create(illumina_directory=source_illumina_dir)
 		
-		start_analysis(source_illumina_dir, combined_sequencing_run_name, sequencing_date, number_top_samples_to_demultiplex, sequencing_run_names, copy, hold, allow_new_sequencing_run_id, is_broad, is_broad_shotgun, library_ids, additional_replacements, query_name, ignore_barcodes, threshold_reads)
+		start_analysis(source_illumina_dir, combined_sequencing_run_name, sequencing_date, number_top_samples_to_demultiplex, sequencing_run_names, copy, hold, allow_new_sequencing_run_id, is_broad, is_broad_shotgun, library_ids, additional_replacements, query_name, ignore_barcodes, threshold_reads, mysql_ibk)

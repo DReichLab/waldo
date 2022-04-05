@@ -1,5 +1,6 @@
 from sequencing_run.ssh_command import ssh_command
 from sequencing_run.models import SequencingRun, SequencingRunID, SequencingAnalysisRun, Flowcell, OrderedSequencingRunID
+from samples.models import CaptureLayout
 from sequencing_run.barcode_prep import barcodes_set, i5_set, i7_set
 import os
 import re
@@ -29,7 +30,7 @@ def get_scratch_directory():
 	return directory
 
 # additional_replacements is for string replacements in json and sh template files. These are used for i5 and i7 index labels for Broad shotgun sequencing. 
-def start_analysis(source_illumina_dir, combined_sequencing_run_name, sequencing_date, number_top_samples_to_demultiplex, sequencing_run_names, copy_illumina=True, hold=False, allow_new_sequencing_run_id=False, is_broad=False, is_broad_shotgun=False, library_ids=[], additional_replacements={}, query_names = None, ignore_barcodes=False, threshold_reads=-1):
+def start_analysis(source_illumina_dir, combined_sequencing_run_name, sequencing_date, number_top_samples_to_demultiplex, sequencing_run_names, copy_illumina=True, hold=False, allow_new_sequencing_run_id=False, is_broad=False, is_broad_shotgun=False, library_ids=[], additional_replacements={}, query_names = None, ignore_barcodes=False, threshold_reads=-1, mysql_ibk=False):
 	date_string = sequencing_date.strftime('%Y%m%d')
 	destination_directory = date_string + '_' + combined_sequencing_run_name
 	
@@ -62,8 +63,11 @@ def start_analysis(source_illumina_dir, combined_sequencing_run_name, sequencing
 
 		print('building input files')
 		names_for_queries = sequencing_run_names if query_names is None else query_names
-		# index-barcode key file
-		index_barcode_keys_used(date_string, combined_sequencing_run_name, names_for_queries, library_ids, ignore_barcodes)
+		# index-barcode key file should be generated from adna2 unless specified otherwise
+		if mysql_ibk:
+			index_barcode_keys_used(date_string, combined_sequencing_run_name, names_for_queries, library_ids, ignore_barcodes)
+		else:
+			adna2_index_barcode_keys_used(date_string, combined_sequencing_run_name, names_for_queries)
 		# barcode and index files for run
 		barcodes_set(date_string, combined_sequencing_run_name, names_for_queries)
 		# include explicit i5 and i7 in the allowed lists
@@ -271,7 +275,12 @@ def get_demultiplex_report(sequencing_date_string, combined_sequencing_run_name)
 
 # specify library_ids to restrict by library_id. 
 # This is designed for Broad shotgun sequencing, where the sample sheet has multiple libraries, but a lane is processed separately with only one library
-def index_barcode_keys_used(sequencing_date_string, combined_sequencing_run_name, sequencing_run_names, library_ids=[], ignore_barcodes=False):
+def index_barcode_keys_used(sequencing_date_string, combined_sequencing_run_name, sequencing_run_names, library_ids=[], ignore_barcodes=False, output_dir=""):
+	file_name = "{}_{}.index_barcode_keys".format(sequencing_date_string, combined_sequencing_run_name)
+	if output_dir == "":
+		target_file = "{0}/{1}_{2}/{3}".format(settings.RUN_FILES_DIRECTORY, sequencing_date_string, combined_sequencing_run_name, file_name)
+	else:
+		target_file = os.path.abspath("{}/{}".format(output_dir, file_name))
 	where_clauses = " OR ".join(['sequencing_id="{}"'.format(name) for name in sequencing_run_names])
 	barcodes_for_concat = '"_", UPPER(p5_barcode), "_", UPPER(p7_barcode)'
 	if library_ids is not None and len(library_ids) > 0:
@@ -281,8 +290,62 @@ def index_barcode_keys_used(sequencing_date_string, combined_sequencing_run_name
 	queryForKeys = 'SELECT DISTINCT CONCAT(UPPER(p5_index), "_", UPPER(p7_index), {}), library_id, plate_id, experiment FROM sequenced_library WHERE {};'.format(barcodes_for_concat if not ignore_barcodes else '"__"', where_clauses)
 	
 	host = settings.COMMAND_HOST
-	command = "mysql devadna -N -e '{0}' > {1}/{2}_{3}/{2}_{3}.index_barcode_keys".format(queryForKeys, settings.RUN_FILES_DIRECTORY, sequencing_date_string, combined_sequencing_run_name)
+	command = "mysql devadna -N -e '{}' > {}".format(queryForKeys, target_file)
 	ssh_command(host, command, True, True)
+
+# Pull index_barcode_keys from adna2 and create *.index_barcode_keys file in the rundirectory
+def adna2_index_barcode_keys_used(sequencing_date_string, combined_sequencing_run_name, sequencing_run_names, output_dir=""):
+	file_name = "{}_{}.index_barcode_keys".format(sequencing_date_string, combined_sequencing_run_name)
+	if output_dir == "":
+		target_file = "{0}/{1}_{2}/{3}".format(settings.RUN_FILES_DIRECTORY, sequencing_date_string, combined_sequencing_run_name, file_name)
+	else:
+		target_file = os.path.abspath("{}/{}".format(output_dir, file_name))
+	keys_queryset = CaptureLayout.objects.filter(sequencingrun__name__in=sequencing_run_names)
+	with open(target_file, 'w') as f:
+		for key in keys_queryset:
+			# Try to grab indices and barcodes, make blank if not in database
+			try:
+				p5_index = key.p5_index.sequence
+			except:
+				p5_index = ''
+			try:
+				p7_index = key.p7_index.sequence
+			except:
+				p7_index = ''
+			try:
+				p5_barcode = key.library.p5_barcode.sequence
+			except:
+				p5_barcode = ''
+			try:
+				p7_barcode = key.library.p7_barcode.sequence
+			except:
+				p7_barcode = ''
+			
+			# Determine if this is a library or a control.
+			# If it's a control, parse the name for the output file
+			library = key.library
+			if library is None:
+				library = key.control_type.control_type
+				if library == 'PCR Negative':
+					library = 'Contl.PCR'
+				elif library == 'Capture Positive':
+					library = 'Contl.Capture'
+			else:
+				library = library.reich_lab_library_id
+			
+			# Grab capture batch id
+			capture_batch = key.capture_batch.name
+
+			# Grab and parse experiment names
+			experiment = key.capture_batch.protocol.name
+			if 'Twist' in experiment:
+					experiment = 'Twist1.4M'
+			elif '1240k' in experiment:
+					experiment = '1240K+'
+			
+			# Format and write index_barcode_key line to the file
+			f.write("{}_{}_{}_{}\t{}\t{}\t{}\n".format(p5_index, p7_index, p5_barcode, p7_barcode, library, capture_batch, experiment))
+	pass
 
 # Shotgun data may arrive with no indices. Find the i5 and i7 indices for a library. 
 # One use is the replacement these indices in the JSON parameter file
