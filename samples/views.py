@@ -608,7 +608,7 @@ def lysate_batch_plate_layout(request):
 def lost_powder(request):
 	page_number = request.GET.get('page', 1)
 	page_size = request.GET.get('page_size', 25)
-	whole_queue = LysateBatchLayout.objects.filter(lysate_batch=None).order_by('-modification_timestamp')
+	whole_queue = LysateBatchLayout.objects.filter(lysate_batch=None, is_lost=True).order_by('-modification_timestamp')
 	paginator = Paginator(whole_queue, page_size)
 	page_obj = paginator.get_page(page_number)
 	page_obj.ordered = True

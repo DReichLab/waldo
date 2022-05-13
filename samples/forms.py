@@ -374,7 +374,7 @@ class LostPowderForm(UserModelForm):
 	
 	class Meta:
 		model = LysateBatchLayout
-		fields = ['powder_sample', 'powder_used_mg', 'notes', 'created_by']
+		fields = ['powder_sample', 'powder_used_mg', 'is_lost', 'notes', 'created_by']
 		widgets = {
 			'notes': Textarea(attrs={'cols': 60, 'rows': 2}),
 		}
@@ -386,6 +386,7 @@ class LostPowderForm(UserModelForm):
 			self.initial.update({'powder_sample': self.instance.powder_sample.powder_sample_id})
 		else:
 			self.fields['powder_sample'].initial = None
+		self.fields['is_lost'].disabled = True
 		self.fields['created_by'].disabled = True
 			
 	def save(self, commit=True):
