@@ -14,7 +14,7 @@ import json
 from datetime import datetime
 
 from samples.pipeline import udg_and_strandedness
-from samples.models import Results, Library, Sample, PowderBatch, WetLabStaff, PowderSample, ControlType, ControlSet, ControlLayout, ExtractionProtocol, LysateBatch, SamplePrepQueue, PLATE_ROWS, LysateBatchLayout, ExtractionBatch, ExtractionBatchLayout, Lysate, LibraryBatch, LibraryBatchLayout, Extract, CaptureOrShotgunPlate, CaptureLayout, Storage
+from samples.models import Results, Library, Sample, PowderBatch, WetLabStaff, PowderSample, ControlType, ControlSet, ControlLayout, ExtractionProtocol, LysateBatch, SamplePrepQueue, PowderPrepQueue, PLATE_ROWS, LysateBatchLayout, ExtractionBatch, ExtractionBatchLayout, Lysate, LibraryBatch, LibraryBatchLayout, Extract, CaptureOrShotgunPlate, CaptureLayout, Storage
 from .forms import *
 from sequencing_run.models import MTAnalysis
 
@@ -130,6 +130,12 @@ def sample_prep_queue_spreadsheet(request):
 	for x in sample_queue:
 		writer.writerow(x.to_spreadsheet_row())
 	return response
+	
+@login_required
+def powder_prep_queue_view(request):
+	# show unassigned powders
+	sample_queue = PowderPrepQueue.objects.filter(Q(powder_batch=None)).select_related('sample').select_related('sample_prep_protocol').order_by('priority', 'id')
+	return render(request, 'samples/powder_prep_queue_view.html', { 'queued_samples': sample_queue } )
 
 @login_required
 def control_types(request):
@@ -185,10 +191,20 @@ def powder_batch_assign_samples(request):
 			# these are the ticked checkboxes. Values are the ids of SamplePrepQueue objects
 			sample_prep_ids = request.POST.getlist('sample_checkboxes[]')
 			# accounting for sample prep queue and samples, including assigning Reich Lab sample ID
-			assign_prep_queue_entries_to_powder_batch(powder_batch, sample_prep_ids, request.user)
+			# powder queue checkboxes are separate
+			powder_prep_ids = request.POST.getlist('powder_checkboxes[]')
 			
-			if powder_batch.status not in [powder_batch.STOP, powder_batch.OPEN]:
-				return redirect(f'{reverse("powder_samples")}?powder_batch={powder_batch_name}')
+			# allow only all sample or all powder batches, not mixed batches
+			if not (len(sample_prep_ids) > 0 and len(powder_prep_ids) > 0):
+				powder_batch.assign_sample_prep_queue_entries(sample_prep_ids, request.user)
+				powder_batch.assign_powder_prep_queue_entries(powder_prep_ids, request.user)
+				
+				if powder_batch.status not in [powder_batch.STOP, powder_batch.OPEN]:
+					return redirect(f'{reverse("powder_samples")}?powder_batch={powder_batch_name}')
+			else:
+				# this should be detected and prevented in HTML
+				raise ValueError('Powder batch contains both samples and powders')
+			
 		
 	elif request.method == 'GET':
 		form = PowderBatchForm(user=request.user, initial={'name': powder_batch_name, 'date': powder_batch.date, 'status': powder_batch.status, 'notes': powder_batch.notes}, instance=powder_batch)
@@ -197,8 +213,13 @@ def powder_batch_assign_samples(request):
 	sample_queue = SamplePrepQueue.objects.filter(Q(powder_batch=None, powder_sample=None) | Q(powder_batch=powder_batch)).select_related('sample').select_related('sample_prep_protocol').order_by('priority', 'id')
 	# count for feedback
 	num_sample_prep = SamplePrepQueue.objects.filter(powder_batch=powder_batch).count()
+	
+	# samples starting from powder
+	powder_queue = PowderPrepQueue.objects.filter(Q(powder_batch=None) | Q(powder_batch=powder_batch)).select_related('sample').select_related('sample_prep_protocol').order_by('priority', 'id')
+	num_powder_prep = PowderPrepQueue.objects.filter(powder_batch=powder_batch).count()
+	
 	num_powder_samples = PowderSample.objects.filter(powder_batch=powder_batch).count()
-	return render(request, 'samples/powder_batch_assign_sample.html', { 'queued_samples': sample_queue, 'powder_batch_name': powder_batch_name, 'form': form, 'num_sample_prep': num_sample_prep, 'num_powder_samples': num_powder_samples } )
+	return render(request, 'samples/powder_batch_assign_sample.html', { 'queued_samples': sample_queue, 'queued_powders': powder_queue, 'powder_batch_name': powder_batch_name, 'form': form, 'num_sample_prep': num_sample_prep, 'num_powder_samples': num_powder_samples, 'num_powder_prep': num_powder_prep } )
 	
 @login_required
 def powder_batch_delete(request):
@@ -386,11 +407,14 @@ def lysate_batch_assign_powder(request):
 	)
 	'''
 	layout_powder_samples_already_selected = LysateBatchLayout.objects.filter(lysate_batch=lysate_batch, control_type=None).order_by('row', 'column').select_related('powder_sample')
+	powder_samples_unselected = LysateBatchLayout.objects.filter(lysate_batch=None).order_by('powder_batch', 'powder_sample__sample__reich_lab_id')
+	'''
 	powder_samples_unselected = PowderSample.objects.annotate(num_assignments=Count('lysatebatchlayout')).annotate(assigned_to_lysate_batch=Count('lysatebatchlayout', filter=Q(lysatebatchlayout__lysate_batch=lysate_batch))).filter(
 		Q(num_assignments=0) &
 		(Q(powder_batch__status=PowderBatch.READY_FOR_PLATE)
 		| (Q(powder_batch=None) & ~Q(powder_sample_id__endswith='NP')))# powder samples directly from collaborators will not have powder batch. Exclude controls. 
 	).order_by('powder_batch', 'sample__reich_lab_id')
+	'''
 	#powder_samples = powder_samples_already_selected.union(powder_samples_unselected).order_by('id')
 	
 	powder_samples = {}

@@ -71,7 +71,7 @@ Powder Batch: {{powder_batch_name}} has {{num_sample_prep}} sample prep entries 
 			<input class="sample_checkbox" type="checkbox" name="sample_checkboxes[]" id="checkboxS{{queued.id}}" value="{{queued.id}}" onclick="update_count()" {% if queued.powder_batch != None %}checked{% endif %}>
 		</td>
 		<td class="priority">{{queued.priority}}</td>
-		<td class="starting_material"></td>
+		<td class="starting_material">Bone</td>
 		<td class="expected_complexity">{{queued.sample.expected_complexity.description}}</td>
 		<td class="sampling_tech">{{queued.sample_prep_protocol.preparation_method}}</td>
 		<td class="udg">{{queued.udg_treatment}}</td>
@@ -127,7 +127,13 @@ Powder Batch: {{powder_batch_name}} has {{num_sample_prep}} sample prep entries 
 	
 	document.querySelectorAll("input[type=checkbox]").forEach(input => {
 		input.addEventListener("click", (e) => {
-			e.target.checked ? overall_count += 1 : overall_count -= 1;
+			if (check_all_sample_or_all_powder()){
+				e.target.checked ? overall_count += 1 : overall_count -= 1;
+			}
+			else{
+				e.target.checked = !e.target.checked;
+				alert('Cannot mix samples from bone with samples from powder');
+			}
 			update_count();
 		})
 	})
@@ -180,6 +186,25 @@ Powder Batch: {{powder_batch_name}} has {{num_sample_prep}} sample prep entries 
 		}
 		update_count();
 		//alert('toggle ' + String(visible.length) + " " + String(matching.length));
+	}
+	
+	// alert if powder batch contains both samples starting from bone and powder and returns false
+	function check_all_sample_or_all_powder(){
+		var matching = sample_list.matchingItems;
+		// 
+		let from_bone = false;
+		let from_powder = false;
+		for (let i = 0; i < matching.length; i++) {
+			let checkbox_id = 'checkbox' + matching[i]._values['prep_queue_id'];
+			let sample_checkbox = document.getElementById(checkbox_id);
+			if (matching[i]._values['starting_material'] == 'Bone'){
+				from_bone ||= sample_checkbox.checked;
+			}
+			else if (matching[i]._values['starting_material'] == 'Powder'){
+				from_powder ||= sample_checkbox.checked;
+			}
+		}
+		return !(from_bone && from_powder);
 	}
 </script>
 

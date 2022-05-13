@@ -15,6 +15,8 @@ urlpatterns = [
 	path('sample_prep_queue_view', views.sample_prep_queue_view, name='sample_prep_queue_view'),
 	path('sample_prep_queue_spreadsheet', views.sample_prep_queue_spreadsheet, name='sample_prep_queue_spreadsheet'),
 	
+	path('powder_prep_queue_view', views.powder_prep_queue_view, name='powder_prep_queue_view'),
+	
 	path('control_types', views.control_types, name='control_types'),
 	path('control_sets', views.control_sets, name='control_sets'),
 	path('control_set', views.control_set, name='control_set'),

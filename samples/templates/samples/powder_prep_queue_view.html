@@ -1,0 +1,101 @@
+{% extends "samples/reich_lab_base.html" %}
+
+{% load static %}
+
+{% block title %}Sample Selection For Powder Batch {{powder_batch_name}}{% endblock %}
+
+{% block content %}
+<script src="{% static "samples/list.js" %}"></script>
+
+<style>
+th {
+	position: sticky;
+	top: 0;
+	background: #eee;
+}
+
+#table_wrapper{
+	overflow-x: auto;
+	overflow-y: scroll;
+	height: 85vh;
+}
+
+table{
+	border-collapse: collapse;
+	border-spacing: 0;
+	width: 100%;
+}
+</style>
+
+<a href='sample_prep_queue_spreadsheet'>Download Spreadsheet</a>
+
+<legend>Samples</legend>
+<div id='sample_rows'>
+<div id='sample_count'></div>
+
+<input class="search" placeholder="Search" />
+<div id='table_wrapper'>
+<table>
+	<thead>
+	<tr>
+		<th><button class="sort" type="button" data-sort="priority">Priority</button></th>
+		<th><button class="sort" type="button" data-sort="expected_complexity">Expected Complexity</button></th>
+		<th><button class="sort" type="button" data-sort="sampling_tech">Sampling Tech</button></th>
+		<th><button class="sort" type="button" data-sort="udg">UDG</button></th>
+		<th><button class="sort" type="button" data-sort="shipment_id">Shipment ID</button></th>
+		<th><button class="sort" type="button" data-sort="collaborator">Collaborator</button></th>
+		<th><button class="sort" type="button" data-sort="skeletal_element">Skeletal Element</button></th>
+		<th><button class="sort" type="button" data-sort="skeletal_code">Skeletal Code</button></th>
+		<th><button class="sort" type="button" data-sort="country">Country</button></th>
+		<th><button class="sort" type="button" data-sort="region">Region</button></th>
+		<th><button class="sort" type="button" data-sort="period">Period</button></th>
+		<th><button class="sort" type="button" data-sort="culture">Culture</button></th>
+		<th><button class="sort" type="button" data-sort="notes">Notes</button></th>
+		<th><button class="sort" type="button" data-sort="notes_2">Notes 2</button></th>
+		<th><button class="sort" type="button" data-sort="sample_prep_queue_id">Sample Prep ID</button></th>
+	</tr>
+	</thead>
+	<tbody class="list">
+	{% for queued in queued_samples %}
+	<tr>
+		<td class="priority">{{queued.priority}}</td>
+		<td class="expected_complexity">{{queued.sample.expected_complexity.description}}</td>
+		<td class="sampling_tech">{{queued.sample_prep_protocol.preparation_method}}</td>
+		<td class="udg">{{queued.udg_treatment}}</td>
+		<td class="shipment_id">{{queued.sample.shipment.shipment_name}}</td>
+		<td class="collaborator">{{queued.sample.collaborator.first_name}} {{queued.sample.collaborator.last_name}}</td>
+		<td class="skeletal_element">{{queued.sample.skeletal_element}}</td>
+		<td class="skeletal_code">{{queued.sample.skeletal_code}}</td>
+		<td class="country">{{queued.sample.country_fk.country_name}}</td>
+		<td class="region">{{queued.sample.country_fk.region}}</td>
+		<td class="period">{{queued.sample.period}}</td>
+		<td class="culture">{{queued.sample.culture}}</td>
+		<td class="notes">{{queued.sample.notes}}</td>
+		<td class="notes_2">{{queued.sample.notes_2}}</td>
+		<td class="sample_prep_queue_id">{{queued.id}}</td>
+	</tr>
+	{% endfor %}
+	</tbody>
+</table>
+</form>
+</div>
+</div>
+
+<script>
+	var list_options = {
+		valueNames: ['priority', 'expected_complexity', 'sampling_tech', 'udg', 'shipment_id', 'collaborator', 'skeletal_element', 'skeletal_code', 'country', 'region', 'period', 'culture', 'notes', 'notes_2', 'sample_prep_queue_id'],
+		searchColumns: ['priority', 'expected_complexity', 'sampling_tech', 'udg', 'shipment_id', 'collaborator', 'skeletal_element', 'country', 'region', 'period', 'culture'],
+		searchDelay: 500
+	};
+	var sample_list = new List('sample_rows', list_options);
+	
+	function update_count(){
+		let overall_total = sample_list.size();
+		let filtered_total = sample_list.matchingItems.length;
+		document.getElementById('sample_count').innerHTML = String(filtered_total) + " sample" + (filtered_total != 1 ? "s" : "") + " selected of " + String(overall_total) + " total in queue.";
+	}
+	sample_list.on('updated', update_count);
+	update_count();
+</script>
+
+{% endblock %}

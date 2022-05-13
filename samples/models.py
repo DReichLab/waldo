@@ -893,6 +893,7 @@ class LysateBatchLayout(TimestampedWellPosition):
 	notes = models.TextField(blank=True)
 	lysate = models.ForeignKey(Lysate, on_delete=models.SET_NULL, null=True, help_text='Lysate created in this well from powder')
 	is_lost = models.BooleanField(default=False)
+	powder_batch = models.ForeignKey(PowderBatch, on_delete=models.CASCADE, null=True, help_text='Powder batch where powder was weighed')
 	
 	def destroy_control(self, user):
 		if self.control_type is not None:
@@ -1034,9 +1035,10 @@ class SamplePrepQueue(Timestamped):
 		# LysateBatchLayout element for assignment to LysateBatch
 		# This represents a tube with powder weighed
 		try:
+			# do not lookup with powder batch because this was added later
 			prepared_powder = LysateBatchLayout.objects.get(lysate_batch=None, powder_sample=powder_sample, control_type=None, lysate=None)
 		except LysateBatchLayout.DoesNotExist:
-			prepared_powder = LysateBatchLayout(lysate_batch=None, powder_sample=powder_sample, control_type=None, lysate=None)
+			prepared_powder = LysateBatchLayout(lysate_batch=None, powder_sample=powder_sample, control_type=None, lysate=None, powder_batch=self.powder_batch)
 			prepared_powder.save(save_user=user)
 		
 		self.prepared_powder = prepared_powder
@@ -1118,7 +1120,7 @@ class PowderPrepQueue(Timestamped):
 	# create a PowderSample and assign Reich Lab Sample Number
 	def new_reich_lab_powder_sample(self, user):
 		if self.powder_batch is None:
-			raise ValueError('Cannot create PowderPrepQueue objects without powder batch')
+			raise ValueError('Cannot create from PowderPrepQueue objects without powder batch')
 		# if the corresponding sample does not have Reich Lab sample number, then assign it the next one
 		self.sample.assign_reich_lab_sample_number()
 		
@@ -1141,9 +1143,9 @@ class PowderPrepQueue(Timestamped):
 		# LysateBatchLayout element for assignment to LysateBatch
 		# This represents a tube with powder weighed
 		try:
-			prepared_powder = LysateBatchLayout.objects.get(lysate_batch=None, powder_sample=powder_sample, control_type=None, lysate=None)
+			prepared_powder = LysateBatchLayout.objects.get(lysate_batch=None, powder_sample=powder_sample, control_type=None, lysate=None, powder_batch=self.powder_batch)
 		except LysateBatchLayout.DoesNotExist:
-			prepared_powder = LysateBatchLayout(lysate_batch=None, powder_sample=powder_sample, control_type=None, lysate=None)
+			prepared_powder = LysateBatchLayout(lysate_batch=None, powder_sample=powder_sample, control_type=None, lysate=None, powder_batch=self.powder_batch)
 			prepared_powder.save(save_user=user)
 		
 		self.prepared_powder = prepared_powder
