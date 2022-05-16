@@ -136,7 +136,7 @@ class PowderSampleSharedForm(UserModelForm):
 		
 	def get_sample(self):
 		if self.instance.pk:
-			if self.instance.sample: # instance is a PowderSample
+			if hasattr(self.instance, 'sample'): # instance is a PowderSample
 				sample = self.instance.sample
 				#self.fields['powder_used_mg'].disabled = True
 			elif self.instance.powder_sample.sample: # instance is a LysateBatchLayout
@@ -164,7 +164,7 @@ class PowderSampleSharedForm(UserModelForm):
 		self.fields['powder_sample_id'].disabled = True
 		
 	def save(self, commit=True):
-		sample = self.instance.sample
+		sample = self.get_sample()
 		sample.skeletal_element_category = self.cleaned_data['skeletal_element_category']
 		sample.save(save_user=self.user)
 		return super().save(commit=commit)
@@ -187,21 +187,32 @@ PowderSampleFormset = modelformset_factory(PowderSample, form=PowderSampleForm, 
 # This is separately weighed and stored for use in the next lysate batch
 # 
 class LysateBatchLayoutForm(PowderSampleSharedForm):
-	# These are 
+	# These put widgets in place for fields that are present for PowderSample but not LysateBatchLayout
 	powder_sample_id = CharField(disabled=True, required=False)
-	sampling_notes = CharField(required=True)
+	sampling_notes = CharField(disabled=True, required=False)
 	
-	total_powder_produced_mg = FloatField(min_value=0)
-	storage_location = CharField(required=False)
-	sample_prep_lab  = CharField(required=False)
+	total_powder_produced_mg = FloatField(min_value=0, required=False, disabled=True)
+	storage_location = CharField(required=False, disabled=True)
+	sample_prep_lab  = CharField(required=False, disabled=True)
 	
 	class Meta(PowderSampleSharedForm.Meta):
 		model = LysateBatchLayout
 		
 	def __init__(self, *args, **kwargs):
 		super().__init__(*args, **kwargs)
+		# TODO populate disabled fields from sample, powder_sample
 		
-PowderSampleFormset = modelformset_factory(PowderSample, form=PowderSampleForm, extra=0, max_num=200)
+		powder_sample = self.instance.powder_sample
+		self.fields['powder_sample_id'].initial = powder_sample.powder_sample_id
+		self.fields['sampling_notes'].initial = powder_sample.sampling_notes
+		self.fields['total_powder_produced_mg'].initial = powder_sample.total_powder_produced_mg
+		self.fields['storage_location'].initial = powder_sample.storage_location
+		self.fields['sample_prep_lab'].initial = powder_sample.sample_prep_lab
+		# For a powder sample, this is input. For LysateBatchLayout elements, this is read from powder sample
+		self.fields['sample_prep_protocol'].initial = powder_sample.sample_prep_protocol
+		self.fields['sample_prep_protocol'].required = False
+		
+PreparedPowderSampleFormset = modelformset_factory(LysateBatchLayout, form=LysateBatchLayoutForm, extra=0, max_num=200)
 		
 class ExtractionProtocolForm(UserModelForm):
 	class Meta:

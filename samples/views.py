@@ -243,24 +243,34 @@ def powder_batch_delete(request):
 def powder_samples(request):
 	powder_batch_name = request.GET['powder_batch']
 	powder_batch = PowderBatch.objects.get(name=powder_batch_name)
+	# whether there are samples assigned to this batch determines what formset to use because powder batches are either starting from samples or (exclusively) powders
+	direct_samples = PowderSample.objects.filter(powder_batch=powder_batch).order_by('sample__reich_lab_id')
+	is_sample_batch = len(direct_samples) > 0
+	
 	if request.method == 'POST':
 		powder_batch_form = PowderBatchForm(request.POST, instance=powder_batch, user=request.user)
-		powder_batch_sample_formset = PowderSampleFormset(request.POST, request.FILES, form_kwargs={'user': request.user})
+		if is_sample_batch:
+			powder_batch_entry_formset = PowderSampleFormset(request.POST, request.FILES, form_kwargs={'user': request.user})
+		else:
+			powder_batch_entry_formset = PreparedPowderSampleFormset(request.POST, request.FILES, form_kwargs={'user': request.user})
 		
 		if powder_batch_form.is_valid():
 			powder_batch_form.save()
-		if powder_batch_sample_formset.is_valid():
-			powder_batch_sample_formset.save()
+		if powder_batch_entry_formset.is_valid():
+			powder_batch_entry_formset.save()
 		# do not require the formset to be valid to switch back to open
 		if powder_batch_form.is_valid() and (powder_batch.status in [powder_batch.OPEN, powder_batch.STOP]):
 				return redirect(f'{reverse("powder_batch_assign_samples")}?name={powder_batch_name}')
 		
 	elif request.method == 'GET':
 		powder_batch_form = PowderBatchForm(initial={'name': powder_batch_name, 'date': powder_batch.date, 'status': powder_batch.status, 'notes': powder_batch.notes}, instance=powder_batch, user=request.user)
-		powder_batch_sample_formset = PowderSampleFormset(queryset=PowderSample.objects.filter(powder_batch=powder_batch).order_by('sample__reich_lab_id'), form_kwargs={'user': request.user})
+		if is_sample_batch:
+			powder_batch_entry_formset = PowderSampleFormset(queryset=direct_samples, form_kwargs={'user': request.user})
+		else:
+			powder_batch_entry_formset = PreparedPowderSampleFormset(queryset=LysateBatchLayout.objects.filter(powder_batch=powder_batch).order_by('powder_sample__sample__reich_lab_id'), form_kwargs={'user': request.user})
 	
 	# open can have new samples assigned
-	return render(request, 'samples/powder_samples.html', { 'powder_batch_name': powder_batch_name, 'powder_batch_form': powder_batch_form, 'formset': powder_batch_sample_formset} )
+	return render(request, 'samples/powder_samples.html', { 'powder_batch_name': powder_batch_name, 'powder_batch_form': powder_batch_form, 'formset': powder_batch_entry_formset} )
 	
 # return a spreadsheet version of data for offline editing
 @login_required
@@ -377,11 +387,14 @@ def lysate_batch_assign_powder(request):
 			layout_ids, powder_sample_ids =layout_and_content_lists(ticked_checkboxes)
 			# validate number of selections
 			total_wells = lysate_batch.num_controls() + len(layout_ids) + len(powder_sample_ids)
+			# now that all powder samples are assigned from preweighted LysateBatchLayout elements, there should be no powder_sample_ids without layout_ids
+			if len(powder_sample_ids) > 0:
+				raise ValueError('Unexpected powder_sample_ids without layout_ids ' + ' '.join(powder_sample_ids))
 			if total_wells > PLATE_WELL_COUNT:
 				return HttpResponse(f'Too many powders and controls {total_wells}')
 			
 			lysate_batch.restrict_layout_elements(layout_ids)
-			lysate_batch.assign_powder_samples(powder_sample_ids, request.user)
+			lysate_batch.assign_powder_samples(layout_ids, request.user)
 			if 'assign_and_layout' in request.POST:
 				print(f'lysate batch layout {lysate_batch_name}')
 				lysate_batch.assign_layout(request.user)
@@ -407,7 +420,7 @@ def lysate_batch_assign_powder(request):
 	)
 	'''
 	layout_powder_samples_already_selected = LysateBatchLayout.objects.filter(lysate_batch=lysate_batch, control_type=None).order_by('row', 'column').select_related('powder_sample')
-	powder_samples_unselected = LysateBatchLayout.objects.filter(lysate_batch=None).order_by('powder_batch', 'powder_sample__sample__reich_lab_id')
+	powder_samples_unselected = LysateBatchLayout.objects.filter(lysate_batch=None, is_lost=False).order_by('powder_batch', 'powder_sample__sample__reich_lab_id')
 	'''
 	powder_samples_unselected = PowderSample.objects.annotate(num_assignments=Count('lysatebatchlayout')).annotate(assigned_to_lysate_batch=Count('lysatebatchlayout', filter=Q(lysatebatchlayout__lysate_batch=lysate_batch))).filter(
 		Q(num_assignments=0) &

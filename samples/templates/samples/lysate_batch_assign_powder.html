@@ -54,13 +54,14 @@ Lysate Batch: {{lysate_batch_name}} has {{assigned_powder_samples_count}} distin
 		<th><button class="sort" type="button" data-sort="collaborator_id">Collaborator ID</button></th>
 		<th><button class="sort" type="button" data-sort="powder_batch">Powder Batch</button></th>
 		<th><button class="sort" type="button" data-sort="expected_complexity">Expected Complexity</button></th>
+		<th><button class="sort" type="button" data-sort="layout_id">Layout ID</button></th>
 	</tr>
 	</thead>
 	<tbody class="list">
 	{% for layout_element in assigned_powder_samples %}
 	<tr>
 		<td class="checked">
-			<input class="sample_checkbox" type="checkbox" name="powder_sample_checkboxes[]" id="checkbox{{layout_element.powder_sample.powder_sample_id}}" value="{{layout_element.id}}_{{layout_element.powder_sample.id}}" onclick="update_count()" 
+			<input class="sample_checkbox" type="checkbox" name="powder_sample_checkboxes[]" id="checkbox{{layout_element.id}}" value="{{layout_element.id}}_{{layout_element.powder_sample.id}}" onclick="update_count()" 
 			{% if layout_element.lysate_batch is not None %}checked{% endif %}>
 		</td>
 		<td class="position">{{layout_element}}</td>
@@ -68,24 +69,29 @@ Lysate Batch: {{lysate_batch_name}} has {{assigned_powder_samples_count}} distin
 		<td class="sample">S{{layout_element.powder_sample.sample.reich_lab_id}}</td>
 		<td class="collaborator_id">S{{layout_element.powder_sample.sample.skeletal_code}}</td>
 		<td class="powder_batch">
-			{% if layout_element.powder_sample.powder_batch %}
-				{{layout_element.powder_sample.powder_batch.name}}
+			{% if layout_element.powder_batch %}
+				{{layout_element.powder_batch.name}}
 			{% endif %}
 		</td>
 		<td class="expected_complexity">{{layout_element.powder_sample.sample.expected_complexity.description}}</td>
+		<td class="layout_id">{{layout_element.id}}</td>
 	</tr>
 	{% endfor %}
-	{% for powder_sample in powder_samples %}
+	{% for layout_element in powder_samples %}
 	<tr>
 		<td class="checked">
-			<input class="sample_checkbox" type="checkbox" name="powder_sample_checkboxes[]" id="checkbox{{powder_sample.powder_sample_id}}" value="_{{powder_sample.id}}" onclick="update_count()" {% if powder_sample.assigned_to_lysate_batch > 0 %}checked{% endif %}>
+			<input class="sample_checkbox" type="checkbox" name="powder_sample_checkboxes[]" id="checkbox{{layout_element.id}}" value="{{layout_element.id}}_{{layout_element.powder_sample.id}}" onclick="update_count()" >
 		</td>
 		<td class="position">N/A</td>
-		<td class="powder_sample_id">{{powder_sample.powder_sample_id}}</td>
-		<td class="sample">S{{powder_sample.sample.reich_lab_id}}</td>
-		<td class="collaborator_id">S{{powder_sample.sample.skeletal_code}}</td>
-		<td class="powder_batch">{{powder_sample.powder_batch.name}}</td>
-		<td class="expected_complexity">{{powder_sample.sample.expected_complexity.description}}</td>
+		<td class="powder_sample_id">{{layout_element.powder_sample.powder_sample_id}}</td>
+		<td class="sample">S{{layout_element.powder_sample.sample.reich_lab_id}}</td>
+		<td class="collaborator_id">S{{layout_element.powder_sample.sample.skeletal_code}}</td>
+		<td class="powder_batch">
+			{% if layout_element.powder_batch %}
+				{{layout_element.powder_batch.name}}
+			{% endif %}</td>
+		<td class="expected_complexity">{{layout_element.powder_sample.sample.expected_complexity.description}}</td>
+		<td class="layout_id">{{layout_element.id}}</td>
 	</tr>
 	{% endfor %}
 	</tbody>
@@ -96,7 +102,7 @@ Lysate Batch: {{lysate_batch_name}} has {{assigned_powder_samples_count}} distin
 
 <script>
 	var list_options = {
-		valueNames: ['checked', 'position', 'powder_sample_id', 'sample', 'collaborator_id', 'powder_batch', 'expected_complexity'],
+		valueNames: ['checked', 'position', 'powder_sample_id', 'sample', 'collaborator_id', 'powder_batch', 'expected_complexity', 'layout_id'],
 		searchColumns: ['powder_batch', 'expected_complexity'],
 		searchDelay: 500
 	};
@@ -140,13 +146,13 @@ Lysate Batch: {{lysate_batch_name}} has {{assigned_powder_samples_count}} distin
 		let anybox_checked = false;
 		// first pass to see whether any checkbox in this set is checked
 		for (let i = 0; i < matching.length; i++) {
-			let checkbox_id = 'checkbox' + matching[i]._values['powder_sample_id'];
+			let checkbox_id = 'checkbox' + matching[i]._values['layout_id'];
 			let sample_checkbox = document.getElementById(checkbox_id);
 			anybox_checked ||= sample_checkbox.checked;
 		}
 		// second pass to set checkboxes
 		for (let i = 0; i < matching.length; i++) {
-			let checkbox_id = 'checkbox' + matching[i]._values['powder_sample_id'];
+			let checkbox_id = 'checkbox' + matching[i]._values['layout_id'];
 			let sample_checkbox = document.getElementById(checkbox_id);
 			// box will be changed to unchecked
 			if (sample_checkbox.checked && anybox_checked){

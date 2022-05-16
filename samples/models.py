@@ -642,9 +642,12 @@ class LysateBatch(Timestamped):
 	# in addition, preserve controls
 	# update status for affected powder batches
 	def restrict_layout_elements(self, layout_element_ids):
-		to_clear = LysateBatchLayout.objects.filter(lysate_batch=self).exclude(id__in=layout_element_ids).exclude(control_type__isnull=False)
-		powder_batch_ids = [x.powder_sample.powder_batch.id for x in to_clear]
-		to_clear.delete()
+		to_remove = LysateBatchLayout.objects.filter(lysate_batch=self).exclude(id__in=layout_element_ids).exclude(control_type__isnull=False)
+		for layout_element in to_remove:
+			layout_element.lysate_batch = None
+			layout_element.save()
+		
+		powder_batch_ids = [x.powder_sample.powder_batch.id for x in to_remove]
 		for powder_batch in PowderBatch.objects.filter(id__in=powder_batch_ids):
 			powder_batch.close_if_finished()
 	
@@ -884,12 +887,12 @@ def extracts_for_lysate(lysate):
 	return len(existing_extracts)
 	
 # powder -> lysate
-# This holds powder that has been weighed in preparation for lysate creation
+# This holds powder that has been weighed in preparation for lysate creation, or lost powder
 class LysateBatchLayout(TimestampedWellPosition):
-	lysate_batch = models.ForeignKey(LysateBatch, on_delete=models.CASCADE, null=True) # use a null lysate batch to mark lost powder
+	lysate_batch = models.ForeignKey(LysateBatch, on_delete=models.CASCADE, null=True)
 	powder_sample = models.ForeignKey(PowderSample, on_delete=models.CASCADE, null=True)
 	control_type = models.ForeignKey(ControlType, on_delete=models.PROTECT, null=True)
-	powder_used_mg = models.FloatField(null=True) # currently only for lost powder
+	powder_used_mg = models.FloatField(null=True)
 	notes = models.TextField(blank=True)
 	lysate = models.ForeignKey(Lysate, on_delete=models.SET_NULL, null=True, help_text='Lysate created in this well from powder')
 	is_lost = models.BooleanField(default=False)
@@ -914,7 +917,7 @@ class LysateBatchLayout(TimestampedWellPosition):
 		if self.powder_sample is None and (self.lysate_batch is None or self.control_type is None):
 			print('Null powder samples must be extract batch controls')
 			raise ValidationError(_('Null powder samples must be extract batch controls'))
-		if is_lost and lysate_batch is not None:
+		if self.is_lost and self.lysate_batch is not None:
 			raise ValidationError(_('Lost powder cannot have lysate batch.'))
 			
 	@staticmethod
