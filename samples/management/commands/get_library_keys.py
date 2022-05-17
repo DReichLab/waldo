@@ -11,6 +11,7 @@ from sequencing_run.assemble_libraries import output_bam_list
 from sequencing_run.ssh_command import ssh_command
 from sequencing_run.analysis import adna2_index_barcode_keys_used, index_barcode_keys_used, barcodes_set, i5_set, i7_set
 from sequencing_run.models import SequencingAnalysisRun
+from sys import stderr
 
 class Command(BaseCommand):
 	help = 'Create index barcode key file mapping to library ids from database for specified sequencing run'
@@ -82,7 +83,7 @@ class Command(BaseCommand):
 				else:
 					not_found.append(library)
 		if len(not_found) > 0:
-			library_ids_as_strings = ['"{}"'.format(library_id) for library_id in not_found]
+			library_ids_as_strings = ['"{}"'.format(library_id) for library_id in not_found if library_id != ""]
 			where_clauses = 'UPPER(experiment){}"RAW" AND library_id IN ({})'.format("=" if raw else "<>",','.join(library_ids_as_strings))
 
 			barcodes_for_concat = '"_", UPPER(p5_barcode), "_", UPPER(p7_barcode)'
@@ -100,14 +101,27 @@ class Command(BaseCommand):
 				experiment = feilds[2]
 				index_barcode_key = feilds[3]
 				try:
-					seq_date = os.path.basename(glob.glob(demultiplex_path_head + "/*_{}".format(seq_name))[0]).split("_")[0]
+					seq_dates = [os.path.basename(dte).split("_")[0] for dte in glob.glob(demultiplex_path_head + "/*_{}".format(seq_name))]
 				except:
 					continue
-				
-				nuclear_demultiplex_bam = glob.glob("/".join([demultiplex_path_head, "{}_{}".format(seq_date, seq_name), "*nuc*", index_barcode_key.replace(":", "-")]) + ".bam")
-				mt_demultiplex_bam = glob.glob("/".join([demultiplex_path_head, "{}_{}".format(seq_date, seq_name), "*rsrs*", index_barcode_key.replace(":", "-")]) + ".bam")
 
-				output_dict.update({(library_id, index_barcode_key) : (seq_name, seq_date, experiment, nuclear_demultiplex_bam, mt_demultiplex_bam)})
+				# if len(seq_dates) > 1:
+				# 	seq_date = "{" + ",".join(seq_dates) + "}"
+				# elif len(seq_dates) == 1:
+				# 	seq_date = seq_dates[0]
+				# else:
+				# 	stderr.write("No sequencing directory found!\tLibrary: {}\tSeq run: {}\n".format(library_id, seq_name))
+				# 	continue
+				nuclear_demultiplex_bam = []
+				mt_demultiplex_bam = []
+				for seq_date in seq_dates:
+					nuclear_demultiplex_bam.extend(glob.glob("/".join([demultiplex_path_head, "{}_*{}*".format(seq_date, seq_name), "*nuc*", index_barcode_key.replace(":", "-")]) + ".bam"))
+					mt_demultiplex_bam.extend(glob.glob("/".join([demultiplex_path_head, "{}_*{}*".format(seq_date, seq_name), "*rsrs*", index_barcode_key.replace(":", "-")]) + ".bam"))
+				if len(nuclear_demultiplex_bam) == 0 and len(mt_demultiplex_bam) == 0:
+					stderr.write("No sequencing directory found!\tLibrary: {}\tSeq run: {}\n".format(library_id, seq_name))
+					continue
+
+				output_dict.update({(library_id, index_barcode_key) : (seq_name, ",".join(seq_dates), experiment, nuclear_demultiplex_bam, mt_demultiplex_bam)})
 	
 		with open("{}/{}.index_barcode_map".format(output_dir, label), 'w') as out:
 			if header:

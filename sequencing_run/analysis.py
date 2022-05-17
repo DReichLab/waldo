@@ -13,6 +13,10 @@ from django.conf import settings
 ANALYSIS_COMMAND_LABEL = 'analysis'
 DEMULTIPLEX_COMMAND_LABEL = 'demultiplex'
 
+UDG_MINUS_VALUES = ['minus']
+UDG_PLUS_VALUES = ['plus']
+UDG_HALF_VALUES = ['partial', 'half', 'user']
+
 DEBUG = False
 
 index_additions = '''  ,
@@ -68,6 +72,7 @@ def start_analysis(source_illumina_dir, combined_sequencing_run_name, sequencing
 			index_barcode_keys_used(date_string, combined_sequencing_run_name, names_for_queries, library_ids, ignore_barcodes)
 		else:
 			adna2_index_barcode_keys_used(date_string, combined_sequencing_run_name, names_for_queries)
+			get_udg_treatments(date_string, combined_sequencing_run_name, names_for_queries)
 		# barcode and index files for run
 		barcodes_set(date_string, combined_sequencing_run_name, names_for_queries)
 		# include explicit i5 and i7 in the allowed lists
@@ -345,6 +350,36 @@ def adna2_index_barcode_keys_used(sequencing_date_string, combined_sequencing_ru
 			
 			# Format and write index_barcode_key line to the file
 			f.write("{}_{}_{}_{}\t{}\t{}\t{}\n".format(p5_index, p7_index, p5_barcode, p7_barcode, library, capture_batch, experiment))
+	pass
+
+# Pull udg treatments from samples_library table and put into udg_file in run dir
+def get_udg_treatments(sequencing_date_string, combined_sequencing_run_name, sequencing_run_names, output_dir=""):
+	file_name = "{}_{}.udg_treatments".format(sequencing_date_string, combined_sequencing_run_name)
+	if output_dir == "":
+		target_file = "{0}/{1}_{2}/{3}".format(settings.RUN_FILES_DIRECTORY, sequencing_date_string, combined_sequencing_run_name, file_name)
+	else:
+		target_file = os.path.abspath("{}/{}".format(output_dir, file_name))
+	keys_queryset = CaptureLayout.objects.filter(sequencingrun__name__in=sequencing_run_names)
+	with open(target_file, 'w') as f:
+		for key in keys_queryset:
+			library = key.library
+			if library is None:
+				library_id = key.control_type.control_type
+				if library_id == 'PCR Negative':
+					library_id = 'Contl.PCR'
+				elif library_id == 'Capture Positive':
+					library_id = 'Contl.Capture'
+				udg = 'half'
+			else:
+				library_id = library.reich_lab_library_id
+				udg = library.udg_treatment
+				if udg.lower() in UDG_MINUS_VALUES:
+					udg = 'minus'
+				elif udg.lower() in UDG_PLUS_VALUES:
+					udg = 'plus'
+				else:
+					udg = 'half'
+			f.write("{}\t{}\n".format(library_id, udg))
 	pass
 
 # Shotgun data may arrive with no indices. Find the i5 and i7 indices for a library. 
