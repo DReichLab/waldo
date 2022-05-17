@@ -413,22 +413,8 @@ def lysate_batch_assign_powder(request):
 		
 	existing_controls = LysateBatchLayout.objects.filter(lysate_batch=lysate_batch, control_type__isnull=False)
 	
-	'''
-	already_selected_powder_sample_ids = LysateBatchLayout.objects.filter(lysate_batch=lysate_batch, control_type=None).values_list('powder_sample', flat=True)
-	powder_samples_already_selected = PowderSample.objects.annotate(num_assignments=Count('lysatebatchlayout')).annotate(assigned_to_lysate_batch=Count('lysatebatchlayout', filter=Q(lysatebatchlayout__lysate_batch=lysate_batch))).filter(
-		Q(id__in=already_selected_powder_sample_ids)
-	)
-	'''
 	layout_powder_samples_already_selected = LysateBatchLayout.objects.filter(lysate_batch=lysate_batch, control_type=None).order_by('row', 'column').select_related('powder_sample')
 	powder_samples_unselected = LysateBatchLayout.objects.filter(lysate_batch=None, is_lost=False).order_by('powder_batch', 'powder_sample__sample__reich_lab_id')
-	'''
-	powder_samples_unselected = PowderSample.objects.annotate(num_assignments=Count('lysatebatchlayout')).annotate(assigned_to_lysate_batch=Count('lysatebatchlayout', filter=Q(lysatebatchlayout__lysate_batch=lysate_batch))).filter(
-		Q(num_assignments=0) &
-		(Q(powder_batch__status=PowderBatch.READY_FOR_PLATE)
-		| (Q(powder_batch=None) & ~Q(powder_sample_id__endswith='NP')))# powder samples directly from collaborators will not have powder batch. Exclude controls. 
-	).order_by('powder_batch', 'sample__reich_lab_id')
-	'''
-	#powder_samples = powder_samples_already_selected.union(powder_samples_unselected).order_by('id')
 	
 	powder_samples = {}
 	for layout_element in layout_powder_samples_already_selected:
