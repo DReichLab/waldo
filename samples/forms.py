@@ -200,8 +200,7 @@ class LysateBatchLayoutForm(PowderSampleSharedForm):
 		
 	def __init__(self, *args, **kwargs):
 		super().__init__(*args, **kwargs)
-		# TODO populate disabled fields from sample, powder_sample
-		
+		# populate disabled fields from sample, powder_sample
 		powder_sample = self.instance.powder_sample
 		self.fields['powder_sample_id'].initial = powder_sample.powder_sample_id
 		self.fields['sampling_notes'].initial = powder_sample.sampling_notes
