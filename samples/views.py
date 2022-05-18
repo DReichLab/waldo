@@ -171,10 +171,13 @@ def powder_batches(request):
 			powder_batch.save()
 			return redirect(f'{reverse("powder_batch_assign_samples")}?name={powder_batch.name}')
 		
-	batches = PowderBatch.objects.all().annotate(Count('sampleprepqueue', distinct=True),
+	batches = PowderBatch.objects.all().annotate(
+					Count('sampleprepqueue', distinct=True),
 					Count('powdersample', distinct=True),
-					low_complexity_count=Count('sampleprepqueue', distinct=True, filter=Q(sampleprepqueue__sample__expected_complexity__description__iexact='low')),
-					high_complexity_count=Count('sampleprepqueue', distinct=True, filter=Q(sampleprepqueue__sample__expected_complexity__description__iexact='high')),
+					num_queue_entries = Count('sampleprepqueue', distinct=True) + Count('powderprepqueue', distinct=True),
+					num_lysate_batch_layouts = Count('lysatebatchlayout', distinct=True),
+					low_complexity_count=Count('sampleprepqueue', distinct=True, filter=Q(sampleprepqueue__sample__expected_complexity__description__iexact='low')) + Count('powderprepqueue', distinct=True, filter=Q(powderprepqueue__sample__expected_complexity__description__iexact='low')),
+					high_complexity_count=Count('sampleprepqueue', distinct=True, filter=Q(sampleprepqueue__sample__expected_complexity__description__iexact='high')) + Count('powderprepqueue', distinct=True, filter=Q(powderprepqueue__sample__expected_complexity__description__iexact='high')),
 					).order_by('-id')
 	return render(request, 'samples/powder_batches.html', {'powder_batches' : batches, 'form' : form, 'plated_count': perform_plated_count, } )
 
@@ -413,7 +416,7 @@ def lysate_batch_assign_powder(request):
 		
 	existing_controls = LysateBatchLayout.objects.filter(lysate_batch=lysate_batch, control_type__isnull=False)
 	
-	layout_powder_samples_already_selected = LysateBatchLayout.objects.filter(lysate_batch=lysate_batch, control_type=None).order_by('row', 'column').select_related('powder_sample')
+	layout_powder_samples_already_selected = LysateBatchLayout.objects.filter(lysate_batch=lysate_batch, control_type=None).order_by('row', 'column', 'powder_batch', 'powder_sample__sample__reich_lab_id').select_related('powder_sample')
 	powder_samples_unselected = LysateBatchLayout.objects.filter(lysate_batch=None, is_lost=False).order_by('powder_batch', 'powder_sample__sample__reich_lab_id')
 	
 	powder_samples = {}

@@ -46,7 +46,8 @@ table{
 		<th><button class="sort" data-sort="date">Date</button></th>
 		<th><button class="sort" data-sort="technician">Technician</button></th>
 		<th><button class="sort" data-sort="status">Status</button></th>
-		<th><button class="sort" data-sort="num_sample_prep">Num Sample Prep Entries</button></th>
+		<th><button class="sort" data-sort="num_queue_prep">Num Sample/Powder Prep Entries</button></th>
+		<th><button class="sort" data-sort="num_new_powder_samples">Num New Powder Samples</button></th>
 		<th><button class="sort" data-sort="num_powder_samples">Num Powder Samples</button></th>
 		<th><button class="sort" data-sort="num_plated_powder_samples">Num Plated Powder Samples</button></th>
 		<th><button class="sort" data-sort="low_complexity">Low complexity</button></th>
@@ -65,8 +66,9 @@ table{
 		<td class="date">{{powder_batch.date|date:'Y-m-d'}}</td>
 		<td class="technician">{{powder_batch.technician}}</td>
 		<td class="status">{{powder_batch.get_status}}</td>
-		<td class="num_sample_prep">{{powder_batch.sampleprepqueue__count}}</td>
-		<td class="num_powder_samples">{{powder_batch.powdersample__count}}</td>
+		<td class="num_queue_prep">{{powder_batch.num_queue_entries}}</td>
+		<td class="num_new_powder_samples">{{powder_batch.powdersample__count}}</td>
+		<td class="num_powder_samples">{{powder_batch.num_lysate_batch_layouts}}</td>
 		
 		<td class="num_plated_powder_samples">
 		{% if powder_batch.status == powder_batch.CLOSED and not plated_count %}
@@ -87,7 +89,7 @@ table{
 
 <script>
 	var list_options = {
-		valueNames: ['name', 'date', 'technician', 'status', 'num_sample_prep', 'num_powder_samples', 'num_plated_powder_samples', 'low_complexity_count', 'high_complexity_count', 'notes',
+		valueNames: ['name', 'date', 'technician', 'status', 'num_queue_prep', 'num_new_powder_samples', 'num_powder_samples', 'num_plated_powder_samples', 'low_complexity_count', 'high_complexity_count', 'notes',
 		],
 		searchColumns: ['name', 'date', 'technician', 'status', 'notes'],
 		searchDelay: 500

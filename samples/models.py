@@ -436,21 +436,25 @@ class PowderBatch(Timestamped):
 				powder_sample = powder_samples.get(powder_sample_id=powder_sample_id)
 				powder_sample.from_spreadsheet_row(headers[1:], fields[1:], user)
 				
-	# Return number of powder samples in this powder batch that have been assigned to a lysate batch. Missing and unassigned powders have a LysateBatchLayout object with null lysate batch and do not count. 
+	# Return number of lysate batch wells that have powder from this batch. Missing and unassigned powders have a LysateBatchLayout object with null lysate batch and do not count. 
+	# If a powder sample appears in 2 wells, this counts as 2. 
 	def number_plated_powder_samples(self):
-		return self.powdersample_set.annotate(num_assignments=Count('lysatebatchlayout', Q(lysatebatchlayout__lysate_batch__isnull=False))).filter(num_assignments__gte=1).count()
+		elements = LysateBatchLayout.objects.filter(powder_batch=self, lysate_batch__isnull=False, is_lost=False, control_type__isnull=True, powder_sample__isnull=False)
+		return len(elements)
 		
 	# close status if all powders have been assigned and status is ready to plate
 	# ready to plate status if status was closed but not all powders are assigned
-	# FIXME account for powder preps too
 	def close_if_finished(self, any_status=False):
-		expected = self.powdersample_set.all().count()
+		expected_samples_from_bone = SamplePrepQueue.objects.filter(powder_batch=self).count()
+		expected_samples_from_powder = PowderPrepQueue.objects.filter(powder_batch=self).count()
+		expected = expected_samples_from_bone + expected_samples_from_powder
+		
 		assigned = self.number_plated_powder_samples()
-		if assigned == expected:
+		if assigned == expected and expected > 0:
 			if any_status or self.status == self.READY_FOR_PLATE:
 				self.status = self.CLOSED
 				self.save()
-		elif assigned > expected:
+		elif assigned > expected and expected > 0:
 			raise ValueError(f'more powder samples plated than available {assigned} {expected}')
 		elif assigned < expected and (self.status == self.CLOSED):
 			self.status = self.READY_FOR_PLATE
