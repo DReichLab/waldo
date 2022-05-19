@@ -191,7 +191,7 @@ class LysateBatchLayoutForm(PowderSampleSharedForm):
 	powder_sample_id = CharField(disabled=True, required=False)
 	sampling_notes = CharField(disabled=True, required=False)
 	
-	total_powder_produced_mg = FloatField(min_value=0, required=False, disabled=True)
+	total_powder_produced_mg = FloatField(min_value=0, required=False)
 	storage_location = CharField(required=False, disabled=True)
 	sample_prep_lab  = CharField(required=False, disabled=True)
 	
@@ -210,6 +210,12 @@ class LysateBatchLayoutForm(PowderSampleSharedForm):
 		# For a powder sample, this is input. For LysateBatchLayout elements, this is read from powder sample
 		self.fields['sample_prep_protocol'].initial = powder_sample.sample_prep_protocol
 		self.fields['sample_prep_protocol'].required = False
+		
+	def save(self, commit=True):
+		powder_sample = self.instance.powder_sample
+		powder_sample.total_powder_produced_mg = self.cleaned_data['total_powder_produced_mg']
+		powder_sample.save(save_user=self.user)
+		return super().save(commit=commit)
 		
 PreparedPowderSampleFormset = modelformset_factory(LysateBatchLayout, form=LysateBatchLayoutForm, extra=0, max_num=200)
 		
