@@ -1730,6 +1730,10 @@ class CaptureOrShotgunPlate(Timestamped):
 			raise ValueError(f'SequencingRun {sequencing_run_name} already exists')
 		sequencing_run.assign_captures([self.id])
 		return sequencing_run
+		
+	def add_library(self, library_str_id, row, column):
+		library_to_add = Library.objects.get(reich_lab_library_id=library_str_id)
+		CaptureLayout.objects.get_or_create(capture_batch=self, library=library_to_add, row=row, column=column)
 	
 # library -> indices added
 class CaptureLayout(TimestampedWellPosition):
