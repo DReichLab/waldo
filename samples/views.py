@@ -417,7 +417,7 @@ def lysate_batch_assign_powder(request):
 	existing_controls = LysateBatchLayout.objects.filter(lysate_batch=lysate_batch, control_type__isnull=False)
 	
 	layout_powder_samples_already_selected = LysateBatchLayout.objects.filter(lysate_batch=lysate_batch, control_type=None).order_by('row', 'column', 'powder_batch', 'powder_sample__sample__reich_lab_id').select_related('powder_sample')
-	powder_samples_unselected = LysateBatchLayout.objects.filter(lysate_batch=None, is_lost=False).order_by('powder_batch', 'powder_sample__sample__reich_lab_id')
+	powder_samples_unselected = LysateBatchLayout.objects.filter(lysate_batch=None, is_lost=False, powder_batch__status__in=[PowderBatch.READY_FOR_PLATE, PowderBatch.CLOSED]).order_by('powder_batch', 'powder_sample__sample__reich_lab_id')
 	
 	powder_samples = {}
 	for layout_element in layout_powder_samples_already_selected:
