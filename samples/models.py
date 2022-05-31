@@ -1237,6 +1237,11 @@ class ExtractionBatch(Timestamped):
 			layout_element = layout_elements.get(column=temp.column, row=temp.row)
 			layout_element.from_spreadsheet_row(headers, fields, user)
 	
+	def add_lysate(self, lysate_obj, row, column):
+		lysate_volume_used = (self.protocol.total_lysis_volume * self.protocol.lysate_fraction_extracted)
+		ExtractionBatchLayout.objects.get_or_create(extract_batch=self, lysate=lysate_obj, lysate_volume_used=lysate_volume_used, row=row, column=column)
+		
+	
 class Extract(Timestamped):
 	extract_id = models.CharField(max_length=20, unique=True, db_index=True)
 	reich_lab_extract_number = models.PositiveIntegerField(null=True, help_text='Starts at 1 for each lysate or sample if no lysate exists.')
