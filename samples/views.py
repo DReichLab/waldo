@@ -401,10 +401,14 @@ def lysate_batch_assign_powder(request):
 			if 'assign_and_layout' in request.POST:
 				print(f'lysate batch layout {lysate_batch_name}')
 				lysate_batch.assign_layout(request.user)
+				if lysate_batch.status == lysate_batch.LYSATES_CREATED:
+					lysate_batch.create_lysates(request.user)
 				return redirect(f'{reverse("lysate_batch_plate_layout")}?lysate_batch_name={lysate_batch_name}')
 			elif 'assign_and_fill_empty_with_library_controls' in request.POST:
 				print(f'lysate batch layout {lysate_batch_name}')
 				lysate_batch.fill_empty_wells_with_library_negatives(request.user)
+				if lysate_batch.status == lysate_batch.LYSATES_CREATED:
+					lysate_batch.create_lysates(request.user)
 				return redirect(f'{reverse("lysate_batch_plate_layout")}?lysate_batch_name={lysate_batch_name}')
 			elif lysate_batch.status == lysate_batch.LYSATES_CREATED:
 				lysate_batch.create_lysates(request.user)
