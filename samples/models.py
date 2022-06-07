@@ -1870,7 +1870,7 @@ class SequencingRun(Timestamped):
 	notes = models.TextField(blank=True, default='')
 	
 	read_length = models.CharField(max_length=20, blank=True)
-	lanes_estimated = models.PositiveSmallIntegerField(null=True)
+	lanes_estimated = models.FloatField(null=True)
 	lanes_sequenced = models.PositiveSmallIntegerField(null=True, help_text='number of lanes for HISeqs or number of runs for Miseq and NextSeq')
 	
 	date_pooled = models.DateField(null=True, help_text='When date is set, captures can no longer be assigned.')
