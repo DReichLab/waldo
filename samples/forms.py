@@ -460,11 +460,12 @@ class LibraryProtocolForm(UserModelForm):
 class LibraryBatchForm(UserModelForm):
 	protocol = LibraryProtocolSelect(queryset=LibraryProtocol.objects.filter(active=True), empty_label=None)
 	prep_date = forms.DateField(help_text='YYYY-MM-DD', required=False)
+	cleanup_date = forms.DateField(help_text='YYYY-MM-DD', required=False)
 	control_set = ControlSetSelect(queryset=ControlSet.objects.filter(active=True).order_by('layout_name'))
 	
 	class Meta:
 		model = LibraryBatch
-		fields = ['name', 'protocol', 'technician', 'prep_date', 'prep_note', 'prep_robot', 'cleanup_robot', 'qpcr_machine', 'control_set', 'p7_offset', 'status']
+		fields = ['name', 'protocol', 'technician', 'prep_date', 'prep_note', 'prep_robot', 'cleanup_robot', 'cleanup_person', 'cleanup_date', 'qpcr_machine', 'control_set', 'p7_offset', 'status']
 		widgets = {
 			'prep_note': Textarea(attrs={'cols': 60, 'rows': 2}),
 		}

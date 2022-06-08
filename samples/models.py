@@ -1390,6 +1390,8 @@ class LibraryBatch(Timestamped):
 	prep_note = models.TextField(blank=True)
 	prep_robot = models.CharField(max_length=20, blank=True)
 	cleanup_robot = models.CharField(max_length=20, blank=True)
+	cleanup_person = models.CharField(max_length=50, blank=True)
+	cleanup_date =  models.DateField(null=True, help_text='YYYY-MM-DD')
 	qpcr_machine = models.CharField(max_length=20, blank=True)
 	technician_fk = models.ForeignKey(WetLabStaff, on_delete=models.SET_NULL, null=True)
 	control_set = models.ForeignKey(ControlSet, on_delete=models.SET_NULL, null=True)
