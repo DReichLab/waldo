@@ -4,11 +4,7 @@ from samples.models import Library, Sample, Results, Collaborator
 from sequencing_run.models import AnalysisFiles, MTAnalysis, ShotgunAnalysis, NuclearAnalysis
 from sequencing_run.library_id import LibraryID
 
-def individual_from_library_id(library_id_raw):
-	# Is there a prior library from this sample
-	# No. Then we don't know whether individual matches any prior individual until we perform genetic analysis
-	# Yes. Then there is an existing individual
-	# retain whether damage restricted or not
+def library_list_from_library_id(library_id_raw):
 	if library_id_raw.endswith('_d'):
 		damage_restricted = True
 		library_id_raw = library_id_raw.replace('_d','')
@@ -17,6 +13,14 @@ def individual_from_library_id(library_id_raw):
 	library_id = LibraryID(library_id_raw)
 
 	library_list = Library.objects.filter(reich_lab_library_id__startswith='S{:04d}.'.format(library_id.sample))
+	return library_id, library_list, damage_restricted
+
+def individual_from_library_id(library_id_raw):
+	# Is there a prior library from this sample
+	# No. Then we don't know whether individual matches any prior individual until we perform genetic analysis
+	# Yes. Then there is an existing individual
+	# retain whether damage restricted or not
+	library_id, library_list, damage_restricted = library_list_from_library_id(library_id_raw)
 	
 	#for x in library_list:
 	#	print(x.reich_lab_library_id)
@@ -68,7 +72,7 @@ def reformat_interval(interval_string):
 		return new_interval_string
 
 # this library id may contain _d damage-restriction indicator
-def library_anno_line(instance_id_raw, sequencing_run_name, release_label, component_library_ids=[]):
+def library_anno_line(instance_id_raw, sequencing_run_name, release_label, component_library_ids=[], ignore_missing_analyses = False):
 	#print(instance_id_raw, file=sys.stderr)
 	damage_restricted = instance_id_raw.endswith('_d')
 	is_merge = len(component_library_ids) > 0
@@ -155,18 +159,26 @@ def library_anno_line(instance_id_raw, sequencing_run_name, release_label, compo
 		else:
 			try:
 				results = Results.objects.get(library_id__exact = library_id_str)
-			except Results.MultipleObjectsReturned as e:
-				print('{} has multiple results'.format(library_id_str), file=sys.stderr)
-				multiple_results = Results.objects.filter(library_id__exact = library_id_str).order_by('creation_timestamp')
-				for result in multiple_results:
-					print('sequencing runs: {}'.format(result.nuclear_seq_run.name), file=sys.stderr)
-				results = multiple_results[len(multiple_results)-1]
+			except (Results.DoesNotExist, Results.MultipleObjectsReturned) as e:
+				if type(e) == Results.MultipleObjectsReturned:
+					print('{} has multiple results'.format(library_id_str), file=sys.stderr)
+					multiple_results = Results.objects.filter(library_id__exact = library_id_str).order_by('creation_timestamp')
+					for result in multiple_results:
+						print('sequencing runs: {}'.format(result.nuclear_seq_run.name), file=sys.stderr)
+					results = multiple_results[len(multiple_results)-1]
+				if type(e) == Results.DoesNotExist:
+					if ignore_missing_analyses:
+						print('{} has no results object'.format(library_id_str), file=sys.stderr)
+						return fields
+					raise e
+				else:
+					raise e
 				#raise e
 		if release_label is not None:
 			nuclear = NuclearAnalysis.objects.get(parent = results, version_release = release_label, damage_restricted = damage_restricted)
 		else:
 			try:
-				nuclear = NuclearAnalysis.objects.get(parent = results,	damage_restricted = damage_restricted)
+				nuclear = NuclearAnalysis.objects.get(parent = results, damage_restricted = damage_restricted)
 			except NuclearAnalysis.DoesNotExist as error:
 				nuclear = None
 				print('{} Nuclear analysis not found, damage-restricted {}'.format(library_id_str, str(damage_restricted)), file=sys.stderr)
@@ -191,6 +203,8 @@ def library_anno_line(instance_id_raw, sequencing_run_name, release_label, compo
 		analysis_files = AnalysisFiles.objects.get(parent = results) # TODO
 	except AnalysisFiles.DoesNotExist as error:
 		print('{} AnalysisFiles not found'.format(library_id_str), file=sys.stderr)
+		if ignore_missing_analyses:
+			return fields
 		raise error
 	
 	#Data: mtDNA bam
@@ -324,7 +338,7 @@ def library_anno_line(instance_id_raw, sequencing_run_name, release_label, compo
 		udg = library_obj.udg_treatment.lower()
 		library_type = library_obj.library_type.lower()
 		# single stranded damage has different thresholds than double stranded
-		if (library_type == 'ds') and (udg == 'partial') : # double stranded
+		if (library_type == 'ds') and ((udg == 'partial') or (udg == 'half')) : # double stranded
 			try:
 				if nuclear.damage_last_base < 0.01:
 					assessment_damage = 3
