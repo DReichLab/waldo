@@ -10,7 +10,7 @@ class Command(BaseCommand):
 		parser.add_argument('-r', '--report', required=True)
 		parser.add_argument('-l', '--release_version_label', required=True)
 		parser.add_argument('-n', '--sequencing_run_name', required=True)
-		parser.add_argument('-e', '--experiment', default='1240k')
+		parser.add_argument('-e', '--experiment', default='twist1.4m')
 		
 	def handle(self, *args, **options):
 		report_filename = options['report']

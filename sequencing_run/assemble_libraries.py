@@ -135,15 +135,18 @@ def generate_bam_list_with_sample_data(bams_by_index_barcode_key, sequencing_run
 		from_sample_sheet = samples_parameters[find_index_barcode_match(key, samples_parameters)]
 		library_id = from_sample_sheet.libraryID
 		#print(library_id)
-		label = "{}_{}_{}".format(sequencing_run_name, from_sample_sheet.experiment, from_sample_sheet.udg)
 		experiment = from_sample_sheet.experiment
+		if experiment.lower() == 'twist ancient dna':
+			experiment = 'twist1.4m'
+		label = "{}_{}_{}".format(sequencing_run_name, experiment, from_sample_sheet.udg)
 		udg = from_sample_sheet.udg
 		reference = bam_list[0].reference
 		do_not_use = from_sample_sheet.do_not_use
 		wetlab_notes = from_sample_sheet.wetlab_notes
 		#print(label)
 		
-		if len(do_not_use) == 0:
+		# if len(do_not_use) == 0:
+		if True:
 			version = str(1)
 			# version determination
 			if library_id == settings.CONTROL_ID:
