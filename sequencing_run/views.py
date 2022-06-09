@@ -44,7 +44,9 @@ def update_sequencing_run_list(request):
 	return HttpResponse(result)
 
 # populate dropdown for sequencing run name
+# TODO This is now obsolete. Nothing should be pulled from MySQL. 
 def update_sequencing_run_ids():
+	return
 	host = settings.COMMAND_HOST
 	query = "SELECT sequenced_library_key, sequencing_id FROM sequenced_library GROUP BY sequencing_id ORDER BY sequenced_library_key DESC LIMIT 10;"
 	command = "mysql devadna -N -e '{}'".format(query)
