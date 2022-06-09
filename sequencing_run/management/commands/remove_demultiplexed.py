@@ -1,3 +1,4 @@
+import django
 from django.core.management.base import BaseCommand, CommandError
 from django.conf import settings
 from django.db.models import Q
@@ -20,13 +21,13 @@ class Command(BaseCommand):
 		
 		#self.stdout.write(str(date))
 		
-		flowcell = Flowcell.objects.get(
+		flowcell = Flowcell.objects.filter(
 			Q(input_flowcells__name__exact = name), 
 			Q(sequencing_date = date)
 		)
 		self.stdout.write(str(flowcell))
 		
-		demultiplexed_sequencing_queryset = DemultiplexedSequencing.objects.filter(flowcells = flowcell, path__contains = '{}'.format(name))
+		demultiplexed_sequencing_queryset = DemultiplexedSequencing.objects.filter(flowcells__in = flowcell, path__contains = '{}'.format(name))
 		self.stdout.write(str(demultiplexed_sequencing_queryset.count()))
 		
 		if not dry_run:
