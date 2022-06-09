@@ -129,7 +129,8 @@ def analysis_form(request):
 		if request.GET.__contains__('refresh'): # NextSeq updates are disabled now unless requested
 			update_sequencing_run_list(request) # argument is not used
 		update_sequencing_run_ids()
-		slurm_jobs = query_job_status()
+		if request.GET.__contains__('status'): # NextSeq updates are disabled now unless requested
+			slurm_jobs = query_job_status()
 		form = AnalysisForm()
 
 	return render(request, 'sequencing_run/analysis.html', {'form': form, 'analysis_run_list': run_list, 'slurm_jobs': slurm_jobs, 'processing_state_demultiplex_threshold': SequencingAnalysisRun.RUNNING_ANALYSIS, 'processing_state_report_threshold': SequencingAnalysisRun.RUNNING_ANALYSIS_PRELIMINARY_REPORT_DONE})
