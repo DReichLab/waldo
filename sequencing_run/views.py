@@ -129,7 +129,7 @@ def analysis_form(request):
 		if request.GET.__contains__('refresh'): # NextSeq updates are disabled now unless requested
 			update_sequencing_run_list(request) # argument is not used
 		update_sequencing_run_ids()
-		if request.GET.__contains__('status'): # NextSeq updates are disabled now unless requested
+		if request.GET.__contains__('status'): # Only check job statuses if requested. This is slow, especially when ssh performance is poor
 			slurm_jobs = query_job_status()
 		form = AnalysisForm()
 
