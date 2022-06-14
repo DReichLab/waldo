@@ -584,6 +584,24 @@ def control_sample_number(control_element_queryset):
 			raise ValueError(f'Multiple control sample ids: {reich_lab_sample_number} {control_layout_element.powder_sample.sample.reich_lab_id:}')
 	return reich_lab_sample_number
 	
+# We are discontinuing use of Reich lab sample number assignments for controls. 
+# This is the replacement name
+# Each control needs a distinct name, so we assign an index based on the number of existing products that exist
+def control_name_string(batch_name, control_type, num_existing):
+	# remove _LY from batch name, if present
+	if batch_name.endswith('_LY') or batch_name.endswith('_RE') or batch_name.endswith('_DS') or batch_name.endswith('_SS'):
+		batch_name = batch_name[:-3]
+	# lowercase control negative type
+	control_type_str = control_type.control_type
+	if control_type_str == EXTRACT_NEGATIVE:
+		short_control_str = 'extract'
+	elif control_type_str == LIBRARY_NEGATIVE:
+		short_control_str = 'library'
+	else:
+		raise ValueError(f'Unhandled control type {control_type_str}')
+		
+	return f'control_{short_control_str}_{num_existing+1}_{batch_name}'
+	
 # How many lysates are there for this sample
 def lysates_for_sample(sample):
 	existing_lysates = Lysate.objects.filter(powder_sample__sample=sample)
@@ -617,6 +635,26 @@ def create_lysate(lysate_layout_element, lysate_batch, user):
 		lysate_layout_element.save(save_user=user)
 		
 		return lysate
+		
+# resused at least for LysateBatch and ExtractionBatch
+# find sample numbers used for existing controls
+# remove all controls (in preparation for readding with new layout)
+# existing_controls is a queryset of layout for a batch
+def existing_controls_cleanup(existing_controls, user):
+	# we check the existing controls for sample ids
+	# Extract Negative: find the Reich lab sample ID used for extract negatives for this extract batch
+	extract_negative_controls = existing_controls.filter(control_type__control_type=EXTRACT_NEGATIVE)
+	extract_negative_sample_id = control_sample_number(extract_negative_controls)
+	# Library Negative: find the Reich lab sample ID used for library negatives for this extract batch
+	library_negative_controls = existing_controls.filter(control_type__control_type=LIBRARY_NEGATIVE)
+	library_negative_sample_id = control_sample_number(library_negative_controls)
+	
+	# remove existing control layout entries
+	for existing_control in existing_controls:
+		existing_control.destroy_control(user)
+		existing_control.delete()
+	
+	return extract_negative_sample_id, library_negative_sample_id
 
 # turn powders into lysates
 class LysateBatch(Timestamped):
@@ -695,18 +733,9 @@ class LysateBatch(Timestamped):
 		
 		# get existing controls
 		existing_controls = LysateBatchLayout.objects.filter(lysate_batch=self, control_type__isnull=False).order_by('column', 'row')
-		# we check the existing controls for sample ids
-		# Extract Negative: find the Reich lab sample ID used for extract negatives for this extract batch
-		extract_negative_controls = existing_controls.filter(control_type__control_type=EXTRACT_NEGATIVE)
-		extract_negative_sample_id = control_sample_number(extract_negative_controls)
-		# Library Negative: find the Reich lab sample ID used for library negatives for this extract batch
-		library_negative_controls = existing_controls.filter(control_type__control_type=LIBRARY_NEGATIVE)
-		library_negative_sample_id = control_sample_number(library_negative_controls)
+		# examine existing controls for sample numbers
+		extract_negative_sample_id, library_negative_sample_id = existing_controls_cleanup(existing_controls, user)
 		
-		# remove existing control layout entries
-		for existing_control in existing_controls:
-			existing_control.destroy_control(user)
-			existing_control.delete()
 		# create new control layout entries
 		extract_negative_control_count = 0
 		library_negative_control_count = 0
@@ -856,7 +885,7 @@ class LysateBatch(Timestamped):
 class Lysate(Timestamped):
 	lysate_id = models.CharField(max_length=15, unique=True, null=False, db_index=True)
 	reich_lab_lysate_number = models.PositiveIntegerField(null=True, help_text='Starts at 1 for each sample.')
-	powder_sample = models.ForeignKey(PowderSample, null=True, on_delete=models.PROTECT)
+	powder_sample = models.ForeignKey(PowderSample, null=True, on_delete=models.PROTECT) # if this is null, it's a control
 	lysate_batch = models.ForeignKey(LysateBatch, null=True, on_delete=models.CASCADE)
 	storage = models.ForeignKey(Storage, on_delete=models.PROTECT, null=True)
 	
@@ -968,37 +997,6 @@ class LysateBatchLayout(TimestampedWellPosition):
 			lysate.barcode = arg_array[headers.index('barcode')]
 			lysate.notes = arg_array[headers.index('notes')]
 			lysate.save(save_user=user)
-	
-def create_extract_from_lysate(extract_layout_element, user):
-	lysate = extract_layout_element.lysate
-	
-	if lysate is None:
-		return None
-	elif extract_layout_element.extract is not None:
-		return extract_layout_element.extract
-	else:
-		extract_batch = extract_layout_element.extract_batch
-		# library negatives have no lysis volume
-		is_library_negative = (extract_layout_element.control_type is not None) and  (extract_layout_element.control_type.control_type == LIBRARY_NEGATIVE)
-		lysis_volume_extracted = extract_batch.protocol.total_lysis_volume * extract_batch.protocol.lysate_fraction_extracted if not is_library_negative else 0
-		
-		sample = lysate.powder_sample.sample
-		next_extract_number = extracts_for_lysate(lysate) +1
-		extract_id = f'{str(lysate.lysate_id)}.E{next_extract_number}'
-		print(f'created extract id {extract_id}')
-		extract = Extract(extract_id=extract_id,
-					reich_lab_extract_number=next_extract_number,
-					lysate=lysate,
-					sample=sample,
-					extract_batch=extract_batch,
-					lysis_volume_extracted=lysis_volume_extracted,
-					extraction_lab=REICH_LAB)
-		extract.save(save_user=user)
-		
-		extract_layout_element.extract = extract
-		extract_layout_element.lysate_volume_used = lysis_volume_extracted
-		extract_layout_element.save(save_user=user)
-		return extract
 		
 @receiver(pre_delete, sender=LysateBatchLayout, dispatch_uid='lysatebatchlayout_delete_signal')
 def delete_dependent_lysate(sender, instance, using, **kwargs):
@@ -1190,11 +1188,12 @@ class ExtractionBatch(Timestamped):
 		to_clear.delete()
 		
 	def create_extracts(self, user):
-		layout = ExtractionBatchLayout.objects.filter(extract_batch=self)
+		# order matters for the creation of controls without prior existing lysates
+		layout = ExtractionBatchLayout.objects.filter(extract_batch=self).order_by('column', 'row')
 		duplicate_positions_check_db(layout)
 		# create extracts
 		for layout_element in layout:
-			extract = create_extract_from_lysate(layout_element, user)
+			extract = layout_element.create_extract_from_lysate(user)
 	
 	def create_library_batch(self, batch_name, user):
 		layout = ExtractionBatchLayout.objects.filter(extract_batch=self)
@@ -1237,10 +1236,40 @@ class ExtractionBatch(Timestamped):
 			layout_element = layout_elements.get(column=temp.column, row=temp.row)
 			layout_element.from_spreadsheet_row(headers, fields, user)
 	
-	def add_lysate(self, lysate_obj, row, column):
-		lysate_volume_used = (self.protocol.total_lysis_volume * self.protocol.lysate_fraction_extracted)
-		ExtractionBatchLayout.objects.get_or_create(extract_batch=self, lysate=lysate_obj, lysate_volume_used=lysate_volume_used, row=row, column=column)
+	def add_lysate(self, lysate_obj, row, column, user):
+		# The target well should currently be empty
+		try:
+			existing = ExtractionBatchLayout.objects.get(extract_batch=self, row=row, column=column)
+			# it is acceptable if the lysate is already in this position
+			if existing.lysate != lysate_obj:
+				raise ValueError(f'{row}{column} in {self.batch_name} is unexpectedly occupied')
+		except ExtractionBatchLayout.DoesNotExist:
+			lysate_volume_used = (self.protocol.total_lysis_volume * self.protocol.lysate_fraction_extracted)
+			layout_element = ExtractionBatchLayout(extract_batch=self, 
+								lysate=lysate_obj, lysate_volume_used=lysate_volume_used, 
+								row=row, 
+								column=column)
+			layout_element.save(save_user=user)
+		# ExtractionBatchLayout.MultipleObjectsReturned is intentionally not caught
 		
+	# Extract batches created from lysate batches reuse the controls. 
+	# This sets controls for batches starting from this point. 
+	# The wetlab calls these Crowds. 
+	def set_controls(self, user):
+		control_types = EXTRACT_AND_LIBRARY_CONTROLS
+		controls = ControlLayout.objects.filter(control_set=self.control_set, control_type__control_type__in=control_types, active=True).order_by('column', 'row')
+		
+		existing_controls = ExtractionBatchLayout.objects.filter(extract_batch=self, control_type__isnull=False).order_by('column', 'row')
+		# examine existing controls for sample numbers and remove existing 
+		extract_negative_sample_id, library_negative_sample_id = existing_controls_cleanup(existing_controls, user)
+		
+		# create new control layout entries
+		for control in controls:
+			layout_element = ExtractionBatchLayout(extract_batch=self, control_type=control.control_type, row=control.row, column=control.column)
+			
+			# Skip creating powder samples and lysates for controls because these do not really exist
+			layout_element.lysate_volume_used = 0
+			layout_element.save(save_user=user)
 	
 class Extract(Timestamped):
 	extract_id = models.CharField(max_length=20, unique=True, db_index=True)
@@ -1299,6 +1328,48 @@ class ExtractionBatchLayout(TimestampedWellPosition):
 			extract.lysis_volume_extracted = float(get_spreadsheet_value(headers, arg_array, 'lysis_volume_extracted'))
 			extract.notes = get_spreadsheet_value(headers, arg_array, 'notes')
 			extract.save(save_user=user)
+			
+	def create_extract_from_lysate(self, user):
+		lysate = self.lysate
+		
+		# missing data
+		if self.control_type is None and lysate is None:
+			return None
+		elif self.control_type is not None and self.control_type.control_type == LIBRARY_POSITIVE:
+			return None
+		elif self.extract is not None: # extract was already created
+			return self.extract
+		else:
+			extract_batch = self.extract_batch
+			# library negatives have no lysis volume
+			is_library_negative = (self.control_type is not None) and  (self.control_type.control_type == LIBRARY_NEGATIVE)
+			lysis_volume_extracted = extract_batch.protocol.total_lysis_volume * extract_batch.protocol.lysate_fraction_extracted if not is_library_negative else 0
+			
+			# Generating lysates
+			if self.control_type is None or lysate is not None:
+				sample = lysate.powder_sample.sample
+				next_extract_number = extracts_for_lysate(lysate) +1
+				extract_id = f'{str(lysate.lysate_id)}.E{next_extract_number}'
+				print(f'created extract id {extract_id}')
+			else: # controls
+				sample = None
+				next_extract_number = 1 # each control produces its own extract
+				# count how many existing controls of this type exist already as extract products to distinctly name each control
+				num_existing_extracts = ExtractionBatchLayout.objects.filter(extract_batch=self.extract_batch, control_type=self.control_type, extract__isnull=False).count()
+				extract_id = control_name_string(self.extract_batch.batch_name, self.control_type, num_existing_extracts)
+			extract = Extract(extract_id=extract_id,
+						reich_lab_extract_number=next_extract_number,
+						lysate=lysate,
+						sample=sample,
+						extract_batch=extract_batch,
+						lysis_volume_extracted=lysis_volume_extracted,
+						extraction_lab=REICH_LAB)
+			extract.save(save_user=user)
+			
+			self.extract = extract
+			self.lysate_volume_used = lysis_volume_extracted
+			self.save(save_user=user)
+			return extract
 			
 @receiver(pre_delete, sender=ExtractionBatchLayout, dispatch_uid='extractionbatchlayout_delete_signal')
 def delete_dependent_extract(sender, instance, using, **kwargs):
