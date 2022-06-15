@@ -883,7 +883,7 @@ class LysateBatch(Timestamped):
 			layout_element.from_spreadsheet_row(headers, fields, user)
 
 class Lysate(Timestamped):
-	lysate_id = models.CharField(max_length=15, unique=True, null=False, db_index=True)
+	lysate_id = models.CharField(max_length=50, unique=True, null=False, db_index=True)
 	reich_lab_lysate_number = models.PositiveIntegerField(null=True, help_text='Starts at 1 for each sample.')
 	powder_sample = models.ForeignKey(PowderSample, null=True, on_delete=models.PROTECT) # if this is null, it's a control
 	lysate_batch = models.ForeignKey(LysateBatch, null=True, on_delete=models.CASCADE)
@@ -1272,7 +1272,7 @@ class ExtractionBatch(Timestamped):
 			layout_element.save(save_user=user)
 	
 class Extract(Timestamped):
-	extract_id = models.CharField(max_length=20, unique=True, db_index=True)
+	extract_id = models.CharField(max_length=50, unique=True, db_index=True)
 	reich_lab_extract_number = models.PositiveIntegerField(null=True, help_text='Starts at 1 for each lysate or sample if no lysate exists.')
 	lysate = models.ForeignKey(Lysate, on_delete=models.PROTECT, null=True)
 	sample = models.ForeignKey(Sample, on_delete=models.PROTECT, null=True)
@@ -1618,7 +1618,7 @@ class Library(Timestamped):
 	sample = models.ForeignKey(Sample, on_delete=models.PROTECT, null=True)
 	extract = models.ForeignKey(Extract, on_delete=models.PROTECT, null=True)
 	library_batch = models.ForeignKey(LibraryBatch, on_delete=models.CASCADE, null=True)
-	reich_lab_library_id = models.CharField(max_length=20, unique=True, db_index=True)
+	reich_lab_library_id = models.CharField(max_length=50, unique=True, db_index=True)
 	reich_lab_library_number = models.PositiveIntegerField(null=True, help_text='Starts at 1 for each extract or sample')
 	udg_treatment = models.CharField(max_length=10)
 	library_type = models.CharField(max_length=10, blank=True)
