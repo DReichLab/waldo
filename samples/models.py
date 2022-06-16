@@ -931,11 +931,15 @@ class Lysate(Timestamped):
 			lysate_used += lost.lysate_volume_used
 		lysate_remaining = self.total_volume_produced - lysate_used
 		return lysate_remaining
-	
-# how many extracts exist for this lysate
-def extracts_for_lysate(lysate):
-	existing_extracts = Extract.objects.filter(lysate=lysate)
-	return len(existing_extracts)
+		
+	# return the highest extract number for this lysate
+	# This is not equivalent to how many extracts there are because there are extracts with the number 0. These appear to be failures that were renumbered after failure. 
+	def highest_extract(self):
+		max_value = Extract.objects.filter(lysate=self).aggregate(Max('reich_lab_extract_number', default=0))['reich_lab_extract_number__max']
+		if max_value:
+			return max_value
+		else:
+			return 0
 	
 # powder -> lysate
 # This holds powder that has been weighed in preparation for lysate creation, or lost powder
@@ -1366,7 +1370,7 @@ class ExtractionBatchLayout(TimestampedWellPosition):
 			# Generating from lysates (either real or control)
 			if self.control_type is None or lysate is not None:
 				sample = lysate.powder_sample.sample
-				next_extract_number = extracts_for_lysate(lysate) +1
+				next_extract_number = lysate.highest_extract() +1
 				prior_id = str(lysate.lysate_id)
 				
 			else: # controls
