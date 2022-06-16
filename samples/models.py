@@ -573,15 +573,33 @@ LIBRARY_POSITIVE = 'Library Positive'
 
 EXTRACT_AND_LIBRARY_CONTROLS = [EXTRACT_NEGATIVE, LIBRARY_NEGATIVE, LIBRARY_POSITIVE]
 
+# find the Reich Lab sample number associated with a layout element
+# Lookup depends on the type of layout element
+# For new style of control naming where we do not assign Reich lab sample numbers, the proper result is None
+def control_sample_number_from_layout_element(control_layout_element):
+	reich_lab_sample_number = None
+	if control_layout_element.control_type is None:
+		raise ValueError('Not a control')
+	if isinstance(control_layout_element, LysateBatchLayout):
+		if control_layout_element.powder_sample and control_layout_element.powder_sample.sample:
+			reich_lab_sample_number = control_layout_element.powder_sample.sample.reich_lab_id
+	elif isinstance(control_layout_element, ExtractionBatchLayout):
+		if control_layout_element.lysate and control_layout_element.lysate.powder_sample and control_layout_element.lysate.powder_sample.sample:
+			reich_lab_sample_number = control_layout_element.lysate.powder_sample.sample.reich_lab_id
+	else:
+		raise ValueError('Unhandled class')
+	return reich_lab_sample_number
+
 # extract negative and library negative controls get Reich lab sample numbers
-# find the sample number for one of these types from extract batch layout elements
+# find the sample number for one of these types from lysate batch layout elements
 def control_sample_number(control_element_queryset):
 	reich_lab_sample_number = None
 	for control_layout_element in control_element_queryset:
+		current_sample_number = control_sample_number_from_layout_element(control_layout_element)
 		if reich_lab_sample_number is None:
-			reich_lab_sample_number = control_layout_element.powder_sample.sample.reich_lab_id
-		elif reich_lab_sample_number != control_layout_element.powder_sample.sample.reich_lab_id:
-			raise ValueError(f'Multiple control sample ids: {reich_lab_sample_number} {control_layout_element.powder_sample.sample.reich_lab_id:}')
+			reich_lab_sample_number = current_sample_number
+		elif reich_lab_sample_number != current_sample_number:
+			raise ValueError(f'Multiple control sample ids: {reich_lab_sample_number} {current_sample_number}')
 	return reich_lab_sample_number
 	
 # We are discontinuing use of Reich lab sample number assignments for controls. 
@@ -1345,18 +1363,20 @@ class ExtractionBatchLayout(TimestampedWellPosition):
 			is_library_negative = (self.control_type is not None) and  (self.control_type.control_type == LIBRARY_NEGATIVE)
 			lysis_volume_extracted = extract_batch.protocol.total_lysis_volume * extract_batch.protocol.lysate_fraction_extracted if not is_library_negative else 0
 			
-			# Generating lysates
+			# Generating from lysates (either real or control)
 			if self.control_type is None or lysate is not None:
 				sample = lysate.powder_sample.sample
 				next_extract_number = extracts_for_lysate(lysate) +1
-				extract_id = f'{str(lysate.lysate_id)}.E{next_extract_number}'
-				print(f'created extract id {extract_id}')
+				prior_id = str(lysate.lysate_id)
+				
 			else: # controls
 				sample = None
 				next_extract_number = 1 # each control produces its own extract
 				# count how many existing controls of this type exist already as extract products to distinctly name each control
 				num_existing_extracts = ExtractionBatchLayout.objects.filter(extract_batch=self.extract_batch, control_type=self.control_type, extract__isnull=False).count()
-				extract_id = control_name_string(self.extract_batch.batch_name, self.control_type, num_existing_extracts)
+				prior_id = control_name_string(self.extract_batch.batch_name, self.control_type, num_existing_extracts)
+			extract_id = f'{prior_id}.E{next_extract_number}'
+			print(f'created extract id {extract_id}')
 			extract = Extract(extract_id=extract_id,
 						reich_lab_extract_number=next_extract_number,
 						lysate=lysate,
@@ -1370,6 +1390,11 @@ class ExtractionBatchLayout(TimestampedWellPosition):
 			self.lysate_volume_used = lysis_volume_extracted
 			self.save(save_user=user)
 			return extract
+			
+	def destroy_control(self, user):
+		if self.control_type is not None:
+			if self.lysate is not None:
+				raise ValueError('Not expecting to destroy_control for ExtractionBatch layouts')
 			
 @receiver(pre_delete, sender=ExtractionBatchLayout, dispatch_uid='extractionbatchlayout_delete_signal')
 def delete_dependent_extract(sender, instance, using, **kwargs):

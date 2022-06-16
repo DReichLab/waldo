@@ -2,7 +2,7 @@ from django.core.management.base import BaseCommand, CommandError
 from samples.models import ExtractionBatch, Library, WetLabStaff
 
 class Command(BaseCommand):
-	help = 'Add a single lysate identified by Reich Lab a reich lab library id to a shotgun or capture plate. This plate must already exist.'
+	help = 'Add lysates identified by Reich Lab library id to a shotgun or capture plate. This plate must already exist.'
 	
 	def add_arguments(self, parser):
 		parser.add_argument('--controls', action='store_true', help="Populate lysate batch's control layout")
