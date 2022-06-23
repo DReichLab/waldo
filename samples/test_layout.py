@@ -48,6 +48,36 @@ class WellPositionArithmetic(SimpleTestCase):
 		self.assertEquals(2, layout_ids[1])
 		self.assertEquals(300, new_content_ids[0])
 		self.assertEquals(400, new_content_ids[1])
+		
+	def rotate_test(self, start_str, expected_str):
+		x = TimestampedWellPosition()
+		x.set_position(start_str)
+		# sanity check that starting position looks correct
+		self.assertEquals(start_str, str(x))
+		# rotate once then check position
+		x.rotate()
+		self.assertEquals(expected_str, str(x))
+		# rotated twice should now be back at start
+		x.rotate()
+		self.assertEquals(start_str, str(x)) 
+		
+	def test_rotate_A1(self):
+		self.rotate_test('A1', 'H12')
+		
+	def test_rotate_H12(self):
+		self.rotate_test('H12', 'A1')
+		
+	def test_rotate_C4(self):
+		self.rotate_test('C4', 'F9')
+		
+	def test_rotate_B3(self):
+		self.rotate_test('B3', 'G10')
+		
+	def test_rotate_D11(self):
+		self.rotate_test('D11', 'E2')
+		
+	def test_rotate_F1(self):
+		self.rotate_test('F1', 'C12')
 
 class WellPositionValidation(SimpleTestCase):
 	def test_A1(self):

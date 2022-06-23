@@ -93,6 +93,12 @@ class TimestampedWellPosition(Timestamped):
 		has_column = self.column is not None
 		if (has_row and not has_column) or (not has_row and has_column):
 			raise ValidationError(_('well positions cannot have only one of row and column specified')) 
+	
+	# rotate the plate by 180 degrees
+	def rotate(self):
+		row_index = PLATE_ROWS.index(self.row)
+		self.column = (12 + 1) - self.column
+		self.row = PLATE_ROWS[len(PLATE_ROWS) - row_index - 1]
 
 class Shipment(Timestamped):
 	shipment_name = models.CharField(max_length=30, db_index=True, unique=True)
