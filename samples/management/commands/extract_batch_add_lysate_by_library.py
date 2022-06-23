@@ -1,6 +1,8 @@
 from django.core.management.base import BaseCommand, CommandError
 from samples.models import ExtractionBatch, Library, WetLabStaff
 
+import re
+
 class Command(BaseCommand):
 	help = 'Add lysates identified by Reich Lab library id to a shotgun or capture plate. This plate must already exist.'
 	
@@ -24,9 +26,9 @@ class Command(BaseCommand):
 		# This file contains library id and position, one per line
 		with open(options['parameter_file']) as f:
 			for line in f:
-				fields = line.split()
-				library_id = fields[0]
-				plate_location = fields[1]
+				fields = re.split('\t', line)
+				library_id = fields[0].strip()
+				plate_location = fields[1].strip()
 				
 				self.stdout.write(f"{plate.batch_name}\t{library_id}\t{plate_location}")
 				
