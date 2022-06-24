@@ -1196,6 +1196,7 @@ class ExtractionBatch(Timestamped):
 	note = models.TextField(blank=True)
 	layout = models.ManyToManyField(Lysate, through='ExtractionBatchLayout', related_name='lysate_assignment')
 	control_set = models.ForeignKey(ControlSet, on_delete=models.SET_NULL, null=True)
+	rotated = models.BooleanField(default=False, help_text='True for second extract plates that are rotated 180 degrees')
 	
 	OPEN = 0
 	EXTRACTED = 1
@@ -1501,6 +1502,7 @@ class LibraryBatch(Timestamped):
 	qpcr_machine = models.CharField(max_length=20, blank=True)
 	technician_fk = models.ForeignKey(WetLabStaff, on_delete=models.SET_NULL, null=True)
 	control_set = models.ForeignKey(ControlSet, on_delete=models.SET_NULL, null=True)
+	rotated = models.BooleanField(default=False, help_text='True for second extract plates that are rotated 180 degrees')
 	
 	# The offset determines completely the layout of barcodes for the library batch because the wetlab uses a system where the p5 barcodes are placed in the same location for all plates
 	# If we need to handle arbitrary layouts, migrate this state into barcodes in the layout objects 
