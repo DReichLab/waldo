@@ -194,3 +194,8 @@ def indices_for_location(int_position, p5_index_starting):
 	row_length = PLATE_WELL_COUNT // len(PLATE_ROWS)
 	p7 = row_num * row_length + column
 	return p5, p7
+
+def rotate_plate(layout_element_queryset, user):
+	for layout_element in layout_element_queryset:
+		layout_element.rotate()
+		layout_element.save(save_user=user)

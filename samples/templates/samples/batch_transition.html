@@ -10,7 +10,7 @@
 
 <form action="" method='post'>
 	{% csrf_token %}
-	{{ form }}
+	{{ form.as_p }}
 	<input type='submit' value='Create {{new_batch_type}}'/>
 </form>
 

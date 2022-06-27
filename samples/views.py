@@ -637,8 +637,12 @@ def lysate_batch_to_extract_batch(request):
 		form = LysateBatchToExtractBatchForm(request.POST)
 		if form.is_valid():
 			extract_batch_name = form.cleaned_data['extract_batch_name']
-			lysate_batch.create_extract_batch(extract_batch_name, request.user)
+			rotated = form.cleaned_data['rotated']
+			extract_batch = lysate_batch.create_extract_batch(extract_batch_name, request.user)
+			if rotated:
+				extract_batch.rotate(request.user)
 			return redirect(f'{reverse("extract_batch_assign_lysate")}?extract_batch_name={extract_batch_name}')
+			
 	elif request.method == 'GET':
 		form = LysateBatchToExtractBatchForm()
 		# Set name for first extraction batch. Duplicates will prompt for new name and need to be set manually. 

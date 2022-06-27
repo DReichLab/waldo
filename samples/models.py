@@ -12,7 +12,7 @@ from django.db.models import Max, Min, Count, Q
 from django.db.models.signals import pre_delete
 from django.dispatch import receiver
 
-from .layout import PLATE_ROWS, PLATE_WELL_COUNT, PLATE_WELL_COUNT_HALF, validate_row_letter, plate_location, reverse_plate_location_coordinate, reverse_plate_location, duplicate_positions_check_db, p7_qbarcode_source, barcodes_for_location, indices_for_location
+from .layout import PLATE_ROWS, PLATE_WELL_COUNT, PLATE_WELL_COUNT_HALF, validate_row_letter, plate_location, reverse_plate_location_coordinate, reverse_plate_location, duplicate_positions_check_db, p7_qbarcode_source, barcodes_for_location, indices_for_location, rotate_plate
 from .sample_photos import num_sample_photos
 from .spreadsheet import spreadsheet_headers_and_data_rows, get_spreadsheet_value
 from .validation import *
@@ -1249,6 +1249,11 @@ class ExtractionBatch(Timestamped):
 									column = layout_element.column
 					)
 				library_batch_layout_element.save(save_user=user)
+		return library_batch
+				
+	def rotate(self, user):
+		layout_elements = ExtractionBatchLayout.objects.filter(extract_batch=self)
+		rotate_plate(layout_elements, user)
 	
 	def extracts_from_spreadsheet(self, spreadsheet, user):
 		layout_elements = ExtractionBatchLayout.objects.filter(extract_batch=self)
