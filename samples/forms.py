@@ -41,6 +41,7 @@ class PowderBatchForm(UserModelForm):
 		for option in ['date']:
 			self.fields[option].required = False
 		
+	# to view fields without being able to modify prior to deletion
 	def disable_fields(self):
 		for field in PowderBatchForm._meta.fields:
 			self.fields[field].disabled = True
@@ -261,6 +262,7 @@ class LysateBatchForm(UserModelForm):
 		for option in ['protocol', 'date']:
 			self.fields[option].required = False
 			
+	# to view fields without being able to modify prior to deletion
 	def disable_fields(self):
 		for field in LysateBatchForm._meta.fields:
 			self.fields[field].disabled = True
@@ -323,6 +325,7 @@ class ExtractionBatchForm(UserModelForm):
 		for option in ['date', 'robot']:
 			self.fields[option].required = False
 			
+	# to view fields without being able to modify prior to deletion
 	def disable_fields(self):
 		for field in ExtractionBatchForm._meta.fields:
 			self.fields[field].disabled = True
@@ -475,6 +478,7 @@ class LibraryBatchForm(UserModelForm):
 		for option in ['prep_date', 'prep_robot']:
 			self.fields[option].required = False
 	
+	# to view fields without being able to modify prior to deletion
 	def disable_fields(self):
 		for field in LibraryBatchForm._meta.fields:
 			self.fields[field].disabled = True
@@ -551,6 +555,7 @@ class CaptureBatchForm(UserModelForm):
 		for option in ['date', 'robot', 'hyb_wash_temps', 'reagent_batch']:
 			self.fields[option].required = False
 	
+	# to view fields without being able to modify prior to deletion
 	def disable_fields(self):
 		for field in CaptureBatchForm._meta.fields:
 			self.fields[field].disabled = True
@@ -622,6 +627,7 @@ class SequencingRunForm(UserModelForm):
 		for option in ['sequencing', 'read_length', 'lanes_estimated', 'lanes_sequenced', 'date_ready_for_sequencing', 'date_submitted_for_sequencing', 'date_data_available', 'date_analysis_started', 'date_analysis_complete', 'date_ready_for_pulldown', 'date_pulldown_complete', 'reich_lab_release_version',]:
 			self.fields[option].required = False
 		
+	# to view fields without being able to modify prior to deletion
 	def disable_fields(self):
 		for field in SequencingRunForm._meta.fields:
 			self.fields[field].disabled = True
