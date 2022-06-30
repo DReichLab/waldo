@@ -3,6 +3,7 @@ from django.core.exceptions import ValidationError
 
 from .layout import PLATE_ROWS, PLATE_WELL_COUNT, plate_location, reverse_plate_location, PlateDomainError, check_plate_domain, layout_and_content_lists
 from .models import TimestampedWellPosition
+from .layout import rotated_pair_name
 			
 class WellPositionArithmetic(SimpleTestCase):
 	def test_check_plate_domain_good(self):
@@ -100,3 +101,19 @@ class WellPositionValidation(SimpleTestCase):
 	def test_no_position(self):
 		x = TimestampedWellPosition()
 		x.clean()
+		
+# Check that the name generated for looking for rotated complements works as expected
+class RotatedName(SimpleTestCase):
+	def test_Crowd(self):
+		name = 'Crowd.21_RE'
+		expected = 'Crowd.21U_RE'
+		
+		rotated_name = rotated_pair_name(name)
+		rerotated_name = rotated_pair_name(rotated_name)
+		self.assertEquals(name, rerotated_name)
+		self.assertEquals(expected, rotated_name)
+		
+	def test_Crowd_bad_parse(self):
+		name = 'Crowd_21_RE'
+		rotated_name = rotated_pair_name(name)
+		self.assertIsNone(rotated_name)

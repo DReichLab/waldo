@@ -1,6 +1,6 @@
 from django.test import SimpleTestCase
 
-from .models import parse_sample_string
+from .models import parse_sample_string, Barcode, Library
 from .layout import PLATE_ROWS, PLATE_WELL_COUNT, PLATE_WELL_COUNT_HALF, plate_location, reverse_plate_location, BARCODES_BY_POSITION, barcode_at_position, barcodes_for_location, p7_qbarcode_source, indices_for_location
 
 class BarcodesTest(SimpleTestCase):
@@ -100,3 +100,41 @@ class BarcodesTest(SimpleTestCase):
 		p5, p7 = indices_for_location(n, starting)
 		self.assertEquals(starting+1, p5)
 		self.assertEquals(96, p7)
+
+# sequences do not actually matter because barcodes are checked by reference and sequences are enforced unique
+class LibraryBarcodeCheckTest(SimpleTestCase):
+	def test_library_barcode_match(self):
+		barcode1 = Barcode(label='1', sequence='AAAAAAA')
+		barcode2 = Barcode(label='2', sequence='TTTTTTT')
+		
+		l1 = Library(p5_barcode=barcode1, p7_barcode=barcode2)
+		l2 = Library(p5_barcode=barcode1, p7_barcode=barcode2)
+		self.assertFalse(l1.barcodes_are_distinct(l1))
+		self.assertFalse(l1.barcodes_are_distinct(l2))
+		self.assertFalse(l2.barcodes_are_distinct(l1))
+		self.assertFalse(l2.barcodes_are_distinct(l2))
+		
+	def test_library_barcode_one_match(self):
+		barcode1 = Barcode(label='1', sequence='AAAAAAA')
+		barcode2 = Barcode(label='2', sequence='TTTTTTT')
+		barcode3 = Barcode(label='3', sequence='GGGGGGG')
+		
+		l1 = Library(p5_barcode=barcode1, p7_barcode=barcode2)
+		l2 = Library(p5_barcode=barcode1, p7_barcode=barcode3)
+		self.assertFalse(l1.barcodes_are_distinct(l1))
+		self.assertTrue(l1.barcodes_are_distinct(l2))
+		self.assertTrue(l2.barcodes_are_distinct(l1))
+		self.assertFalse(l2.barcodes_are_distinct(l2))
+		
+	def test_library_barcode_no_match(self):
+		barcode1 = Barcode(label='1', sequence='AAAAAAA')
+		barcode2 = Barcode(label='2', sequence='TTTTTTT')
+		barcode3 = Barcode(label='3', sequence='GGGGGGG')
+		barcode4 = Barcode(label='4', sequence='CCCCCCC')
+		
+		l1 = Library(p5_barcode=barcode1, p7_barcode=barcode2)
+		l2 = Library(p5_barcode=barcode3, p7_barcode=barcode4)
+		self.assertFalse(l1.barcodes_are_distinct(l1))
+		self.assertTrue(l1.barcodes_are_distinct(l2))
+		self.assertTrue(l2.barcodes_are_distinct(l1))
+		self.assertFalse(l2.barcodes_are_distinct(l2))

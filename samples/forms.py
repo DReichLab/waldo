@@ -325,6 +325,8 @@ class ExtractionBatchForm(UserModelForm):
 		super().__init__(*args, **kwargs)
 		for option in ['date', 'robot']:
 			self.fields[option].required = False
+		for option in ['rotated']:
+			self.fields[option].disabled = True
 			
 	# to view fields without being able to modify prior to deletion
 	def disable_fields(self):
@@ -469,7 +471,7 @@ class LibraryBatchForm(UserModelForm):
 	
 	class Meta:
 		model = LibraryBatch
-		fields = ['name', 'protocol', 'technician', 'prep_date', 'prep_note', 'prep_robot', 'cleanup_robot', 'cleanup_person', 'cleanup_date', 'qpcr_machine', 'control_set', 'p7_offset', 'status']
+		fields = ['name', 'protocol', 'technician', 'prep_date', 'prep_note', 'prep_robot', 'cleanup_robot', 'cleanup_person', 'cleanup_date', 'qpcr_machine', 'control_set', 'p7_offset', 'status', 'rotated']
 		widgets = {
 			'prep_note': Textarea(attrs={'cols': 60, 'rows': 2}),
 		}
@@ -478,6 +480,8 @@ class LibraryBatchForm(UserModelForm):
 		super().__init__(*args, **kwargs)
 		for option in ['prep_date', 'prep_robot']:
 			self.fields[option].required = False
+		for option in ['rotated']:
+			self.fields[option].disabled = True
 	
 	# to view fields without being able to modify prior to deletion
 	def disable_fields(self):

@@ -1055,7 +1055,7 @@ def libraries_spreadsheet_upload(request):
 	else:
 		spreadsheet_form = SpreadsheetForm()
 		message = ''
-	return render(request, 'samples/spreadsheet_upload.html', { 'title': f'Librarie for {library_batch_name}', 'form': spreadsheet_form, 'message': message} )
+	return render(request, 'samples/spreadsheet_upload.html', { 'title': f'Libraries for {library_batch_name}', 'form': spreadsheet_form, 'message': message} )
 	
 @login_required
 def library_batch_to_capture_batch(request):
@@ -1065,7 +1065,8 @@ def library_batch_to_capture_batch(request):
 		form = LibraryBatchToCaptureBatchForm(request.POST)
 		if form.is_valid():
 			capture_batch_name = form.cleaned_data['capture_batch_name']
-			library_batch.create_capture(capture_batch_name, request.user)
+			
+			library_batch.create_capture(capture_batch_name, None, request.user)
 			return redirect(f'{reverse("capture_batch_assign_library")}?capture_batch_name={capture_batch_name}')
 	elif request.method == 'GET':
 		form = LibraryBatchToCaptureBatchForm()

@@ -1,3 +1,5 @@
+import re
+
 PLATE_ROWS = 'ABCDEFGH'
 PLATE_WELL_COUNT = 96
 PLATE_WELL_COUNT_HALF = PLATE_WELL_COUNT // 2
@@ -134,12 +136,6 @@ def layout_objects_map_for_rendering(layout_elements, object_name, property_id_f
 			objects_map[identifier] = joint
 		print(identifier, joint)
 	return objects_map 
-
-# check libraries in a well position for barcode conflicts and strandedness
-def well_barcode_check(layout_element_queryset):
-	for i in range(PLATE_WELL_COUNT):
-		row, column = plate_location(i)
-		at_this_location = layout_queryset.filter(row=row, column=column)
 		
 # This is transposed for python. A-H is across, 1-6 is down
 BARCODE_POSITIONS_ALL_STRING = '''
@@ -199,3 +195,20 @@ def rotate_plate(layout_element_queryset, user):
 	for layout_element in layout_element_queryset:
 		layout_element.rotate()
 		layout_element.save(save_user=user)
+		
+# Assuming plate names like ABC.12_XY, ABC.12U_XY is the rotated version of the same batch type
+# Find the corresponding rotated plate name
+def rotated_pair_name(name_string):
+	match = re.fullmatch('([a-zA-Z]+)\.([\d]+)(U{0,1})_([A-Z]{2})', name_string)
+	if match:
+		batch_name = match.group(1)
+		number = match.group(2)
+		is_rotated = match.group(3) == 'U'
+		batch_type = match.group(4)
+		
+		# switch rotation
+		rotated = '' if is_rotated else 'U'
+		complement = f'{batch_name}.{number}{rotated}_{batch_type}'
+		return complement
+	else:
+		return None

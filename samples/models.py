@@ -1236,6 +1236,7 @@ class ExtractionBatch(Timestamped):
 								technician = wetlab_staff.initials(),
 								technician_fk = wetlab_staff,
 								control_set=self.control_set,
+								rotated=self.rotated
 								)
 			library_batch.save(save_user=user)
 			
@@ -1254,6 +1255,8 @@ class ExtractionBatch(Timestamped):
 	def rotate(self, user):
 		layout_elements = ExtractionBatchLayout.objects.filter(extract_batch=self)
 		rotate_plate(layout_elements, user)
+		self.rotated = not self.rotated
+		self.save(save_user=user)
 	
 	def extracts_from_spreadsheet(self, spreadsheet, user):
 		layout_elements = ExtractionBatchLayout.objects.filter(extract_batch=self)
@@ -1570,7 +1573,7 @@ class LibraryBatch(Timestamped):
 			layout_element.from_spreadsheet_row(headers, fields, user)
 		
 	
-	def create_capture(self, capture_name, user):
+	def create_capture(self, capture_name, other_library_batches, user):
 		# create capture
 		capture_plate = CaptureOrShotgunPlate.objects.create(name=capture_name,
 				technician = self.technician,
@@ -1578,7 +1581,7 @@ class LibraryBatch(Timestamped):
 			)
 		
 		# copy from library layout
-		to_copy = LibraryBatchLayout.objects.filter(library_batch=self).exclude(control_type__control_type=LIBRARY_POSITIVE)
+		to_copy = LibraryBatchLayout.objects.filter(library_batch__in=[self, other_library_batches]).exclude(control_type__control_type=LIBRARY_POSITIVE)
 		for x in to_copy:
 			copied = CaptureLayout(capture_batch = capture_plate, 
 								row = x.row,
@@ -1586,16 +1589,17 @@ class LibraryBatch(Timestamped):
 								library = x.library,
 								control_type = x.control_type
 								)
+			if x.library_batch.rotated:
+				copied.rotate() # unrotate
 			copied.save(save_user=user)
 		# control changes for capture
 		# 1. Move library negative in H12 to H9
 		library_negatives = CaptureLayout.objects.filter(capture_batch=capture_plate, control_type__control_type=LIBRARY_NEGATIVE).order_by('column', 'row')
-		destination = library_negatives.get(row='H', column=9)
 		#print(f'{len(library_negatives)} library_negatives')
-		to_move = library_negatives.get(row='H', column=12)
-		to_move.row = destination.row
-		to_move.column = destination.column
-		to_move.save(save_user=user)
+		for to_move in library_negatives.filter(row='H', column=12):
+			to_move.row = destination.row
+			to_move.column = 9
+			to_move.save(save_user=user)
 		#print(f'{to_move} {destination}')
 		# 2. Replace library positive with PCR negative (G12)
 		pcr_negative_position = ControlLayout.objects.get(control_set=self.control_set, control_type__control_type='PCR Negative')
@@ -1692,6 +1696,15 @@ class Library(Timestamped):
 			raise ValidationError(_('Library cannot have both indices and barcodes. Single-stranded libraries should have only indices, and double-stranded libraries should have only barcodes.'))
 		if self.p5_index is None and self.p7_index is None and self.p5_barcode is None and self.p7_barcode is None:
 			raise ValidationError(_('Library must have either indices or barcodes')) 
+			
+	# barcodes and indices are unique, so we only need to check ids, not DNA sequences
+	def barcodes_are_distinct(self, other):
+		if self.p5_index and self.p7_index and other.p5_index and other.p7_index:
+			return self.p5_index != other.p5_index or self.p7_index != other.p7_index
+		elif self.p5_barcode and self.p7_barcode and other.p5_barcode and other.p7_barcode:
+			return self.p5_barcode != other.p5_barcode or self.p7_barcode != other.p7_barcode
+		else:
+			raise ValueError(f'Expecting either 2 indices or 2 barcodes on both libraries {self.reich_lab_library_id} and {other.reich_lab_library_id}')
 	
 # extract -> library
 class LibraryBatchLayout(TimestampedWellPosition):
@@ -1821,9 +1834,24 @@ class CaptureOrShotgunPlate(Timestamped):
 	def restrict_layout_elements(self, layout_ids, user):
 		to_clear = CaptureLayout.objects.filter(capture_batch=self).exclude(id__in=layout_ids).exclude(control_type__isnull=False)
 		to_clear.delete()
+		
+	# check libraries in a well position for barcode conflicts
+	def well_barcode_check(self):
+		layout_element_queryset = CaptureLayout.objects.filter(capture_batch=self)
+		barcode_errors = []
+		for i in range(PLATE_WELL_COUNT):
+			row, column = plate_location(i)
+			at_this_location = layout_element_queryset.filter(row=row, column=column)
+			for x in at_this_location:
+				for y in at_this_location:
+					if x.library != y.library and not x.library.barcodes_are_distinct(y.library):
+						barcode_errors.append(ValidationError(_('Barcode duplication'), code='barcode_duplicate'))
+		if len(barcode_errors) > 0:
+			raise ValidationError(barcode_errors)
 			
 	def clean(self):
 		super(CaptureOrShotgunPlate, self).clean()
+		self.well_barcode_check()
 		
 	def from_spreadsheet(self, spreadsheet, user):
 		layout_elements = CaptureLayout.objects.filter(capture_batch=self)
