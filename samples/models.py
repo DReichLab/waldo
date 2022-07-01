@@ -1574,6 +1574,12 @@ class LibraryBatch(Timestamped):
 		
 	
 	def create_capture(self, capture_name, other_library_batches, user):
+		# fail if a library batch is not ready
+		for library_batch in other_library_batches:
+			print(library_batch.name)
+			if library_batch.status != LibraryBatch.LIBRARIED:
+				raise ValueError(f'{library_batch.name} status is not {LibraryBatch.LIBRARY_BATCH_STATES[LibraryBatch.LIBRARIED][1]}')
+		
 		# create capture
 		capture_plate = CaptureOrShotgunPlate.objects.create(name=capture_name,
 				technician = self.technician,
@@ -1581,7 +1587,8 @@ class LibraryBatch(Timestamped):
 			)
 		
 		# copy from library layout
-		to_copy = LibraryBatchLayout.objects.filter(library_batch__in=[self, other_library_batches]).exclude(control_type__control_type=LIBRARY_POSITIVE)
+		other_library_batches_flat = other_library_batches.values_list('id', flat=True)
+		to_copy = LibraryBatchLayout.objects.filter(library_batch__in=([self] + [x for x in other_library_batches_flat]), library_batch__status=LibraryBatch.LIBRARIED).exclude(control_type__control_type=LIBRARY_POSITIVE)
 		for x in to_copy:
 			copied = CaptureLayout(capture_batch = capture_plate, 
 								row = x.row,
@@ -1594,10 +1601,11 @@ class LibraryBatch(Timestamped):
 			copied.save(save_user=user)
 		# control changes for capture
 		# 1. Move library negative in H12 to H9
+		# This transformation should be in the control layout but is hard-coded for now
 		library_negatives = CaptureLayout.objects.filter(capture_batch=capture_plate, control_type__control_type=LIBRARY_NEGATIVE).order_by('column', 'row')
 		#print(f'{len(library_negatives)} library_negatives')
 		for to_move in library_negatives.filter(row='H', column=12):
-			to_move.row = destination.row
+			to_move.row = 'H'
 			to_move.column = 9
 			to_move.save(save_user=user)
 		#print(f'{to_move} {destination}')

@@ -18,7 +18,7 @@ from samples.models import Results, Library, Sample, PowderBatch, WetLabStaff, P
 from .forms import *
 from sequencing_run.models import MTAnalysis
 
-from .layout import duplicate_positions_check, update_db_layout,  layout_objects_map_for_rendering, occupied_wells, layout_and_content_lists, PLATE_WELL_COUNT
+from .layout import duplicate_positions_check, update_db_layout,  layout_objects_map_for_rendering, occupied_wells, layout_and_content_lists, PLATE_WELL_COUNT, rotated_pair_name
 
 from samples.sample_photos import photo_list, save_sample_photo, delete_photo
 
@@ -1065,8 +1065,14 @@ def library_batch_to_capture_batch(request):
 		form = LibraryBatchToCaptureBatchForm(request.POST)
 		if form.is_valid():
 			capture_batch_name = form.cleaned_data['capture_batch_name']
+			# include rotated batches following the naming pattern
+			rotated_library_batch_name = rotated_pair_name(library_batch_name)
+			other_batches = LibraryBatch.objects.filter(name=rotated_library_batch_name)
+			if len (other_batches) > 1:
+				raise ValueError(f'Unexpected number of additional library batches {len(other_batches)}')
+			print (f'{rotated_library_batch_name} {len(other_batches)}')
 			
-			library_batch.create_capture(capture_batch_name, None, request.user)
+			library_batch.create_capture(capture_batch_name, other_batches, request.user)
 			return redirect(f'{reverse("capture_batch_assign_library")}?capture_batch_name={capture_batch_name}')
 	elif request.method == 'GET':
 		form = LibraryBatchToCaptureBatchForm()
@@ -1143,7 +1149,7 @@ def capture_batch_assign_library(request):
 		
 	existing_controls = CaptureLayout.objects.filter(capture_batch=capture_batch, control_type__isnull=False).order_by('column', 'row')
 	
-	already_selected_library_layout_elements = CaptureLayout.objects.filter(capture_batch=capture_batch, control_type=None).select_related('library', 'library__p5_barcode', 'library__p7_barcode', 'p5_index', 'p7_index').order_by('column', 'row')
+	already_selected_library_layout_elements = CaptureLayout.objects.filter(capture_batch=capture_batch, control_type=None).select_related('library', 'library__p5_barcode', 'library__p7_barcode', 'p5_index', 'p7_index').order_by('column', 'row', 'library__sample__reich_lab_id', 'library__extract__lysate__reich_lab_lysate_number', 'library__extract__reich_lab_extract_number', 'library__reich_lab_library_number')
 	
 	# count distinct libraries
 	libraries = {}
@@ -1185,7 +1191,6 @@ def capture_batch_layout(request):
 	except:
 		capture_batch_name = request.POST['capture_batch_name']
 	capture_batch = CaptureOrShotgunPlate.objects.get(name=capture_batch_name)
-	layout_element_queryset = CaptureLayout.objects.filter(capture_batch=capture_batch)
 		
 	if request.method == 'POST' and request.is_ajax():
 		# JSON for a well plate layout
@@ -1199,7 +1204,7 @@ def capture_batch_layout(request):
 		print('POST {capture_batch_name}')
 		raise ValueError('unexpected')
 		
-	layout_elements = CaptureLayout.objects.filter(capture_batch=capture_batch).select_related('library').select_related('control_type')
+	layout_elements = CaptureLayout.objects.filter(capture_batch=capture_batch).select_related('library').select_related('control_type').order_by('library__sample__reich_lab_id', 'library__extract__lysate__reich_lab_lysate_number', 'library__extract__reich_lab_extract_number', 'library__reich_lab_library_number')
 		
 	objects_map = layout_objects_map_for_rendering(layout_elements, 'library', 'reich_lab_library_id')
 		
