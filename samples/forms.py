@@ -307,7 +307,7 @@ def validate_extract_batch_does_not_exist(extract_batch_name):
 # 
 class LysateBatchToExtractBatchForm(forms.Form):
 	extract_batch_name = forms.CharField(max_length=50, label='Extract Batch name', validators=[validate_extract_batch_does_not_exist])
-	rotated = forms.BooleanField(help_text='This batch is rotated 180 degrees')
+	rotated = forms.BooleanField(help_text='This batch is rotated 180 degrees', required=False)
 		
 class ExtractionBatchForm(UserModelForm):
 	protocol = ExtractionProtocolSelect(queryset=ExtractionProtocol.objects.filter(active=True).order_by('-start_date'), empty_label=None)
