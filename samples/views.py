@@ -136,6 +136,20 @@ def powder_prep_queue_view(request):
 	# show unassigned powders
 	sample_queue = PowderPrepQueue.objects.filter(Q(powder_batch=None)).select_related('sample').select_related('sample_prep_protocol').order_by('priority', 'id')
 	return render(request, 'samples/powder_prep_queue_view.html', { 'queued_samples': sample_queue } )
+	
+@login_required
+def powder_prep_queue_spreadsheet(request):
+	sample_queue = PowderPrepQueue.objects.filter(Q(powder_batch=None)).select_related('sample').select_related('sample_prep_protocol').order_by('priority', 'id')
+	
+	response = HttpResponse(content_type='text/csv')
+	response['Content-Disposition'] = f'attachment; filename="powder_prep_queue.txt"'
+
+	writer = csv.writer(response, delimiter='\t')
+	# header
+	writer.writerow(PowderPrepQueue.spreadsheet_header())
+	for x in sample_queue:
+		writer.writerow(x.to_spreadsheet_row())
+	return response
 
 @login_required
 def control_types(request):
