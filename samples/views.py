@@ -494,7 +494,7 @@ def lysates_spreadsheet(request):
 	lysate_batch = LysateBatch.objects.get(batch_name=lysate_batch_name)
 	
 	response = HttpResponse(content_type='text/csv')
-	response['Content-Disposition'] = f'attachment; filename="lysate_batch_{lysate_batch_name}.txt"'
+	response['Content-Disposition'] = f'attachment; filename="{lysate_batch_name}_lysate_batch.txt"'
 
 	writer = csv.writer(response, delimiter='\t')
 	# header
@@ -809,7 +809,7 @@ def extracts_spreadsheet(request):
 	extract_batch = ExtractionBatch.objects.get(batch_name=extract_batch_name)
 	
 	response = HttpResponse(content_type='text/csv')
-	response['Content-Disposition'] = f'attachment; filename="extract_batch_{extract_batch_name}.txt"'
+	response['Content-Disposition'] = f'attachment; filename="{extract_batch_name}_extract_batch.txt"'
 
 	writer = csv.writer(response, delimiter='\t')
 	# header
@@ -974,7 +974,7 @@ def library_batch_barcodes_spreadsheet(request):
 	library_batch = LibraryBatch.objects.get(name=library_batch_name)
 	
 	response = HttpResponse(content_type='text/csv')
-	response['Content-Disposition'] = f'attachment; filename="library_batch_{library_batch_name}_barcodes.csv"'
+	response['Content-Disposition'] = f'attachment; filename="{library_batch_name}_library_batch_barcodes.csv"'
 
 	writer = csv.writer(response, delimiter=',')
 	# header
@@ -1045,7 +1045,7 @@ def libraries_spreadsheet(request):
 	library_batch = LibraryBatch.objects.get(name=library_batch_name)
 	
 	response = HttpResponse(content_type='text/csv')
-	response['Content-Disposition'] = f'attachment; filename="library_batch_{library_batch_name}.txt"'
+	response['Content-Disposition'] = f'attachment; filename="{library_batch_name}_library_batch.txt"'
 
 	writer = csv.writer(response, delimiter='\t')
 	# header
@@ -1232,7 +1232,7 @@ def capture_batch_spreadsheet(request):
 	capture_batch = CaptureOrShotgunPlate.objects.get(name=capture_batch_name)
 	
 	response = HttpResponse(content_type='text/csv')
-	response['Content-Disposition'] = f'attachment; filename="CaptureOrShotgunPlate_{capture_batch_name}.txt"'
+	response['Content-Disposition'] = f'attachment; filename="{capture_batch_name}_CaptureOrShotgunPlate.txt"'
 
 	writer = csv.writer(response, delimiter='\t')
 	# header
