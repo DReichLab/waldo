@@ -106,7 +106,7 @@ class WellPositionValidation(SimpleTestCase):
 class RotatedName(SimpleTestCase):
 	def test_Crowd(self):
 		name = 'Crowd.21_RE'
-		expected = 'Crowd.21U_RE'
+		expected = 'Crowd.21.U_RE'
 		
 		rotated_name = rotated_pair_name(name)
 		rerotated_name = rotated_pair_name(rotated_name)
@@ -115,5 +115,10 @@ class RotatedName(SimpleTestCase):
 		
 	def test_Crowd_bad_parse(self):
 		name = 'Crowd_21_RE'
+		rotated_name = rotated_pair_name(name)
+		self.assertIsNone(rotated_name)
+
+	def test_Crowd_bad_parse2(self):
+		name = 'Crowd_21U_RE'
 		rotated_name = rotated_pair_name(name)
 		self.assertIsNone(rotated_name)

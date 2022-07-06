@@ -196,18 +196,18 @@ def rotate_plate(layout_element_queryset, user):
 		layout_element.rotate()
 		layout_element.save(save_user=user)
 		
-# Assuming plate names like ABC.12_XY, ABC.12U_XY is the rotated version of the same batch type
+# Assuming plate names like ABC.12_XY, ABC.12.U_XY is the rotated version of the same batch type
 # Find the corresponding rotated plate name
 def rotated_pair_name(name_string):
-	match = re.fullmatch('([a-zA-Z]+)\.([\d]+)(U{0,1})_([A-Z]{2})', name_string)
+	match = re.fullmatch('([a-zA-Z]+)\.([\d]+)(\.U){0,1}_([A-Z]{2})', name_string)
 	if match:
 		batch_name = match.group(1)
 		number = match.group(2)
-		is_rotated = match.group(3) == 'U'
+		is_rotated = match.group(3) == '.U'
 		batch_type = match.group(4)
 		
 		# switch rotation
-		rotated = '' if is_rotated else 'U'
+		rotated = '' if is_rotated else '.U'
 		complement = f'{batch_name}.{number}{rotated}_{batch_type}'
 		return complement
 	else:
