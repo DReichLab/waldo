@@ -1031,6 +1031,56 @@ def delete_dependent_lysate(sender, instance, using, **kwargs):
 	if instance.lysate:
 		instance.lysate.delete()
 		
+# common header for table starting from either samples or powders
+def queue_spreadsheet_header():
+	return [
+		'Priority',
+		'Expected Complexity',
+		'Sampling Tech',
+		'UDG',
+		'Shipment ID',
+		'Collaborator',
+		'Skeletal Element',
+		'Skeletal Code',
+		'Country',
+		'Region',
+		'Period',
+		'Culture',
+		'Notes',
+		'Notes2',
+		'Prep ID'
+		]
+		
+# This could be rolled into an abstract base class for the SamplePrepQueue and PowderPrepQueue, but it should still work as a function and definitely does not require migrations this way
+def queue_to_spreadsheet_row(queue_item):
+	name = f'{queue_item.sample.collaborator.first_name}  {queue_item.sample.collaborator.last_name}' if queue_item.sample.collaborator else ''
+	expected_complexity = queue_item.sample.expected_complexity.description if queue_item.sample.expected_complexity else ''
+	
+	preparation_method = queue_item.sample_prep_protocol.preparation_method if queue_item.sample_prep_protocol else ''
+	
+	shipment = queue_item.sample.shipment.shipment_name if queue_item.sample.shipment else ''
+	
+	country_name = queue_item.sample.country_fk.country_name if queue_item.sample.country_fk else ''
+	country_region = queue_item.sample.country_fk.region if queue_item.sample.country_fk else ''
+	
+	return [
+		queue_item.priority,
+		expected_complexity,
+		preparation_method,
+		queue_item.udg_treatment,
+		shipment,
+		name,
+		queue_item.sample.skeletal_element,
+		queue_item.sample.skeletal_code,
+		country_name,
+		country_region,
+		queue_item.sample.period,
+		queue_item.sample.culture,
+		queue_item.sample.notes,
+		queue_item.sample.notes_2,
+		queue_item.id,
+	]
+		
 # Wetlab consumes samples from this queue for powder batches
 class SamplePrepQueue(Timestamped):
 	priority = models.SmallIntegerField(help_text='Lower is higher priority')
@@ -1081,54 +1131,12 @@ class SamplePrepQueue(Timestamped):
 	
 	@staticmethod
 	def spreadsheet_header():
-		return [
-			'Priority',
-			'Expected Complexity',
-			'Sampling Tech',
-			'UDG',
-			'Shipment ID',
-			'Collaborator',
-			'Skeletal Element',
-			'Skeletal Code',
-			'Country',
-			'Region',
-			'Period',
-			'Culture',
-			'Notes',
-			'Notes2',
-			'Sample Prep ID'
-			]
+		return queue_spreadsheet_header()
 		
 	# for wetlab spreadsheet, return array to output as tsv
 	# order corresponds to the spreadsheet header
 	def to_spreadsheet_row(self):
-		name = f'{self.sample.collaborator.first_name}  {self.sample.collaborator.last_name}' if self.sample.collaborator else ''
-		expected_complexity = self.sample.expected_complexity.description if self.sample.expected_complexity else ''
-		
-		preparation_method = self.sample_prep_protocol.preparation_method if self.sample_prep_protocol else ''
-		
-		shipment = self.sample.shipment.shipment_name if self.sample.shipment else ''
-		
-		country_name = self.sample.country_fk.country_name if self.sample.country_fk else ''
-		country_region = self.sample.country_fk.region if self.sample.country_fk else ''
-		
-		return [
-			self.priority,
-			expected_complexity,
-			preparation_method,
-			self.udg_treatment,
-			shipment,
-			name,
-			self.sample.skeletal_element,
-			self.sample.skeletal_code,
-			country_name,
-			country_region,
-			self.sample.period,
-			self.sample.culture,
-			self.sample.notes,
-			self.sample.notes_2,
-			self.id,
-		]
+		return queue_to_spreadsheet_row(self)
 		
 class PowderPrepQueue(Timestamped):
 	priority = models.SmallIntegerField(help_text='Lower is higher priority')
@@ -1185,6 +1193,13 @@ class PowderPrepQueue(Timestamped):
 		self.powder_sample = powder_sample
 		self.save_user = user
 		self.save()
+	
+	@staticmethod
+	def spreadsheet_header():
+		return queue_spreadsheet_header()
+		
+	def to_spreadsheet_row(self):
+		return queue_to_spreadsheet_row(self)
 	
 class ExtractionBatch(Timestamped):
 	batch_name = models.CharField(max_length=50, unique=True, help_text='Usually ends with _RE')
