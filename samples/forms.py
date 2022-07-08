@@ -586,9 +586,10 @@ class CapturedLibraryForm(UserModelForm):
 			self.initial['well_position'] = str(self.instance)
 			if self.instance.library:
 				self.initial['library_id'] = self.instance.library.reich_lab_library_id
-				self.initial['library_batch'] = self.instance.library.library_batch.name
-				library_layout_element = LibraryBatchLayout.objects.get(library_batch=self.instance.library.library_batch, library=self.instance.library)
-				self.initial['well_position_library_batch'] = str(library_layout_element)
+				if self.instance.library.library_batch:
+					self.initial['library_batch'] = self.instance.library.library_batch.name
+					library_layout_element = LibraryBatchLayout.objects.get(library_batch=self.instance.library.library_batch, library=self.instance.library)
+					self.initial['well_position_library_batch'] = str(library_layout_element)
 				
 				self.initial['p5_barcode'] = self.instance.library.p5_barcode.label
 				self.initial['p7_barcode'] = self.instance.library.p7_barcode.label

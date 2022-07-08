@@ -579,6 +579,10 @@ LIBRARY_POSITIVE = 'Library Positive'
 
 EXTRACT_AND_LIBRARY_CONTROLS = [EXTRACT_NEGATIVE, LIBRARY_NEGATIVE, LIBRARY_POSITIVE]
 
+PCR_NEGATIVE = 'PCR Negative'
+CAPTURE_POSITIVE = 'Capture Positive'
+CAPTURE_POSITIVE_LIBRARY_NAME_DS = 'capture_positive_ds'
+
 # find the Reich Lab sample number associated with a layout element
 # Lookup depends on the type of layout element
 # For new style of control naming where we do not assign Reich lab sample numbers, the proper result is None
@@ -1625,14 +1629,21 @@ class LibraryBatch(Timestamped):
 			to_move.save(save_user=user)
 		#print(f'{to_move} {destination}')
 		# 2. Replace library positive with PCR negative (G12)
-		pcr_negative_position = ControlLayout.objects.get(control_set=self.control_set, control_type__control_type='PCR Negative')
+		pcr_negative_position = ControlLayout.objects.get(control_set=self.control_set, control_type__control_type=PCR_NEGATIVE)
 		pcr_negative = CaptureLayout(capture_batch=capture_plate,
 							   control_type=pcr_negative_position.control_type, row=pcr_negative_position.row, column=pcr_negative_position.column)
 		pcr_negative.save(save_user=user)
 		# 3. capture positive in H12
-		capture_positive_position = ControlLayout.objects.get(control_set=self.control_set, control_type__control_type='Capture Positive')
+		capture_positive_position = ControlLayout.objects.get(control_set=self.control_set, control_type__control_type=CAPTURE_POSITIVE)
+		# TODO shotgun does not get a capture positive. Instead it gets a second PCR negative
+		# capture positive depends upon library type
+		if self.protocol.library_type == 'ds':
+			capture_positive_library = Library.objects.get(reich_lab_library_id=CAPTURE_POSITIVE_LIBRARY_NAME_DS)
+		else:
+			raise NotImplementedError(f'Unimplemented capture positive for library type {self.protocol.library_type}')
 		capture_positive = CaptureLayout(capture_batch=capture_plate,
-								   control_type=capture_positive_position.control_type, row=capture_positive_position.row, column=capture_positive_position.column)
+								   control_type=capture_positive_position.control_type, row=capture_positive_position.row, column=capture_positive_position.column,
+								   library = capture_positive_library)
 		capture_positive.save(save_user=user)
 		
 	def assign_extract(self, extract, row, column, control_type=None):
@@ -1905,6 +1916,10 @@ class CaptureOrShotgunPlate(Timestamped):
 	def add_library(self, library_str_id, row, column):
 		library_to_add = Library.objects.get(reich_lab_library_id=library_str_id)
 		CaptureLayout.objects.get_or_create(capture_batch=self, library=library_to_add, row=row, column=column)
+		
+	# Shotgun plates do not have capture positive
+	def assign_capture_positive_or_pcr_negative(self, is_shotgun=False):
+		raise NotImplementedError # needs control layout to toggle between capture positive and PCR negative
 	
 # library -> indices added
 class CaptureLayout(TimestampedWellPosition):
@@ -1982,14 +1997,19 @@ class CaptureLayout(TimestampedWellPosition):
 		p7_barcode_sequence = ''
 		if self.library:
 			identifier = self.library.reich_lab_library_id
-			library_batch = self.library.library_batch.name
+			
 			p5_barcode_label = self.library.p5_barcode.label if self.library.p5_barcode else ''
 			p5_barcode_sequence = self.library.p5_barcode.sequence if self.library.p5_barcode else ''
 			p7_barcode_label = self.library.p7_barcode.label if self.library.p7_barcode else ''
 			p7_barcode_sequence = self.library.p7_barcode.sequence if self.library.p7_barcode else ''
 			
-			library_layout_element = LibraryBatchLayout.objects.filter(library_batch__name=library_batch).get(library=self.library)
-			well_position_library_batch = str(library_layout_element)
+			if self.library.library_batch:
+				library_batch = self.library.library_batch.name
+				library_layout_element = LibraryBatchLayout.objects.filter(library_batch__name=library_batch).get(library=self.library)
+				well_position_library_batch = str(library_layout_element)
+			else:
+				library_batch = ''
+				well_position_library_batch = ''
 		else:
 			identifier = self.control_type.control_type
 			
