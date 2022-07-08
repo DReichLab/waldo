@@ -2237,3 +2237,10 @@ class Instance(Timestamped):
 	family = models.TextField(blank=True, help_text='family id and position within family')
 	assessment_notes = models.TextField(help_text='Xcontam listed if |Z|>2 standard errors from zero: 0.02-0.05="QUESTIONABLE", >0.05="QUESTIONABLE_CRITICAL" or "FAIL") (mtcontam 97.5th percentile estimates listed if coverage >2: <0.8 is "QUESTIONABLE_CRITICAL", 0.8-0.95 is "QUESTIONABLE", and 0.95-0.98 is recorded but "PASS", gets overriden by ANGSD')
 
+class Project(models.Model):
+	name = models.CharField(max_length=100)
+	collaborators = models.ManyToManyField(Collaborator)
+	samples = models.ManyToManyField(Sample)
+	
+	analysis_reporting = models.TextField(blank=True)
+	notes = models.TextField(blank=True)
