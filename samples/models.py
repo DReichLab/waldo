@@ -1739,6 +1739,15 @@ class Library(Timestamped):
 			return self.p5_barcode != other.p5_barcode or self.p7_barcode != other.p7_barcode
 		else:
 			raise ValueError(f'Expecting either 2 indices or 2 barcodes on both libraries {self.reich_lab_library_id} and {other.reich_lab_library_id}')
+			
+	def get_sample(self):
+		if self.sample:
+			return self.sample
+		elif self.extract:
+			if self.extract.sample:
+				return self.extract.sample
+			return self.extract.lysate.powder_sample.sample
+		raise ValueError('Cannot locate sample link for {self.id} {self.reich_lab_library_id}')
 	
 # extract -> library
 class LibraryBatchLayout(TimestampedWellPosition):
