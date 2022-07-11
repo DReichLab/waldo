@@ -104,11 +104,34 @@ SamplePrepQueueFormset = modelformset_factory(SamplePrepQueue, form=SamplePrepQu
 
 class SampleSelectByReichLabID(forms.Form):
 	sample = ModelChoiceField(
-        queryset=Sample.objects.all(),
-        widget=NumberInput,
-        help_text="Reich Lab Sample Number",
-        to_field_name='reich_lab_id'
-    )
+		queryset=Sample.objects.all(),
+		widget=NumberInput,
+		help_text="Reich Lab Sample Number",
+		to_field_name='reich_lab_id'
+	)
+	
+class SampleSummaryLookupForm(forms.Form):
+	sample = ModelChoiceField(
+		queryset=Sample.objects.all(),
+		widget=NumberInput,
+		help_text="Reich Lab Sample Number",
+		to_field_name='reich_lab_id',
+		required=False
+	)
+	lysate = ModelChoiceField(
+		queryset=Lysate.objects.all(),
+		widget=TextInput,
+		help_text='Lysate FluidX barcode',
+		to_field_name='barcode',
+		required=False
+	)
+	library = ModelChoiceField(
+		queryset=Library.objects.all(),
+		widget=TextInput,
+		help_text='Library FluidX barcode',
+		to_field_name='fluidx_barcode',
+		required=False
+	)
 
 class SkeletalElementCategorySelect(ModelChoiceField):
 	def label_from_instance(self, obj):

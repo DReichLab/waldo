@@ -565,14 +565,28 @@ def delete_sample_photo(request):
 	
 @login_required
 def sample_summary(request):
+	sample = None
 	if request.method == 'POST':
-		form = SampleSelectByReichLabID(request.POST)
+		form = SampleSummaryLookupForm(request.POST)
 		if form.is_valid():
 			sample = form.cleaned_data['sample']
-			reich_lab_sample_number = sample.reich_lab_id
+			lysate = form.cleaned_data['lysate']
+			library = form.cleaned_data['library']
+			
+			if sample:
+				print(f'sample lookup by Reich Lab sample number')
+			elif lysate:
+				sample = lysate.powder_sample.sample
+				print(f'sample lookup by lysate FluidX {lysate.lysate_id}')
+			elif library:
+				sample = library.get_sample()
+				print(f'sample lookup by library FluidX {library.reich_lab_library_id}')
+				
+			if sample:
+				reich_lab_sample_number = sample.reich_lab_id
 	else:
-		form = SampleSelectByReichLabID()
-		sample = None
+		form = SampleSummaryLookupForm()
+		
 		sample_str = request.GET.get('sample', None)
 		if sample_str:
 			reich_lab_sample_number = reich_lab_sample_number_from_string(sample_str)

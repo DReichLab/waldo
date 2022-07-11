@@ -34,11 +34,13 @@
 <tr>
 	<th>Lysate</th>
 	<th>Lysate Batch</th>
+	<th>FluidX Barcode</th>
 </tr>
 {% for lysate in lysates %}
 <tr>
 	<td>{{ lysate.lysate_id }}</td>
 	<td><a href="lysates_in_batch?lysate_batch_name={{ lysate.lysate_batch.batch_name }}">{{  lysate.lysate_batch.batch_name }}</a></td>
+	<td>{{ lysate.barcode }}</td>
 </tr>
 {% endfor %}
 </table>
@@ -64,11 +66,13 @@
 <tr>
 	<th>Library</th>
 	<th>Library Batch</th>
+	<th>FluidX Barcode</th>
 </tr>
 {% for library in libraries %}
 <tr>
 	<td>{{ library.reich_lab_library_id }}</td>
 	<td><a href="libraries_in_batch?library_batch_name={{ library.library_batch.name }}">{{ library.library_batch.name }}</a></td>
+	<td>{{ library.fluidx_barcode }}</td>
 </tr>
 {% endfor %}
 </table>
