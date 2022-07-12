@@ -594,13 +594,13 @@ def sample_summary(request):
 	
 	if sample:
 		powder_samples = PowderSample.objects.filter(sample=sample).order_by('powder_sample_id')
-		#lysate_batches = LysateBatch.objects.filter()
-		lysates = Lysate.objects.filter(powder_sample__sample=sample).order_by('powder_sample', 'reich_lab_lysate_number')
-		extracts = Extract.objects.filter(Q(sample=sample) | Q(lysate__powder_sample__sample=sample)).order_by('lysate', 'reich_lab_extract_number')
+		lysates = Lysate.objects.filter(powder_sample__sample=sample).order_by('reich_lab_lysate_number')
+		extracts = Extract.objects.filter(Q(sample=sample) | Q(lysate__powder_sample__sample=sample)).order_by('lysate', 'reich_lab_extract_number').order_by('lysate__reich_lab_lysate_number', 'reich_lab_extract_number')
 		# 
-		libraries = Library.objects.filter(Q(sample=sample) | Q(extract__sample=sample) ).distinct().order_by('reich_lab_library_number')
+		libraries = Library.objects.filter(Q(sample=sample) | Q(extract__in=extracts) ).distinct().order_by('extract__lysate__reich_lab_lysate_number', 'extract__reich_lab_extract_number', 'reich_lab_library_number')
+		captured_libraries = CaptureLayout.objects.filter(library__in=libraries) # TODO ordering
 		
-		return render(request, 'samples/sample_summary.html', { 'form': form, 'reich_lab_sample_number': reich_lab_sample_number, 'powder_samples': powder_samples, 'lysates': lysates, 'extracts': extracts, 'libraries': libraries } )
+		return render(request, 'samples/sample_summary.html', { 'form': form, 'reich_lab_sample_number': reich_lab_sample_number, 'powder_samples': powder_samples, 'lysates': lysates, 'extracts': extracts, 'libraries': libraries, 'captured_libraries': captured_libraries, } )
 	else:
 		return render(request, 'samples/sample_summary.html', { 'form': form, } )
 

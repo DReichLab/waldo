@@ -70,12 +70,40 @@
 	<th>Library</th>
 	<th>Library Batch</th>
 	<th>FluidX Barcode</th>
+	<th>Library Type</th>
+	<th>UDG treatment</th>
 </tr>
 {% for library in libraries %}
 <tr>
 	<td>{{ library.reich_lab_library_id }}</td>
 	<td><a href="libraries_in_batch?library_batch_name={{ library.library_batch.name }}">{{ library.library_batch.name }}</a></td>
 	<td>{{ library.fluidx_barcode }}</td>
+	<td>{{ library.library_type }}</td>
+	<td>{{ library.udg_treatment }}</td>
+</tr>
+{% endfor %}
+</table>
+
+<br>
+
+<table>
+<tr>
+	<th>Indexed Library</th>
+	<th>Capture</th>
+	<th>Experiment</th>
+	<th>Sequencing Runs</th>
+</tr>
+{% for captured_library in captured_libraries %}
+<tr>
+	<td>{{ captured_library.library.reich_lab_library_id }}</td>
+	<td><a href="captures_in_batch?capture_batch_name={{ captured_library.capture_batch.name }}">{{ captured_library.capture_batch.name }}</a></td>
+	<td>{{ captured_library.capture_batch.protocol.name }}</td>
+	<td>
+		{% for sequencing_run in captured_library.sequencingrun_set.all %}
+		{% if not forloop.first %}, {% endif %}
+		<a href="sequencing_run_assign_captures?sequencing_run_name={{ sequencing_run.name }}">{{ sequencing_run.name }}</a>
+		{% endfor %}
+	</td>
 </tr>
 {% endfor %}
 </table>
