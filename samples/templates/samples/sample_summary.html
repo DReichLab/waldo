@@ -19,11 +19,14 @@
 <tr>
 	<th>Powder Sample</th>
 	<th>Powder Batch</th>
+	<th>Photos</th>
 </tr>
 {% for powder_sample in powder_samples %}
 <tr>
 	<td>{{ powder_sample.powder_sample_id }}</td>
 	<td><a href="powder_samples?powder_batch={{ powder_sample.powder_batch.name }}">{{ powder_sample.powder_batch.name }}</a></td>
+	<td><a href="sample?sample=S{{reich_lab_sample_number}}">S{{reich_lab_sample_number}}</a></td>
+	
 </tr>
 {% endfor %}
 </table>
