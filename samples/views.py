@@ -563,6 +563,7 @@ def delete_sample_photo(request):
 		
 	return render(request, 'samples/confirm_delete_sample_photo.html', {'image': photo_filename, 'link': url } )
 	
+# This currently only handles a single sample. If more than one is returned, there will be an error. 
 @login_required
 def sample_summary(request):
 	sample = None
@@ -572,6 +573,7 @@ def sample_summary(request):
 			sample = form.cleaned_data['sample']
 			lysate = form.cleaned_data['lysate']
 			library = form.cleaned_data['library']
+			collaborator_id = form.cleaned_data['collaborator_id']
 			
 			if sample:
 				print(f'sample lookup by Reich Lab sample number')
@@ -581,6 +583,8 @@ def sample_summary(request):
 			elif library:
 				sample = library.get_sample()
 				print(f'sample lookup by library FluidX {library.reich_lab_library_id}')
+			elif collaborator_id:
+				sample = Sample.objects.get(skeletal_code=collaborator_id)
 				
 			if sample:
 				reich_lab_sample_number = sample.reich_lab_id

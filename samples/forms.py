@@ -132,6 +132,10 @@ class SampleSummaryLookupForm(forms.Form):
 		to_field_name='fluidx_barcode',
 		required=False
 	)
+	collaborator_id = CharField(
+		help_text='Collaborator ID for sample (skeletal code)',
+		required=False
+	)
 
 class SkeletalElementCategorySelect(ModelChoiceField):
 	def label_from_instance(self, obj):
