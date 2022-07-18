@@ -68,8 +68,22 @@ Capture Batch: {{capture_batch_name}} has {{assigned_libraries_count}} distinct 
 		<td class="position">{{layout_element}}</td>
 		<td class="library_id">{{layout_element.library.reich_lab_library_id}}</td>
 		<td class="library_batch">{{layout_element.library.library_batch.name}}</td>
-		<td class="p5_index">{{layout_element.p5_index.label}}</td>
-		<td class="p7_index">{{layout_element.p7_index.label}}</td>
+		
+		<td class="p5_index">
+		{% if layout_element.library.p5_index %}
+			{{layout_element.library.p5_index.label}}
+		{% else %}
+			{{layout_element.p5_index.label}}
+		{% endif %}
+		</td>
+		<td class="p7_index">
+		{% if layout_element.library.p7_index %}
+			{{layout_element.library.p7_index.label}}</td>
+		{% else %}
+			{{layout_element.p7_index.label}}
+		{% endif %}
+		</td>
+		
 		<td class="p5_barcode">{{layout_element.library.p5_barcode.label}}</td>
 		<td class="p7_barcode">{{layout_element.library.p7_barcode.label}}</td>
 	</tr>

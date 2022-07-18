@@ -1854,14 +1854,16 @@ class CaptureOrShotgunPlate(Timestamped):
 	def assign_indices(self, user):
 		for layout_element in CaptureLayout.objects.filter(capture_batch=self):
 			int_position = reverse_plate_location_coordinate(layout_element.row, layout_element.column)
-			# double-stranded, TODO single-stranded
-			p5_int, p7_int = indices_for_location(int_position, self.p5_index_start)
-			print(f'indices {p5_int} {p7_int}')
-			p5 = P5_Index.objects.get(label=str(p5_int))
-			p7 = P7_Index.objects.get(label=str(p7_int))
-			layout_element.p5_index = p5
-			layout_element.p7_index = p7
-			layout_element.save(save_user=user)
+			# indices are only assigned if the library has none
+			if layout_element.library is None or (layout_element.library.p5_index is None and layout_element.library.p7_index is None):
+				# double-stranded, TODO single-stranded
+				p5_int, p7_int = indices_for_location(int_position, self.p5_index_start)
+				print(f'indices {p5_int} {p7_int}')
+				p5 = P5_Index.objects.get(label=str(p5_int))
+				p7 = P7_Index.objects.get(label=str(p7_int))
+				layout_element.p5_index = p5
+				layout_element.p7_index = p7
+				layout_element.save(save_user=user)
 			
 	def check_library_inputs(self):
 		combinations = {}
@@ -2014,14 +2016,14 @@ class CaptureLayout(TimestampedWellPosition):
 		if self.p5_index: # DS
 			p5_index_label = self.p5_index.label
 			p5_index_sequence = self.p5_index.sequence
-		else: # SS
+		else: # SS or index-only library
 			p5_index_label = self.library.p5_index.label
 			p5_index_sequence = self.library.p5_index.sequence
 			
 		if self.p7_index: # DS
 			p7_index_label = self.p7_index.label
 			p7_index_sequence = self.p7_index.sequence
-		else: # SS
+		else: # SS or index-only library
 			p7_index_label = self.library.p7_index.label
 			p7_index_sequence = self.library.p7_index.sequence
 		
