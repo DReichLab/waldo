@@ -664,6 +664,9 @@ class SequencingRunForm(UserModelForm):
 class SpreadsheetForm(forms.Form):
 	spreadsheet = forms.FileField(help_text='Retain headers from downloaded spreadsheet')
 	
+class BatchUploadForm(forms.Form):
+	spreadsheet = forms.FileField(help_text='"Library" and "Position" header')
+	
 class StorageForm(UserModelForm):
 	class Meta:
 		model = Storage

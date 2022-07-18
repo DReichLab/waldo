@@ -14,7 +14,7 @@ from django.dispatch import receiver
 
 from .layout import PLATE_ROWS, PLATE_WELL_COUNT, PLATE_WELL_COUNT_HALF, validate_row_letter, plate_location, reverse_plate_location_coordinate, reverse_plate_location, duplicate_positions_check_db, p7_qbarcode_source, barcodes_for_location, indices_for_location, rotate_plate
 from .sample_photos import num_sample_photos
-from .spreadsheet import spreadsheet_headers_and_data_rows, get_spreadsheet_value
+from .spreadsheet import *
 from .validation import *
 
 import re, string
@@ -163,6 +163,9 @@ class WetLabStaff(Timestamped):
 	
 	def initials(self):
 		return self.first_name[0] + self.last_name[0]
+	
+	def name(self):
+		return f'{first_name} {last_name}'
 	
 class SupportStaff(Timestamped):
 	first_name = models.CharField(max_length=30, db_index=True)
@@ -1922,13 +1925,37 @@ class CaptureOrShotgunPlate(Timestamped):
 		sequencing_run.assign_captures([self.id])
 		return sequencing_run
 		
-	def add_library(self, library_str_id, row, column):
-		library_to_add = Library.objects.get(reich_lab_library_id=library_str_id)
-		CaptureLayout.objects.get_or_create(capture_batch=self, library=library_to_add, row=row, column=column)
+	def add_library(self, library_str_id, row, column, user):
+		control_type = None
+		library_to_add = None
+		if library_str_id == PCR_NEGATIVE:
+			control_type = ControlType.objects.get(control_type=library_str_id)
+		elif library_str_id == CAPTURE_POSITIVE:
+			# TODO this assumes double-stranded
+			control_type = ControlType.objects.get(control_type=library_str_id)
+			library_to_add = Library.objects.get(reich_lab_library_id=CAPTURE_POSITIVE_LIBRARY_NAME_DS)
+		else:
+			library_to_add = Library.objects.get(reich_lab_library_id=library_str_id)
+		try:
+			layout_element = CaptureLayout.objects.get(capture_batch=self, library=library_to_add, row=row, column=column, control_type=control_type)
+		except CaptureLayout.DoesNotExist:
+			layout_element = CaptureLayout(capture_batch=self, library=library_to_add, row=row, column=column, control_type=control_type)
+			layout_element.save(save_user=user)
+		return layout_element
 		
 	# Shotgun plates do not have capture positive
 	def assign_capture_positive_or_pcr_negative(self, is_shotgun=False):
 		raise NotImplementedError # needs control layout to toggle between capture positive and PCR negative
+	
+	def blob_spreadsheet(self, spreadsheet, user):
+		headers, data_row_fields = spreadsheet_headers_and_data_row_fields(spreadsheet)
+		for line in data_row_fields:
+			library_str = get_spreadsheet_value(headers, line, 'Library')
+			position_str = get_spreadsheet_value(headers, line, 'Position')
+			print(f'{library_str} {position_str}')
+			position = TimestampedWellPosition()
+			position.set_position(position_str)
+			self.add_library(library_str, position.row, position.column, user)
 	
 # library -> indices added
 class CaptureLayout(TimestampedWellPosition):

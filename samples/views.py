@@ -849,6 +849,23 @@ def extracts_spreadsheet_upload(request):
 		message = ''
 	return render(request, 'samples/spreadsheet_upload.html', { 'title': f'Extracts for {extract_batch_name}', 'form': spreadsheet_form, 'message': message} )
 	
+# TODO
+@login_required
+def extract_batch_load_crowd(request):
+	extract_batch_name = request.GET['extract_batch_name']
+	if request.method == 'POST':
+		spreadsheet_form = SpreadsheetForm(request.POST, request.FILES)
+		print(f'extracts crowd spreadsheet {extract_batch_name}')
+		if spreadsheet_form.is_valid():
+			spreadsheet = request.FILES.get('spreadsheet')
+			extract_batch = ExtractionBatch.objects.get(batch_name=extract_batch_name)
+			#extract_batch.extracts_from_spreadsheet(spreadsheet, request.user)
+			raise NotImplementedError()
+	else:
+		spreadsheet_form = SpreadsheetForm()
+		message = ''
+	return render(request, 'samples/spreadsheet_upload.html', { 'title': f'Extracts for {extract_batch_name}', 'form': spreadsheet_form, 'message': message} )
+	
 @login_required
 def extract_batch_to_library_batch(request):
 	extract_batch_name = request.GET['extract_batch_name']
@@ -1271,6 +1288,24 @@ def capture_spreadsheet_upload(request):
 		spreadsheet_form = SpreadsheetForm()
 		message = ''
 	return render(request, 'samples/spreadsheet_upload.html', { 'title': f'Captures for {capture_batch_name}', 'form': spreadsheet_form, 'message': message} )
+	
+@login_required
+def capture_blob_spreadsheet_upload(request):
+	message = ''
+	capture_batch_name = request.GET['capture_batch_name']
+	if request.method == 'POST':
+		spreadsheet_form = BatchUploadForm(request.POST, request.FILES)
+		print(f'capture spreadsheet {capture_batch_name}')
+		if spreadsheet_form.is_valid():
+			spreadsheet = request.FILES.get('spreadsheet')
+			capture_batch = CaptureOrShotgunPlate.objects.get(name=capture_batch_name)
+			capture_batch.blob_spreadsheet(spreadsheet, request.user)
+			message = 'Values updated'
+	else:
+		spreadsheet_form = BatchUploadForm()
+		message = ''
+		
+	return render(request, 'samples/batch_load_file.html', { 'batch_type': 'Blob', 'batch_name': capture_batch_name, 'form': spreadsheet_form, 'message': message} )
 
 @login_required
 def capture_batch_delete(request):
