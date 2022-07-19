@@ -8,6 +8,9 @@ from samples.models import PowderBatch, PowderSample, Sample, SamplePrepProtocol
 
 import datetime
 
+class NativeDateInput(forms.widgets.DateInput):
+	input_type = 'date'
+
 class IndividualForm(forms.Form):
 	individual_id = forms.IntegerField(label='Reich Lab Individual ID') 
 
