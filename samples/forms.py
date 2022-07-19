@@ -4,7 +4,7 @@ from django.forms import modelformset_factory
 from django.forms.widgets import TextInput, NumberInput
 from django.utils.translation import gettext_lazy as _
 
-from samples.models import PowderBatch, PowderSample, Sample, SamplePrepProtocol, ControlType, ControlSet, ControlLayout, LysateBatch, ExtractionProtocol, ExpectedComplexity, SamplePrepQueue, Lysate, LysateBatchLayout, ExtractionBatch, ExtractionBatchLayout, LibraryProtocol, LibraryBatch, Extract, Storage, Library, LibraryBatchLayout, P5_Index, P7_Index, Barcode, CaptureProtocol, CaptureOrShotgunPlate, CaptureLayout, SequencingPlatform, SequencingRun, SkeletalElementCategory
+from samples.models import PowderBatch, PowderSample, Sample, SamplePrepProtocol, ControlType, ControlSet, ControlLayout, LysateBatch, ExtractionProtocol, ExpectedComplexity, SamplePrepQueue, Lysate, LysateBatchLayout, ExtractionBatch, ExtractionBatchLayout, LibraryProtocol, LibraryBatch, Extract, Storage, Library, LibraryBatchLayout, P5_Index, P7_Index, Barcode, CaptureProtocol, CaptureOrShotgunPlate, CaptureLayout, SequencingPlatform, SequencingRun, SkeletalElementCategory, get_value
 
 import datetime
 
@@ -618,8 +618,14 @@ class CapturedLibraryForm(UserModelForm):
 					library_layout_element = LibraryBatchLayout.objects.get(library_batch=self.instance.library.library_batch, library=self.instance.library)
 					self.initial['well_position_library_batch'] = str(library_layout_element)
 				
-				self.initial['p5_barcode'] = self.instance.library.p5_barcode.label
-				self.initial['p7_barcode'] = self.instance.library.p7_barcode.label
+				# library has indices, these override the layout element
+				if self.instance.library.p5_index:
+					self.initial['p5_index'] = self.instance.library.p5_index
+				if self.instance.library.p7_index:
+					self.initial['p7_index'] = self.instance.library.p7_index
+				
+				self.initial['p5_barcode'] = get_value(self.instance.library.p5_barcode, 'label')
+				self.initial['p7_barcode'] = get_value(self.instance.library.p7_barcode, 'label')
 			elif self.instance.control_type:
 				self.initial['library_id'] = self.instance.control_type.control_type
 		
