@@ -22,6 +22,10 @@ class UserModelForm(ModelForm):
 	def __init__(self, *args, user, **kwargs):
 		self.user = user
 		super().__init__(*args, **kwargs)
+		# Use the native HTML date picker instead of a text input
+		for name, field in self.fields.items():
+			if isinstance(field, forms.fields.DateField):
+				field.widget = NativeDateInput()
 		
 	def save(self, commit=True):
 		m = super().save(commit=False)
@@ -278,7 +282,7 @@ class ControlSetForm(UserModelForm):
 class LysateBatchForm(UserModelForm):
 	protocol = ExtractionProtocolSelect(queryset=ExtractionProtocol.objects.filter(active=True).order_by('-start_date'), empty_label=None)
 	control_set = ControlSetSelect(queryset=ControlSet.objects.filter(active=True).order_by('layout_name'))
-	date = forms.DateField(help_text='YYYY-MM-DD', required=False)
+	date = forms.DateField(required=False)
 	
 	class Meta:
 		model = LysateBatch
@@ -342,7 +346,7 @@ class LysateBatchToExtractBatchForm(forms.Form):
 class ExtractionBatchForm(UserModelForm):
 	protocol = ExtractionProtocolSelect(queryset=ExtractionProtocol.objects.filter(active=True).order_by('-start_date'), empty_label=None)
 	control_set = ControlSetSelect(queryset=ControlSet.objects.filter(active=True).order_by('layout_name'))
-	date = forms.DateField(help_text='YYYY-MM-DD', required=False)
+	date = forms.DateField(required=False)
 	
 	class Meta:
 		model = ExtractionBatch
@@ -495,8 +499,8 @@ class LibraryProtocolForm(UserModelForm):
 
 class LibraryBatchForm(UserModelForm):
 	protocol = LibraryProtocolSelect(queryset=LibraryProtocol.objects.filter(active=True), empty_label=None)
-	prep_date = forms.DateField(help_text='YYYY-MM-DD', required=False)
-	cleanup_date = forms.DateField(help_text='YYYY-MM-DD', required=False)
+	prep_date = forms.DateField(required=False)
+	cleanup_date = forms.DateField(required=False)
 	control_set = ControlSetSelect(queryset=ControlSet.objects.filter(active=True).order_by('layout_name'))
 	
 	class Meta:
@@ -576,7 +580,7 @@ class CaptureProtocolSelect(ModelChoiceField):
 
 class CaptureBatchForm(UserModelForm):
 	protocol = CaptureProtocolSelect(queryset=CaptureProtocol.objects.filter(active=True))
-	date = forms.DateField(help_text='YYYY-MM-DD', required=False)
+	date = forms.DateField(required=False)
 	
 	class Meta:
 		model = CaptureOrShotgunPlate
@@ -658,7 +662,7 @@ class SequencingPlatformForm(UserModelForm):
 		
 class SequencingRunForm(UserModelForm):
 	sequencing = SequencingPlatformSelect(queryset=SequencingPlatform.objects.filter(active=True).order_by('-id'))
-	date_pooled = forms.DateField(help_text='YYYY-MM-DD', required=False)
+	date_pooled = forms.DateField(required=False)
 	
 	class Meta:
 		model = SequencingRun
