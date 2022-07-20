@@ -2219,6 +2219,9 @@ class RadiocarbonDatedSample(Timestamped):
 	correction_note = models.TextField(blank=True)
 	payment_lab = models.CharField(max_length=50, blank=True)
 	invoice = models.ForeignKey(RadiocarbonDatingInvoice, on_delete=models.PROTECT, null=True)
+	skeletal_element_sent = models.CharField(max_length=50, blank=True)
+	sample_grams = models.FloatField(null=True)
+	material_returned = models.TextField(blank=True)
 	
 class DistributionsShipment(Timestamped):
 	collaborator = models.ForeignKey(Collaborator, on_delete=models.PROTECT)
