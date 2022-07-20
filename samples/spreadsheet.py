@@ -1,6 +1,7 @@
 import re
 
 DELIMITER = '\t'
+HEADER_READ_ONLY_INDICATOR = '-'
 
 def length_check(headers, fields):
 	if len(fields) != len (headers):
@@ -29,3 +30,13 @@ def get_spreadsheet_value(headers, data_row_fields, desired_header):
 	length_check(headers, data_row_fields)
 	index = headers.index(desired_header)
 	return data_row_fields[index]
+	
+# mark header as read-only
+def spreadsheet_header_read_only(header):
+	if header.endswith(HEADER_READ_ONLY_INDICATOR):
+		return header
+	else:
+		return header + HEADER_READ_ONLY_INDICATOR
+
+def spreadsheet_headers_read_only(headers):
+	return [spreadsheet_header_read_only(header) for header in headers]

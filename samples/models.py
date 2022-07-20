@@ -37,7 +37,7 @@ def get_value(obj, property_name, default=''):
 		return default
 	else:
 		return getattr(obj, property_name)
-
+		
 class Timestamped(models.Model):
 	creation_timestamp = models.DateTimeField(default=timezone.now, null=True)
 	created_by = models.CharField(max_length=20, blank=True)
@@ -488,8 +488,8 @@ class PowderSample(Timestamped):
 		return self.powder_sample_id.endswith('NP')
 		
 	@staticmethod
-	def spreadsheet_header():
-		return ['powder_sample_id-',
+	def spreadsheet_header(cumulative=False):
+		headers = ['powder_sample_id-',
 			'skeletal_element_category',
 			'sampling_notes',
 			'total_powder_produced_mg',
@@ -504,13 +504,16 @@ class PowderSample(Timestamped):
 			'notes2-',
 			'location-',
 			]
+		if cumulative:
+			headers += SamplePrepQueue.spreadsheet_header()
+		return headers
 		
 	# for wetlab spreadsheet, return array to output as tsv
 	# order corresponds to the spreadsheet header
-	def to_spreadsheet_row(self):
+	def to_spreadsheet_row(self, cumulative=False):
 		preparation_method = self.sample_prep_protocol.preparation_method if self.sample_prep_protocol else ''
 		shipment_name = self.sample.shipment.shipment_name if self.sample.shipment else ''
-		return [self.powder_sample_id,
+		values = [self.powder_sample_id,
 			self.sample.skeletal_element_category.category,
 			self.sampling_notes,
 			self.total_powder_produced_mg,
@@ -525,6 +528,11 @@ class PowderSample(Timestamped):
 			self.sample.notes_2,
 			self.sample.location_str(),
 		]
+		if cumulative:
+			prep_entry = SamplePrepQueue.objects.get(sample=self.sample, powder_batch=self.powder_batch)
+			values += prep_entry.to_spreadsheet_row()
+		return values
+		
 	# from wetlab spreadsheet
 	def from_spreadsheet_row(self, headers, arg_array, user):
 		skeletal_element_category = arg_array[headers.index('skeletal_element_category')]
@@ -989,8 +997,8 @@ class LysateBatchLayout(TimestampedWellPosition):
 			raise ValidationError(_('Lost powder cannot have lysate batch.'))
 			
 	@staticmethod
-	def spreadsheet_header():
-		return ['well_position-', 
+	def spreadsheet_header(cumulative=False):
+		headers = ['well_position-', 
 			'lysate_id-',
 			'collaborator_id-',
 			'powder_batch_name-',
@@ -999,8 +1007,11 @@ class LysateBatchLayout(TimestampedWellPosition):
 			'plate_id',
 			'barcode',
 			'notes']
+		if cumulative:
+			headers += PowderSample.spreadsheet_header()
+		return headers
 		
-	def to_spreadsheet_row(self):
+	def to_spreadsheet_row(self, cumulative=False):
 		values = []
 		values.append(str(self))
 		
@@ -1017,6 +1028,9 @@ class LysateBatchLayout(TimestampedWellPosition):
 		values.append(get_value(self.lysate, 'plate_id'))
 		values.append(get_value(self.lysate, 'barcode'))
 		values.append(get_value(self.lysate, 'notes'))
+		
+		if cumulative:
+			raise NotImplementedError()
 		
 		return values
 		
@@ -1059,33 +1073,32 @@ def queue_spreadsheet_header():
 		]
 		
 # This could be rolled into an abstract base class for the SamplePrepQueue and PowderPrepQueue, but it should still work as a function and definitely does not require migrations this way
-def queue_to_spreadsheet_row(queue_item):
-	name = f'{queue_item.sample.collaborator.first_name}  {queue_item.sample.collaborator.last_name}' if queue_item.sample.collaborator else ''
-	expected_complexity = queue_item.sample.expected_complexity.description if queue_item.sample.expected_complexity else ''
+# For cumulative data, we need to produce the same data available for a queue when only a sample is available
+def queue_to_spreadsheet_row(queue_item, sample=None):
+	if sample and queue_item.sample != sample:
+		raise ValueError(f'Two samples {queue_item.sample.id} {sample.id}')
+	elif sample is None: # the default case where we have queue_item entry
+		sample = queue_item.sample
 	
-	preparation_method = queue_item.sample_prep_protocol.preparation_method if queue_item.sample_prep_protocol else ''
-	
-	shipment = queue_item.sample.shipment.shipment_name if queue_item.sample.shipment else ''
-	
-	country_name = queue_item.sample.country_fk.country_name if queue_item.sample.country_fk else ''
-	country_region = queue_item.sample.country_fk.region if queue_item.sample.country_fk else ''
+	name = sample.collaborator.name() if sample.collaborator else ''
+	preparation_method = queue_item.sample_prep_protocol.preparation_method if (queue_item and  queue_item.sample_prep_protocol) else ''
 	
 	return [
-		queue_item.priority,
-		expected_complexity,
+		get_value(queue_item, 'priority'),
+		get_value(sample.expected_complexity, 'description'),
 		preparation_method,
-		queue_item.udg_treatment,
-		shipment,
+		get_value(queue_item, 'udg_treatment'),
+		get_value(sample.shipment, 'shipment_name'),
 		name,
-		queue_item.sample.skeletal_element,
-		queue_item.sample.skeletal_code,
-		country_name,
-		country_region,
-		queue_item.sample.period,
-		queue_item.sample.culture,
-		queue_item.sample.notes,
-		queue_item.sample.notes_2,
-		queue_item.id,
+		sample.skeletal_element,
+		sample.skeletal_code,
+		get_value(sample.country_fk, 'country_name'),
+		get_value(sample.country_fk, 'region'),
+		sample.period,
+		sample.culture,
+		sample.notes,
+		sample.notes_2,
+		get_value(queue_item, 'id'),
 	]
 		
 # Wetlab consumes samples from this queue for powder batches

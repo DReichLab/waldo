@@ -293,17 +293,19 @@ def powder_samples(request):
 @login_required
 def powder_samples_spreadsheet(request):
 	powder_batch_name = request.GET['powder_batch_name']
+	cumulative = request.GET.__contains__('cumulative')
 	powder_batch = PowderBatch.objects.get(name=powder_batch_name)
 	
+	cumulative_str = '_cumulative' if cumulative else ''
 	response = HttpResponse(content_type='text/csv')
-	response['Content-Disposition'] = f'attachment; filename="powder_batch_{powder_batch_name}.txt"'
+	response['Content-Disposition'] = f'attachment; filename="powder_batch_{powder_batch_name}{cumulative_str}.txt"'
 
 	writer = csv.writer(response, delimiter='\t')
 	# header
-	writer.writerow(PowderSample.spreadsheet_header())
+	writer.writerow(PowderSample.spreadsheet_header(cumulative))
 	powder_samples = PowderSample.objects.filter(powder_batch=powder_batch).order_by('sample__reich_lab_id')
 	for powder_sample in powder_samples:
-		writer.writerow(powder_sample.to_spreadsheet_row())
+		writer.writerow(powder_sample.to_spreadsheet_row(cumulative))
 	return response
 	
 @login_required
