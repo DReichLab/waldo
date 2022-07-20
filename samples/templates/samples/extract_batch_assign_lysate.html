@@ -50,6 +50,7 @@ Extract Batch: {{extract_batch_name}} has {{assigned_lysates_count}} distinct ly
 		<th><button class="sort" type="button" data-sort="lysate_id">Lysate ID</button></th>
 		<th><button class="sort" type="button" data-sort="sample">Sample</button></th>
 		<th><button class="sort" type="button" data-sort="lysate_batch">Lysate Batch</button></th>
+		<th><button class="sort" type="button" data-sort="fluidx_barcode">FluidX Barcode</button></th>
 		<th><button class="sort" type="button" data-sort="lysate_remaining">Lysate Remaining</button></th>
 	</tr>
 	</thead>
@@ -63,6 +64,7 @@ Extract Batch: {{extract_batch_name}} has {{assigned_lysates_count}} distinct ly
 		<td class="lysate_id">{{layout_element.lysate.lysate_id}}</td>
 		<td class="sample">S{{layout_element.lysate.powder_sample.sample.reich_lab_id}}</td>
 		<td class="lysate_batch">{{layout_element.lysate.lysate_batch.batch_name}}</td>
+		<td class="fluidx_barcode">{{layout_element.lysate.barcode}}</td>
 		<td class="lysate_remaining">{{layout_element.lysate.remaining}}</td>
 	</tr>
 	{% endfor %}
@@ -74,8 +76,8 @@ Extract Batch: {{extract_batch_name}} has {{assigned_lysates_count}} distinct ly
 
 <script>
 	var list_options = {
-		valueNames: ['checked', 'position', 'lysate_id', 'sample', 'lysate_batch', 'lysate_remaining'],
-		searchColumns: ['checked', 'position', 'lysate_id', 'sample', 'lysate_batch'],
+		valueNames: ['checked', 'position', 'lysate_id', 'sample', 'lysate_batch', 'fluidx_barcode', 'lysate_remaining'],
+		searchColumns: ['checked', 'position', 'lysate_id', 'sample', 'lysate_batch', 'fluidx_barcode'],
 		searchDelay: 500
 	};
 	var sample_list = new List('sample_rows', list_options);

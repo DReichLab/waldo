@@ -369,9 +369,10 @@ class ExtractionBatchForm(UserModelForm):
 			
 class ExtractForm(UserModelForm):
 	well_position = forms.CharField(disabled=True)
+	fluidx_barcode = forms.CharField(disabled=True)
 	class Meta:
 		model = Extract
-		fields = ['well_position', 'extract_id', 'lysis_volume_extracted', 'notes']
+		fields = ['well_position', 'extract_id', 'fluidx_barcode', 'lysis_volume_extracted', 'notes']
 		widgets = {
 			'notes': Textarea(attrs={'cols': 60, 'rows': 2}),
 		}
@@ -384,6 +385,7 @@ class ExtractForm(UserModelForm):
 			layout_elements = self.instance.extractionbatchlayout_set
 			layout_element = layout_elements.get(extract=self.instance)
 			self.initial['well_position'] = str(layout_element)
+			self.initial['fluidx_barcode'] = layout_element.lysate.barcode
 		
 ExtractFormset = modelformset_factory(Extract, form=ExtractForm, extra=0)
 			

@@ -1364,6 +1364,7 @@ class ExtractionBatchLayout(TimestampedWellPosition):
 	def spreadsheet_header():
 		return ['well_position-', 
 			'extract_id-',
+			'fluidx_barcode-',
 			'lysis_volume_extracted',
 			'notes',
 			#'storage_location',
@@ -1374,6 +1375,7 @@ class ExtractionBatchLayout(TimestampedWellPosition):
 		values = []
 		values.append(str(self)) # well position
 		values.append(get_value(self.extract, 'extract_id'))
+		values.append(get_value(self.lysate, 'barcode'))
 		values.append(get_value(self.extract, 'lysis_volume_extracted'))
 		values.append(get_value(self.extract, 'notes'))
 		return values
