@@ -69,6 +69,7 @@
 <tr>
 	<th>Library</th>
 	<th>Library Batch</th>
+	<th>Library Batch Date</th>
 	<th>FluidX Barcode</th>
 	<th>Library Type</th>
 	<th>UDG treatment</th>
@@ -77,6 +78,7 @@
 <tr>
 	<td>{{ library.reich_lab_library_id }}</td>
 	<td><a href="libraries_in_batch?library_batch_name={{ library.library_batch.name }}">{{ library.library_batch.name }}</a></td>
+	<td>{{ library.library_batch.prep_date |date:'Y-m-d' }}</td>
 	<td>{{ library.fluidx_barcode }}</td>
 	<td>{{ library.library_type }}</td>
 	<td>{{ library.udg_treatment }}</td>
