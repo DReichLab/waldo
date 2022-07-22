@@ -40,3 +40,7 @@ def spreadsheet_header_read_only(header):
 
 def spreadsheet_headers_read_only(headers):
 	return [spreadsheet_header_read_only(header) for header in headers]
+	
+# if there is no data, this provides empty field padding
+def empty_values(headers):
+	return ['' for header in headers]

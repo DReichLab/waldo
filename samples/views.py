@@ -293,9 +293,9 @@ def powder_samples(request):
 @login_required
 def powder_samples_spreadsheet(request):
 	powder_batch_name = request.GET['powder_batch_name']
-	cumulative = request.GET.__contains__('cumulative')
 	powder_batch = PowderBatch.objects.get(name=powder_batch_name)
 	
+	cumulative = request.GET.__contains__('cumulative')
 	cumulative_str = '_cumulative' if cumulative else ''
 	response = HttpResponse(content_type='text/csv')
 	response['Content-Disposition'] = f'attachment; filename="powder_batch_{powder_batch_name}{cumulative_str}.txt"'
@@ -495,15 +495,17 @@ def lysates_spreadsheet(request):
 	lysate_batch_name = request.GET['lysate_batch_name']
 	lysate_batch = LysateBatch.objects.get(batch_name=lysate_batch_name)
 	
+	cumulative = request.GET.__contains__('cumulative')
+	cumulative_str = '_cumulative' if cumulative else ''
 	response = HttpResponse(content_type='text/csv')
-	response['Content-Disposition'] = f'attachment; filename="{lysate_batch_name}_lysate_batch.txt"'
+	response['Content-Disposition'] = f'attachment; filename="{lysate_batch_name}_lysate_batch{cumulative_str}.txt"'
 
 	writer = csv.writer(response, delimiter='\t')
 	# header
-	writer.writerow(LysateBatchLayout.spreadsheet_header())
+	writer.writerow(LysateBatchLayout.spreadsheet_header(cumulative))
 	lysates = LysateBatchLayout.objects.filter(lysate_batch=lysate_batch).order_by('column', 'row')
 	for lysate in lysates:
-		writer.writerow(lysate.to_spreadsheet_row())
+		writer.writerow(lysate.to_spreadsheet_row(cumulative))
 	return response
 	
 @login_required
@@ -828,15 +830,17 @@ def extracts_spreadsheet(request):
 	extract_batch_name = request.GET['extract_batch_name']
 	extract_batch = ExtractionBatch.objects.get(batch_name=extract_batch_name)
 	
+	cumulative = request.GET.__contains__('cumulative')
+	cumulative_str = '_cumulative' if cumulative else ''
 	response = HttpResponse(content_type='text/csv')
-	response['Content-Disposition'] = f'attachment; filename="{extract_batch_name}_extract_batch.txt"'
+	response['Content-Disposition'] = f'attachment; filename="{extract_batch_name}_extract_batch{cumulative_str}.txt"'
 
 	writer = csv.writer(response, delimiter='\t')
 	# header
-	writer.writerow(ExtractionBatchLayout.spreadsheet_header())
+	writer.writerow(ExtractionBatchLayout.spreadsheet_header(cumulative))
 	extracts = ExtractionBatchLayout.objects.filter(extract_batch=extract_batch).order_by('column', 'row')
 	for extract in extracts:
-		writer.writerow(extract.to_spreadsheet_row())
+		writer.writerow(extract.to_spreadsheet_row(cumulative))
 	return response
 
 @login_required
@@ -1081,15 +1085,17 @@ def libraries_spreadsheet(request):
 	library_batch_name = request.GET['library_batch_name']
 	library_batch = LibraryBatch.objects.get(name=library_batch_name)
 	
+	cumulative = request.GET.__contains__('cumulative')
+	cumulative_str = '_cumulative' if cumulative else ''
 	response = HttpResponse(content_type='text/csv')
-	response['Content-Disposition'] = f'attachment; filename="{library_batch_name}_library_batch.txt"'
+	response['Content-Disposition'] = f'attachment; filename="{library_batch_name}_library_batch{cumulative_str}.txt"'
 
 	writer = csv.writer(response, delimiter='\t')
 	# header
-	writer.writerow(LibraryBatchLayout.spreadsheet_header())
+	writer.writerow(LibraryBatchLayout.spreadsheet_header(cumulative))
 	layout_elements = LibraryBatchLayout.objects.filter(library_batch=library_batch).order_by('column', 'row')
 	for layout_element in layout_elements:
-		writer.writerow(layout_element.to_spreadsheet_row())
+		writer.writerow(layout_element.to_spreadsheet_row(cumulative))
 	return response
 
 @login_required
@@ -1268,15 +1274,17 @@ def capture_batch_spreadsheet(request):
 	capture_batch_name = request.GET['capture_batch_name']
 	capture_batch = CaptureOrShotgunPlate.objects.get(name=capture_batch_name)
 	
+	cumulative = request.GET.__contains__('cumulative')
+	cumulative_str = '_cumulative' if cumulative else ''
 	response = HttpResponse(content_type='text/csv')
-	response['Content-Disposition'] = f'attachment; filename="{capture_batch_name}_CaptureOrShotgunPlate.txt"'
+	response['Content-Disposition'] = f'attachment; filename="{capture_batch_name}_CaptureOrShotgunPlate{cumulative_str}.txt"'
 
 	writer = csv.writer(response, delimiter='\t')
 	# header
-	writer.writerow(CaptureLayout.spreadsheet_header())
+	writer.writerow(CaptureLayout.spreadsheet_header(False, cumulative))
 	indexed_libraries = CaptureLayout.objects.filter(capture_batch=capture_batch).order_by('column', 'row', 'library__sample__reich_lab_id')
 	for indexed_library in indexed_libraries:
-		writer.writerow(indexed_library.to_spreadsheet_row())
+		writer.writerow(indexed_library.to_spreadsheet_row(cumulative))
 	return response
 	
 @login_required
@@ -1396,14 +1404,16 @@ def sequencing_run_spreadsheet(request):
 	sequencing_run = SequencingRun.objects.get(name=sequencing_run_name)
 	sequencing_run.check_index_barcode_combinations()
 	
+	cumulative = request.GET.__contains__('cumulative')
+	cumulative_str = '_cumulative' if cumulative else ''
 	response = HttpResponse(content_type='text/csv')
-	response['Content-Disposition'] = f'attachment; filename="{sequencing_run_name}_ESS.txt"'
+	response['Content-Disposition'] = f'attachment; filename="{sequencing_run_name}_ESS{cumulative_str}.txt"'
 
 	writer = csv.writer(response, delimiter='\t')
 	# header
-	writer.writerow(CaptureLayout.spreadsheet_header(True))
+	writer.writerow(CaptureLayout.spreadsheet_header(True, cumulative))
 	for indexed_library in sequencing_run.indexed_libraries.all().order_by('column', 'row'):
-		writer.writerow(indexed_library.to_spreadsheet_row())
+		writer.writerow(indexed_library.to_spreadsheet_row(cumulative))
 	return response
 
 @login_required

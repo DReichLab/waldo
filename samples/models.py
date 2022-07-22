@@ -140,6 +140,9 @@ class Collaborator(Timestamped):
 	primary_collaborator = models.BooleanField(null=True, db_index=True, help_text='Is this person a Primary Collaborator? This field is used select collaborators for Harvard office of Academic Reasearch Integrity approval')
 	ora_approval = models.BooleanField(db_index=True, help_text='Has the Harvard office of Academic Research Integrity cleared this collaborator?', default=False)
 	
+	def name(self):
+		return f'{self.first_name} {self.last_name}'
+	
 class Publication(Timestamped):
 	title = models.CharField(max_length=200)
 	first_author = models.CharField(max_length=50, blank=True)
@@ -505,7 +508,7 @@ class PowderSample(Timestamped):
 			'location-',
 			]
 		if cumulative:
-			headers += SamplePrepQueue.spreadsheet_header()
+			headers += queue_spreadsheet_header()
 		return headers
 		
 	# for wetlab spreadsheet, return array to output as tsv
@@ -514,7 +517,7 @@ class PowderSample(Timestamped):
 		preparation_method = self.sample_prep_protocol.preparation_method if self.sample_prep_protocol else ''
 		shipment_name = self.sample.shipment.shipment_name if self.sample.shipment else ''
 		values = [self.powder_sample_id,
-			self.sample.skeletal_element_category.category,
+			get_value(self.sample.skeletal_element_category, 'category'),
 			self.sampling_notes,
 			self.total_powder_produced_mg,
 			self.powder_for_extract,
@@ -529,8 +532,15 @@ class PowderSample(Timestamped):
 			self.sample.location_str(),
 		]
 		if cumulative:
-			prep_entry = SamplePrepQueue.objects.get(sample=self.sample, powder_batch=self.powder_batch)
-			values += prep_entry.to_spreadsheet_row()
+			prep_entry = None
+			try:
+				prep_entry = SamplePrepQueue.objects.get(sample=self.sample, powder_batch=self.powder_batch)
+			except SamplePrepQueue.DoesNotExist:
+				try:
+					prep_entry = PowderPrepQueue.objects.get(sample=self.sample, powder_batch=self.powder_batch)
+				except PowderPrepQueue.DoesNotExist:
+					pass
+			values += queue_to_spreadsheet_row(prep_entry, self.sample)
 		return values
 		
 	# from wetlab spreadsheet
@@ -1008,7 +1018,7 @@ class LysateBatchLayout(TimestampedWellPosition):
 			'barcode',
 			'notes']
 		if cumulative:
-			headers += PowderSample.spreadsheet_header()
+			headers += PowderSample.spreadsheet_header(cumulative)
 		return headers
 		
 	def to_spreadsheet_row(self, cumulative=False):
@@ -1030,7 +1040,12 @@ class LysateBatchLayout(TimestampedWellPosition):
 		values.append(get_value(self.lysate, 'notes'))
 		
 		if cumulative:
-			raise NotImplementedError()
+			additional_values = None
+			if self.powder_sample:
+				additional_values = self.powder_sample.to_spreadsheet_row(cumulative)
+			else:
+				additional_values = empty_values(PowderSample.spreadsheet_header(cumulative))
+			values += additional_values
 		
 		return values
 		
@@ -1075,7 +1090,7 @@ def queue_spreadsheet_header():
 # This could be rolled into an abstract base class for the SamplePrepQueue and PowderPrepQueue, but it should still work as a function and definitely does not require migrations this way
 # For cumulative data, we need to produce the same data available for a queue when only a sample is available
 def queue_to_spreadsheet_row(queue_item, sample=None):
-	if sample and queue_item.sample != sample:
+	if sample and queue_item and queue_item.sample != sample:
 		raise ValueError(f'Two samples {queue_item.sample.id} {sample.id}')
 	elif sample is None: # the default case where we have queue_item entry
 		sample = queue_item.sample
@@ -1374,16 +1389,20 @@ class ExtractionBatchLayout(TimestampedWellPosition):
 	extract = models.ForeignKey(Extract, on_delete=models.SET_NULL, null=True, help_text='extract created in this well location')
 	
 	@staticmethod
-	def spreadsheet_header():
-		return ['well_position-', 
+	def spreadsheet_header(cumulative=False):
+		 headers = ['well_position-', 
 			'extract_id-',
 			'fluidx_barcode-',
 			'lysis_volume_extracted',
 			'notes',
 			#'storage_location',
 			]
+		 if cumulative:
+			 headers += LysateBatchLayout.spreadsheet_header(cumulative)
+		 
+		 return headers
 		
-	def to_spreadsheet_row(self):
+	def to_spreadsheet_row(self, cumulative=False):
 		field_list = ExtractionBatchLayout.spreadsheet_header()
 		values = []
 		values.append(str(self)) # well position
@@ -1391,6 +1410,18 @@ class ExtractionBatchLayout(TimestampedWellPosition):
 		values.append(get_value(self.lysate, 'barcode'))
 		values.append(get_value(self.extract, 'lysis_volume_extracted'))
 		values.append(get_value(self.extract, 'notes'))
+		
+		if cumulative:
+			additional_values = None
+			if self.lysate:
+				try:
+					lysate_layout_element = LysateBatchLayout.objects.get(lysate=self.lysate)
+					additional_values = lysate_layout_element.to_spreadsheet_row(cumulative)
+				except LysateBatchLayout.DoesNotExist:
+					pass
+			if additional_values is None:
+				additional_values = empty_values(LysateBatchLayout.spreadsheet_header(cumulative))
+			values += additional_values
 		return values
 		
 	def from_spreadsheet_row(self, headers, arg_array, user):
@@ -1777,8 +1808,8 @@ class LibraryBatchLayout(TimestampedWellPosition):
 	library = models.ForeignKey(Library, on_delete=models.SET_NULL, null=True, help_text='')
 	
 	@staticmethod
-	def spreadsheet_header():
-		return ['well_position-',
+	def spreadsheet_header(cumulative=False):
+		headers = ['well_position-',
 			'reich_lab_library_id-',
 			'p5_barcode',
 			'p7_barcode',
@@ -1789,9 +1820,12 @@ class LibraryBatchLayout(TimestampedWellPosition):
 			'notes',
 			#'storage_location',
 			]
+		if cumulative:
+			headers += ExtractionBatchLayout.spreadsheet_header(cumulative)
+		return headers
 		
-	def to_spreadsheet_row(self):
-		return [ str(self),
+	def to_spreadsheet_row(self, cumulative=False):
+		values = [ str(self),
 			get_value(self.library, 'reich_lab_library_id'),
 			get_value(self.library.p5_barcode, 'label'),
 			get_value(self.library.p7_barcode, 'label'),
@@ -1801,6 +1835,18 @@ class LibraryBatchLayout(TimestampedWellPosition):
 			get_value(self.library, 'fluidx_barcode'),
 			get_value(self.library, 'notes')
 			]
+		if cumulative:
+			additional_values = None
+			if self.extract:
+				try:
+					extraction_layout_element = ExtractionBatchLayout.objects.get(extract=self.extract)
+					additional_values = extraction_layout_element.to_spreadsheet_row(cumulative)
+				except ExtractionBatchLayout.DoesNotExist:
+					pass
+			if additional_values is None:
+				additional_values = empty_values(ExtractionBatchLayout.spreadsheet_header(cumulative))
+			values += additional_values
+		return values
 		
 	def from_spreadsheet_row(self, headers, arg_array, user):
 		reich_lab_library_id = get_spreadsheet_value(headers, arg_array, 'reich_lab_library_id-')
@@ -2004,7 +2050,7 @@ class CaptureLayout(TimestampedWellPosition):
 			raise ValidationError(_('Should have either library or control'))
 						
 	@staticmethod
-	def spreadsheet_header(no_dashes=False):
+	def spreadsheet_header(no_dashes=False, cumulative=False):
 		header = ['well_position-',
 			'library_id-',
 			'nanodrop',
@@ -2022,12 +2068,14 @@ class CaptureLayout(TimestampedWellPosition):
 			'p7_barcode-',
 			'udg_treatment-',
 			'library_type-']
+		if cumulative:
+			header += LibraryBatchLayout.spreadsheet_header(cumulative)
 		if no_dashes:
 			return [x.rstrip('-') for x in header]
 		else:
 			return header
 		
-	def to_spreadsheet_row(self):
+	def to_spreadsheet_row(self, cumulative=False):
 		if self.p5_index: # DS
 			p5_index_label = self.p5_index.label
 			p5_index_sequence = self.p5_index.sequence
@@ -2091,6 +2139,13 @@ class CaptureLayout(TimestampedWellPosition):
 				udg,
 				library_type,
 				]
+		if cumulative:
+			try:
+				library_layout_element = LibraryBatchLayout.objects.get(library=self.library)
+				line += library_layout_element.to_spreadsheet_row(cumulative)
+			except LibraryBatchLayout.DoesNotExist: # controls with no library
+				line += empty_values(LibraryBatchLayout.spreadsheet_header(cumulative))
+				
 		return line
 		
 	def from_spreadsheet_row(self, headers, arg_array, user):
@@ -2142,7 +2197,7 @@ class SequencingRun(Timestamped):
 	# only one library type is allowed
 	def check_library_type(self):
 		for indexed_library in indexed_libraries:
-			pass # TODO
+			raise NotImplementedError()
 		
 	def check_index_barcode_combinations(self):
 		combinations = {}
