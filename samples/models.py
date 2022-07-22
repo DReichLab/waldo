@@ -361,7 +361,7 @@ class PowderBatch(Timestamped):
 	technician = models.CharField(max_length=50, blank=True)
 	technician_fk = models.ForeignKey(WetLabStaff, on_delete=models.SET_NULL, null=True)
 	notes = models.TextField(blank=True)
-	STOP = -100
+	STOP = 1000
 	OPEN = 0
 	IN_PROGRESS = 100
 	READY_FOR_PLATE = 200
