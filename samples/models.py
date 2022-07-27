@@ -658,17 +658,29 @@ def lysates_for_sample(sample):
 
 # this creates a lysate for a layout_element if it does not exist, and returns the existing one otherwise
 def create_lysate(lysate_layout_element, lysate_batch, user):
-	powder_sample = lysate_layout_element.powder_sample
-	# library positive controls do not have powder sample
-	if powder_sample is None:
+	# library positive controls do not generate lysates
+	if lysate_layout_element.control_type == ControlType.objects.get(control_type=LIBRARY_POSITIVE):
 		return None
 	# only create the lysate from powder for this well once
 	elif lysate_layout_element.lysate is not None:
 		return lysate_layout_element.lysate
 	else:
-		sample = powder_sample.sample
-		next_lysate_number = lysates_for_sample(sample) +1
-		lysate_id = f'{str(sample)}.Y{next_lysate_number}'
+		sample = None
+		powder_sample = lysate_layout_element.powder_sample
+		next_lysate_number = 1
+		# lysate name starting from a sample
+		if powder_sample:
+			if powder_sample:
+				sample = powder_sample.sample
+				next_lysate_number = lysates_for_sample(powder_sample.sample) +1
+				prior_id = str(sample)
+			else:
+				raise ValueError(f'powder sample without sample {powder_sample.powder_sample_id}')
+		else: # lysate name for a control
+			num_existing_lysates_for_control_type = LysateBatchLayout.objects.filter(lysate_batch=lysate_batch, control_type=lysate_layout_element.control_type, powder_sample=None).count()
+			prior_id = control_name_string(lysate_batch.batch_name, lysate_layout_element.control_type, num_existing_lysates_for_control_type)
+			lysate_id = ''
+		lysate_id = f'{prior_id}.Y{next_lysate_number}'
 		print(f'created lysate id {lysate_id}')
 		# library negatives have no lysis volume
 		is_library_negative = (lysate_layout_element.control_type is not None) and (lysate_layout_element.control_type.control_type == LIBRARY_NEGATIVE)
@@ -676,6 +688,7 @@ def create_lysate(lysate_layout_element, lysate_batch, user):
 		lysate = Lysate(lysate_id=lysate_id,
 					reich_lab_lysate_number=next_lysate_number,
 					powder_sample=powder_sample,
+					sample=sample,
 					lysate_batch=lysate_batch,
 					powder_used_mg=powder_sample.powder_for_extract,
 					total_volume_produced=total_volume_produced)
@@ -685,7 +698,7 @@ def create_lysate(lysate_layout_element, lysate_batch, user):
 		
 		return lysate
 		
-# resused at least for LysateBatch and ExtractionBatch
+# reused at least for LysateBatch and ExtractionBatch
 # find sample numbers used for existing controls
 # remove all controls (in preparation for readding with new layout)
 # existing_controls is a queryset of layout for a batch
@@ -790,40 +803,6 @@ class LysateBatch(Timestamped):
 		library_negative_control_count = 0
 		for control in controls:
 			layout_element = LysateBatchLayout(lysate_batch=self, control_type=control.control_type, row=control.row, column=control.column, powder_used_mg=0)
-			# create sample and powder sample
-			control_type = control.control_type.control_type
-			if layout_element.powder_sample is None and control_type != LIBRARY_POSITIVE:
-				control_sample_id = None
-				if control_type == EXTRACT_NEGATIVE:
-					control_character = CONTROL_CHARACTERS[extract_negative_control_count]
-					extract_negative_control_count += 1
-					if extract_negative_sample_id is not None:
-						control_sample_id = extract_negative_sample_id
-				elif control_type == LIBRARY_NEGATIVE:
-					control_character = CONTROL_CHARACTERS[library_negative_control_count]
-					library_negative_control_count += 1
-					if library_negative_sample_id is not None:
-						control_sample_id = library_negative_sample_id
-				else:
-					raise ValueError(f'{control_type}')
-				control_sample = Sample(control=control_character)
-				if control_sample_id is not None:
-					control_sample.reich_lab_id = control_sample_id
-					control_sample.save(save_user=user)
-				else:
-					reich_lab_sample_id = control_sample.assign_reich_lab_sample_number(save_user=user)
-					# use this sample ID for later controls of same type
-					if control_type == EXTRACT_NEGATIVE:
-						extract_negative_sample_id = reich_lab_sample_id
-					elif control_type == LIBRARY_NEGATIVE:
-						library_negative_sample_id = reich_lab_sample_id
-					else:
-						raise ValueError(f'{control_type}')
-				
-				powder_sample_control = PowderSample(sample=control_sample, powder_sample_id=f'{str(control_sample)}.NP')
-				powder_sample_control.save(save_user=user)
-				layout_element.powder_sample = powder_sample_control
-					
 			layout_element.save(save_user=user)
 
 		completed_controls = LysateBatchLayout.objects.filter(lysate_batch=self, control_type__isnull=False).order_by('column', 'row')
@@ -852,9 +831,7 @@ class LysateBatch(Timestamped):
 		# order consistent with plate_location
 		existing_layout = LysateBatchLayout.objects.filter(lysate_batch=self).order_by('column', 'row')
 		library_negatives = existing_layout.filter(control_type__control_type=LIBRARY_NEGATIVE)
-		num_library_negatives = len(library_negatives)
-		control_type = library_negatives[0].control_type
-		library_negative_sample_id = library_negatives[0].powder_sample.sample.reich_lab_id
+		control_type = ControlType.objects.get(control_type=LIBRARY_NEGATIVE)
 		
 		# well positions are in [0,95], fill these one per loop pass
 		layout_iterator = existing_layout.iterator()
@@ -872,17 +849,11 @@ class LysateBatch(Timestamped):
 				pass
 			else: # this well position is unoccupied, so fill with new library negative
 				row, column = plate_location(next_to_fill)
-				control_character = CONTROL_CHARACTERS[num_library_negatives]
-				num_library_negatives += 1
-				control_sample = Sample(reich_lab_id=library_negative_sample_id, control=control_character)
-				control_sample.save(save_user=user)
-				powder_sample_control = PowderSample(sample=control_sample, powder_sample_id=f'{str(control_sample)}.NP')
-				powder_sample_control.save(save_user=user)
-				layout_element = LysateBatchLayout(lysate_batch=self, control_type=control_type, row=row, column=column, powder_used_mg=0, powder_sample=powder_sample_control)
+				layout_element = LysateBatchLayout(lysate_batch=self, control_type=control_type, row=row, column=column, powder_used_mg=0, powder_sample=None)
 				layout_element.save(save_user=user)
 				
 	def create_lysates(self, user):
-		layout = LysateBatchLayout.objects.filter(lysate_batch=self)
+		layout = LysateBatchLayout.objects.filter(lysate_batch=self).order_by('row', 'column')
 		duplicate_positions_check_db(layout)
 		for layout_element in layout:
 			# create lysate entry, if it does not exist
@@ -1504,7 +1475,7 @@ class ExtractionBatchLayout(TimestampedWellPosition):
 	def destroy_control(self, user):
 		if self.control_type is not None:
 			if self.lysate is not None:
-				raise ValueError('Not expecting to destroy_control for ExtractionBatch layouts')
+				raise NotImplementedError('Not expecting to destroy_control for ExtractionBatch layouts')
 			
 @receiver(pre_delete, sender=ExtractionBatchLayout, dispatch_uid='extractionbatchlayout_delete_signal')
 def delete_dependent_extract(sender, instance, using, **kwargs):
