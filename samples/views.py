@@ -460,6 +460,7 @@ def lysate_batch_delete(request):
 	
 	if request.method == 'POST':
 		print(f'request to delete {lysate_batch_name}')
+		lysate_batch.restrict_layout_elements([], request.user)
 		lysate_batch.delete()
 		return redirect(f'{reverse("lysate_batch")}')
 		
