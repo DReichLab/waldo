@@ -732,11 +732,11 @@ class LysateBatch(Timestamped):
 	# retain only powder samples in layout_element_ids
 	# in addition, preserve controls
 	# update status for affected powder batches
-	def restrict_layout_elements(self, layout_element_ids):
+	def restrict_layout_elements(self, layout_element_ids, user):
 		to_remove = LysateBatchLayout.objects.filter(lysate_batch=self).exclude(id__in=layout_element_ids).exclude(control_type__isnull=False)
 		for layout_element in to_remove:
 			layout_element.lysate_batch = None
-			layout_element.save()
+			layout_element.save(save_user=user)
 		
 		powder_batch_ids = [x.powder_sample.powder_batch.id for x in to_remove]
 		for powder_batch in PowderBatch.objects.filter(id__in=powder_batch_ids):

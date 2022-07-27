@@ -412,7 +412,7 @@ def lysate_batch_assign_powder(request):
 			if total_wells > PLATE_WELL_COUNT:
 				return HttpResponse(f'Too many powders and controls {total_wells}')
 			
-			lysate_batch.restrict_layout_elements(layout_ids)
+			lysate_batch.restrict_layout_elements(layout_ids, request.user)
 			lysate_batch.assign_powder_samples(layout_ids, request.user)
 			if 'assign_and_layout' in request.POST:
 				print(f'lysate batch layout {lysate_batch_name}')
