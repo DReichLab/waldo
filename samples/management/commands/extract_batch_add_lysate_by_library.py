@@ -4,7 +4,7 @@ from samples.models import ExtractionBatch, Library, WetLabStaff
 import re
 
 class Command(BaseCommand):
-	help = 'Add lysates identified by Reich Lab library id to a shotgun or capture plate. This plate must already exist.'
+	help = 'Add lysates identified by Reich Lab library id to an extract batch. This plate must already exist.'
 	
 	def add_arguments(self, parser):
 		parser.add_argument('--controls', action='store_true', help="Populate lysate batch's control layout")
