@@ -281,7 +281,7 @@ class ControlSetForm(UserModelForm):
 		
 class LysateBatchForm(UserModelForm):
 	protocol = ExtractionProtocolSelect(queryset=ExtractionProtocol.objects.filter(active=True).order_by('-start_date'), empty_label=None)
-	control_set = ControlSetSelect(queryset=ControlSet.objects.filter(active=True).order_by('layout_name'))
+	control_set = ControlSetSelect(queryset=ControlSet.objects.filter(active=True).order_by('layout_name'), required=False)
 	date = forms.DateField(required=False)
 	
 	class Meta:
