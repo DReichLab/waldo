@@ -140,11 +140,12 @@ def library_anno_line(instance_id_raw, sequencing_run_name, release_label, compo
 	#Locality
 	mod_append(fields, get_text(sample, 'locality'))
 	#Country
-	mod_append(fields, get_text(sample, 'country'))
+	country = sample.get_country() if sample else None
+	mod_append(fields, get_text(country, 'country_name'))
 	#Lat.
-	mod_append(fields, get_text(sample, 'latitude'))
+	mod_append(fields, get_text(sample.location_fk, 'latitude') if sample else '')
 	#Long
-	mod_append(fields, get_text(sample, 'longitude'))
+	mod_append(fields, get_text(sample.location_fk, 'longitude') if sample else '')
 	#Data type
 	mod_append(fields, '1240K') # TODO
 	#No. Libraries

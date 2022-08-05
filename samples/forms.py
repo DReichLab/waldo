@@ -195,7 +195,7 @@ class PowderSampleSharedForm(UserModelForm):
 				self.fields['group_label'].initial = sample.group_label
 				self.fields['notes'].initial = sample.notes
 				self.fields['notes2'].initial = sample.notes_2
-				self.fields['location'].initial = f'{sample.locality} {sample.country}'
+				self.fields['location'].initial = f'{sample.locality} {get_value(sample.location, "country")}'
 		self.fields['powder_sample_id'].disabled = True
 		
 	def save(self, commit=True):
@@ -318,8 +318,13 @@ class LysateForm(UserModelForm):
 			self.fields[option].disabled = True
 		if self.instance:
 			layout_elements = self.instance.lysatebatchlayout_set
-			layout_element = layout_elements.get(lysate=self.instance)
-			self.initial['well_position'] = str(layout_element)
+			try:
+				layout_element = layout_elements.get(lysate=self.instance)
+				self.initial['well_position'] = str(layout_element)
+			except Exception as e:
+				print(self.instance.lysate_id)
+				pass
+			
 			if self.instance.powder_sample:
 				if self.instance.powder_sample.sample:
 					self.initial['collaborator_id'] = self.instance.powder_sample.sample.skeletal_code
@@ -385,8 +390,7 @@ class ExtractForm(UserModelForm):
 			layout_elements = self.instance.extractionbatchlayout_set
 			layout_element = layout_elements.get(extract=self.instance)
 			self.initial['well_position'] = str(layout_element)
-			if layout_element.lysate:
-				self.initial['fluidx_barcode'] = layout_element.lysate.barcode
+			self.initial['fluidx_barcode'] = layout_element.lysate.barcode
 		
 ExtractFormset = modelformset_factory(Extract, form=ExtractForm, extra=0)
 			

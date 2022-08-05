@@ -259,7 +259,6 @@ class Sample(Timestamped):
 	shipment = models.ForeignKey(Shipment, on_delete=models.PROTECT, null=True)
 	return_id = models.ForeignKey(Return, on_delete=models.PROTECT, null=True)
 	
-	country_fk = models.ForeignKey(Country, on_delete=models.SET_NULL, null=True)
 	location_fk = models.ForeignKey(Location, on_delete=models.SET_NULL, null=True)
 	periods = models.ManyToManyField(Period)
 	cultures = models.ManyToManyField(Culture)
@@ -275,15 +274,10 @@ class Sample(Timestamped):
 	average_bp_date = models.FloatField(null=True, help_text='Average Before Present date, calculated from average of calibrated date range after conversion to BP dates')
 	date_fix_flag = models.TextField(help_text='Flag for any issues with the date information submitted by the collaborator', blank=True)
 	group_label = models.CharField(max_length=100, blank=True, help_text='Country_Culture_Period of Individual')
-	geo_region = models.CharField(max_length=50, blank=True, help_text='Geographic region component of group label of an Individual')
-	geo_subregion = models.CharField(max_length=50, blank=True, help_text='Geographic subregion component of group label of an Individual')
 	period = models.CharField(max_length=50, blank=True, help_text='Archaeologic period component of group label of an Individual')
 	culture = models.CharField(max_length=50, blank=True, help_text='Archaeologic culture component of group label of an Individual')
 	outlier = models.CharField(max_length=50, blank=True, help_text='Outlier designation component of group label of an Individual')
 	locality = models.CharField(max_length=150, blank=True, help_text='Location where skeletal remains were found')
-	country = models.CharField(max_length=30, blank=True, help_text='Country where skeletal remains were found')
-	latitude = models.CharField(max_length=20, blank=True, help_text='Latitude where skeletal remains were found') # TODO convert to spatial
-	longitude = models.CharField(max_length=20, blank=True, help_text='Longitude where skeletal remains were found') # TODO
 	notes = models.TextField(blank=True, help_text='Any notes from the collaborator about the individual, sample, site, etc.')
 	notes_2 = models.TextField(blank=True, help_text='Any notes from the collaborator about the individual, sample, site, etc.')
 	collaborators = models.TextField(max_length=300, blank=True, help_text='List of additional collaborators asociated with the sample or reference if sample has been published') # convert to many-to-many field
@@ -323,8 +317,14 @@ class Sample(Timestamped):
 		else:
 			return 0
 			
+	def get_country(self):
+		try:
+			return self.location_fk.country
+		except:
+			return None
+			
 	def location_str(self):
-		return f'{self.locality} {self.country}'
+		return f'{self.locality} {get_value(self.get_country(), "country_name")}'
 			
 	# 1. Used to generate extract object for an external sample received as an extract.
 	# 2. Used for library negative controls starting at the library batch step. 
@@ -1079,6 +1079,7 @@ def queue_to_spreadsheet_row(queue_item, sample=None):
 	
 	name = sample.collaborator.name() if sample.collaborator else ''
 	preparation_method = queue_item.sample_prep_protocol.preparation_method if (queue_item and  queue_item.sample_prep_protocol) else ''
+	country = sample.get_country()
 	
 	return [
 		get_value(queue_item, 'priority'),
@@ -1089,8 +1090,8 @@ def queue_to_spreadsheet_row(queue_item, sample=None):
 		name,
 		sample.skeletal_element,
 		sample.skeletal_code,
-		get_value(sample.country_fk, 'country_name'),
-		get_value(sample.country_fk, 'region'),
+		get_value(country, 'country_name'),
+		get_value(country, 'region'),
 		sample.period,
 		sample.culture,
 		sample.notes,
@@ -2221,18 +2222,6 @@ class SequencingRun(Timestamped):
 			lines.append(indexed_library.to_spreadsheet_row())
 		return lines
 	
-class ControlsExtract(Timestamped):
-	lysate_batch = models.ForeignKey(LysateBatch, on_delete=models.PROTECT)
-	ec_count = models.PositiveSmallIntegerField(null=True)
-	ec_median = models.FloatField(null=True)
-	ec_max = models.FloatField(null=True)
-	
-class ControlsLibrary(Timestamped):
-	library_batch = models.ForeignKey(LibraryBatch, on_delete=models.PROTECT)
-	lc_count = models.PositiveSmallIntegerField(null=True)
-	lc_median = models.FloatField(null=True)
-	lc_max = models.FloatField(null=True)
-	
 class RadiocarbonShipment(Timestamped):
 	ship_id = models.CharField(max_length=20, db_index=True, unique=True)
 	ship_date = models.DateField(null=True)
@@ -2318,8 +2307,6 @@ class Results(Timestamped):
 	shotgun_seq_run = models.ForeignKey(SequencingRun, null=True, on_delete=models.SET_NULL, related_name='results_shotgun')
 	nuclear_capture_plate = models.ForeignKey(CaptureOrShotgunPlate, null=True, on_delete=models.SET_NULL, related_name='results_nuclear')
 	nuclear_seq_run = models.ForeignKey(SequencingRun, null=True, on_delete=models.SET_NULL, related_name='results_nuclear')
-	extract_control = models.ForeignKey(ControlsExtract, null=True, on_delete=models.SET_NULL)
-	library_control = models.ForeignKey(ControlsLibrary, null=True, on_delete=models.SET_NULL)
 
 # enumeration of assessment categories
 class AssessmentCategory(models.Model):
