@@ -937,6 +937,7 @@ class Lysate(Timestamped):
 	powder_sample = models.ForeignKey(PowderSample, null=True, on_delete=models.PROTECT) # if this is null, it's a control
 	lysate_batch = models.ForeignKey(LysateBatch, null=True, on_delete=models.CASCADE)
 	storage = models.ForeignKey(Storage, on_delete=models.PROTECT, null=True)
+	sample = models.ForeignKey(Sample, on_delete=models.PROTECT, null=True)
 	
 	powder_used_mg = models.FloatField(null=True, help_text='milligrams of bone powder used in lysis')
 	total_volume_produced = models.FloatField(null=True, help_text='Total microliters of lysate produced')
@@ -945,6 +946,12 @@ class Lysate(Timestamped):
 	position = models.CharField(max_length=3, blank=True, help_text='well/tube position in plate/rack')
 	barcode = models.CharField(max_length=12, blank=True, help_text='Physical barcode on FluidX tube')
 	notes = models.TextField(blank=True)
+	
+	def clean(self):
+		super(Lysate, self).clean()
+		# make sure sample is consistent
+		if self.powder_sample and self.powder_sample.sample != self.sample:
+			raise ValidationError(_('lysate sample is inconsistent with powder sample'))
 	
 	# Compute how much lysate is left based on original lysate amount generated minus:
 	# 1. lysate used to make extracts
@@ -971,6 +978,10 @@ class Lysate(Timestamped):
 			return max_value
 		else:
 			return 0
+			
+	# the direct sample link is validated in clean to be consistent with powder sample 
+	def get_sample(self):
+		return self.sample
 	
 # powder -> lysate
 # This holds powder that has been weighed in preparation for lysate creation, or lost powder
@@ -1372,12 +1383,24 @@ class Extract(Timestamped):
 	storage_location = models.TextField(blank=True)
 	extraction_lab = models.CharField(max_length=50, blank=True, help_text='Name of lab where DNA extraction was done')
 	
+	def clean(self):
+		super(Extract, self).clean()
+		if self.sample and self.lysate and self.sample != self.lysate.get_sample():
+			raise ValidationError(_('Extract has sample mismatch'))
+	
 	# ensure this extract has a Reich lab sample number
 	def ensure_ids(self):
 		self.sample.assign_reich_lab_sample_number()
 		
 	def num_libraries(self):
 		return self.library_set.count()
+		
+	def get_sample(self):
+		if self.sample:
+			return self.sample
+		elif self.lysate:
+			return lysate.get_sample()
+		return None
 	
 # lysate -> extract
 class ExtractionBatchLayout(TimestampedWellPosition):
@@ -1779,6 +1802,8 @@ class Library(Timestamped):
 			raise ValidationError(_('Library cannot have both indices and barcodes. Single-stranded libraries should have only indices, and double-stranded libraries should have only barcodes.'))
 		if self.p5_index is None and self.p7_index is None and self.p5_barcode is None and self.p7_barcode is None:
 			raise ValidationError(_('Library must have either indices or barcodes')) 
+		if self.sample and self.extract and self.sample != self.extract.get_sample():
+			raise ValidationError(_('Library has sample mismatch'))
 			
 	# barcodes and indices are unique, so we only need to check ids, not DNA sequences
 	def barcodes_are_distinct(self, other):
@@ -1793,10 +1818,8 @@ class Library(Timestamped):
 		if self.sample:
 			return self.sample
 		elif self.extract:
-			if self.extract.sample:
-				return self.extract.sample
-			return self.extract.lysate.powder_sample.sample
-		raise ValueError('Cannot locate sample link for {self.id} {self.reich_lab_library_id}')
+			return self.extract.get_sample()
+		return None
 	
 # extract -> library
 class LibraryBatchLayout(TimestampedWellPosition):
