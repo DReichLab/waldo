@@ -486,7 +486,7 @@ def lysates_in_batch(request):
 	elif request.method == 'GET':
 		#powder_batch_form = PowderBatchForm(initial={'name': powder_batch_name, 'date': powder_batch.date, 'status': powder_batch.status, 'notes': powder_batch.notes}, instance=powder_batch, user=request.user)
 		lysate_batch_form = LysateBatchForm(instance=lysate_batch, user=request.user)
-		lysates_formset = LysateFormset(queryset=Lysate.objects.filter(lysate_batch=lysate_batch).order_by('lysatebatchlayout__column', 'lysatebatchlayout__row'), form_kwargs={'user': request.user})
+		lysates_formset = LysateFormset(queryset=Lysate.objects.filter(lysate_batch=lysate_batch).order_by('lysatebatchlayout__column', 'lysatebatchlayout__row', 'sample__reich_lab_id'), form_kwargs={'user': request.user})
 	
 	return render(request, 'samples/lysates_in_batch.html', { 'lysate_batch_name': lysate_batch_name, 'lysate_batch_form': lysate_batch_form, 'formset': lysates_formset} )
 	
@@ -504,7 +504,7 @@ def lysates_spreadsheet(request):
 	writer = csv.writer(response, delimiter='\t')
 	# header
 	writer.writerow(LysateBatchLayout.spreadsheet_header(cumulative))
-	lysates = LysateBatchLayout.objects.filter(lysate_batch=lysate_batch).order_by('column', 'row')
+	lysates = LysateBatchLayout.objects.filter(lysate_batch=lysate_batch).order_by('column', 'row', 'lysate__sample__reich_lab_id')
 	for lysate in lysates:
 		writer.writerow(lysate.to_spreadsheet_row(cumulative))
 	return response
@@ -822,7 +822,7 @@ def extracts_in_batch(request):
 		
 	elif request.method == 'GET':
 		extract_batch_form = ExtractionBatchForm(instance=extract_batch, user=request.user)
-		extracts_formset = ExtractFormset(queryset=Extract.objects.filter(extract_batch=extract_batch).order_by('extractionbatchlayout__column', 'extractionbatchlayout__row'), form_kwargs={'user': request.user})
+		extracts_formset = ExtractFormset(queryset=Extract.objects.filter(extract_batch=extract_batch).order_by('extractionbatchlayout__column', 'extractionbatchlayout__row', 'sample__reich_lab_id'), form_kwargs={'user': request.user})
 	
 	return render(request, 'samples/extracts_in_batch.html', { 'extract_batch_name': extract_batch_name, 'extract_batch_form': extract_batch_form, 'formset': extracts_formset} )
 	
@@ -840,7 +840,7 @@ def extracts_spreadsheet(request):
 	writer = csv.writer(response, delimiter='\t')
 	# header
 	writer.writerow(ExtractionBatchLayout.spreadsheet_header(cumulative))
-	extracts = ExtractionBatchLayout.objects.filter(extract_batch=extract_batch).order_by('column', 'row')
+	extracts = ExtractionBatchLayout.objects.filter(extract_batch=extract_batch).order_by('column', 'row', 'extract__sample__reich_lab_id')
 	for extract in extracts:
 		writer.writerow(extract.to_spreadsheet_row(cumulative))
 	return response
@@ -978,9 +978,9 @@ def library_batch_assign_extract(request):
 	elif request.method == 'GET':
 		library_batch_form = LibraryBatchForm(instance=library_batch, user=request.user)
 		
-	existing_controls = LibraryBatchLayout.objects.filter(library_batch=library_batch, control_type__isnull=False).order_by('column', 'row')
+	existing_controls = library_batch.layout_elements().filter(control_type__isnull=False)
 	
-	already_selected_extract_layout_elements = LibraryBatchLayout.objects.filter(library_batch=library_batch, control_type=None).order_by('column', 'row')
+	already_selected_extract_layout_elements = library_batch.layout_elements().filter(control_type=None)
 	
 	# count distinct extracts
 	extracts = {}
@@ -1047,12 +1047,12 @@ def library_batch_layout(request):
 		if duplicate_error_message is not None:
 			return HttpResponseBadRequest(duplicate_error_message)
 		# propagate changes to database
-		update_db_layout(request.user, objects_map, LibraryBatchLayout.objects.filter(library_batch=library_batch), 'extract', 'extract_id')
+		update_db_layout(request.user, objects_map, library_batch.layout_elements(), 'extract', 'extract_id')
 	elif request.method == 'POST':
 		print('POST {library_batch_name}')
 		raise ValueError('unexpected')
 		
-	layout_elements = LibraryBatchLayout.objects.filter(library_batch=library_batch).select_related('extract').select_related('control_type')
+	layout_elements = library_batch.layout_elements().select_related('extract').select_related('control_type')
 		
 	objects_map = layout_objects_map_for_rendering(layout_elements, 'extract', 'extract_id')
 		
@@ -1077,7 +1077,7 @@ def libraries_in_batch(request):
 		
 	elif request.method == 'GET':
 		library_batch_form = LibraryBatchForm(instance=library_batch, user=request.user)
-		libraries_formset = LibraryFormset(queryset=Library.objects.filter(library_batch=library_batch).select_related('p5_index', 'p7_index', 'p5_barcode', 'p7_barcode').prefetch_related('librarybatchlayout_set').order_by('librarybatchlayout__column', 'librarybatchlayout__row'), form_kwargs={'user': request.user})
+		libraries_formset = LibraryFormset(queryset=Library.objects.filter(library_batch=library_batch).select_related('p5_index', 'p7_index', 'p5_barcode', 'p7_barcode').prefetch_related('librarybatchlayout_set').order_by('librarybatchlayout__column', 'librarybatchlayout__row', 'sample__reich_lab_id'), form_kwargs={'user': request.user})
 	
 	return render(request, 'samples/libraries_in_batch.html', { 'library_batch_name': library_batch_name, 'library_batch_form': library_batch_form, 'formset': libraries_formset} )
 	
@@ -1095,8 +1095,7 @@ def libraries_spreadsheet(request):
 	writer = csv.writer(response, delimiter='\t')
 	# header
 	writer.writerow(LibraryBatchLayout.spreadsheet_header(cumulative))
-	layout_elements = LibraryBatchLayout.objects.filter(library_batch=library_batch).order_by('column', 'row')
-	for layout_element in layout_elements:
+	for layout_element in library_batch.layout_elements():
 		writer.writerow(layout_element.to_spreadsheet_row(cumulative))
 	return response
 

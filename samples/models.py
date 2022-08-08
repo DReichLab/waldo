@@ -1594,10 +1594,14 @@ class LibraryBatch(Timestamped):
 	def check_p7_offset(self):
 		if self.p7_offset is None or self.p7_offset < 0 or self.p7_offset >= PLATE_WELL_COUNT_HALF:
 			raise ValueError(f'p7_offset is out of range: {self.p7_offset}')
+			
+	# convenience 
+	def layout_elements(self):
+		return LibraryBatchLayout.objects.filter(library_batch=self).order_by('column', 'row', 'library__sample__reich_lab_id')
 	
 	def create_libraries(self, user):
 		self.check_p7_offset()
-		layout = LibraryBatchLayout.objects.filter(library_batch=self).order_by('column', 'row')
+		layout = self.layout_elements()
 		duplicate_positions_check_db(layout)
 		
 		for layout_element in layout:
@@ -1622,7 +1626,6 @@ class LibraryBatch(Timestamped):
 		to_clear.delete()
 		
 	def libraries_from_spreadsheet(self, spreadsheet, user):
-		layout_elements = LibraryBatchLayout.objects.filter(library_batch=self)
 		headers, data_rows = spreadsheet_headers_and_data_rows(spreadsheet)
 		
 		for line in data_rows:
@@ -1632,7 +1635,7 @@ class LibraryBatch(Timestamped):
 			temp = TimestampedWellPosition()
 			temp.set_position(well_position)
 			
-			layout_element = layout_elements.get(column=temp.column, row=temp.row)
+			layout_element = self.layout_elements().get(column=temp.column, row=temp.row)
 			layout_element.from_spreadsheet_row(headers, fields, user)
 		
 	
@@ -1906,6 +1909,9 @@ class CaptureOrShotgunPlate(Timestamped):
 		(CLOSED, 'Closed')
 	)
 	status = models.SmallIntegerField(default = OPEN, choices=CAPTURE_BATCH_STATES)
+	
+	def layout_elements(self):
+		return CaptureLayout.objects.filter(capture_batch=self).order_by('row', 'column', 'library__sample__reich_lab_id')
 	
 	def assign_indices(self, user):
 		for layout_element in CaptureLayout.objects.filter(capture_batch=self):
@@ -2218,7 +2224,7 @@ class SequencingRun(Timestamped):
 		lines = []
 		header = CaptureLayout.spreadsheet_header(True)
 		lines.append(header)
-		for indexed_library in indexed_libraries.all().order_by('column', 'row', 'library__sample__reich_lab_sample_id'):
+		for indexed_library in indexed_libraries.all().order_by('column', 'row', 'library__sample__reich_lab_id'):
 			lines.append(indexed_library.to_spreadsheet_row())
 		return lines
 	
