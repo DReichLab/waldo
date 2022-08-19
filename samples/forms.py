@@ -369,7 +369,7 @@ class ExtractionBatchForm(UserModelForm):
 			
 class ExtractForm(UserModelForm):
 	well_position = forms.CharField(disabled=True)
-	fluidx_barcode = forms.CharField(disabled=True)
+	fluidx_barcode = forms.CharField(disabled=True, required=False)
 	class Meta:
 		model = Extract
 		fields = ['well_position', 'extract_id', 'fluidx_barcode', 'lysis_volume_extracted', 'notes']
