@@ -44,3 +44,7 @@ def spreadsheet_headers_read_only(headers):
 # if there is no data, this provides empty field padding
 def empty_values(headers):
 	return ['' for header in headers]
+
+# to prevent text such as '1-1' from being interpreted by Excel as a date (1 Jan)
+def csv_text_escape(s):
+	return f'="{s}"'
