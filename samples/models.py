@@ -525,7 +525,7 @@ class PowderSample(Timestamped):
 			self.sample_prep_lab,
 			preparation_method,
 			shipment_name,
-			self.sample.skeletal_code,
+			csv_text_escape(self.sample.skeletal_code),
 			self.sample.group_label,
 			self.sample.notes,
 			self.sample.notes_2,
@@ -1009,7 +1009,7 @@ class LysateBatchLayout(TimestampedWellPosition):
 		
 		values.append(get_value(self.lysate, 'lysate_id'))
 		
-		collaborator_id = self.powder_sample.sample.skeletal_code if self.powder_sample else ''
+		collaborator_id = csv_text_escape(self.powder_sample.sample.skeletal_code) if self.powder_sample else ''
 		values.append(collaborator_id)
 		
 		powder_batch_name = self.powder_sample.powder_batch.name if (self.powder_sample and self.powder_sample.powder_batch) else ''
@@ -1089,7 +1089,7 @@ def queue_to_spreadsheet_row(queue_item, sample=None):
 		get_value(sample.shipment, 'shipment_name'),
 		name,
 		sample.skeletal_element,
-		sample.skeletal_code,
+		csv_text_escape(sample.skeletal_code),
 		get_value(country, 'country_name'),
 		get_value(country, 'region'),
 		sample.period,
