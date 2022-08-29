@@ -2141,7 +2141,7 @@ class CaptureLayout(TimestampedWellPosition):
 				]
 		if cumulative:
 			try:
-				library_layout_element = LibraryBatchLayout.objects.get(library=self.library)
+				library_layout_element = LibraryBatchLayout.objects.filter(library_batch__name=library_batch).get(library=self.library)
 				line += library_layout_element.to_spreadsheet_row(cumulative)
 			except LibraryBatchLayout.DoesNotExist: # controls with no library
 				line += empty_values(LibraryBatchLayout.spreadsheet_header(cumulative))
