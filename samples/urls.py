@@ -48,6 +48,7 @@ urlpatterns = [
 	path('extracts_in_batch', views.extracts_in_batch, name='extracts_in_batch'),
 	path('extracts_spreadsheet', views.extracts_spreadsheet, name='extracts_spreadsheet'),
 	path('extracts_spreadsheet_upload', views.extracts_spreadsheet_upload, name='extracts_spreadsheet_upload'),
+	path('extract_batch_load_crowd', views.extract_batch_load_crowd, name='extract_batch_load_crowd'),
 	path('extract_batch_to_library_batch', views.extract_batch_to_library_batch, name='extract_batch_to_library_batch'),
 	
 	path('library_protocols', views.library_protocols, name='library_protocols'),

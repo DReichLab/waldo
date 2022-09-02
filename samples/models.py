@@ -1357,6 +1357,26 @@ class ExtractionBatch(Timestamped):
 			# Skip creating powder samples and lysates for controls because these do not really exist
 			layout_element.lysate_volume_used = 0
 			layout_element.save(save_user=user)
+			
+	def crowd_spreadsheet(self, spreadsheet, user):
+		self.set_controls(user)
+		headers, data_row_fields = spreadsheet_headers_and_data_row_fields(spreadsheet)
+		skipped_text = ''
+		
+		for line in data_row_fields:
+			library_str = get_spreadsheet_value(headers, line, 'Library')
+			position_str = get_spreadsheet_value(headers, line, 'Position')
+			position = TimestampedWellPosition()
+			position.set_position(position_str)
+			
+			if library_str.startswith('S'): # ignore controls and nonsamples
+				library = Library.objects.get(reich_lab_library_id=library_str)
+				lysate = library.extract.lysate
+				self.add_lysate(lysate, position.row, position.column, user)
+			else:
+				skipped_text += f'Crowd spreadsheet skipping: {library_str}\n'
+				 
+		return skipped_text
 	
 class Extract(Timestamped):
 	extract_id = models.CharField(max_length=50, unique=True, db_index=True)
