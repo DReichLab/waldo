@@ -687,6 +687,9 @@ class SpreadsheetForm(forms.Form):
 class BatchUploadForm(forms.Form):
 	spreadsheet = forms.FileField(help_text='"Library" and "Position" header')
 	
+class BatchUploadRotateableForm(BatchUploadForm):
+	rotated = forms.BooleanField(required=False, help_text='Rotate after upload')
+	
 class StorageForm(UserModelForm):
 	class Meta:
 		model = Storage

@@ -865,15 +865,19 @@ def extracts_spreadsheet_upload(request):
 def extract_batch_load_crowd(request):
 	extract_batch_name = request.GET['extract_batch_name']
 	if request.method == 'POST':
-		spreadsheet_form = BatchUploadForm(request.POST, request.FILES)
+		spreadsheet_form = BatchUploadRotateableForm(request.POST, request.FILES)
 		print(f'extracts crowd spreadsheet {extract_batch_name}')
 		if spreadsheet_form.is_valid():
 			spreadsheet = request.FILES.get('spreadsheet')
 			extract_batch = ExtractionBatch.objects.get(batch_name=extract_batch_name)
 			message = extract_batch.crowd_spreadsheet(spreadsheet, request.user)
+			
+			rotated = spreadsheet_form.cleaned_data['rotated']
+			if rotated:
+				extract_batch.rotate(request.user)
 			message = f'Values updated. {message}'
 	else:
-		spreadsheet_form = BatchUploadForm()
+		spreadsheet_form = BatchUploadRotateableForm()
 		message = 'For each desired lysate, use a derived library'
 	return render(request, 'samples/batch_load_file.html', { 'title': f'Extracts for {extract_batch_name}', 'form': spreadsheet_form, 'message': message} )
 	
