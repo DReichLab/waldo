@@ -298,6 +298,7 @@ class Sample(Timestamped):
 	pathology = models.TextField(blank=True)
 	
 	expected_complexity = models.ForeignKey(ExpectedComplexity, on_delete=models.SET_NULL, null=True)
+	approved_negative_results = models.BooleanField(default=False, help_text='Approved for full reporting of negative results and photographs')
 	
 	class Meta:
 		unique_together = ['reich_lab_id', 'control']
