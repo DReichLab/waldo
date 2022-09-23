@@ -196,19 +196,29 @@ def rotate_plate(layout_element_queryset, user):
 		layout_element.rotate()
 		layout_element.save(save_user=user)
 		
+
 # Assuming plate names like ABC.12_XY, ABC.12.U_XY is the rotated version of the same batch type
-# Find the corresponding rotated plate name
-def rotated_pair_name(name_string):
-	match = re.fullmatch('([a-zA-Z]+)\.([\d]+)(\.U){0,1}_([A-Z]{2})', name_string)
+# We need to match doppleganger (rotated) plate names for new extract NE# batches when the first extract batch fails
+# Find strings to match using startswith and endswith for Django querysets
+# start ABC.12.U or ABC.12
+# end XY
+def rotated_name_start_and_end(name_string):
+	match = re.fullmatch('([a-zA-Z]+)\.([\d]+)(\.U){0,1}(\.NE[\d]+){0,1}_([A-Z]{2})', name_string)
 	if match:
 		batch_name = match.group(1)
 		number = match.group(2)
 		is_rotated = match.group(3) == '.U'
-		batch_type = match.group(4)
+		new_extract_indicator = match.group(4)
+		batch_type = match.group(5)
 		
 		# switch rotation
 		rotated = '' if is_rotated else '.U'
-		complement = f'{batch_name}.{number}{rotated}_{batch_type}'
-		return complement
+		start = f'{batch_name}.{number}{rotated}'
+		end = batch_type
+		return start, end
 	else:
-		return None
+		return None, None
+		
+def rotated_pair_name(name_string):
+	start, end = rotated_name_start_and_end(name_string)
+	return f'{start}_{end}'
