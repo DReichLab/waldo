@@ -374,7 +374,7 @@ class ExtractionBatchForm(UserModelForm):
 			
 class ExtractForm(UserModelForm):
 	well_position = forms.CharField(disabled=True)
-	fluidx_barcode = forms.CharField(disabled=True)
+	fluidx_barcode = forms.CharField(disabled=True, required=False)
 	class Meta:
 		model = Extract
 		fields = ['well_position', 'extract_id', 'fluidx_barcode', 'lysis_volume_extracted', 'notes']
@@ -690,6 +690,9 @@ class SpreadsheetForm(forms.Form):
 	
 class BatchUploadForm(forms.Form):
 	spreadsheet = forms.FileField(help_text='"Library" and "Position" header')
+	
+class BatchUploadRotateableForm(BatchUploadForm):
+	rotated = forms.BooleanField(required=False, help_text='Rotate after upload')
 	
 class StorageForm(UserModelForm):
 	class Meta:

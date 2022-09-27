@@ -292,6 +292,7 @@ class Sample(Timestamped):
 	pathology = models.TextField(blank=True)
 	
 	expected_complexity = models.ForeignKey(ExpectedComplexity, on_delete=models.SET_NULL, null=True)
+	approved_negative_results = models.BooleanField(default=False, help_text='Approved for full reporting of negative results and photographs')
 	
 	class Meta:
 		unique_together = ['reich_lab_id', 'control']
@@ -525,7 +526,7 @@ class PowderSample(Timestamped):
 			self.sample_prep_lab,
 			preparation_method,
 			shipment_name,
-			self.sample.skeletal_code,
+			csv_text_escape(self.sample.skeletal_code),
 			self.sample.group_label,
 			self.sample.notes,
 			self.sample.notes_2,
@@ -1009,7 +1010,7 @@ class LysateBatchLayout(TimestampedWellPosition):
 		
 		values.append(get_value(self.lysate, 'lysate_id'))
 		
-		collaborator_id = self.powder_sample.sample.skeletal_code if self.powder_sample else ''
+		collaborator_id = csv_text_escape(self.powder_sample.sample.skeletal_code) if self.powder_sample else ''
 		values.append(collaborator_id)
 		
 		powder_batch_name = self.powder_sample.powder_batch.name if (self.powder_sample and self.powder_sample.powder_batch) else ''
@@ -1089,7 +1090,7 @@ def queue_to_spreadsheet_row(queue_item, sample=None):
 		get_value(sample.shipment, 'shipment_name'),
 		name,
 		sample.skeletal_element,
-		sample.skeletal_code,
+		csv_text_escape(sample.skeletal_code),
 		get_value(country, 'country_name'),
 		get_value(country, 'region'),
 		sample.period,
@@ -1340,6 +1341,26 @@ class ExtractionBatch(Timestamped):
 			# Skip creating powder samples and lysates for controls because these do not really exist
 			layout_element.lysate_volume_used = 0
 			layout_element.save(save_user=user)
+			
+	def crowd_spreadsheet(self, spreadsheet, user):
+		self.set_controls(user)
+		headers, data_row_fields = spreadsheet_headers_and_data_row_fields(spreadsheet)
+		skipped_text = ''
+		
+		for line in data_row_fields:
+			library_str = get_spreadsheet_value(headers, line, 'Library')
+			position_str = get_spreadsheet_value(headers, line, 'Position')
+			position = TimestampedWellPosition()
+			position.set_position(position_str)
+			
+			if library_str.startswith('S'): # ignore controls and nonsamples
+				library = Library.objects.get(reich_lab_library_id=library_str)
+				lysate = library.extract.lysate
+				self.add_lysate(lysate, position.row, position.column, user)
+			else:
+				skipped_text += f'Crowd spreadsheet skipping: {library_str}\n'
+				 
+		return skipped_text
 	
 class Extract(Timestamped):
 	extract_id = models.CharField(max_length=50, unique=True, db_index=True)
@@ -2142,7 +2163,7 @@ class CaptureLayout(TimestampedWellPosition):
 				]
 		if cumulative:
 			try:
-				library_layout_element = LibraryBatchLayout.objects.get(library=self.library)
+				library_layout_element = LibraryBatchLayout.objects.filter(library_batch__name=library_batch).get(library=self.library)
 				line += library_layout_element.to_spreadsheet_row(cumulative)
 			except LibraryBatchLayout.DoesNotExist: # controls with no library
 				line += empty_values(LibraryBatchLayout.spreadsheet_header(cumulative))
