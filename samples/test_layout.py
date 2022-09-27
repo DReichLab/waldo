@@ -3,7 +3,7 @@ from django.core.exceptions import ValidationError
 
 from .layout import PLATE_ROWS, PLATE_WELL_COUNT, plate_location, reverse_plate_location, PlateDomainError, check_plate_domain, layout_and_content_lists
 from .models import TimestampedWellPosition
-from .layout import rotated_pair_name
+from .layout import rotated_pair_name, rotated_name_start_and_end
 			
 class WellPositionArithmetic(SimpleTestCase):
 	def test_check_plate_domain_good(self):
@@ -104,7 +104,7 @@ class WellPositionValidation(SimpleTestCase):
 		
 # Check that the name generated for looking for rotated complements works as expected
 class RotatedName(SimpleTestCase):
-	def test_Crowd(self):
+	def test_Crowd_pair_name(self):
 		name = 'Crowd.21_RE'
 		expected = 'Crowd.21.U_RE'
 		
@@ -113,12 +113,41 @@ class RotatedName(SimpleTestCase):
 		self.assertEquals(name, rerotated_name)
 		self.assertEquals(expected, rotated_name)
 		
+	def start_and_end_checks(self, name, rotated):
+		start, end = rotated_name_start_and_end(name)
+		self.assertTrue(rotated.startswith(start))
+		self.assertTrue(rotated.endswith(end))
+		
+		start, end = rotated_name_start_and_end(rotated)
+		self.assertTrue(name.startswith(start))
+		self.assertTrue(name.endswith(end))
+		
+	def test_name(self):
+		name = 'Thunder.43_RE'
+		rotated = 'Thunder.43.U_RE'
+		
+		self.start_and_end_checks(name, rotated)
+		
+	def test_name_NE1(self):
+		name = 'Thunder.43_RE'
+		rotated = 'Thunder.43.U.NE1_RE'
+		
+		self.start_and_end_checks(name, rotated)
+		
+	def test_name_NE2(self):
+		name = 'Thunder.43_RE'
+		rotated = 'Thunder.43.U.NE2_RE'
+		
+		self.start_and_end_checks(name, rotated)
+		
 	def test_Crowd_bad_parse(self):
 		name = 'Crowd_21_RE'
-		rotated_name = rotated_pair_name(name)
-		self.assertIsNone(rotated_name)
+		start, end = rotated_name_start_and_end(name)
+		self.assertIsNone(start)
+		self.assertIsNone(end)
 
 	def test_Crowd_bad_parse2(self):
 		name = 'Crowd_21U_RE'
-		rotated_name = rotated_pair_name(name)
-		self.assertIsNone(rotated_name)
+		start, end = rotated_name_start_and_end(name)
+		self.assertIsNone(start)
+		self.assertIsNone(end)

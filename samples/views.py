@@ -18,7 +18,7 @@ from samples.models import Results, Library, Sample, PowderBatch, WetLabStaff, P
 from .forms import *
 from sequencing_run.models import MTAnalysis
 
-from .layout import duplicate_positions_check, update_db_layout,  layout_objects_map_for_rendering, occupied_wells, layout_and_content_lists, PLATE_WELL_COUNT, rotated_pair_name
+from .layout import duplicate_positions_check, update_db_layout,  layout_objects_map_for_rendering, occupied_wells, layout_and_content_lists, PLATE_WELL_COUNT, rotated_name_start_and_end
 
 from samples.sample_photos import photo_list, save_sample_photo, delete_photo
 
@@ -1128,11 +1128,11 @@ def library_batch_to_capture_batch(request):
 		if form.is_valid():
 			capture_batch_name = form.cleaned_data['capture_batch_name']
 			# include rotated batches following the naming pattern
-			rotated_library_batch_name = rotated_pair_name(library_batch_name)
-			other_batches = LibraryBatch.objects.filter(name=rotated_library_batch_name)
+			start, end = rotated_name_start_and_end(library_batch_name)
+			other_batches = LibraryBatch.objects.filter(name__startswith=start, name__endswith=end)
 			if len (other_batches) > 1:
 				raise ValueError(f'Unexpected number of additional library batches {len(other_batches)}')
-			print (f'{rotated_library_batch_name} {len(other_batches)}')
+			print (f'{library_batch_name} {len(other_batches)}')
 			
 			library_batch.create_capture(capture_batch_name, other_batches, request.user)
 			return redirect(f'{reverse("capture_batch_assign_library")}?capture_batch_name={capture_batch_name}')
