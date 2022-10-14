@@ -195,7 +195,7 @@ class PowderSampleSharedForm(UserModelForm):
 				self.fields['group_label'].initial = sample.group_label
 				self.fields['notes'].initial = sample.notes
 				self.fields['notes2'].initial = sample.notes_2
-				self.fields['location'].initial = f'{sample.locality} {get_value(sample.location, "country")}'
+				self.fields['location'].initial = f'{sample.locality} {get_value(sample.location_fk, "country")}'
 		self.fields['powder_sample_id'].disabled = True
 		
 	def save(self, commit=True):
