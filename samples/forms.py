@@ -3,6 +3,7 @@ from django.forms import ModelChoiceField, ChoiceField, FileField, ModelForm, Te
 from django.forms import modelformset_factory
 from django.forms.widgets import TextInput, NumberInput
 from django.utils.translation import gettext_lazy as _
+from django.db.models import Q
 
 from samples.models import PowderBatch, PowderSample, Sample, SamplePrepProtocol, ControlType, ControlSet, ControlLayout, LysateBatch, ExtractionProtocol, ExpectedComplexity, SamplePrepQueue, Lysate, LysateBatchLayout, ExtractionBatch, ExtractionBatchLayout, LibraryProtocol, LibraryBatch, Extract, Storage, Library, LibraryBatchLayout, P5_Index, P7_Index, Barcode, CaptureProtocol, CaptureOrShotgunPlate, CaptureLayout, SequencingPlatform, SequencingRun, SkeletalElementCategory, get_value
 
@@ -295,6 +296,12 @@ class LysateBatchForm(UserModelForm):
 		super().__init__(*args, **kwargs)
 		for option in ['protocol', 'date']:
 			self.fields[option].required = False
+		# ensure current values are allowed form values
+		if self.instance.protocol:
+			self.fields['protocol'].queryset = ExtractionProtocol.objects.filter(Q(active=True) | Q(id=self.instance.protocol.id) ).order_by('-start_date')
+		if self.instance.control_set:
+			self.fields['control_set'].queryset = ControlSet.objects.filter(Q(active=True) | Q(id=self.instance.control_set.id)).order_by('layout_name')
+		
 			
 	# to view fields without being able to modify prior to deletion
 	def disable_fields(self):
@@ -366,6 +373,11 @@ class ExtractionBatchForm(UserModelForm):
 			self.fields[option].required = False
 		for option in ['rotated']:
 			self.fields[option].disabled = True
+		# ensure current values are allowed form values
+		if self.instance.protocol:
+			self.fields['protocol'].queryset = ExtractionProtocol.objects.filter(Q(active=True) | Q(id=self.instance.protocol.id) ).order_by('-start_date')
+		if self.instance.control_set:
+			self.fields['control_set'].queryset = ControlSet.objects.filter(Q(active=True) | Q(id=self.instance.control_set.id)).order_by('layout_name')
 			
 	# to view fields without being able to modify prior to deletion
 	def disable_fields(self):
@@ -523,6 +535,11 @@ class LibraryBatchForm(UserModelForm):
 			self.fields[option].required = False
 		for option in ['rotated']:
 			self.fields[option].disabled = True
+		# ensure current values are allowed form values
+		if self.instance.protocol:
+			self.fields['protocol'].queryset = LibraryProtocol.objects.filter(Q(active=True) | Q(id=self.instance.protocol.id) ).order_by('-start_date')
+		if self.instance.control_set:
+			self.fields['control_set'].queryset = ControlSet.objects.filter(Q(active=True) | Q(id=self.instance.control_set.id)).order_by('layout_name')
 	
 	# to view fields without being able to modify prior to deletion
 	def disable_fields(self):
@@ -600,6 +617,9 @@ class CaptureBatchForm(UserModelForm):
 		super().__init__(*args, **kwargs)
 		for option in ['date', 'robot', 'hyb_wash_temps', 'reagent_batch']:
 			self.fields[option].required = False
+		# ensure current values are allowed form values
+		if self.instance.protocol:
+			self.fields['protocol'].queryset = CaptureProtocol.objects.filter(Q(active=True) | Q(id=self.instance.protocol.id) ).order_by('-start_date')
 	
 	# to view fields without being able to modify prior to deletion
 	def disable_fields(self):
