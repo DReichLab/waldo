@@ -402,7 +402,8 @@ class ExtractForm(UserModelForm):
 			layout_elements = self.instance.extractionbatchlayout_set
 			layout_element = layout_elements.get(extract=self.instance)
 			self.initial['well_position'] = str(layout_element)
-			self.initial['fluidx_barcode'] = layout_element.lysate.barcode
+			if layout_element.lysate:
+				self.initial['fluidx_barcode'] = layout_element.lysate.barcode
 		
 ExtractFormset = modelformset_factory(Extract, form=ExtractForm, extra=0)
 			
