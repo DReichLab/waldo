@@ -733,15 +733,25 @@ class LysateBatch(Timestamped):
 	
 	OPEN = 0
 	LYSATES_CREATED = 1
+	IN_PROGRESS = 100
+	CLOSED = 200
+	STOP = 1000
+	
 	LYSATE_BATCH_STATES = (
 		(OPEN, 'Open'),
-		(LYSATES_CREATED, 'Lysates created')
+		(LYSATES_CREATED, 'Lysates created'),
+		(IN_PROGRESS, 'In progress'),
+		(CLOSED, 'Closed'),
+		(STOP, 'Stop')
 	)
 	status = models.PositiveSmallIntegerField(default = OPEN, choices=LYSATE_BATCH_STATES)
 	
 	# return string representing status. For templates
 	def get_status(self):
-		return self.LYSATE_BATCH_STATES[self.status][1]
+		for state_int, state_name in self.LYSATE_BATCH_STATES:
+			if state_int == self.status:
+				return state_name
+		raise ValueError(f'No lysate batch status {self.status}')
 		
 	# retain only powder samples in layout_element_ids
 	# in addition, preserve controls
