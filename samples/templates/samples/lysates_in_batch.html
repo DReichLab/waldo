@@ -15,7 +15,9 @@
 	<input type='submit' value='Update Lysate Batch and Lysates'>
 	<a href='lysates_spreadsheet?lysate_batch_name={{lysate_batch_name}}'>Get Lysate spreadsheet</a>
 	<a href='lysates_spreadsheet_upload?lysate_batch_name={{lysate_batch_name}}'>Upload spreadsheet</a>
+	{% if lysate_batch.status == lysate_batch.CLOSED %}
 	<a href='lysate_batch_to_extract_batch?lysate_batch_name={{lysate_batch_name}}'>Prepare extracts</a>
+	{% endif %}
 	<a href='lysate_batch_plate_layout?lysate_batch_name={{lysate_batch_name}}'>See Layout</a>
 	<a href='lysates_spreadsheet?lysate_batch_name={{lysate_batch_name}}&cumulative'>Cumulative Spreadsheet</a>
 	

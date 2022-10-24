@@ -732,14 +732,12 @@ class LysateBatch(Timestamped):
 	control_set = models.ForeignKey(ControlSet, on_delete=models.SET_NULL, null=True)
 	
 	OPEN = 0
-	LYSATES_CREATED = 1
 	IN_PROGRESS = 100
 	CLOSED = 200
 	STOP = 1000
 	
 	LYSATE_BATCH_STATES = (
 		(OPEN, 'Open'),
-		(LYSATES_CREATED, 'Lysates created'),
 		(IN_PROGRESS, 'In progress'),
 		(CLOSED, 'Closed'),
 		(STOP, 'Stop')

@@ -414,19 +414,20 @@ def lysate_batch_assign_powder(request):
 			
 			lysate_batch.restrict_layout_elements(layout_ids, request.user)
 			lysate_batch.assign_powder_samples(layout_ids, request.user)
+			LYSATES_CREATED = [lysate_batch.IN_PROGRESS, lysate_batch.CLOSED]
 			if 'assign_and_layout' in request.POST:
 				print(f'lysate batch layout {lysate_batch_name}')
 				lysate_batch.assign_layout(request.user)
-				if lysate_batch.status == lysate_batch.LYSATES_CREATED:
+				if lysate_batch.status in LYSATES_CREATED:
 					lysate_batch.create_lysates(request.user)
 				return redirect(f'{reverse("lysate_batch_plate_layout")}?lysate_batch_name={lysate_batch_name}')
 			elif 'assign_and_fill_empty_with_library_controls' in request.POST:
 				print(f'lysate batch layout {lysate_batch_name}')
 				lysate_batch.fill_empty_wells_with_library_negatives(request.user)
-				if lysate_batch.status == lysate_batch.LYSATES_CREATED:
+				if lysate_batch.status in LYSATES_CREATED:
 					lysate_batch.create_lysates(request.user)
 				return redirect(f'{reverse("lysate_batch_plate_layout")}?lysate_batch_name={lysate_batch_name}')
-			elif lysate_batch.status == lysate_batch.LYSATES_CREATED:
+			elif lysate_batch.status in LYSATES_CREATED:
 				lysate_batch.create_lysates(request.user)
 				return redirect(f'{reverse("lysates_in_batch")}?lysate_batch_name={lysate_batch_name}')
 			lysate_batch_form = LysateBatchForm(instance=lysate_batch, user=request.user)
@@ -488,7 +489,7 @@ def lysates_in_batch(request):
 		lysate_batch_form = LysateBatchForm(instance=lysate_batch, user=request.user)
 		lysates_formset = LysateFormset(queryset=Lysate.objects.filter(lysate_batch=lysate_batch).order_by('lysatebatchlayout__column', 'lysatebatchlayout__row', 'sample__reich_lab_id'), form_kwargs={'user': request.user})
 	
-	return render(request, 'samples/lysates_in_batch.html', { 'lysate_batch_name': lysate_batch_name, 'lysate_batch_form': lysate_batch_form, 'formset': lysates_formset} )
+	return render(request, 'samples/lysates_in_batch.html', { 'lysate_batch_name': lysate_batch_name, 'lysate_batch': lysate_batch, 'lysate_batch_form': lysate_batch_form, 'formset': lysates_formset} )
 	
 # return a spreadsheet version of data for offline editing
 @login_required
