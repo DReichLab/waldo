@@ -1617,13 +1617,11 @@ class LibraryBatch(Timestamped):
 	p7_offset = models.SmallIntegerField(null=True, validators=[MinValueValidator(0), MaxValueValidator(PLATE_WELL_COUNT_HALF-1), validate_even], help_text='Must be even in [0,46]')
 	
 	OPEN = 0
-	LIBRARIED = 1
 	IN_PROGRESS = 100
 	CLOSED = 200
 	STOP = 1000
 	LIBRARY_BATCH_STATES = (
 		(OPEN, 'Open'),
-		(LIBRARIED, 'Libraried'),
 		(IN_PROGRESS, 'In progress'),
 		(CLOSED, 'Closed'),
 		(STOP, 'Stop')
@@ -1636,6 +1634,10 @@ class LibraryBatch(Timestamped):
 			if state_int == self.status:
 				return state_name
 		raise ValueError(f'No library batch status {self.status}')
+		
+	def clean(self):
+		if self.status == self.CLOSED and self.prep_date is None:
+			raise ValidationError(_('Closed library batch needs prep date'))
 	
 	def check_p7_offset(self):
 		if self.p7_offset is None or self.p7_offset < 0 or self.p7_offset >= PLATE_WELL_COUNT_HALF:
