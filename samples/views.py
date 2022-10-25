@@ -977,7 +977,8 @@ def library_batch_assign_extract(request):
 			layout_ids, extract_ids = layout_and_content_lists(ticked_checkboxes)
 			library_batch.restrict_layout_elements(layout_ids, request.user)
 			
-			if library_batch.status == library_batch.LIBRARIED:
+			LIBRARIED = [library_batch.IN_PROGRESS, library_batch.CLOSED]
+			if library_batch.status in LIBRARIED:
 				library_batch.create_libraries(request.user)
 				return redirect(f'{reverse("libraries_in_batch")}?library_batch_name={library_batch_name}')
 		
@@ -1085,7 +1086,7 @@ def libraries_in_batch(request):
 		library_batch_form = LibraryBatchForm(instance=library_batch, user=request.user)
 		libraries_formset = LibraryFormset(queryset=Library.objects.filter(library_batch=library_batch).select_related('p5_index', 'p7_index', 'p5_barcode', 'p7_barcode').prefetch_related('librarybatchlayout_set').order_by('librarybatchlayout__column', 'librarybatchlayout__row', 'sample__reich_lab_id'), form_kwargs={'user': request.user})
 	
-	return render(request, 'samples/libraries_in_batch.html', { 'library_batch_name': library_batch_name, 'library_batch_form': library_batch_form, 'formset': libraries_formset} )
+	return render(request, 'samples/libraries_in_batch.html', { 'library_batch_name': library_batch_name, 'library_batch': library_batch, 'library_batch_form': library_batch_form, 'formset': libraries_formset} )
 	
 # return a spreadsheet version of data for offline editing
 @login_required
