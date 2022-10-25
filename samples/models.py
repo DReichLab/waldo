@@ -1618,15 +1618,24 @@ class LibraryBatch(Timestamped):
 	
 	OPEN = 0
 	LIBRARIED = 1
+	IN_PROGRESS = 100
+	CLOSED = 200
+	STOP = 1000
 	LIBRARY_BATCH_STATES = (
 		(OPEN, 'Open'),
-		(LIBRARIED, 'Libraried')
+		(LIBRARIED, 'Libraried'),
+		(IN_PROGRESS, 'In progress'),
+		(CLOSED, 'Closed'),
+		(STOP, 'Stop')
 	)
 	status = models.PositiveSmallIntegerField(default = OPEN, choices=LIBRARY_BATCH_STATES)
 	
 	# return string representing status. For templates
 	def get_status(self):
-		return self.LIBRARY_BATCH_STATES[self.status][1]
+		for state_int, state_name in self.LIBRARY_BATCH_STATES:
+			if state_int == self.status:
+				return state_name
+		raise ValueError(f'No library batch status {self.status}')
 	
 	def check_p7_offset(self):
 		if self.p7_offset is None or self.p7_offset < 0 or self.p7_offset >= PLATE_WELL_COUNT_HALF:
