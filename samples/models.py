@@ -1241,14 +1241,12 @@ class ExtractionBatch(Timestamped):
 	rotated = models.BooleanField(default=False, help_text='True for second extract plates that are rotated 180 degrees')
 	
 	OPEN = 0
-	EXTRACTED = 1
 	IN_PROGRESS = 100
 	CLOSED = 200
 	STOP = 1000
 	
 	EXTRACT_BATCH_STATES = (
 		(OPEN, 'Open'),
-		(EXTRACTED, 'Extracted'),
 		(IN_PROGRESS, 'In progress'),
 		(CLOSED, 'Closed'),
 		(STOP, 'Stop')

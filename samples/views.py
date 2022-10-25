@@ -730,7 +730,8 @@ def extract_batch_assign_lysate(request):
 			extract_batch.restrict_layout_elements(layout_ids)
 			# extra lysates are not currently listed, so there are none to add
 			
-			if extract_batch.status == extract_batch.EXTRACTED:
+			EXTRACTED = [extract_batch.IN_PROGRESS, extract_batch.CLOSED]
+			if extract_batch.status in EXTRACTED:
 				extract_batch.create_extracts(request.user)
 				return redirect(f'{reverse("extracts_in_batch")}?extract_batch_name={extract_batch_name}')
 		
@@ -825,7 +826,7 @@ def extracts_in_batch(request):
 		extract_batch_form = ExtractionBatchForm(instance=extract_batch, user=request.user)
 		extracts_formset = ExtractFormset(queryset=Extract.objects.filter(extract_batch=extract_batch).order_by('extractionbatchlayout__column', 'extractionbatchlayout__row', 'sample__reich_lab_id'), form_kwargs={'user': request.user})
 	
-	return render(request, 'samples/extracts_in_batch.html', { 'extract_batch_name': extract_batch_name, 'extract_batch_form': extract_batch_form, 'formset': extracts_formset} )
+	return render(request, 'samples/extracts_in_batch.html', { 'extract_batch_name': extract_batch_name, 'extract_batch': extract_batch, 'extract_batch_form': extract_batch_form, 'formset': extracts_formset} )
 	
 # return a spreadsheet version of data for offline editing
 @login_required
