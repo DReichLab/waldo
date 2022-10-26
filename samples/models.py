@@ -2009,6 +2009,8 @@ class CaptureOrShotgunPlate(Timestamped):
 			
 	def clean(self):
 		super(CaptureOrShotgunPlate, self).clean()
+		if self.status == self.CLOSED and self.date is None:
+			raise ValidationError(_('Closed plate needs date'))
 		self.well_barcode_check()
 		
 	def from_spreadsheet(self, spreadsheet, user):
