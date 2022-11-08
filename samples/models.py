@@ -1691,8 +1691,8 @@ class LibraryBatch(Timestamped):
 		# fail if a library batch is not ready
 		for library_batch in other_library_batches:
 			print(library_batch.name)
-			if library_batch.status != LibraryBatch.LIBRARIED:
-				raise ValueError(f'{library_batch.name} status is not {LibraryBatch.LIBRARY_BATCH_STATES[LibraryBatch.LIBRARIED][1]}')
+			if library_batch.status != LibraryBatch.CLOSED:
+				raise ValueError(f'{library_batch.name} status is not {LibraryBatch.LIBRARY_BATCH_STATES[LibraryBatch.CLOSED][1]}')
 		
 		# create capture
 		capture_plate = CaptureOrShotgunPlate.objects.create(name=capture_name,
@@ -1702,7 +1702,7 @@ class LibraryBatch(Timestamped):
 		
 		# copy from library layout
 		other_library_batches_flat = other_library_batches.values_list('id', flat=True)
-		to_copy = LibraryBatchLayout.objects.filter(library_batch__in=([self] + [x for x in other_library_batches_flat]), library_batch__status=LibraryBatch.LIBRARIED).exclude(control_type__control_type=LIBRARY_POSITIVE)
+		to_copy = LibraryBatchLayout.objects.filter(library_batch__in=([self] + [x for x in other_library_batches_flat]), library_batch__status=LibraryBatch.CLOSED).exclude(control_type__control_type=LIBRARY_POSITIVE)
 		for x in to_copy:
 			copied = CaptureLayout(capture_batch = capture_plate, 
 								row = x.row,
