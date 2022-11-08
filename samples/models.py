@@ -686,12 +686,13 @@ def create_lysate(lysate_layout_element, lysate_batch, user):
 		# library negatives have no lysis volume
 		is_library_negative = (lysate_layout_element.control_type is not None) and (lysate_layout_element.control_type.control_type == LIBRARY_NEGATIVE)
 		total_volume_produced = lysate_batch.protocol.total_lysis_volume if not is_library_negative else 0
+		powder_used_mg = powder_sample.powder_for_extract if powder_sample else 0
 		lysate = Lysate(lysate_id=lysate_id,
 					reich_lab_lysate_number=next_lysate_number,
 					powder_sample=powder_sample,
 					sample=sample,
 					lysate_batch=lysate_batch,
-					powder_used_mg=powder_sample.powder_for_extract,
+					powder_used_mg=powder_used_mg,
 					total_volume_produced=total_volume_produced)
 		lysate.save(save_user=user)
 		lysate_layout_element.lysate = lysate
