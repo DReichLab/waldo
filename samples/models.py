@@ -1693,7 +1693,7 @@ class LibraryBatch(Timestamped):
 		for library_batch in other_library_batches:
 			print(library_batch.name)
 			if library_batch.status != LibraryBatch.CLOSED:
-				raise ValueError(f'{library_batch.name} status is not {LibraryBatch.LIBRARY_BATCH_STATES[LibraryBatch.CLOSED][1]}')
+				raise ValueError(f'{library_batch.name} status is "{library_batch.get_status()}"')
 		
 		# create capture
 		capture_plate = CaptureOrShotgunPlate.objects.create(name=capture_name,
