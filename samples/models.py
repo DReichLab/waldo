@@ -678,11 +678,11 @@ def create_lysate(lysate_layout_element, lysate_batch, user):
 			else:
 				raise ValueError(f'powder sample without sample {powder_sample.powder_sample_id}')
 		else: # lysate name for a control
-			num_existing_lysates_for_control_type = LysateBatchLayout.objects.filter(lysate_batch=lysate_batch, control_type=lysate_layout_element.control_type, powder_sample=None).count()
+			num_existing_lysates_for_control_type = LysateBatchLayout.objects.filter(lysate_batch=lysate_batch, control_type=lysate_layout_element.control_type, powder_sample=None, lysate_isnull=False).count()
 			prior_id = control_name_string(lysate_batch.batch_name, lysate_layout_element.control_type, num_existing_lysates_for_control_type)
 			lysate_id = ''
 		lysate_id = f'{prior_id}.Y{next_lysate_number}'
-		print(f'created lysate id {lysate_id}')
+		print(f'created lysate id {lysate_id} {lysate_layout_element}')
 		# library negatives have no lysis volume
 		is_library_negative = (lysate_layout_element.control_type is not None) and (lysate_layout_element.control_type.control_type == LIBRARY_NEGATIVE)
 		total_volume_produced = lysate_batch.protocol.total_lysis_volume if not is_library_negative else 0
