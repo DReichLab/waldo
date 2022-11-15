@@ -1485,7 +1485,8 @@ class ExtractionBatchLayout(TimestampedWellPosition):
 			
 			# Generating from lysates (either real or control)
 			if self.control_type is None or lysate is not None:
-				sample = lysate.powder_sample.sample
+				if lysate.powder_sample:
+					sample = lysate.powder_sample.sample
 				next_extract_number = lysate.highest_extract() +1
 				prior_id = str(lysate.lysate_id)
 				
