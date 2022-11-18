@@ -632,8 +632,8 @@ class CapturedLibraryForm(UserModelForm):
 	library_id = forms.CharField(disabled=True)
 	library_batch = forms.CharField(disabled=True, required=False)
 	well_position_library_batch = forms.CharField(disabled=True, required=False)
-	p5_index = BarcodeSelect(queryset=P5_Index.objects.all(), disabled=True)
-	p7_index = BarcodeSelect(queryset=P7_Index.objects.all(), disabled=True)
+	p5_index = BarcodeSelect(queryset=P5_Index.objects.all(), disabled=True, required=False)
+	p7_index = BarcodeSelect(queryset=P7_Index.objects.all(), disabled=True, required=False)
 	p5_barcode = forms.CharField(disabled=True, required=False)
 	p7_barcode = forms.CharField(disabled=True, required=False)
 	class Meta:

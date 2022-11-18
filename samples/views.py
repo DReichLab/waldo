@@ -1238,6 +1238,8 @@ def captures_in_batch(request):
 		
 		if form.is_valid():
 			form.save()
+			if 'assign_plus_indices' in request.POST:
+				capture_batch.assign_indices(request.user)
 		if captures_formset.is_valid():
 			captures_formset.save()
 		if form.is_valid() and capture_batch.status in [capture_batch.OPEN, capture_batch.STOP]:

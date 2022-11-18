@@ -2271,7 +2271,7 @@ class SequencingRun(Timestamped):
 				library = layout_element.library.reich_lab_library_id if  layout_element.library else ''
 				control = layout_element.control_type.control_type if layout_element.control_type else ''
 				print(f'error checking {layout_element} {library} {control}')
-				raise
+				raise e
 	
 	# currently unused, implemented in view
 	def to_spreadsheet(self):
