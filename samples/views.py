@@ -959,7 +959,7 @@ def library_batches(request):
 	elif request.method == 'GET':
 		form = LibraryBatchForm(user=request.user)
 		
-	library_batches_queryset = LibraryBatch.objects.all().order_by('-id')
+	library_batches_queryset = LibraryBatch.objects.all().order_by('status', '-id')
 	return render(request, 'samples/library_batches.html', { 'form': form, 'library_batches': library_batches_queryset } )
 	
 @login_required
