@@ -1184,7 +1184,7 @@ def capture_batches(request):
 	elif request.method == 'GET':
 		form = CaptureBatchForm(user=request.user)
 		
-	capture_batches_queryset = CaptureOrShotgunPlate.objects.all().order_by('-id')
+	capture_batches_queryset = CaptureOrShotgunPlate.objects.all().order_by('status', '-id')
 	return render(request, 'samples/capture_batches.html', { 'form': form, 'capture_batches': capture_batches_queryset } )
 	
 @login_required

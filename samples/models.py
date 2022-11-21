@@ -1950,17 +1950,24 @@ class CaptureOrShotgunPlate(Timestamped):
 	
 	needs_sequencing = models.BooleanField(default=True, help_text='True for new plates. False for plates sequenced before website switchover.')
 	
-	STOP = -100
 	OPEN = 0
 	IN_PROGRESS = 100
 	CLOSED = 200
+	STOP = 1000
 	CAPTURE_BATCH_STATES = (
-		(STOP, 'Stop'),
 		(OPEN, 'Open'),
 		(IN_PROGRESS, 'In Progress'),
-		(CLOSED, 'Closed')
+		(CLOSED, 'Closed'),
+		(STOP, 'Stop')
 	)
 	status = models.SmallIntegerField(default = OPEN, choices=CAPTURE_BATCH_STATES)
+	
+	# return string representing status. For templates
+	def get_status(self):
+		for state_int, state_name in self.CAPTURE_BATCH_STATES:
+			if state_int == self.status:
+				return state_name
+		raise ValueError(f'No capture/raw batch status {self.status}')
 	
 	def layout_elements(self):
 		return CaptureLayout.objects.filter(capture_batch=self).order_by('row', 'column', 'library__sample__reich_lab_id')
