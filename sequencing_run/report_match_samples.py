@@ -8,10 +8,11 @@ import sys
 import re
 
 MINUS = 'minus'
+PARTIAL = 'partial'
 HALF = 'half'
 PLUS = 'plus'
 CONTROL = 'control'
-ALLOWED_UDG_VALUES = [MINUS, HALF, PLUS, CONTROL]
+ALLOWED_UDG_VALUES = [MINUS, HALF, PLUS, CONTROL, PARTIAL]
 
 class SampleInfo:
 	def __init__(self, libraryID, plateID, experiment, udg, do_not_use, wetlab_notes):
