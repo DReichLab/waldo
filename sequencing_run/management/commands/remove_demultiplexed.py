@@ -35,3 +35,5 @@ class Command(BaseCommand):
 				x.flowcells.clear()
 				x.library.clear()
 				x.delete()
+			for x in flowcell:
+				x.delete()
