@@ -141,11 +141,11 @@ def generate_bam_list_with_sample_data(bams_by_index_barcode_key, sequencing_run
 		label = "{}_{}_{}".format(sequencing_run_name, experiment, from_sample_sheet.udg)
 		udg = from_sample_sheet.udg
 		reference = bam_list[0].reference
-		do_not_use = from_sample_sheet.do_not_use
+		do_not_use = len(from_sample_sheet.do_not_use) != 0
 		wetlab_notes = from_sample_sheet.wetlab_notes
 		#print(label)
 		
-		# if len(do_not_use) == 0:
+		# if not(do_not_use):
 		if True:
 			version = str(1)
 			# version determination
@@ -203,7 +203,7 @@ def generate_bam_list_with_sample_data(bams_by_index_barcode_key, sequencing_run
 					individual_id = match_object.group().replace('S', 'I')
 					#print(individual_id)
 				
-			library_output_fields = [key, library_id, individual_id, label, experiment, udg, reference, version, wetlab_notes]
+			library_output_fields = [key, ('DNU' if do_not_use else ''), library_id, individual_id, label, experiment, udg, reference, version, wetlab_notes]
 			
 			# each bam is a DemultiplexedSequencing object
 			for bam in bam_list:
