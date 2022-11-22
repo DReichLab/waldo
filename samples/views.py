@@ -1249,7 +1249,7 @@ def captures_in_batch(request):
 		form = CaptureBatchForm(instance=capture_batch, user=request.user)
 		captures_formset = CapturedLibraryFormset(queryset=CaptureLayout.objects.filter(capture_batch=capture_batch).order_by('column', 'row'), form_kwargs={'user': request.user})
 	
-	return render(request, 'samples/captures_in_batch.html', { 'capture_batch_name': capture_batch_name, 'form': form, 'formset': captures_formset} )
+	return render(request, 'samples/captures_in_batch.html', { 'capture_batch_name': capture_batch_name, 'capture_batch': capture_batch, 'form': form, 'formset': captures_formset} )
 	
 @login_required
 def capture_batch_layout(request):
@@ -1404,7 +1404,7 @@ def sequencing_run_assign_captures(request):
 	# captures already assigned
 	assigned_captures = sequencing_run.captures.all()
 	# show captures marked as needing sequencing that have not already been assigned
-	captures = CaptureOrShotgunPlate.objects.filter(needs_sequencing=True).annotate(sequencing_count=Count('sequencingrun')).exclude(sequencing_count__gt=0)
+	captures = CaptureOrShotgunPlate.objects.filter(needs_sequencing=True, status=CaptureOrShotgunPlate.CLOSED).annotate(sequencing_count=Count('sequencingrun')).exclude(sequencing_count__gt=0)
 	
 	return render(request, 'samples/sequencing_run_assign_captures.html', { 'sequencing_run_name': sequencing_run_name, 'sequencing_run': sequencing_run,  'form': form, 'assigned_captures': assigned_captures, 'unassigned_captures': captures} )
 	
