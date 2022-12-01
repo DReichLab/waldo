@@ -550,8 +550,11 @@ def sample(request):
 		# database, not Reich Lab ID
 		reich_lab_sample_number = reich_lab_sample_number_from_string(request.GET['sample'])
 	
+	sample = Sample.objects.get(reich_lab_id=reich_lab_sample_number)
+	collaborator_id = sample.skeletal_code
+	
 	images = photo_list(reich_lab_sample_number)
-	return render(request, 'samples/sample.html', { 'reich_lab_sample_number': reich_lab_sample_number, 'images': images, 'form': form} )
+	return render(request, 'samples/sample.html', { 'reich_lab_sample_number': reich_lab_sample_number, 'collaborator_id': collaborator_id, 'images': images, 'form': form} )
 	
 @login_required
 def delete_sample_photo(request):
