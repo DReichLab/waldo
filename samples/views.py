@@ -1135,7 +1135,7 @@ def library_batch_to_capture_batch(request):
 			capture_batch_name = form.cleaned_data['capture_batch_name']
 			# include rotated batches following the naming pattern
 			start, end = rotated_name_start_and_end(library_batch_name)
-			other_batches = LibraryBatch.objects.filter(name__startswith=start, name__endswith=end)
+			other_batches = LibraryBatch.objects.filter(name__startswith=start, name__endswith=end, status=LibraryBatch.CLOSED)
 			if len (other_batches) > 1:
 				raise ValueError(f'Unexpected number of additional library batches {len(other_batches)}')
 			print (f'{library_batch_name} {len(other_batches)}')
