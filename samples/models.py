@@ -32,11 +32,13 @@ def parse_sample_string(s):
 	else:
 		raise ValueError('Error parsing sample {}'.format(s))
 
-def get_value(obj, property_name, default=''):
-	if obj is None:
-		return default
-	else:
-		return getattr(obj, property_name)
+def get_value(obj, *property_name_chain, default=''):
+	current_object = obj
+	for property_name in property_name_chain:
+		if current_object is None:
+			return default
+		current_object = getattr(current_object, property_name)
+	return current_object
 		
 class Timestamped(models.Model):
 	creation_timestamp = models.DateTimeField(default=timezone.now, null=True)
@@ -1448,10 +1450,12 @@ class ExtractionBatchLayout(TimestampedWellPosition):
 			additional_values = None
 			if self.lysate:
 				try:
-					lysate_layout_element = LysateBatchLayout.objects.get(lysate=self.lysate)
+					lysate_layout_element = LysateBatchLayout.objects.exclude(lysate__lysate_batch__batch_name__startswith='Crowd').get(lysate=self.lysate, lysate__lysate_batch__status=LysateBatch.CLOSED)
 					additional_values = lysate_layout_element.to_spreadsheet_row(cumulative)
 				except LysateBatchLayout.DoesNotExist:
 					pass
+				except LysateBatchLayout.MultipleObjectsReturned:
+					raise ValueError(f'{self.lysate.lysate_id} has multiple lysate batch layout')
 			if additional_values is None:
 				additional_values = empty_values(LysateBatchLayout.spreadsheet_header(cumulative))
 			values += additional_values
@@ -2141,19 +2145,20 @@ class CaptureLayout(TimestampedWellPosition):
 			return header
 		
 	def to_spreadsheet_row(self, cumulative=False):
+		# until historical elements are backfilled, need to fill unlinked elements with blanks
 		if self.p5_index: # DS
 			p5_index_label = self.p5_index.label
 			p5_index_sequence = self.p5_index.sequence
 		else: # SS or index-only library
-			p5_index_label = self.library.p5_index.label
-			p5_index_sequence = self.library.p5_index.sequence
+			p5_index_label = get_value(self.library, 'p5_index', 'label')
+			p5_index_sequence = get_value(self.library, 'p5_index', 'sequence')
 			
 		if self.p7_index: # DS
 			p7_index_label = self.p7_index.label
 			p7_index_sequence = self.p7_index.sequence
 		else: # SS or index-only library
-			p7_index_label = self.library.p7_index.label
-			p7_index_sequence = self.library.p7_index.sequence
+			p7_index_label = get_value(self.library, 'p7_index', 'label')
+			p7_index_sequence = get_value(self.library, 'p7_index', 'sequence')
 		
 		library_batch = ''
 		well_position_library_batch = ''
@@ -2164,10 +2169,10 @@ class CaptureLayout(TimestampedWellPosition):
 		if self.library:
 			identifier = self.library.reich_lab_library_id
 			
-			p5_barcode_label = self.library.p5_barcode.label if self.library.p5_barcode else ''
-			p5_barcode_sequence = self.library.p5_barcode.sequence if self.library.p5_barcode else ''
-			p7_barcode_label = self.library.p7_barcode.label if self.library.p7_barcode else ''
-			p7_barcode_sequence = self.library.p7_barcode.sequence if self.library.p7_barcode else ''
+			p5_barcode_label = get_value(self.library.p5_barcode, 'label')
+			p5_barcode_sequence = get_value(self.library.p5_barcode, 'sequence')
+			p7_barcode_label = get_value(self.library.p7_barcode, 'label')
+			p7_barcode_sequence = get_value(self.library.p7_barcode, 'sequence')
 			
 			if self.library.library_batch:
 				library_batch = self.library.library_batch.name
