@@ -57,7 +57,8 @@ class PowderBatchForm(UserModelForm):
 IMAGE_TYPES = [
 		('Before', 'Before'),
 		('After', 'After'),
-		('C14', 'C14')
+		('C14', 'C14'),
+		('Isotope', 'Isotope')
 	]
 
 class SampleImageForm(forms.Form):
