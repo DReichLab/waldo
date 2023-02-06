@@ -170,7 +170,7 @@ class WetLabStaff(Timestamped):
 		return self.first_name[0] + self.last_name[0]
 	
 	def name(self):
-		return f'{first_name} {last_name}'
+		return f'{self.first_name} {self.last_name}'
 	
 class SupportStaff(Timestamped):
 	first_name = models.CharField(max_length=30, db_index=True)
@@ -1950,7 +1950,7 @@ class CaptureOrShotgunPlate(Timestamped):
 	reagent_batch = models.PositiveSmallIntegerField(null=True, help_text='Twist batch or bait batch number')
 	notes = models.TextField(blank=True)
 	
-	p5_index_start = models.PositiveSmallIntegerField(null=True, validators=[MinValueValidator(1), MaxValueValidator(47), validate_odd], help_text='Must be odd in [1, 48]')# revisit this for single stranded
+	p5_index_start = models.PositiveSmallIntegerField(null=True, validators=[MinValueValidator(1), MaxValueValidator(47), validate_odd], help_text='Must be odd in [1, 48]')# TODO revisit this for single stranded
 	
 	needs_sequencing = models.BooleanField(default=True, help_text='True for new plates. False for plates sequenced before website switchover.')
 	
