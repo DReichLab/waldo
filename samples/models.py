@@ -1981,7 +1981,7 @@ class CaptureOrShotgunPlate(Timestamped):
 			int_position = reverse_plate_location_coordinate(layout_element.row, layout_element.column)
 			# indices are only assigned if the library has none
 			if layout_element.library is None or (layout_element.library.p5_index is None and layout_element.library.p7_index is None):
-				# double-stranded, TODO single-stranded
+				# double-stranded
 				p5_int, p7_int = indices_for_location(int_position, self.p5_index_start)
 				print(f'indices {p5_int} {p7_int}')
 				p5 = P5_Index.objects.get(label=str(p5_int))
@@ -2273,10 +2273,10 @@ class SequencingRun(Timestamped):
 		combinations = {}
 		for layout_element in self.indexed_libraries.all():
 			try:
-				p5_index = layout_element.p5_index.sequence
-				p7_index = layout_element.p7_index.sequence
-				p5_barcode = layout_element.library.p5_barcode.sequence if layout_element.library else ''
-				p7_barcode = layout_element.library.p7_barcode.sequence if layout_element.library else ''
+				p5_index = layout_element.p5_index.sequence if layout_element.p5_index else layout_element.library.p5_index.sequence
+				p7_index = layout_element.p7_index.sequence if layout_element.p7_index else layout_element.library.p7_index.sequence
+				p5_barcode = get_value(layout_element, 'library', 'p5_barcode', 'sequence')
+				p7_barcode = get_value(layout_element, 'library', 'p7_barcode', 'sequence')
 				
 				s = f'{p5_index}_{p7_index}_{p5_barcode}_{p7_barcode}'
 				if s in combinations:
