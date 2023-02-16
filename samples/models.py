@@ -1559,8 +1559,13 @@ def create_library_from_extract(layout_element, user):
 		elif layout_element.control_type.control_type == LIBRARY_POSITIVE:
 			next_library_number = 1 # if there is more than one library positive, we need to check existing
 			reich_lab_library_id = f'LP{library_batch.id}.L{next_library_number}'
+		# control starting from this step (Mob)
+		elif layout_element.control_type.control_type == LIBRARY_NEGATIVE:
+			# library negative controls with already created libraries
+			num_existing = LibraryBatchLayout.objects.filter(library_batch=library_batch, library__isnull=False, control_type__control_type=LIBRARY_NEGATIVE).count()
+			reich_lab_library_id = control_name_string(library_batch.name, layout_element.control_type, num_existing)
 		else:
-			raise ValueError(f'Unexpected case in creating library, neither extract nor library positive {layout_element.id}')
+			raise ValueError(f'Unexpected case in creating library, neither extract nor library positive/negative {layout_element.id}')
 		# TODO check existing extract amount
 		# assign barcodes
 		if library_batch.protocol.library_type == 'ds':
@@ -1680,6 +1685,25 @@ class LibraryBatch(Timestamped):
 		# remove extracts that are assigned but preserve controls
 		to_clear = LibraryBatchLayout.objects.filter(library_batch=self).exclude(id__in=layout_ids).exclude(control_type__isnull=False)
 		to_clear.delete()
+
+	# Library batches created from extract batches reuse the controls.
+	# This sets controls for batches starting from this point.
+	# The wetlab calls these Mobs.
+	def set_controls(self, user):
+		# extract controls are assigned explicitly, not populated from control set
+		control_types = [LIBRARY_NEGATIVE, LIBRARY_POSITIVE]
+		controls = ControlLayout.objects.filter(control_set=self.control_set, control_type__control_type__in=control_types, active=True).order_by('column', 'row')
+
+		existing_controls = LibraryBatchLayout.objects.filter(library_batch=self, control_type__control_type__in=control_types).order_by('column', 'row')
+		# examine existing controls for sample numbers and remove existing
+		extract_negative_sample_id, library_negative_sample_id = existing_controls_cleanup(existing_controls, user)
+
+		# create new control layout entries for library controls
+		for control in controls:
+			layout_element = LibraryBatchLayout(library_batch=self, control_type=control.control_type, row=control.row, column=control.column)
+
+			layout_element.ul_extract_used = 0
+			layout_element.save(save_user=user)
 		
 	def libraries_from_spreadsheet(self, spreadsheet, user):
 		headers, data_rows = spreadsheet_headers_and_data_rows(spreadsheet)
@@ -1750,8 +1774,9 @@ class LibraryBatch(Timestamped):
 		capture_positive.save(save_user=user)
 		
 	def assign_extract(self, extract, row, column, control_type=None):
+		if control_type == None:
 		# ensure this extract has a sample number
-		extract.ensure_ids()
+			extract.ensure_ids()
 		try:
 			library_batch_layout_element = LibraryBatchLayout.objects.get(library_batch=self,
 									extract=extract,
