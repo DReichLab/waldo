@@ -1563,7 +1563,8 @@ def create_library_from_extract(layout_element, user):
 		elif layout_element.control_type.control_type == LIBRARY_NEGATIVE:
 			# library negative controls with already created libraries
 			num_existing = LibraryBatchLayout.objects.filter(library_batch=library_batch, library__isnull=False, control_type__control_type=LIBRARY_NEGATIVE).count()
-			reich_lab_library_id = control_name_string(library_batch.name, layout_element.control_type, num_existing)
+			next_library_number = 1
+			reich_lab_library_id = f'{control_name_string(library_batch.name, layout_element.control_type, num_existing)}.L{next_library_number}'
 		else:
 			raise ValueError(f'Unexpected case in creating library, neither extract nor library positive/negative {layout_element.id}')
 		# TODO check existing extract amount
