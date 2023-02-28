@@ -1767,12 +1767,13 @@ class LibraryBatch(Timestamped):
 		# capture positive depends upon library type
 		if self.protocol.library_type == 'ds':
 			capture_positive_library = Library.objects.get(reich_lab_library_id=CAPTURE_POSITIVE_LIBRARY_NAME_DS)
-		else:
-			raise NotImplementedError(f'Unimplemented capture positive for library type {self.protocol.library_type}')
-		capture_positive = CaptureLayout(capture_batch=capture_plate,
+			capture_positive = CaptureLayout(capture_batch=capture_plate,
 								   control_type=capture_positive_position.control_type, row=capture_positive_position.row, column=capture_positive_position.column,
 								   library = capture_positive_library)
-		capture_positive.save(save_user=user)
+			capture_positive.save(save_user=user)
+		else:
+			#raise NotImplementedError(f'Unimplemented capture positive for library type {self.protocol.library_type}')
+			pass # TODO wetlab does not have single-stranded capture positive yet
 		
 	def assign_extract(self, extract, row, column, control_type=None):
 		if control_type == None:
