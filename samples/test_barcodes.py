@@ -1,9 +1,9 @@
 from django.test import SimpleTestCase
 
 from .models import parse_sample_string, Barcode, Library
-from .layout import PLATE_ROWS, PLATE_WELL_COUNT, PLATE_WELL_COUNT_HALF, plate_location, reverse_plate_location, BARCODES_BY_POSITION, barcode_at_position, barcodes_for_location, p7_qbarcode_source, indices_for_location
+from .layout import *
 
-class BarcodesTest(SimpleTestCase):
+class BarcodesLayoutTest(SimpleTestCase):
 	def test_barcode_total_number(self):
 		self.assertEqual(PLATE_WELL_COUNT_HALF, len(BARCODES_BY_POSITION))
 		
@@ -100,6 +100,19 @@ class BarcodesTest(SimpleTestCase):
 		p5, p7 = indices_for_location(n, starting)
 		self.assertEquals(starting+1, p5)
 		self.assertEquals(96, p7)
+
+	def test_single_position_index_and_back(self):
+		position = 1
+		offset = 1
+		i5, i7 = indices_for_location(position, offset)
+		self.assertEquals(position, location_from_indices(i5, i7))
+
+	def test_indices_from_location_and_back(self):
+		for position in range(0, PLATE_WELL_COUNT):
+			for offset in range(1, PLATE_WELL_COUNT//2, 2):
+				#print(position, offset)
+				i5, i7 = indices_for_location(position, offset)
+				self.assertEquals(position, location_from_indices(i5, i7))
 
 # sequences do not actually matter because barcodes are checked by reference and sequences are enforced unique
 class LibraryBarcodeCheckTest(SimpleTestCase):

@@ -3,6 +3,7 @@ import re
 PLATE_ROWS = 'ABCDEFGH'
 PLATE_WELL_COUNT = 96
 PLATE_WELL_COUNT_HALF = PLATE_WELL_COUNT // 2
+ROW_LENGTH = PLATE_WELL_COUNT // len(PLATE_ROWS)
 		
 def validate_row_letter(letter):
 	if len(letter) != 1:
@@ -175,6 +176,8 @@ def barcodes_for_location(int_position, p7_offset):
 	
 # TODO currently double-stranded only
 # return a pair of indices (p5, p7) as integers
+# p5 is in [1,48]
+# p7 is in [1,96]
 # expect p5_index_starting to be odd
 def indices_for_location(int_position, p5_index_starting):
 	row, column = plate_location(int_position)
@@ -187,9 +190,27 @@ def indices_for_location(int_position, p5_index_starting):
 	if p5 > 48: 
 		p5 = 1
 	# P7s are ordered going left-right across the rows. A1 -> 1, A12 -> 12, B1 -> 13
-	row_length = PLATE_WELL_COUNT // len(PLATE_ROWS)
-	p7 = row_num * row_length + column
+	p7 = row_num * ROW_LENGTH + column
 	return p5, p7
+
+# TODO currently double-stranded only
+# i5 and i7 are integers
+# i5 is expected to be [1,48]
+# i7 is expected to be [1,96]
+def location_from_indices(i5_str, i7_str):
+	i5 = int(i5_str)
+	i7 = int(i7_str)
+
+	is_top = i5 % 2 == 1
+	row_first_position = i7 - 1 # change to [0, 95]
+	check_plate_domain(row_first_position)
+	row = row_first_position // ROW_LENGTH
+	column = (row_first_position % ROW_LENGTH) + 1 # to [1,12]
+	# check agreement between indices
+	if is_top and row_first_position >= PLATE_WELL_COUNT_HALF:
+		raise ValueError(f'Unexpected index pair {i5} {i7}')
+	row_letter = PLATE_ROWS[row]
+	return reverse_plate_location_coordinate(row_letter, column)
 
 def rotate_plate(layout_element_queryset, user):
 	for layout_element in layout_element_queryset:
