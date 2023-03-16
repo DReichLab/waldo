@@ -193,7 +193,7 @@ def indices_for_location(int_position, p5_index_starting):
 	p7 = row_num * ROW_LENGTH + column
 	return p5, p7
 
-# TODO currently double-stranded only
+# double-stranded only
 # i5 and i7 are integers
 # i5 is expected to be [1,48]
 # i7 is expected to be [1,96]

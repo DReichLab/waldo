@@ -2290,6 +2290,9 @@ class SequencingRun(Timestamped):
 			self.captures.add(capture)
 			for element_to_add in CaptureLayout.objects.filter(capture_batch=capture):
 				self.indexed_libraries.add(element_to_add)
+
+	def assign_capture_layout_element(self, capture_layout_element):
+		self.indexed_libraries.add(capture_layout_element)
 	
 	# only one library type is allowed
 	def check_library_type(self):
