@@ -1,5 +1,6 @@
 from django.core.management.base import BaseCommand, CommandError
 from django.conf import settings
+from django.db import transaction
 from samples.models import P5_Index, P7_Index
 
 class Command(BaseCommand):
@@ -18,9 +19,11 @@ class Command(BaseCommand):
 		elif barcode_type == 'i7':
 			barcodes = P7_Index.objects
 
-		with open(barcodes_file) as f:
-			for line in f:
-				fields = line.split()
-				label = fields[0]
-				sequence = fields[1]
-				barcodes.get_or_create(label=label, sequence=sequence)
+		with transaction.atomic():
+			with open(barcodes_file) as f:
+				for line in f:
+					fields = line.split()
+					label = fields[0]
+					sequence = fields[1]
+					barcode, created = barcodes.get_or_create(label=label, sequence=sequence)
+					barcode.full_clean()
