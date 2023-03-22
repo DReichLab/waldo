@@ -42,9 +42,10 @@ class Command(BaseCommand):
 				i5 = P5_Index.objects.get(sequence=get_spreadsheet_value(headers, row, 'Index2'))
 
 				p5_barcode_str = get_spreadsheet_value(headers, row, 'P5_barcode')
-				p5_barcode = Barcode.objects.get(sequence=p5_barcode_str) if len(p5_barcode_str) > 0 else None
+				p5_barcode = self.barcode_from_str(p5_barcode_str)
+
 				p7_barcode_str = get_spreadsheet_value(headers, row, 'P7_barcode')
-				p7_barcode = Barcode.objects.get(sequence=p7_barcode_str) if len(p7_barcode_str) > 0 else None
+				p7_barcode = self.barcode_from_str(p7_barcode_str)
 
 				capture_name =  get_spreadsheet_value(headers, row, 'Capture_Name')
 				capture = CaptureOrShotgunPlate.objects.get(name=capture_name)
@@ -116,3 +117,14 @@ class Command(BaseCommand):
 					layout_element.save()
 					# assign capture layout to sequencing run
 					sequencing_run.assign_capture_layout_element(layout_element)
+
+	def barcode_from_str(self, barcode_str):
+		if len(barcode_str) == 0 or barcode_str == '..':
+			barcode = None
+		else:
+			try:
+				barcode = Barcode.objects.get(sequence=barcode_str)
+			except Barcode.DoesNotExist as e:
+				self.stderr.write(f'{barcode_str} not found')
+				raise e
+		return barcode
