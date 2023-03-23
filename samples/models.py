@@ -1811,7 +1811,7 @@ def validate_barcode_dna_sequence(sequence):
 			raise ValidationError(_('%(sequence)s contains empty barcode'), params={'sequence': sequence})
 	
 class Barcode(models.Model):
-	label = models.CharField(max_length=10, db_index=True)
+	label = models.CharField(max_length=20, db_index=True)
 	sequence = models.CharField(max_length=31, db_index=True, unique=True, validators=[validate_barcode_dna_sequence])
 	
 class P5_Index(models.Model):
