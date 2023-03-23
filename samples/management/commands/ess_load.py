@@ -7,19 +7,19 @@ from samples.layout import plate_location, location_from_indices
 
 def field_check(library, field_name, value, update):
 	existing_value = getattr(library, field_name)
-	if existing_value == None:
+	if existing_value == None or existing_value == '':
 		if update:
 			setattr(library, field_name, value)
 	elif existing_value != value:
-		raise ValueError(f'Library {field_name} mismatch for {library.reich_lab_library_id} {existing_value} {value}')
+		raise ValueError(f'Library {field_name} mismatch for {library.reich_lab_library_id} [{existing_value}] [{value}]')
 
 class Command(BaseCommand):
-	help = 'Load extended sample sheet (ESS) file from tab-delimited file into database'
+	help = 'Check/Load extended sample sheet (ESS) file from tab-delimited file into database. This fails if there is inconsistent (present but different) data. '
 	
 	def add_arguments(self, parser):
 		parser.add_argument('ess')
 		parser.add_argument('sequencing_run')
-		parser.add_argument('-u', '--update', action='store_true')
+		parser.add_argument('-u', '--update', action='store_true', help='Fill in blank data with fields from ESS')
 		
 	def handle(self, *args, **options):
 		ess_file = options['ess']
@@ -38,14 +38,14 @@ class Command(BaseCommand):
 			for row in data_rows:
 				library_id = get_spreadsheet_value(headers, row, 'Sample_Name')
 
-				i7 = P7_Index.objects.get(sequence=get_spreadsheet_value(headers, row, 'Index'))
-				i5 = P5_Index.objects.get(sequence=get_spreadsheet_value(headers, row, 'Index2'))
+				i7 = self.barcode_from_str(P7_Index, get_spreadsheet_value(headers, row, 'Index'))
+				i5 = self.barcode_from_str(P5_Index, get_spreadsheet_value(headers, row, 'Index2'))
 
 				p5_barcode_str = get_spreadsheet_value(headers, row, 'P5_barcode')
-				p5_barcode = self.barcode_from_str(p5_barcode_str)
+				p5_barcode = self.barcode_from_str(Barcode, p5_barcode_str)
 
 				p7_barcode_str = get_spreadsheet_value(headers, row, 'P7_barcode')
-				p7_barcode = self.barcode_from_str(p7_barcode_str)
+				p7_barcode = self.barcode_from_str(Barcode, p7_barcode_str)
 
 				capture_name =  get_spreadsheet_value(headers, row, 'Capture_Name')
 				capture = CaptureOrShotgunPlate.objects.get(name=capture_name)
@@ -86,8 +86,14 @@ class Command(BaseCommand):
 						udg = get_spreadsheet_value(headers, row, 'UDG_treatment').lower()
 						partial_values = ['half', 'partial', 'user']
 						library_udg = library.udg_treatment.lower()
-						if not((udg in partial_values and library_udg in partial_values) or udg == library_udg):
-							raise ValueError(f'udg mismatch {library.reich_lab_library_id} {library_udg} {udg}')
+
+						if library_udg == '':
+							if update:
+								if udg == 'user':
+									udg = udg.upper()
+								library.udg_treatment = udg
+						elif not((udg in partial_values and library_udg in partial_values) or udg == library_udg):
+							raise ValueError(f'udg mismatch {library.reich_lab_library_id} [{library_udg}] [{udg}]')
 
 					if 'Library_Style' in headers:
 						library_style = get_spreadsheet_value(headers, row, 'Library_Style')
@@ -118,13 +124,13 @@ class Command(BaseCommand):
 					# assign capture layout to sequencing run
 					sequencing_run.assign_capture_layout_element(layout_element)
 
-	def barcode_from_str(self, barcode_str):
+	def barcode_from_str(self, class_name, barcode_str):
 		if len(barcode_str) == 0 or barcode_str == '..':
 			barcode = None
 		else:
 			try:
-				barcode = Barcode.objects.get(sequence=barcode_str)
-			except Barcode.DoesNotExist as e:
+				barcode = class_name.objects.get(sequence=barcode_str.upper())
+			except class_name.DoesNotExist as e:
 				self.stderr.write(f'{barcode_str} not found')
 				raise e
 		return barcode

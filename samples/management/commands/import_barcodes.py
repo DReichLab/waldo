@@ -9,10 +9,14 @@ from samples.models import Barcode, P5_Index, P7_Index
 def add_barcode(label, sequence_string):
 	try:
 		barcode = Barcode.objects.get(sequence=sequence_string)
+		added = False
 	except Barcode.DoesNotExist:
 		barcode = Barcode.objects.create(label=label, sequence=sequence_string)
+		added = True
 
+	print(f'{sequence_string}\t{label}\t{added}')
 	barcode.full_clean()
+	return barcode
 
 def add_barcodes_file(barcodes_file):
 	with open(barcodes_file) as f:
@@ -21,7 +25,6 @@ def add_barcodes_file(barcodes_file):
 			sequence_set_string = fields[0]
 			label = fields[1]
 
-			print(label, sequence_set_string)
 			add_barcode(label, sequence_set_string)
 
 			sublabels = fields[2:]
@@ -29,7 +32,6 @@ def add_barcodes_file(barcodes_file):
 			if ':' in sequence_set_string:
 				individual_sequences = sequence_set_string.split(':')
 				for (sublabel, individual_sequence) in zip(sublabels, individual_sequences):
-					print(sublabel, individual_sequence)
 					add_barcode(sublabel, individual_sequence)
 
 class Command(BaseCommand):
