@@ -3,6 +3,17 @@ from django.conf import settings
 from django.db import transaction
 from samples.models import Barcode, P5_Index, P7_Index
 
+# Ensure a barcode with this sequence exists.
+# If there is an existing one, existing label is used and argument is ignored.
+# sequence string may be single barcode, or multiple ':'-delimited set
+def add_barcode(label, sequence_string):
+	try:
+		barcode = Barcode.objects.get(sequence=sequence_string)
+	except Barcode.DoesNotExist:
+		barcode = Barcode.objects.create(label=label, sequence=sequence_string)
+
+	barcode.full_clean()
+
 def add_barcodes_file(barcodes_file):
 	with open(barcodes_file) as f:
 		for line in f:
@@ -11,8 +22,7 @@ def add_barcodes_file(barcodes_file):
 			label = fields[1]
 
 			print(label, sequence_set_string)
-			barcode, created = Barcode.objects.get_or_create(label=label, sequence=sequence_set_string)
-			barcode.full_clean()
+			add_barcode(label, sequence_set_string)
 
 			sublabels = fields[2:]
 
@@ -20,8 +30,7 @@ def add_barcodes_file(barcodes_file):
 				individual_sequences = sequence_set_string.split(':')
 				for (sublabel, individual_sequence) in zip(sublabels, individual_sequences):
 					print(sublabel, individual_sequence)
-					barcode, created = Barcode.objects.get_or_create(label=sublabel, sequence=individual_sequence)
-					barcode.full_clean()
+					add_barcode(sublabel, individual_sequence)
 
 class Command(BaseCommand):
 	help = 'import barcodes from file'
