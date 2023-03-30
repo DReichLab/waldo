@@ -2274,7 +2274,7 @@ class SequencingRun(Timestamped):
 	date_pulldown_complete = models.DateField(null=True)
 	reich_lab_release_version = models.CharField(max_length=20, blank=True)
 	
-	indexed_libraries = models.ManyToManyField(CaptureLayout)
+	indexed_libraries = models.ManyToManyField(CaptureLayout, through='SequencedLibrary')
 	captures = models.ManyToManyField(CaptureOrShotgunPlate) # for marking whether captures have been sequenced
 	
 	def assign_captures(self, capture_ids):
@@ -2326,6 +2326,10 @@ class SequencingRun(Timestamped):
 		for indexed_library in indexed_libraries.all().order_by('column', 'row', 'library__sample__reich_lab_id'):
 			lines.append(indexed_library.to_spreadsheet_row())
 		return lines
+
+class SequencedLibrary(models.Model):
+	capturelayout = models.ForeignKey(CaptureLayout, on_delete=models.CASCADE)
+	sequencingrun = models.ForeignKey(SequencingRun, on_delete=models.CASCADE)
 	
 class RadiocarbonShipment(Timestamped):
 	ship_id = models.CharField(max_length=20, db_index=True, unique=True)
