@@ -7,8 +7,14 @@ CAPTURE_POSITIVE_LIBRARY_NAME_DS = 'capture_positive_ds'
 def create_library_for_capture_positive(apps, queryset):
 	Library = apps.get_model('samples', 'Library')
 	Barcode = apps.get_model('samples', 'Barcode')
-	b2_barcode = Barcode.objects.get(sequence='TTACAGT')
-	d2_barcode = Barcode.objects.get(sequence='CCGTGAC')
+	try:
+		b2_barcode = Barcode.objects.get(sequence='TTACAGT')
+	except Barcode.DoesNotExist:
+		b2_barcode = None
+	try:
+		d2_barcode = Barcode.objects.get(sequence='CCGTGAC')
+	except Barcode.DoesNotExist:
+		d2_barcode = None
 	
 	Library.objects.get_or_create(
 		reich_lab_library_id=CAPTURE_POSITIVE_LIBRARY_NAME_DS,
