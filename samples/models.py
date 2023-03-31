@@ -2283,16 +2283,20 @@ class SequencingRun(Timestamped):
 			if capture.id not in capture_ids:
 				self.captures.remove(capture)
 				for element_to_remove in CaptureLayout.objects.filter(capture_batch__id=capture.id):
-					self.indexed_libraries.remove(element_to_remove)
+					try:
+						sequenced_library = SequencedLibrary.objects.get(indexed_library=element_to_remove, sequencing_run=self)
+						sequenced_library.delete()
+					except SequencedLibrary.DoesNotExist:
+						pass
 		# add captures in list
 		for capture_id in capture_ids:
 			capture = CaptureOrShotgunPlate.objects.get(id=capture_id)
 			self.captures.add(capture)
 			for element_to_add in CaptureLayout.objects.filter(capture_batch=capture):
-				self.indexed_libraries.add(element_to_add)
+				self.assign_capture_layout_element(element_to_add)
 
 	def assign_capture_layout_element(self, capture_layout_element):
-		self.indexed_libraries.add(capture_layout_element)
+		SequencedLibrary.objects.get_or_create(indexed_library=element_to_add, sequencing_run=self)
 	
 	# only one library type is allowed
 	def check_library_type(self):
@@ -2301,7 +2305,8 @@ class SequencingRun(Timestamped):
 		
 	def check_index_barcode_combinations(self):
 		combinations = {}
-		for layout_element in self.indexed_libraries.all():
+		for sequenced_library in SequencedLibrary.objects.filter(sequencing_run=self):
+			layout_element = sequenced_library.indexed_library
 			try:
 				p5_index = layout_element.p5_index.sequence if layout_element.p5_index else layout_element.library.p5_index.sequence
 				p7_index = layout_element.p7_index.sequence if layout_element.p7_index else layout_element.library.p7_index.sequence
@@ -2318,18 +2323,62 @@ class SequencingRun(Timestamped):
 				print(f'error checking {layout_element} {library} {control}')
 				raise e
 	
-	# currently unused, implemented in view
-	def to_spreadsheet(self):
+	def to_spreadsheet(self, cumulative=False):
 		lines = []
-		header = CaptureLayout.spreadsheet_header(True)
+		header = SequencedLibrary.spreadsheet_header(cumulative)
 		lines.append(header)
-		for indexed_library in indexed_libraries.all().order_by('column', 'row', 'library__sample__reich_lab_id'):
-			lines.append(indexed_library.to_spreadsheet_row())
+		for sequenced_library in SequencedLibrary.objects.filter(sequencing_run=self, ).order_by('indexed_library__column', 'indexed_library__row', 'indexed_library__library__sample__reich_lab_id'):
+			lines.append(sequenced_library.to_spreadsheet_row(cumulative))
 		return lines
 
-class SequencedLibrary(models.Model):
-	capturelayout = models.ForeignKey(CaptureLayout, on_delete=models.CASCADE)
-	sequencingrun = models.ForeignKey(SequencingRun, on_delete=models.CASCADE)
+class SequencedLibrary(Timestamped):
+	indexed_library = models.ForeignKey(CaptureLayout, on_delete=models.CASCADE)
+	sequencing_run = models.ForeignKey(SequencingRun, on_delete=models.CASCADE)
+
+	do_not_use = models.TextField(blank=True)
+	notes = models.TextField(blank=True)
+
+	class Meta:
+		unique_together = ['indexed_library', 'sequencing_run']
+
+	@staticmethod
+	def spreadsheet_header(no_dashes=False, cumulative=False):
+		header = CaptureLayout.spreadsheet_header(False, cumulative)
+		# add new fields to the right or capture layout fields to preserve
+		header += [
+			'do_not_use',
+			'notes']
+
+		if no_dashes:
+			return [x.rstrip('-') for x in header]
+		else:
+			return header
+
+	def to_spreadsheet_row(self, cumulative=False):
+		if self.indexed_library.library:
+			library_id = self.indexed_library.library.reich_lab_library_id
+		elif self.indexed_library.control_type:
+			library_id = self.indexed_library.control_type.control_type
+		else:
+			raise NotImplementedError()
+
+		line = self.indexed_library.to_spreadsheet_row(cumulative)
+		line += [
+			self.do_not_use,
+			self.notes]
+		return line
+
+	def from_spreadsheet_row(self, headers, arg_array, user):
+		raise NotImplementedError()
+		reich_lab_library_id = get_spreadsheet_value(headers, arg_array, 'library_id-')
+		if self.indexed_library.library and self.indexed_library.library.reich_lab_library_id != reich_lab_library_id:
+			raise ValueError(f'reich_lab_library_id mismatch {self.indexed_library.library.reich_lab_library_id} {reich_lab_library_id}')
+		sequencing_run_name = get_spreadsheet_value(headers, arg_array, 'sequencing_run-')
+		if sequencing_run.name != sequencing_run_name:
+			raise ValueError(f'sequencing run name mismatch {sequencing_run.name} {sequencing_run_name}')
+		self.do_not_use = arg_array[headers.index('do_not_use')]
+		self.notes = arg_array[headers.index('notes')]
+		self.save(save_user=user)
 	
 class RadiocarbonShipment(Timestamped):
 	ship_id = models.CharField(max_length=20, db_index=True, unique=True)
