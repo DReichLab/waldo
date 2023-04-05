@@ -203,7 +203,7 @@ def generate_bam_list_with_sample_data(bams_by_index_barcode_key, sequencing_run
 					individual_id = match_object.group().replace('S', 'I')
 					#print(individual_id)
 				
-			library_output_fields = [key, ('DNU' if do_not_use else ''), library_id, individual_id, label, experiment, udg, reference, version, wetlab_notes]
+			library_output_fields = [key, library_id, individual_id, label, experiment, udg, reference, version, wetlab_notes]
 			
 			# each bam is a DemultiplexedSequencing object
 			for bam in bam_list:
@@ -214,7 +214,7 @@ def generate_bam_list_with_sample_data(bams_by_index_barcode_key, sequencing_run
 				library_output_fields.append(bam_date_string)
 				if reference != bam.reference:
 					raise ValueError('mismatch in references for component bams')
-			
+			library_output_fields.append('DNU' if do_not_use else '')
 			library_line = '\t'.join(library_output_fields)
 			output_lines.append(library_line)
 
