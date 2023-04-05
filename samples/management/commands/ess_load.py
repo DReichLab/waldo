@@ -13,6 +13,22 @@ def field_check(library, field_name, value, update):
 	elif existing_value != value:
 		raise ValueError(f'Library {field_name} mismatch for {library.reich_lab_library_id} [{existing_value}] [{value}]')
 
+# search through headers to find column header that looks like "do not use" and return it
+def do_not_use_label(headers):
+	for header in headers:
+		lowercase_header = header.lower()
+		if ('do' in lowercase_header and 'not' in lowercase_header and 'use' in lowercase_header) or ('dnu' in lowercase_header):
+			return header
+	return None
+
+# search through headers to find column header that looks like "Notes" and return it
+def notes_label(headers):
+	for header in headers:
+		lowercase_header = header.lower()
+		if 'notes' in header:
+			return header
+	return None
+
 class Command(BaseCommand):
 	help = 'Check/Load extended sample sheet (ESS) file from tab-delimited file into database. This fails if there is inconsistent (present but different) data. '
 	
@@ -20,6 +36,7 @@ class Command(BaseCommand):
 		parser.add_argument('ess')
 		parser.add_argument('sequencing_run')
 		parser.add_argument('-u', '--update', action='store_true', help='Fill in blank data with fields from ESS')
+		parser.add_argument('--allow_no_dnu', action='store_true', help='Allow no DNU field when processing a sample sheet')
 		
 	def handle(self, *args, **options):
 		ess_file = options['ess']
@@ -33,6 +50,11 @@ class Command(BaseCommand):
 
 		capture_positive = ControlType.objects.get(control_type=CAPTURE_POSITIVE)
 		pcr_negative = ControlType.objects.get(control_type=PCR_NEGATIVE)
+
+		dnu_header = do_not_use_label(headers)
+		if dnu_header is None and not options['allow_no_dnu']:
+			raise ValueError('Do_Not_Use -like header not found and required unless allow_no_dnu is set')
+		notes_header = notes_label(headers)
 
 		with transaction.atomic():
 			for row in data_rows:
@@ -122,7 +144,9 @@ class Command(BaseCommand):
 					layout_element.column = capture_column
 					layout_element.save()
 					# assign capture layout to sequencing run
-					sequencing_run.assign_capture_layout_element(layout_element)
+					dnu_value = get_spreadsheet_value(headers, row, dnu_header) if dnu_header else ''
+					notes_value = get_spreadsheet_value(headers, row, notes_header) if notes_header else ''
+					sequencing_run.assign_capture_layout_element(layout_element, dnu_value, notes_value)
 
 	def barcode_from_str(self, class_name, barcode_str):
 		if len(barcode_str) == 0 or barcode_str == '..':
