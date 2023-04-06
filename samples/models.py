@@ -2081,7 +2081,7 @@ class CaptureOrShotgunPlate(Timestamped):
 		sequencing_run, created = SequencingRun.objects.get_or_create(name=sequencing_run_name)
 		if not created:
 			raise ValueError(f'SequencingRun {sequencing_run_name} already exists')
-		sequencing_run.assign_captures([self.id])
+		sequencing_run.assign_captures([self.id], user)
 		return sequencing_run
 		
 	def add_library(self, library_str_id, row, column, user):
@@ -2277,7 +2277,7 @@ class SequencingRun(Timestamped):
 	indexed_libraries = models.ManyToManyField(CaptureLayout, through='SequencedLibrary')
 	captures = models.ManyToManyField(CaptureOrShotgunPlate) # for marking whether captures have been sequenced
 	
-	def assign_captures(self, capture_ids):
+	def assign_captures(self, capture_ids, user):
 		# remove captures that are not in list
 		for capture in self.captures.all():
 			if capture.id not in capture_ids:
@@ -2293,10 +2293,13 @@ class SequencingRun(Timestamped):
 			capture = CaptureOrShotgunPlate.objects.get(id=capture_id)
 			self.captures.add(capture)
 			for element_to_add in CaptureLayout.objects.filter(capture_batch=capture):
-				self.assign_capture_layout_element(element_to_add)
+				self.assign_capture_layout_element(element_to_add, user)
 
-	def assign_capture_layout_element(self, capture_layout_element):
-		SequencedLibrary.objects.get_or_create(indexed_library=element_to_add, sequencing_run=self)
+	def assign_capture_layout_element(self, capture_layout_element, user, dnu='', notes=''):
+		sequenced_library, created = SequencedLibrary.objects.get_or_create(indexed_library=capture_layout_element, sequencing_run=self)
+		sequenced_library.do_not_use = dnu
+		sequenced_library.notes = notes
+		sequenced_library.save(save_user=user)
 	
 	# only one library type is allowed
 	def check_library_type(self):

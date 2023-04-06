@@ -1399,7 +1399,7 @@ def sequencing_run_assign_captures(request):
 			if enable_assignments:
 				# these are the ticked checkboxes.
 				capture_or_shotgun_plate_ids = request.POST.getlist('sample_checkboxes[]')
-				sequencing_run.assign_captures(capture_or_shotgun_plate_ids)
+				sequencing_run.assign_captures(capture_or_shotgun_plate_ids, request.user)
 		
 	elif request.method == 'GET':
 		form = SequencingRunForm(user=request.user, instance=sequencing_run)
