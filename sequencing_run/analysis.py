@@ -348,12 +348,12 @@ def get_udg_treatments(sequencing_date_string, combined_sequencing_run_name, seq
 		target_file = "{0}/{1}_{2}/{3}".format(settings.RUN_FILES_DIRECTORY, sequencing_date_string, combined_sequencing_run_name, file_name)
 	else:
 		target_file = os.path.abspath("{}/{}".format(output_dir, file_name))
-	keys_queryset = CaptureLayout.objects.filter(sequencingrun__name__in=sequencing_run_names)
+	keys_queryset = SequencedLibrary.objects.filter(sequencing_run__name__in=sequencing_run_names)
 	with open(target_file, 'w') as f:
 		for key in keys_queryset:
-			library = key.library
+			library = key.indexed_library.library
 			if library is None:
-				library_id = key.control_type.control_type
+				library_id = key.indexed_library.control_type.control_type
 				if library_id == 'PCR Negative':
 					library_id = 'Contl.PCR'
 				elif library_id == 'Capture Positive':
