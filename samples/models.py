@@ -2352,19 +2352,38 @@ class SequencingRun(Timestamped):
 
 	# For the analysis pipeline, a sequencing run needs to know the barcodes and indices used to give hints for demultiplexing
 	def i5_indices(self):
-		indices = []
-		# Reich lab double-stranded indices
-		for index in P5_Index.objects.filter(reich_lab_default=True):
-			pass
-		# Reich lab single-stranded indices
+		indices = [index.sequence for index in P5_Index.objects.filter(reich_lab_default=True)]
+
 		# indices for this sequencing run
-		pass
+		for sequenced_library in SequencedLibrary.objects.filter(sequencing_run=self):
+			sequence = sequenced_library.indexed_library.p5_index.sequence
+			if sequence not in indices:
+				indices.append(sequence)
+		return indices
 
 	def i7_indices(self):
-		pass
+		indices = [index.sequence for index in P7_Index.objects.filter(reich_lab_default=True)]
+
+		# indices for this sequencing run
+		for sequenced_library in SequencedLibrary.objects.filter(sequencing_run=self):
+			sequence = sequenced_library.indexed_library.p7_index.sequence
+			if sequence not in indices:
+				indices.append(sequence)
+		return indices
 
 	def barcodes(self):
-		pass
+		barcode_sequences = [barcode.sequence for barcode in Barcode.objects.filter(reich_lab_default=True)]
+
+		for sequenced_library in SequencedLibrary.objects.filter(sequencing_run=self):
+			p5_barcode_sequence = get_value(sequenced_library.indexed_library, 'library', 'p5_barcode', 'sequence', default=None)
+			if p5_barcode_sequence is not None and p5_barcode_sequence not in barcode_sequences:
+				barcode_sequences.append(p5_barcode_sequence)
+
+			p7_barcode_sequence = get_value(sequenced_library.indexed_library, 'library', 'p7_barcode', 'sequence', default=None)
+			if p7_barcode_sequence is not None and p7_barcode_sequence not in barcode_sequences:
+				barcode_sequences.append(p7_barcode_sequence)
+		return barcode_sequences
+
 
 class SequencedLibrary(Timestamped):
 	indexed_library = models.ForeignKey(CaptureLayout, on_delete=models.CASCADE)
