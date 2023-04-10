@@ -1813,16 +1813,19 @@ def validate_barcode_dna_sequence(sequence):
 class Barcode(models.Model):
 	label = models.CharField(max_length=20, db_index=True)
 	sequence = models.CharField(max_length=31, db_index=True, unique=True, validators=[validate_barcode_dna_sequence])
+	reich_lab_default = models.BooleanField(default=False)
 	
 class P5_Index(models.Model):
 	label = models.CharField(max_length=10, db_index=True) # cannot be unique because double and single stranded are named with same integers
 	label2 = models.CharField(max_length=20, blank=True)
 	sequence = models.CharField(max_length=8, db_index=True, unique=True, validators=[validate_index_dna_sequence])
+	reich_lab_default = models.BooleanField(default=False)
 	
 class P7_Index(models.Model):
 	label = models.CharField(max_length=10, db_index=True) # cannot be unique because double and single stranded are named with same integers
 	label2 = models.CharField(max_length=20, blank=True)
 	sequence = models.CharField(max_length=8, db_index=True, unique=True, validators=[validate_index_dna_sequence])
+	reich_lab_default = models.BooleanField(default=False)
 	
 class Library(Timestamped):
 	sample = models.ForeignKey(Sample, on_delete=models.PROTECT, null=True)
@@ -2144,6 +2147,19 @@ class CaptureLayout(TimestampedWellPosition):
 					})
 		elif self.control_type is None:
 			raise ValidationError(_('Should have either library or control'))
+
+	# return the i5 (p5 index) either from capture, or from library if there
+	def _get_index(self, index_str):
+		if hasattr(self, index_str):
+			return getattr(self, index_str)
+		else:
+			return getattr(self.library, index_str)
+
+	def get_i5(self):
+		return self._get_index('p5_index')
+
+	def get_i7(self):
+		return self._get_index('p7_index')
 						
 	@staticmethod
 	def spreadsheet_header(no_dashes=False, cumulative=False):
@@ -2333,6 +2349,22 @@ class SequencingRun(Timestamped):
 		for sequenced_library in SequencedLibrary.objects.filter(sequencing_run=self, ).order_by('indexed_library__column', 'indexed_library__row', 'indexed_library__library__sample__reich_lab_id'):
 			lines.append(sequenced_library.to_spreadsheet_row(cumulative))
 		return lines
+
+	# For the analysis pipeline, a sequencing run needs to know the barcodes and indices used to give hints for demultiplexing
+	def i5_indices(self):
+		indices = []
+		# Reich lab double-stranded indices
+		for index in P5_Index.objects.filter(reich_lab_default=True):
+			pass
+		# Reich lab single-stranded indices
+		# indices for this sequencing run
+		pass
+
+	def i7_indices(self):
+		pass
+
+	def barcodes(self):
+		pass
 
 class SequencedLibrary(Timestamped):
 	indexed_library = models.ForeignKey(CaptureLayout, on_delete=models.CASCADE)
