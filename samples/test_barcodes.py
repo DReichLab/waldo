@@ -1,6 +1,6 @@
 from django.test import SimpleTestCase
 
-from .models import parse_sample_string, Barcode, Library
+from .models import parse_sample_string, Barcode, Library, reverse_complement
 from .layout import *
 
 class BarcodesLayoutTest(SimpleTestCase):
@@ -151,3 +151,21 @@ class LibraryBarcodeCheckTest(SimpleTestCase):
 		self.assertTrue(l1.barcodes_are_distinct(l2))
 		self.assertTrue(l2.barcodes_are_distinct(l1))
 		self.assertFalse(l2.barcodes_are_distinct(l2))
+
+class ReverseComplementTest(SimpleTestCase):
+	def test_bad_base(self):
+		sequence = 'B'
+		self.assertRaises(KeyError, reverse_complement, sequence)
+
+	def test_reverse_complement_self(self):
+		sequence = 'ACGT'
+		result = reverse_complement(sequence)
+		self.assertEquals(sequence, result)
+
+	def test_reverse_complement_index(self):
+		sequence = 'CCTGCGA'
+		expected = 'TCGCAGG'
+		result = reverse_complement(sequence)
+		self.assertEquals(expected, result)
+		twice = reverse_complement(result)
+		self.assertEquals(sequence, twice)

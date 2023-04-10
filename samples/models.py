@@ -1809,6 +1809,21 @@ def validate_barcode_dna_sequence(sequence):
 			validate_index_dna_sequence(sequence)
 		else:
 			raise ValidationError(_('%(sequence)s contains empty barcode'), params={'sequence': sequence})
+
+REVERSE_COMPLEMENT_MAP = {
+	'A': 'T',
+	'T': 'A',
+	'C': 'G',
+	'G': 'C'
+	}
+def reverse_complement(sequence):
+	result = ''
+	for char in sequence[::-1]:
+		result += REVERSE_COMPLEMENT_MAP[char]
+	if len(result) != len(sequence):
+		raise ValueError('Length mismatch')
+	return result
+
 	
 class Barcode(models.Model):
 	label = models.CharField(max_length=20, db_index=True)
