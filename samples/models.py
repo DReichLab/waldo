@@ -2371,8 +2371,8 @@ class SequencingRun(Timestamped):
 
 		# indices for this sequencing run
 		for sequenced_library in SequencedLibrary.objects.filter(sequencing_run=self):
-			sequence = sequenced_library.indexed_library.p5_index.sequence
-			if sequence not in indices:
+			sequence = get_value(sequenced_library.indexed_library, 'p5_index', 'sequence', default=None)
+			if sequence is not None and sequence not in indices:
 				indices.append(sequence)
 		return indices
 
@@ -2381,8 +2381,8 @@ class SequencingRun(Timestamped):
 
 		# indices for this sequencing run
 		for sequenced_library in SequencedLibrary.objects.filter(sequencing_run=self):
-			sequence = sequenced_library.indexed_library.p7_index.sequence
-			if sequence not in indices:
+			sequence = get_value(sequenced_library.indexed_library, 'p7_index', 'sequence', default=None)
+			if sequence is not None and sequence not in indices:
 				indices.append(sequence)
 		return indices
 
