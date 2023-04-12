@@ -15,7 +15,8 @@ def add_barcode(label, sequence_string):
 		added = True
 
 	print(f'{sequence_string}\t{label}\t{added}')
-	barcode.full_clean()
+	if added:
+		barcode.full_clean()
 	return barcode
 
 def add_barcodes_file(barcodes_file):
