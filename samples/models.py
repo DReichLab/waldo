@@ -38,6 +38,9 @@ def get_value(obj, *property_name_chain, default=''):
 		if current_object is None:
 			return default
 		current_object = getattr(current_object, property_name)
+		# resolve functions to objects to enable using methods in chain
+		if callable(current_object):
+			current_object = current_object()
 	return current_object
 		
 class Timestamped(models.Model):
@@ -1067,6 +1070,7 @@ def queue_spreadsheet_header():
 		'Priority',
 		'Expected Complexity',
 		'Sampling Tech',
+		'Sample Prep Lab',
 		'UDG',
 		'Shipment ID',
 		'Collaborator',
@@ -1089,14 +1093,20 @@ def queue_to_spreadsheet_row(queue_item, sample=None):
 	elif sample is None: # the default case where we have queue_item entry
 		sample = queue_item.sample
 	
-	name = sample.collaborator.name() if sample.collaborator else ''
-	preparation_method = queue_item.sample_prep_protocol.preparation_method if (queue_item and  queue_item.sample_prep_protocol) else ''
+	name = get_value(sample, 'collaborator', 'name')
+	preparation_method = get_value(queue_item, 'sample_prep_protocol', 'preparation_method')
 	country = sample.get_country()
+
+	if hasattr(queue_item, 'sample_prep_lab'):
+		prep_lab = get_value(queue_item, 'sample_prep_lab')
+	else: # bone samples are handled in house
+		prep_lab = REICH_LAB
 	
 	return [
 		get_value(queue_item, 'priority'),
 		get_value(sample.expected_complexity, 'description'),
 		preparation_method,
+		prep_lab,
 		get_value(queue_item, 'udg_treatment'),
 		get_value(sample.shipment, 'shipment_name'),
 		name,
