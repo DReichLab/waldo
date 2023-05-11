@@ -329,10 +329,9 @@ class LysateForm(UserModelForm):
 			try:
 				layout_element = layout_elements.get(lysate=self.instance)
 				self.initial['well_position'] = str(layout_element)
-			except Exception as e:
+			except Exception as e: # After old data has layout elements created, we can remove this
 				print(self.instance.lysate_id)
 				pass
-			
 			if self.instance.powder_sample:
 				if self.instance.powder_sample.sample:
 					self.initial['collaborator_id'] = self.instance.powder_sample.sample.skeletal_code
