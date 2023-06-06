@@ -12,11 +12,13 @@ from django.conf import settings
 from .models import DemultiplexedSequencing, Flowcell, SequencingAnalysisRun, ReleasedLibrary, PositiveControlLibrary
 import functools
 import operator
-from .ssh_command import save_file_with_contents, ssh_command, save_file_base
+from .ssh_command import ssh_command
+from .barcode_prep import save_file_with_contents
 from .library_id import LibraryID
 from .index_barcode_key import IndexBarcodeKey
 import re
 import os
+from pathlib import Path
 
 nuclear_references = ['hg19']
 mt_references = ['rsrs']
@@ -73,7 +75,7 @@ def output_bam_list(bams_by_index_barcode_key, sequencing_date_string, sequencin
 	bam_text_lists = ['\t'.join(map(lambda bam : bam.path, bam_list)) for bam_list in bam_lists]
 	output_text = '\n'.join(bam_text_lists)
 	
-	save_file_with_contents(output_text, sequencing_date_string, sequencing_run_name, extension, settings.COMMAND_HOST)
+	save_file_with_contents(output_text, sequencing_date_string, sequencing_run_name, extension)
 	#print(output_text)
 	
 # For the compound sequencing run names (e.g. Nuvian_Oolan), check if there is at least one overlapping name
@@ -94,7 +96,7 @@ def output_demultiplex_statistics(sequencing_date_string, sequencing_run_name, f
 	runs = SequencingAnalysisRun.objects.filter(functools.reduce(operator.or_, q_list)).distinct()
 	file_list = ["{0}/{1}_{2}/{1}_{2}.demultiplex_statistics".format(settings.DEMULTIPLEXED_PARENT_DIRECTORY, run.sequencing_date.strftime("%Y%m%d"), run.name) for run in runs if check_name_overlap(sequencing_run_name, run.name)]
 	output_text = '\n'.join(file_list)
-	save_file_with_contents(output_text, sequencing_date_string, sequencing_run_name, 'demultiplex_statistics_list', settings.COMMAND_HOST)
+	save_file_with_contents(output_text, sequencing_date_string, sequencing_run_name, 'demultiplex_statistics_list')
 	#print(output_text)
 
 # the library ID will not match the sample parameters field if a control library
@@ -119,10 +121,11 @@ def output_bam_list_with_sample_data(bams_by_index_barcode_key, sequencing_run_n
 	output_text = generate_bam_list_with_sample_data(bams_by_index_barcode_key, sequencing_run_name, extension, samples_parameters)
 	# make sure directory exists
 	directory = "{}/{}".format(settings.RUN_RELEASE_FILES_DIRECTORY, sequencing_run_name)
-	ssh_command(settings.COMMAND_HOST, "mkdir -p {}".format(directory), True, True)
+	Path(directory).mkdir(exist_ok=True)
 	filename = "{}.{}".format(sequencing_run_name, extension)
 	#print(sequencing_run_name, directory, filename)
-	save_file_base(output_text, directory, filename, settings.COMMAND_HOST)
+	with open(f'{directory}/{filename}', 'w') as f:
+		f.write(contents)
 
 # sequencing_run_name is a single name, not a combination
 def generate_bam_list_with_sample_data(bams_by_index_barcode_key, sequencing_run_name, extension, samples_parameters):
