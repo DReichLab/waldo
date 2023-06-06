@@ -11,12 +11,18 @@ class Command(BaseCommand):
 		parser.add_argument("--capture_name", required=True, help='Source for indexed libraries to add to sequencing run')
 		parser.add_argument("--sequencing_run", required=True, help='Sequencing run destination')
 		parser.add_argument('--user', required=True, help='Wetlab user first name')
+		parser.add_argument('--create', action='store_true', help='Create sequencing run object')
 		parser.add_argument('library_positions', help='File with two columns: library_id and position')
 		
 	def handle(self, *args, **options):
 		with transaction.atomic():
 			capture = CaptureOrShotgunPlate.objects.get(name=options['capture_name'])
-			sequencing_run = SequencingRun.objects.create(name=options['sequencing_run'])
+
+			if options['create']:
+				sequencing_run = SequencingRun.objects.create(name=options['sequencing_run'])
+			else:
+				sequencing_run = SequencingRun.objects.get(name=options['sequencing_run'])
+			
 			name = options['user']
 			wetlab_user = WetLabStaff.objects.get(first_name=name)
 			user = wetlab_user.login_user
