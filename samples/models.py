@@ -2370,7 +2370,7 @@ class SequencingRun(Timestamped):
 		lines = []
 		header = SequencedLibrary.spreadsheet_header(cumulative)
 		lines.append(header)
-		for sequenced_library in SequencedLibrary.objects.filter(sequencing_run=self, ).order_by('indexed_library__column', 'indexed_library__row', 'indexed_library__library__sample__reich_lab_id'):
+		for sequenced_library in SequencedLibrary.objects.filter(sequencing_run=self, ).order_by('indexed_library__column', 'indexed_library__row', 'indexed_library__capture_batch__protocol__name', 'indexed_library__library__sample__reich_lab_id', 'indexed_library__library__reich_lab_library_id'):
 			lines.append(sequenced_library.to_spreadsheet_row(cumulative))
 		return lines
 
