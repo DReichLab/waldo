@@ -5,7 +5,7 @@ from samples.models import CaptureOrShotgunPlate, SequencingRun, CaptureLayout, 
 import re
 
 class Command(BaseCommand):
-	help = ""
+	help = "Add user-specified indexed libraries to a sequencing run from a file input"
 	
 	def add_arguments(self, parser):
 		parser.add_argument("--capture_name", required=True, help='Source for indexed libraries to add to sequencing run')
