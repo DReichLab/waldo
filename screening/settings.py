@@ -132,6 +132,8 @@ COMMAND_HOST = "o2.hms.harvard.edu"
 TRANSFER_HOST = "transfer.rc.hms.harvard.edu"
 FILES_SERVER_DIRECTORY = "/files/Genetics/reichseq/reich/reichseq/reich"
 
+EMAILS_ANALYSIS_COMPLETE = ['reich_wetlab@hms.harvard.edu']
+
 GROUPS_DIRECTORY = "/n/groups/reich/matt/pipeline/"
 RUN_FILES_DIRECTORY = os.path.join(GROUPS_DIRECTORY, 'run')
 RUN_RELEASE_FILES_DIRECTORY = os.path.join(RUN_FILES_DIRECTORY, 'release')
