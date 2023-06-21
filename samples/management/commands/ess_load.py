@@ -13,19 +13,27 @@ def field_check(library, field_name, value, update):
 	elif existing_value != value:
 		raise ValueError(f'Library {field_name} mismatch for {library.reich_lab_library_id} [{existing_value}] [{value}]')
 
+# return whether all nontrivial fields are in string, case insensitive
+def all_in_string(string, fields_to_check):
+	to_query = string.lower()
+	if fields_to_check:
+		for field in fields_to_check:
+			if field.lower() not in to_query:
+				return False
+		return len(fields_to_check) > 0
+	return False
+
 # search through headers to find column header that looks like "do_not_use" and return it
-def do_not_use_label(headers):
+def do_not_use_label(headers, custom_search):
 	for header in headers:
-		lowercase_header = header.lower()
-		if ('do' in lowercase_header and 'not' in lowercase_header and 'use' in lowercase_header) or ('dnu' in lowercase_header):
+		if all_in_string(header, ['do', 'not', 'use']) or all_in_string(header, ['dnu']) or all_in_string(header, custom_search):
 			return header
 	return None
 
 # search through headers to find column header that looks like "wetlab_notes" and return it
-def notes_label(headers):
+def notes_label(headers, custom_search):
 	for header in headers:
-		lowercase_header = header.lower()
-		if 'wetlab' in lowercase_header and 'notes' in lowercase_header:
+		if all_in_string(header, ['wetlab', 'notes']) or all_in_string(header, custom_search):
 			return header
 	return None
 
@@ -37,6 +45,9 @@ class Command(BaseCommand):
 		parser.add_argument('sequencing_run', help='name of sequencing run in database for sample sheet')
 		parser.add_argument('-u', '--update', action='store_true', help='Fill in blank data with fields from ESS')
 		parser.add_argument('--allow_no_dnu', action='store_true', help='Allow no DNU field when processing a sample sheet')
+		parser.add_argument('--dnu', nargs='*', help='Series of strings to identify "Do Not Use" header')
+		parser.add_argument('--allow_no_notes', action='store_true', help='Allow no wetlab notes field when processing a sample sheet')
+		parser.add_argument('--notes', nargs='*', help='Series of strings to identify "wetlab_notes" header')
 		
 	def handle(self, *args, **options):
 		ess_file = options['ess']
@@ -51,10 +62,14 @@ class Command(BaseCommand):
 		capture_positive = ControlType.objects.get(control_type=CAPTURE_POSITIVE)
 		pcr_negative = ControlType.objects.get(control_type=PCR_NEGATIVE)
 
-		dnu_header = do_not_use_label(headers)
+		dnu_header = do_not_use_label(headers, options['dnu'])
 		if dnu_header is None and not options['allow_no_dnu']:
 			raise ValueError('Do_Not_Use -like header not found and required unless allow_no_dnu is set')
-		notes_header = notes_label(headers)
+		self.stderr.write(f'DNU header: {dnu_header}')
+		notes_header = notes_label(headers, options['notes'])
+		if notes_header is None and not options['allow_no_notes']:
+			raise ValueError('wetlab_notes -like header not found and required unless allow_no_notes is set')
+		self.stderr.write(f'notes header: {notes_header}')
 
 		with transaction.atomic():
 			for row in data_rows:
@@ -81,11 +96,14 @@ class Command(BaseCommand):
 							raise ValueError(f'Library type mismatch for {library_id}')
 						field_check(library, 'p5_index', i5, update)
 						field_check(library, 'p7_index', i7, update)
-
+						field_check(library, 'p5_barcode', None, False)
+						field_check(library, 'p7_barcode', None, False)
 					# double-stranded
 					elif len(i5.sequence) == 7 and len(i7.sequence) == 7:
 						if library.library_type != 'ds':
 							raise ValueError(f'Library type mismatch for {library_id}')
+						field_check(library, 'p5_index', None, False)
+						field_check(library, 'p7_index', None, False)
 						field_check(library, 'p5_barcode', p5_barcode, update)
 						field_check(library, 'p7_barcode', p7_barcode, update)
 					else:
@@ -133,16 +151,21 @@ class Command(BaseCommand):
 				if update:
 					# update capture layout
 					layout_element, created = CaptureLayout.objects.get_or_create(capture_batch=capture, library=library, control_type=control_type)
-					layout_element.p5_index = i5
-					layout_element.p7_index = i7
+
 					if library:
-						if library.library_type!='ds':
-							raise NotImplementedError()
 						library.save()
-					capture_row, capture_column = plate_location(location_from_indices(int(i5.label), int(i7.label)))
-					layout_element.row = capture_row
-					layout_element.column = capture_column
-					layout_element.save()
+
+					if len(i5.sequence) < 8 and len(i7.sequence) < 8:
+						# only set indices for double-stranded libraries
+						layout_element.p5_index = i5
+						layout_element.p7_index = i7
+						capture_row, capture_column = plate_location(location_from_indices(int(i5.label), int(i7.label)))
+						layout_element.row = capture_row
+						layout_element.column = capture_column
+						layout_element.save()
+					else: # for single-stranded, well location is not known from indices, we will try to add this later
+						pass
+
 					# assign capture layout to sequencing run
 					dnu_value = get_spreadsheet_value(headers, row, dnu_header) if dnu_header else ''
 					notes_value = get_spreadsheet_value(headers, row, notes_header) if notes_header else ''
