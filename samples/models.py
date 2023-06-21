@@ -2351,15 +2351,16 @@ class SequencingRun(Timestamped):
 		for sequenced_library in SequencedLibrary.objects.filter(sequencing_run=self):
 			layout_element = sequenced_library.indexed_library
 			try:
-				p5_index = layout_element.p5_index.sequence if layout_element.p5_index else layout_element.library.p5_index.sequence
-				p7_index = layout_element.p7_index.sequence if layout_element.p7_index else layout_element.library.p7_index.sequence
+				p5_index = get_value(layout_element, 'get_i5', 'sequence')
+				p7_index = get_value(layout_element, 'get_i7', 'sequence')
 				p5_barcode = get_value(layout_element, 'library', 'p5_barcode', 'sequence')
 				p7_barcode = get_value(layout_element, 'library', 'p7_barcode', 'sequence')
 				
 				s = f'{p5_index}_{p7_index}_{p5_barcode}_{p7_barcode}'
+				this_id = get_value(sequenced_library, 'indexed_library', 'library', 'reich_lab_library_id')
 				if s in combinations:
-					raise ValueError(f'duplicate index-barcode_combination {s}')
-				combinations[s] = True
+					raise ValueError(f'duplicate index-barcode_combination {s} {combinations[s]} {this_id}')
+				combinations[s] = f'{sequenced_library.id} {this_id}'
 			except Exception as e:
 				library = layout_element.library.reich_lab_library_id if  layout_element.library else ''
 				control = layout_element.control_type.control_type if layout_element.control_type else ''
