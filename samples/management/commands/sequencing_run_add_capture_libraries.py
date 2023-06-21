@@ -13,6 +13,7 @@ class Command(BaseCommand):
 		parser.add_argument('--user', required=True, help='Wetlab user first name')
 		parser.add_argument('--create', action='store_true', help='Create sequencing run object')
 		parser.add_argument('library_positions', help='File with two columns: library_id and position')
+		parser.add_argument('-i', '--ignore_positions', help='Load libraries from capture based on library id only. If library is not unique, command will fail.', action='store_true')
 		
 	def handle(self, *args, **options):
 		with transaction.atomic():
@@ -32,13 +33,20 @@ class Command(BaseCommand):
 				for line in f:
 					fields = re.split('\t|\n', line)
 					library_id = fields[0]
-					position = fields[1]
-					row = position[0]
-					column = int(position[1:])
-					if library_id == PCR_NEGATIVE:
-						layout_element = CaptureLayout.objects.get(capture_batch=capture, row=row, column=column, control_type__control_type=PCR_NEGATIVE)
+
+					if options['ignore_positions']:
+						if library_id == PCR_NEGATIVE:
+							layout_element = CaptureLayout.objects.get(capture_batch=capture, control_type__control_type=PCR_NEGATIVE)
+						else:
+							layout_element = CaptureLayout.objects.get(capture_batch=capture, library__reich_lab_library_id=library_id)
 					else:
-						layout_element = CaptureLayout.objects.get(capture_batch=capture, row=row, column=column, library__reich_lab_library_id=library_id)
+						position = fields[1]
+						row = position[0]
+						column = int(position[1:])
+						if library_id == PCR_NEGATIVE:
+							layout_element = CaptureLayout.objects.get(capture_batch=capture, row=row, column=column, control_type__control_type=PCR_NEGATIVE)
+						else:
+							layout_element = CaptureLayout.objects.get(capture_batch=capture, row=row, column=column, library__reich_lab_library_id=library_id)
 					# add this indexed library to sequencing run
 					sequenced_library = SequencedLibrary(indexed_library=layout_element, sequencing_run=sequencing_run)
 					sequenced_library.save(save_user=user)
