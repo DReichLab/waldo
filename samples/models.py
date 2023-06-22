@@ -1936,8 +1936,8 @@ class LibraryBatchLayout(TimestampedWellPosition):
 	def to_spreadsheet_row(self, cumulative=False):
 		values = [ str(self),
 			get_value(self.library, 'reich_lab_library_id'),
-			get_value(self.library.p5_barcode, 'label'),
-			get_value(self.library.p7_barcode, 'label'),
+			get_value(self.library, 'p5_barcode', 'label'),
+			get_value(self.library, 'p7_barcode', 'label'),
 			get_value(self.library, 'nanodrop'),
 			get_value(self.library, 'qpcr'),
 			get_value(self.library, 'plate_id'),
