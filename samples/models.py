@@ -1302,7 +1302,7 @@ class ExtractionBatch(Timestamped):
 								rotated=self.rotated
 								)
 			library_batch.save(save_user=user)
-			
+
 			# layout for library batch with same layout
 			for layout_element in layout:
 				# create corresponding library batch layout element
@@ -1567,7 +1567,8 @@ def create_library_from_extract(layout_element, user):
 			next_library_number = existing_libraries + 1
 			reich_lab_library_id = f'{extract.extract_id}.L{next_library_number}'
 		elif layout_element.control_type.control_type == LIBRARY_POSITIVE:
-			next_library_number = 1 # if there is more than one library positive, we need to check existing
+			num_existing = LibraryBatchLayout.objects.filter(library_batch=library_batch, library__isnull=False, control_type__control_type=LIBRARY_POSITIVE).count()
+			next_library_number = num_existing + 1
 			reich_lab_library_id = f'LP{library_batch.id}.L{next_library_number}'
 		# control starting from this step (Mob)
 		elif layout_element.control_type.control_type == LIBRARY_NEGATIVE:
