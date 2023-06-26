@@ -4,6 +4,7 @@ PLATE_ROWS = 'ABCDEFGH'
 PLATE_WELL_COUNT = 96
 PLATE_WELL_COUNT_HALF = PLATE_WELL_COUNT // 2
 ROW_LENGTH = PLATE_WELL_COUNT // len(PLATE_ROWS)
+COLUMN_LENGTH = PLATE_WELL_COUNT // ROW_LENGTH
 		
 def validate_row_letter(letter):
 	if len(letter) != 1:
@@ -193,24 +194,32 @@ def indices_for_location(int_position, p5_index_starting):
 	p7 = row_num * ROW_LENGTH + column
 	return p5, p7
 
-# double-stranded only
-# i5 and i7 are integers
-# i5 is expected to be [1,48]
-# i7 is expected to be [1,96]
 def location_from_indices(i5_str, i7_str):
-	i5 = int(i5_str)
-	i7 = int(i7_str)
+	# single-stranded
+	# i5 is expected to be [1,96]ss
+	if 'ss' in str(i5_str):
+		column_first_position = int(i5_str.replace('ss','')) - 1 # change to [0, 95]
+		column = (column_first_position // COLUMN_LENGTH) + 1
+		row_letter = PLATE_ROWS[column_first_position % COLUMN_LENGTH]
+		return reverse_plate_location_coordinate(row_letter, column)
+	# double-stranded
+	# i5 and i7 are integers
+	# i5 is expected to be [1,48]
+	# i7 is expected to be [1,96]
+	else:
+		i5 = int(i5_str)
+		i7 = int(i7_str)
 
-	is_top = i5 % 2 == 1
-	row_first_position = i7 - 1 # change to [0, 95]
-	check_plate_domain(row_first_position)
-	row = row_first_position // ROW_LENGTH
-	column = (row_first_position % ROW_LENGTH) + 1 # to [1,12]
-	# check agreement between indices
-	if is_top and row_first_position >= PLATE_WELL_COUNT_HALF:
-		raise ValueError(f'Unexpected index pair {i5} {i7}')
-	row_letter = PLATE_ROWS[row]
-	return reverse_plate_location_coordinate(row_letter, column)
+		is_top = i5 % 2 == 1
+		row_first_position = i7 - 1 # change to [0, 95]
+		check_plate_domain(row_first_position)
+		row = row_first_position // ROW_LENGTH
+		column = (row_first_position % ROW_LENGTH) + 1 # to [1,12]
+		# check agreement between indices
+		if is_top and row_first_position >= PLATE_WELL_COUNT_HALF:
+			raise ValueError(f'Unexpected index pair {i5} {i7}')
+		row_letter = PLATE_ROWS[row]
+		return reverse_plate_location_coordinate(row_letter, column)
 
 def rotate_plate(layout_element_queryset, user):
 	for layout_element in layout_element_queryset:

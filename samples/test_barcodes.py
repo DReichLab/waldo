@@ -114,6 +114,27 @@ class BarcodesLayoutTest(SimpleTestCase):
 				i5, i7 = indices_for_location(position, offset)
 				self.assertEquals(position, location_from_indices(i5, i7))
 
+	def test_single_position_indices_single_stranded_A1(self):
+		expected_row = 'A'
+		expected_column = 1
+		row, column = plate_location(location_from_indices('1ss', ''))
+		self.assertEquals(expected_row, row)
+		self.assertEquals(expected_column, column)
+
+	def test_single_position_indices_single_stranded_H12(self):
+		expected_row = 'H'
+		expected_column = 12
+		row, column = plate_location(location_from_indices('96ss', ''))
+		self.assertEquals(expected_row, row)
+		self.assertEquals(expected_column, column)
+
+	def test_single_position_indices_single_stranded_loop(self):
+		for location in range(0, PLATE_WELL_COUNT):
+			expected_row, expected_column = plate_location(location)
+		row, column = plate_location(location_from_indices(f'{location+1}ss', ''))
+		self.assertEquals(expected_row, row)
+		self.assertEquals(expected_column, column)
+
 # sequences do not actually matter because barcodes are checked by reference and sequences are enforced unique
 class LibraryBarcodeCheckTest(SimpleTestCase):
 	def test_library_barcode_match(self):
