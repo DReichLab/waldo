@@ -1,9 +1,9 @@
 from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
-from samples.models import LibraryBatch, Library, LIBRARY_POSITIVE, LIBRARY_NEGATIVE, LibraryBatchLayout, P5_Index, P7_Index, WetLabStaff, REICH_LAB, LibraryProtocol
+from samples.models import ExtractionBatch, LibraryBatch, Library, LIBRARY_POSITIVE, LIBRARY_NEGATIVE, LibraryBatchLayout, P5_Index, P7_Index, WetLabStaff, REICH_LAB, LibraryProtocol
 
-# This should be in create_library_from_extract
-def ss(layout_element, i5, i7, user):
+# TODO This should be in create_library_from_extract
+def ss(layout_element, i5, i7, user, ul_extract_used):
 	library_batch = layout_element.library_batch
 	extract = layout_element.extract
 	sample = extract.sample if extract else None
@@ -36,7 +36,7 @@ def ss(layout_element, i5, i7, user):
 						udg_treatment = 'partial',#library_batch.protocol.udg_treatment,
 						library_type = library_batch.protocol.library_type,
 						library_prep_lab = REICH_LAB,
-						ul_extract_used = library_batch.protocol.volume_extract_used_standard,
+						ul_extract_used = ul_extract_used,
 						p5_index = i5,
 						p7_index = i7
 					)
@@ -46,25 +46,37 @@ def ss(layout_element, i5, i7, user):
 	layout_element.save(save_user=user)
 
 class Command(BaseCommand):
-	help = 'Change '
+	help = 'Populate a library batch with libraries from existing extracts.'
 	
 	def add_arguments(self, parser):
 		parser.add_argument("library_batch_name")
 		parser.add_argument("layout_file")
 		parser.add_argument('user', help='Wetlab user first name')
 		parser.add_argument('-p', '--protocol', help='library protocol', default='10.1.ssDNA_library_prep_Bravo_v4.0')
+		parser.add_argument('-s', '--source_extract_batch', help='Create new library batch from this extract batch.')
+		parser.add_argument('-e', '--extract_ul', help='Use this many ul of extract for each library.', type=float)
 
 	def handle(self, *args, **options):
-		library_batch = LibraryBatch.objects.get(name=options['library_batch_name'])
-
 		name = options['user']
 		wetlab_user = WetLabStaff.objects.get(first_name=name)
 		user = wetlab_user.login_user
+
 		with transaction.atomic():
+			if options['source_extract_batch']:
+				extract_batch = ExtractionBatch.objects.get(batch_name=options['source_extract_batch'])
+				library_batch = extract_batch.create_library_batch(options['library_batch_name'], user)
+			else:
+				library_batch = LibraryBatch.objects.get(name=options['library_batch_name'])
+
 			library_batch.protocol = LibraryProtocol.objects.get(name=options['protocol'])
 			library_batch.technician_fk=wetlab_user
 			library_batch.technician=wetlab_user.initials()
 			library_batch.save()
+
+			if options['extract_ul']:
+				ul_extract_used = options['extract_ul']
+			else:
+				ul_extract_used = library_batch.protocol.volume_extract_used_standard
 
 			with open(options['layout_file']) as f:
 				for line in f:
@@ -78,6 +90,6 @@ class Command(BaseCommand):
 					except LibraryBatchLayout.DoesNotExist as e:
 						self.stderr.write(f'{row} {column}')
 						raise e
-					ss(layout_element, i5, i7, user)
+					ss(layout_element, i5, i7, user, ul_extract_used)
 			library_batch.status = LibraryBatch.CLOSED
 			library_batch.save()
