@@ -160,11 +160,14 @@ class Command(BaseCommand):
 						layout_element.p5_index = i5
 						layout_element.p7_index = i7
 						capture_row, capture_column = plate_location(location_from_indices(int(i5.label), int(i7.label)))
-						layout_element.row = capture_row
-						layout_element.column = capture_column
-						layout_element.save()
-					else: # for single-stranded, well location is not known from indices, we will try to add this later
-						pass
+					elif len(i5.sequence) == 8 and len(i7.sequence) == 8:
+						# single stranded
+						capture_row, capture_column = plate_location(location_from_indices(i5.label, i7_label))
+					else:
+						raise NotImplementedError(f'Unexpected index lengths {len(i5.sequence)}, {len(i7.sequence)}')
+					layout_element.row = capture_row
+					layout_element.column = capture_column
+					layout_element.save()
 
 					# assign capture layout to sequencing run
 					dnu_value = get_spreadsheet_value(headers, row, dnu_header) if dnu_header else ''
