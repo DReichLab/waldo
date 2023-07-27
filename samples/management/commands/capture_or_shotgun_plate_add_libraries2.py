@@ -1,6 +1,6 @@
 from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
-from samples.models import CaptureOrShotgunPlate, WetLabStaff, CaptureLayout, CAPTURE_POSITIVE, P5_Index, P7_Index, get_value
+from samples.models import CaptureOrShotgunPlate, WetLabStaff, CaptureLayout, CAPTURE_POSITIVE, CAPTURE_POSITIVE_LIBRARY_NAME_DS, P5_Index, P7_Index, get_value
 
 import re
 
@@ -37,15 +37,16 @@ class Command(BaseCommand):
 					column = int(position[1:])
 
 					try:
-						existing_layouts = CaptureLayout.objects.filter(library__reich_lab_library_id=library_id)
 						p5_index = None
 						p7_index = None
-						if library_id == CAPTURE_POSITIVE:
+						# all capture positives are currently double-stranded
+						if library_id == CAPTURE_POSITIVE or library_id == CAPTURE_POSITIVE_LIBRARY_NAME_DS:
 							if options['i5']:
 								p5_index = P5_Index.objects.get(label=options['i5'])
 							if options['i7']:
 								p7_index = P7_Index.objects.get(label=options['i7'])
 						else:
+							existing_layouts = CaptureLayout.objects.filter(library__reich_lab_library_id=library_id)
 							for existing_layout in existing_layouts:
 								p5_label = get_value(existing_layout, 'p5_index', 'label')
 								p7_label = get_value(existing_layout, 'p7_index', 'label')

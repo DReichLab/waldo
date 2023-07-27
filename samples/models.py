@@ -2118,9 +2118,9 @@ class CaptureOrShotgunPlate(Timestamped):
 		library_to_add = None
 		if library_str_id == PCR_NEGATIVE:
 			control_type = ControlType.objects.get(control_type=library_str_id)
-		elif library_str_id == CAPTURE_POSITIVE:
+		elif library_str_id == CAPTURE_POSITIVE or library_str_id == CAPTURE_POSITIVE_LIBRARY_NAME_DS:
 			# TODO this assumes double-stranded
-			control_type = ControlType.objects.get(control_type=library_str_id)
+			control_type = ControlType.objects.get(control_type=CAPTURE_POSITIVE)
 			library_to_add = Library.objects.get(reich_lab_library_id=CAPTURE_POSITIVE_LIBRARY_NAME_DS)
 		else:
 			library_to_add = Library.objects.get(reich_lab_library_id=library_str_id)
