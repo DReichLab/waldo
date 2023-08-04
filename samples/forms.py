@@ -618,6 +618,9 @@ class CaptureBatchForm(UserModelForm):
 		super().__init__(*args, **kwargs)
 		for option in ['date', 'robot', 'hyb_wash_temps', 'reagent_batch']:
 			self.fields[option].required = False
+		# single-stranded plates already have indices from library creation
+		if self.instance:
+			self.fields['p5_index_start'].required = self.instance.requires_p5_index_start()
 		# ensure current values are allowed form values
 		if self.instance.protocol:
 			self.fields['protocol'].queryset = CaptureProtocol.objects.filter(Q(active=True) | Q(id=self.instance.protocol.id) ).order_by('-start_date')

@@ -2144,6 +2144,13 @@ class CaptureOrShotgunPlate(Timestamped):
 			position = TimestampedWellPosition()
 			position.set_position(position_str)
 			self.add_library(library_str, position.row, position.column, user)
+
+	# single-stranded libraries already have indices assigned
+	def requires_p5_index_start(self):
+		for layout_element in self.layout_elements():
+			if layout_element.control_type == None and get_value(layout_element.library.library_batch.protocol.library_type == 'ds'):
+				return True
+		return False # single stranded or empty
 	
 # library -> indices added
 class CaptureLayout(TimestampedWellPosition):
