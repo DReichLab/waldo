@@ -2188,11 +2188,18 @@ class CaptureLayout(TimestampedWellPosition):
 		else:
 			return getattr(self.library, index_str)
 
+	# return the index associated with this well, whether from the library itself or the layout
 	def get_i5(self):
-		return self._get_index('p5_index')
+		layout_index = self._get_index('p5_index')
+		if layout_index:
+			return layout_index
+		return get_value(self.library, 'p5_index')
 
 	def get_i7(self):
-		return self._get_index('p7_index')
+		layout_index = self._get_index('p7_index')
+		if layout_index:
+			return layout_index
+		return get_value(self.library, 'p7_index')
 						
 	@staticmethod
 	def spreadsheet_header(no_dashes=False, cumulative=False):
