@@ -1295,7 +1295,7 @@ def capture_batch_spreadsheet(request):
 	writer = csv.writer(response, delimiter='\t')
 	# header
 	writer.writerow(CaptureLayout.spreadsheet_header(False, cumulative))
-	indexed_libraries = CaptureLayout.objects.filter(capture_batch=capture_batch).order_by('column', 'row', 'library__sample__reich_lab_id')
+	indexed_libraries = CaptureLayout.objects.filter(capture_batch=capture_batch).order_by('column', 'row', 'library__sample__reich_lab_id', 'library__extract__lysate__reich_lab_lysate_number', 'library__extract__reich_lab_extract_number', 'library__reich_lab_library_number')
 	for indexed_library in indexed_libraries:
 		writer.writerow(indexed_library.to_spreadsheet_row(cumulative))
 	return response
