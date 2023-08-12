@@ -310,8 +310,8 @@ def adna2_index_barcode_keys_used(sequencing_date_string, combined_sequencing_ru
 		for sequenced_library in sequenced_libraries:
 			key = sequenced_library.indexed_library
 			# Try to grab indices and barcodes, make blank if not in database
-			p5_index = get_value(key, 'p5_index', 'sequence')
-			p7_index = get_value(key, 'p7_index', 'sequence')
+			p5_index = get_value(key, 'get_i5', 'sequence')
+			p7_index = get_value(key, 'get_i7', 'sequence')
 			p5_barcode = get_value(key, 'library', 'p5_barcode', 'sequence')
 			p7_barcode = get_value(key, 'library', 'p7_barcode', 'sequence')
 			
