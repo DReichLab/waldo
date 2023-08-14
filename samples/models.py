@@ -2181,12 +2181,13 @@ class CaptureLayout(TimestampedWellPosition):
 		elif self.control_type is None:
 			raise ValidationError(_('Should have either library or control'))
 
-	# return the i5 (p5 index) either from capture, or from library if there
+	# return the index either from capture, or from library if there
 	def _get_index(self, index_str):
 		if hasattr(self, index_str):
-			return getattr(self, index_str)
-		else:
-			return getattr(self.library, index_str)
+			index = getattr(self, index_str)
+			if index is not None:
+				return index
+		return getattr(self.library, index_str)
 
 	def get_i5(self):
 		return self._get_index('p5_index')
