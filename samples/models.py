@@ -2187,7 +2187,9 @@ class CaptureLayout(TimestampedWellPosition):
 			index = getattr(self, index_str)
 			if index is not None:
 				return index
-		return getattr(self.library, index_str)
+		if hasattr(self.library, index_str):
+			return getattr(self.library, index_str)
+		return None
 
 	def get_i5(self):
 		return self._get_index('p5_index')
