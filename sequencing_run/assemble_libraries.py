@@ -125,7 +125,7 @@ def output_bam_list_with_sample_data(bams_by_index_barcode_key, sequencing_run_n
 	filename = "{}.{}".format(sequencing_run_name, extension)
 	#print(sequencing_run_name, directory, filename)
 	with open(f'{directory}/{filename}', 'w') as f:
-		f.write(contents)
+		f.write(output_text)
 
 # sequencing_run_name is a single name, not a combination
 def generate_bam_list_with_sample_data(bams_by_index_barcode_key, sequencing_run_name, extension, samples_parameters):
