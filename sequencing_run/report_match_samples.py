@@ -47,6 +47,7 @@ def readSampleSheet_array(sample_sheet_contents_array, adna2=True):
 	
 	header_line = sample_sheet_contents_array[0]
 	headers = re.split('\t|\n', header_line)
+	headers = [header.rstrip('-') for header in headers] # WALDO presents fields that are not changeable with a trailing - character. Strip this out for matching field names.
 	lowercase_headers = [header.lower() for header in headers]
 
 	if adna2:
