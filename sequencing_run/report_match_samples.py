@@ -85,6 +85,8 @@ def readSampleSheet_array(sample_sheet_contents_array, adna2=True):
 		do_not_use = fields[do_not_use_index] if do_not_use_index >= 0 else ''
 		wetlab_notes = fields[wetlab_notes_index] if wetlab_notes_index >= 0 else ''
 		key = '{}_{}_{}_{}'.format(fields[i5_index], fields[i7_index], fields[p5_barcode], fields[p7_barcode])
+		if fields[libraryID_index][-2:] == "_d":
+			key = '{}_d'.format(key)
 		udg = fields[udg_index].lower()
 		if udg not in ALLOWED_UDG_VALUES:
 			raise ValueError('Unhandled UDG value {}'.format(udg))
