@@ -33,12 +33,12 @@ class SampleInfo:
 # lookup is based on column headers
 def readSampleSheet(sample_sheet_filename, adna2=True):	
 	try:
-		return readSampleSheet_encoding(sample_sheet_filename, 'utf-8', adna2)
+		return readSampleSheet_encoding(sample_sheet_filename, '', adna2) # universal newline interpreation for utf-8 encoding of ESS
 	except:
-		return readSampleSheet_encoding(sample_sheet_filename, 'windows-1252', adna2)
+		return readSampleSheet_encoding(sample_sheet_filename, '\r\n', adna2) # \r\n newlines for windows-1252 file encoding
 
-def readSampleSheet_encoding(sample_sheet_filename, encoding, adna2):
-	with open(sample_sheet_filename, encoding=encoding, errors='surrogateescape') as f:
+def readSampleSheet_encoding(sample_sheet_filename, newline, adna2):
+	with open(sample_sheet_filename, newline=newline, errors='surrogateescape') as f:
 		sample_sheet_contents_array = f.readlines()
 		return readSampleSheet_array(sample_sheet_contents_array, adna2)
 
@@ -75,9 +75,11 @@ def readSampleSheet_array(sample_sheet_contents_array, adna2=True):
 		do_not_use_index = -1
 	try:
 		wetlab_notes_index = lowercase_headers.index('wetlab_notes')
+	except ValueError:
+		wetlab_notes_index = lowercase_headers.index('notes') # In newer ESS, column is labeled "notes"
 	except:
 		wetlab_notes_index = -1
-	
+		
 	data_lines = sample_sheet_contents_array[1:]
 	duplicates = [] # if there is a problem with duplicate entries, find all of them before failing
 	for line in data_lines:
