@@ -21,8 +21,6 @@ import os
 from glob import glob
 from pathlib import Path
 
-RESULTS_DIR = '/n/groups/reich/matt/pipeline/results'
-
 nuclear_references = ['hg19']
 mt_references = ['rsrs']
 
@@ -248,7 +246,7 @@ def find_index_barcode_match(index_barcode_key, samples_parameters):
 # this assembles only libraries on a sample sheet
 def prepare_to_assemble_release_libraries(sequencing_run_name, samples_parameters, split_lanes=False):
 	if split_lanes:
-		seq_runs_list = [x.split('/')[-1].replace(".report","").split('_',1)[1] for x in glob(f'{RESULTS_DIR}/*{sequencing_run_name.replace("_SQ","")}*/*.report')]
+		seq_runs_list = [x.split('/')[-1].replace(".report","").split('_',1)[1] for x in glob(f'{settings.RESULTS_PARENT_DIRECTORY}/*{sequencing_run_name.replace("_SQ","")}*/*.report')]
 	else:
 		seq_runs_list = [sequencing_run_name]
 	flowcell_text_ids = flowcells_for_names(seq_runs_list)

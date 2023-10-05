@@ -335,8 +335,8 @@ def adna2_index_barcode_keys_used(sequencing_date_string, combined_sequencing_ru
 			if 'Twist' in experiment:
 					experiment = 'Twist1.4M'
 			elif '1240k' in experiment:
-					experiment = '1240K+'
-			
+					experiment = '1240K+'  # TODO Don't lie about whether there is MT
+
 			# Format and write index_barcode_key line to the file
 			f.write("{}_{}_{}_{}\t{}\t{}\t{}\n".format(p5_index, p7_index, p5_barcode, p7_barcode, library, capture_batch, experiment))
 	pass
