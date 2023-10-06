@@ -33,7 +33,7 @@ class SampleInfo:
 # lookup is based on column headers
 def readSampleSheet(sample_sheet_filename, adna2=True):	
 	try:
-		return readSampleSheet_encoding(sample_sheet_filename, '', adna2) # universal newline interpreation for utf-8 encoding of ESS
+		return readSampleSheet_encoding(sample_sheet_filename, None, adna2) # universal newline interpretation for utf-8 encoding of ESS
 	except:
 		return readSampleSheet_encoding(sample_sheet_filename, '\r\n', adna2) # \r\n newlines for windows-1252 file encoding
 
