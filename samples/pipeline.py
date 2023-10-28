@@ -278,7 +278,7 @@ def test_results_exist(pulldown_stdout, sequencing_run_name):
 # mean depth (coverage)
 # coverage (number of SNPs hit)
 # Pulldown stdout does not contain _d identifiers. We rewrite these when merging.
-def load_pulldown_stdout(pulldown_stdout, release_label, sequencing_run_name, damage_restricted):
+def load_pulldown_stdout(pulldown_stdout, release_label, sequencing_run_name, damage_restricted, split_lane_map = None):
 	with open(pulldown_stdout) as f:
 		for line in f:
 			if 'mean depth' in line:
@@ -292,6 +292,8 @@ def load_pulldown_stdout(pulldown_stdout, release_label, sequencing_run_name, da
 					snps_hit = int(fields[6])
 					
 					try:
+						if split_lane_map:
+							sequencing_run_name = split_lane_map[library_id]
 						results = Results.objects.get(library_id__exact=library_id, nuclear_seq_run__name__iexact=sequencing_run_name)
 					except Results.DoesNotExist as error:
 						print('No Results object for {}' .format(library_id), file=sys.stderr)
@@ -320,7 +322,7 @@ def load_pulldown_stdout(pulldown_stdout, release_label, sequencing_run_name, da
 # load bam location and read groups from pulldown dblist file
 # dblist does not contain _d damage restricted library ids
 # fields saved from the dblist are independent of damage restriction
-def load_pulldown_dblist(dblist, release_label, sequencing_run_name):
+def load_pulldown_dblist(dblist, release_label, sequencing_run_name, split_lane_map = None):
 	with open(dblist) as f:
 		for line in f:
 			fields = line.split()
@@ -333,6 +335,8 @@ def load_pulldown_dblist(dblist, release_label, sequencing_run_name):
 			if 'Contl' in library_id: # TODO
 				print('skipping {}'.format(library_id))
 			else:
+				if split_lane_map:
+					sequencing_run_name = split_lane_map[library_id]
 				results = Results.objects.get(library_id__exact=library_id, nuclear_seq_run__name__iexact=sequencing_run_name)
 			
 				analysis_files, analysis_files_created = AnalysisFiles.objects.get_or_create(parent = results)
