@@ -192,6 +192,7 @@ def powder_batches(request):
 					num_lysate_batch_layouts = Count('lysatebatchlayout', distinct=True),
 					low_complexity_count=Count('sampleprepqueue', distinct=True, filter=Q(sampleprepqueue__sample__expected_complexity__description__iexact='low')) + Count('powderprepqueue', distinct=True, filter=Q(powderprepqueue__sample__expected_complexity__description__iexact='low')),
 					high_complexity_count=Count('sampleprepqueue', distinct=True, filter=Q(sampleprepqueue__sample__expected_complexity__description__iexact='high')) + Count('powderprepqueue', distinct=True, filter=Q(powderprepqueue__sample__expected_complexity__description__iexact='high')),
+					priority_count = Count('sampleprepqueue', distinct=True, filter=Q(sampleprepqueue__priority=0)) + Count('powderprepqueue', distinct=True, filter=Q(powderprepqueue__priority=0)),
 					).order_by('status', '-id')
 	return render(request, 'samples/powder_batches.html', {'powder_batches' : batches, 'form' : form, 'plated_count': perform_plated_count, } )
 
@@ -414,19 +415,20 @@ def lysate_batch_assign_powder(request):
 			
 			lysate_batch.restrict_layout_elements(layout_ids, request.user)
 			lysate_batch.assign_powder_samples(layout_ids, request.user)
+			LYSATES_CREATED = [lysate_batch.IN_PROGRESS, lysate_batch.CLOSED]
 			if 'assign_and_layout' in request.POST:
 				print(f'lysate batch layout {lysate_batch_name}')
 				lysate_batch.assign_layout(request.user)
-				if lysate_batch.status == lysate_batch.LYSATES_CREATED:
+				if lysate_batch.status in LYSATES_CREATED:
 					lysate_batch.create_lysates(request.user)
 				return redirect(f'{reverse("lysate_batch_plate_layout")}?lysate_batch_name={lysate_batch_name}')
 			elif 'assign_and_fill_empty_with_library_controls' in request.POST:
 				print(f'lysate batch layout {lysate_batch_name}')
 				lysate_batch.fill_empty_wells_with_library_negatives(request.user)
-				if lysate_batch.status == lysate_batch.LYSATES_CREATED:
+				if lysate_batch.status in LYSATES_CREATED:
 					lysate_batch.create_lysates(request.user)
 				return redirect(f'{reverse("lysate_batch_plate_layout")}?lysate_batch_name={lysate_batch_name}')
-			elif lysate_batch.status == lysate_batch.LYSATES_CREATED:
+			elif lysate_batch.status in LYSATES_CREATED:
 				lysate_batch.create_lysates(request.user)
 				return redirect(f'{reverse("lysates_in_batch")}?lysate_batch_name={lysate_batch_name}')
 			lysate_batch_form = LysateBatchForm(instance=lysate_batch, user=request.user)
@@ -488,7 +490,7 @@ def lysates_in_batch(request):
 		lysate_batch_form = LysateBatchForm(instance=lysate_batch, user=request.user)
 		lysates_formset = LysateFormset(queryset=Lysate.objects.filter(lysate_batch=lysate_batch).order_by('lysatebatchlayout__column', 'lysatebatchlayout__row', 'sample__reich_lab_id'), form_kwargs={'user': request.user})
 	
-	return render(request, 'samples/lysates_in_batch.html', { 'lysate_batch_name': lysate_batch_name, 'lysate_batch_form': lysate_batch_form, 'formset': lysates_formset} )
+	return render(request, 'samples/lysates_in_batch.html', { 'lysate_batch_name': lysate_batch_name, 'lysate_batch': lysate_batch, 'lysate_batch_form': lysate_batch_form, 'formset': lysates_formset} )
 	
 # return a spreadsheet version of data for offline editing
 @login_required
@@ -549,8 +551,11 @@ def sample(request):
 		# database, not Reich Lab ID
 		reich_lab_sample_number = reich_lab_sample_number_from_string(request.GET['sample'])
 	
+	sample = Sample.objects.get(reich_lab_id=reich_lab_sample_number)
+	collaborator_id = sample.skeletal_code
+	
 	images = photo_list(reich_lab_sample_number)
-	return render(request, 'samples/sample.html', { 'reich_lab_sample_number': reich_lab_sample_number, 'images': images, 'form': form} )
+	return render(request, 'samples/sample.html', { 'reich_lab_sample_number': reich_lab_sample_number, 'collaborator_id': collaborator_id, 'images': images, 'form': form} )
 	
 @login_required
 def delete_sample_photo(request):
@@ -729,7 +734,8 @@ def extract_batch_assign_lysate(request):
 			extract_batch.restrict_layout_elements(layout_ids)
 			# extra lysates are not currently listed, so there are none to add
 			
-			if extract_batch.status == extract_batch.EXTRACTED:
+			EXTRACTED = [extract_batch.IN_PROGRESS, extract_batch.CLOSED]
+			if extract_batch.status in EXTRACTED:
 				extract_batch.create_extracts(request.user)
 				return redirect(f'{reverse("extracts_in_batch")}?extract_batch_name={extract_batch_name}')
 		
@@ -824,7 +830,7 @@ def extracts_in_batch(request):
 		extract_batch_form = ExtractionBatchForm(instance=extract_batch, user=request.user)
 		extracts_formset = ExtractFormset(queryset=Extract.objects.filter(extract_batch=extract_batch).order_by('extractionbatchlayout__column', 'extractionbatchlayout__row', 'sample__reich_lab_id'), form_kwargs={'user': request.user})
 	
-	return render(request, 'samples/extracts_in_batch.html', { 'extract_batch_name': extract_batch_name, 'extract_batch_form': extract_batch_form, 'formset': extracts_formset} )
+	return render(request, 'samples/extracts_in_batch.html', { 'extract_batch_name': extract_batch_name, 'extract_batch': extract_batch, 'extract_batch_form': extract_batch_form, 'formset': extracts_formset} )
 	
 # return a spreadsheet version of data for offline editing
 @login_required
@@ -957,7 +963,7 @@ def library_batches(request):
 	elif request.method == 'GET':
 		form = LibraryBatchForm(user=request.user)
 		
-	library_batches_queryset = LibraryBatch.objects.all().order_by('-id')
+	library_batches_queryset = LibraryBatch.objects.all().order_by('status', '-id')
 	return render(request, 'samples/library_batches.html', { 'form': form, 'library_batches': library_batches_queryset } )
 	
 @login_required
@@ -975,7 +981,8 @@ def library_batch_assign_extract(request):
 			layout_ids, extract_ids = layout_and_content_lists(ticked_checkboxes)
 			library_batch.restrict_layout_elements(layout_ids, request.user)
 			
-			if library_batch.status == library_batch.LIBRARIED:
+			LIBRARIED = [library_batch.IN_PROGRESS, library_batch.CLOSED]
+			if library_batch.status in LIBRARIED:
 				library_batch.create_libraries(request.user)
 				return redirect(f'{reverse("libraries_in_batch")}?library_batch_name={library_batch_name}')
 		
@@ -1083,7 +1090,7 @@ def libraries_in_batch(request):
 		library_batch_form = LibraryBatchForm(instance=library_batch, user=request.user)
 		libraries_formset = LibraryFormset(queryset=Library.objects.filter(library_batch=library_batch).select_related('p5_index', 'p7_index', 'p5_barcode', 'p7_barcode').prefetch_related('librarybatchlayout_set').order_by('librarybatchlayout__column', 'librarybatchlayout__row', 'sample__reich_lab_id'), form_kwargs={'user': request.user})
 	
-	return render(request, 'samples/libraries_in_batch.html', { 'library_batch_name': library_batch_name, 'library_batch_form': library_batch_form, 'formset': libraries_formset} )
+	return render(request, 'samples/libraries_in_batch.html', { 'library_batch_name': library_batch_name, 'library_batch': library_batch, 'library_batch_form': library_batch_form, 'formset': libraries_formset} )
 	
 # return a spreadsheet version of data for offline editing
 @login_required
@@ -1129,7 +1136,7 @@ def library_batch_to_capture_batch(request):
 			capture_batch_name = form.cleaned_data['capture_batch_name']
 			# include rotated batches following the naming pattern
 			start, end = rotated_name_start_and_end(library_batch_name)
-			other_batches = LibraryBatch.objects.filter(name__startswith=start, name__endswith=end)
+			other_batches = LibraryBatch.objects.filter(name__startswith=start, name__endswith=end, status=LibraryBatch.CLOSED)
 			if len (other_batches) > 1:
 				raise ValueError(f'Unexpected number of additional library batches {len(other_batches)}')
 			print (f'{library_batch_name} {len(other_batches)}')
@@ -1181,7 +1188,7 @@ def capture_batches(request):
 	elif request.method == 'GET':
 		form = CaptureBatchForm(user=request.user)
 		
-	capture_batches_queryset = CaptureOrShotgunPlate.objects.all().order_by('-id')
+	capture_batches_queryset = CaptureOrShotgunPlate.objects.all().order_by('status', '-id')
 	return render(request, 'samples/capture_batches.html', { 'form': form, 'capture_batches': capture_batches_queryset } )
 	
 @login_required
@@ -1235,6 +1242,8 @@ def captures_in_batch(request):
 		
 		if form.is_valid():
 			form.save()
+			if 'assign_plus_indices' in request.POST:
+				capture_batch.assign_indices(request.user)
 		if captures_formset.is_valid():
 			captures_formset.save()
 		if form.is_valid() and capture_batch.status in [capture_batch.OPEN, capture_batch.STOP]:
@@ -1244,7 +1253,7 @@ def captures_in_batch(request):
 		form = CaptureBatchForm(instance=capture_batch, user=request.user)
 		captures_formset = CapturedLibraryFormset(queryset=CaptureLayout.objects.filter(capture_batch=capture_batch).order_by('column', 'row'), form_kwargs={'user': request.user})
 	
-	return render(request, 'samples/captures_in_batch.html', { 'capture_batch_name': capture_batch_name, 'form': form, 'formset': captures_formset} )
+	return render(request, 'samples/captures_in_batch.html', { 'capture_batch_name': capture_batch_name, 'capture_batch': capture_batch, 'form': form, 'formset': captures_formset} )
 	
 @login_required
 def capture_batch_layout(request):
@@ -1287,7 +1296,7 @@ def capture_batch_spreadsheet(request):
 	writer = csv.writer(response, delimiter='\t')
 	# header
 	writer.writerow(CaptureLayout.spreadsheet_header(False, cumulative))
-	indexed_libraries = CaptureLayout.objects.filter(capture_batch=capture_batch).order_by('column', 'row', 'library__sample__reich_lab_id')
+	indexed_libraries = CaptureLayout.objects.filter(capture_batch=capture_batch).order_by('column', 'row', 'library__sample__reich_lab_id', 'library__extract__lysate__reich_lab_lysate_number', 'library__extract__reich_lab_extract_number', 'library__reich_lab_library_number')
 	for indexed_library in indexed_libraries:
 		writer.writerow(indexed_library.to_spreadsheet_row(cumulative))
 	return response
@@ -1391,7 +1400,7 @@ def sequencing_run_assign_captures(request):
 			if enable_assignments:
 				# these are the ticked checkboxes.
 				capture_or_shotgun_plate_ids = request.POST.getlist('sample_checkboxes[]')
-				sequencing_run.assign_captures(capture_or_shotgun_plate_ids)
+				sequencing_run.assign_captures(capture_or_shotgun_plate_ids, request.user)
 		
 	elif request.method == 'GET':
 		form = SequencingRunForm(user=request.user, instance=sequencing_run)
@@ -1399,7 +1408,7 @@ def sequencing_run_assign_captures(request):
 	# captures already assigned
 	assigned_captures = sequencing_run.captures.all()
 	# show captures marked as needing sequencing that have not already been assigned
-	captures = CaptureOrShotgunPlate.objects.filter(needs_sequencing=True).annotate(sequencing_count=Count('sequencingrun')).exclude(sequencing_count__gt=0)
+	captures = CaptureOrShotgunPlate.objects.filter(needs_sequencing=True, status=CaptureOrShotgunPlate.CLOSED).annotate(sequencing_count=Count('sequencingrun')).exclude(sequencing_count__gt=0)
 	
 	return render(request, 'samples/sequencing_run_assign_captures.html', { 'sequencing_run_name': sequencing_run_name, 'sequencing_run': sequencing_run,  'form': form, 'assigned_captures': assigned_captures, 'unassigned_captures': captures} )
 	
@@ -1416,9 +1425,9 @@ def sequencing_run_spreadsheet(request):
 
 	writer = csv.writer(response, delimiter='\t')
 	# header
-	writer.writerow(CaptureLayout.spreadsheet_header(True, cumulative))
-	for indexed_library in sequencing_run.indexed_libraries.all().order_by('column', 'row'):
-		writer.writerow(indexed_library.to_spreadsheet_row(cumulative))
+	lines = sequencing_run.to_spreadsheet(cumulative)
+	for line in lines:
+		writer.writerow(line)
 	return response
 
 @login_required

@@ -14,16 +14,19 @@ class Command(BaseCommand):
 		parser.add_argument('--name', required=True)
 		parser.add_argument('--sample_sheet', required=True)
 		parser.add_argument('--legacy_ess', action='store_true')
+		# Add an option to support 'split-lane' seq runs - will find all reports for the seq run
+		parser.add_argument('--split_lanes', action='store_true')
 		
 	def handle(self, *args, **options):
 		name = options['name']
 		sample_sheet_filename = options['sample_sheet']
 		adna2 = not(options['legacy_ess'])
+		split_lanes = options['split_lanes']
 		
 		samples_parameters = readSampleSheet(sample_sheet_filename, adna2)
 		#for s in samples_parameters:
 		#	print(s, samples_parameters[s])
-		nu = prepare_to_assemble_release_libraries(name, samples_parameters)
+		nu = prepare_to_assemble_release_libraries(name, samples_parameters, split_lanes)
 		self.stderr.write('{} finished release preparation'.format(name))
 		'''
 		sequencing_run_name = name

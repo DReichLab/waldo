@@ -26,7 +26,7 @@ def flowcell_download(request):
 			
 			# start download on transfer server
 			host = settings.TRANSFER_HOST
-			command = 'cd GeneticsFiles/broad; bash broad_download.sh {} {}'.format(name, password)
+			command = 'cd /n/standby/hms/genetics/reich/compute/sequencing/broad; bash broad_download.sh {} {}'.format(name, password)
 			#print('running: {}'.format(command))
 			ssh_command(host, command)
 				

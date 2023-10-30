@@ -17,7 +17,9 @@
 	<a href='capture_spreadsheet_upload?capture_batch_name={{capture_batch_name}}'>Upload spreadsheet</a>
 	<input id="submit_button_plus" type='submit' name='assign_plus_indices' value='Update and Assign Indices'>
 	<a href='capture_batch_layout?capture_batch_name={{capture_batch_name}}'>See Layout</a>
+	{% if capture_batch.status == capture_batch.CLOSED %}
 	<a href='capture_batch_to_sequencing_run?capture_batch_name={{capture_batch_name}}'>Create sequencing run</a>
+	{% endif %}
 	<a href='capture_batch_spreadsheet?capture_batch_name={{capture_batch_name}}&cumulative'>Cumulative Spreadsheet</a>
 	
 	{{ formset.management_form }}

@@ -1,9 +1,8 @@
 from django.test import SimpleTestCase
 from django.core.exceptions import ValidationError
 
-from .layout import PLATE_ROWS, PLATE_WELL_COUNT, plate_location, reverse_plate_location, PlateDomainError, check_plate_domain, layout_and_content_lists
+from .layout import *
 from .models import TimestampedWellPosition
-from .layout import rotated_pair_name, rotated_name_start_and_end
 			
 class WellPositionArithmetic(SimpleTestCase):
 	def test_check_plate_domain_good(self):
@@ -49,7 +48,8 @@ class WellPositionArithmetic(SimpleTestCase):
 		self.assertEquals(2, layout_ids[1])
 		self.assertEquals(300, new_content_ids[0])
 		self.assertEquals(400, new_content_ids[1])
-		
+
+class RotationTests(SimpleTestCase):
 	def rotate_test(self, start_str, expected_str):
 		x = TimestampedWellPosition()
 		x.set_position(start_str)

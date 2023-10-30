@@ -8,10 +8,11 @@ import sys
 import re
 
 MINUS = 'minus'
+PARTIAL = 'partial'
 HALF = 'half'
 PLUS = 'plus'
 CONTROL = 'control'
-ALLOWED_UDG_VALUES = [MINUS, HALF, PLUS, CONTROL]
+ALLOWED_UDG_VALUES = [MINUS, HALF, PLUS, CONTROL, PARTIAL]
 
 class SampleInfo:
 	def __init__(self, libraryID, plateID, experiment, udg, do_not_use, wetlab_notes):
@@ -32,12 +33,12 @@ class SampleInfo:
 # lookup is based on column headers
 def readSampleSheet(sample_sheet_filename, adna2=True):	
 	try:
-		return readSampleSheet_encoding(sample_sheet_filename, 'utf-8', adna2)
+		return readSampleSheet_encoding(sample_sheet_filename, None, adna2) # universal newline interpretation for utf-8 encoding of ESS
 	except:
-		return readSampleSheet_encoding(sample_sheet_filename, 'windows-1252', adna2)
+		return readSampleSheet_encoding(sample_sheet_filename, '\r\n', adna2) # \r\n newlines for windows-1252 file encoding
 
-def readSampleSheet_encoding(sample_sheet_filename, encoding, adna2):
-	with open(sample_sheet_filename, encoding=encoding, errors='surrogateescape') as f:
+def readSampleSheet_encoding(sample_sheet_filename, newline, adna2):
+	with open(sample_sheet_filename, newline=newline, errors='surrogateescape') as f:
 		sample_sheet_contents_array = f.readlines()
 		return readSampleSheet_array(sample_sheet_contents_array, adna2)
 
@@ -46,6 +47,7 @@ def readSampleSheet_array(sample_sheet_contents_array, adna2=True):
 	
 	header_line = sample_sheet_contents_array[0]
 	headers = re.split('\t|\n', header_line)
+	headers = [header.rstrip('-') for header in headers] # WALDO presents fields that are not changeable with a trailing - character. Strip this out for matching field names.
 	lowercase_headers = [header.lower() for header in headers]
 
 	if adna2:
@@ -73,9 +75,11 @@ def readSampleSheet_array(sample_sheet_contents_array, adna2=True):
 		do_not_use_index = -1
 	try:
 		wetlab_notes_index = lowercase_headers.index('wetlab_notes')
+	except ValueError:
+		wetlab_notes_index = lowercase_headers.index('notes') # In newer ESS, column is labeled "notes"
 	except:
 		wetlab_notes_index = -1
-	
+		
 	data_lines = sample_sheet_contents_array[1:]
 	duplicates = [] # if there is a problem with duplicate entries, find all of them before failing
 	for line in data_lines:
@@ -83,6 +87,8 @@ def readSampleSheet_array(sample_sheet_contents_array, adna2=True):
 		do_not_use = fields[do_not_use_index] if do_not_use_index >= 0 else ''
 		wetlab_notes = fields[wetlab_notes_index] if wetlab_notes_index >= 0 else ''
 		key = '{}_{}_{}_{}'.format(fields[i5_index], fields[i7_index], fields[p5_barcode], fields[p7_barcode])
+		if fields[libraryID_index][-2:] == "_d":
+			key = '{}_d'.format(key)
 		udg = fields[udg_index].lower()
 		if udg not in ALLOWED_UDG_VALUES:
 			raise ValueError('Unhandled UDG value {}'.format(udg))

@@ -245,7 +245,7 @@ def load_pipeline_report(report_filename, desired_experiment, release_label, seq
 			damage_restricted = (fields[index_barcode_key_index][-2:] == "_d")
 			library_id = fields[report_library_id_index].replace("_d","")
 			experiment = fields[experiment_index]
-			if experiment.lower() == 'twist ancient dna':
+			if 'twist' in experiment.lower():
 				experiment = 'twist1.4m'
 			if library_id.startswith('S'): # is not '' and library_id is not 'Contl.Capture':				
 				if len(fields) == len(headers): # no data will have fewer fields than headers

@@ -3,6 +3,7 @@ from django.forms import ModelChoiceField, ChoiceField, FileField, ModelForm, Te
 from django.forms import modelformset_factory
 from django.forms.widgets import TextInput, NumberInput
 from django.utils.translation import gettext_lazy as _
+from django.db.models import Q
 
 from samples.models import PowderBatch, PowderSample, Sample, SamplePrepProtocol, ControlType, ControlSet, ControlLayout, LysateBatch, ExtractionProtocol, ExpectedComplexity, SamplePrepQueue, Lysate, LysateBatchLayout, ExtractionBatch, ExtractionBatchLayout, LibraryProtocol, LibraryBatch, Extract, Storage, Library, LibraryBatchLayout, P5_Index, P7_Index, Barcode, CaptureProtocol, CaptureOrShotgunPlate, CaptureLayout, SequencingPlatform, SequencingRun, SkeletalElementCategory, get_value
 
@@ -56,7 +57,8 @@ class PowderBatchForm(UserModelForm):
 IMAGE_TYPES = [
 		('Before', 'Before'),
 		('After', 'After'),
-		('C14', 'C14')
+		('C14', 'C14'),
+		('Isotope', 'Isotope')
 	]
 
 class SampleImageForm(forms.Form):
@@ -295,6 +297,12 @@ class LysateBatchForm(UserModelForm):
 		super().__init__(*args, **kwargs)
 		for option in ['protocol', 'date']:
 			self.fields[option].required = False
+		# ensure current values are allowed form values
+		if self.instance.protocol:
+			self.fields['protocol'].queryset = ExtractionProtocol.objects.filter(Q(active=True) | Q(id=self.instance.protocol.id) ).order_by('-start_date')
+		if self.instance.control_set:
+			self.fields['control_set'].queryset = ControlSet.objects.filter(Q(active=True) | Q(id=self.instance.control_set.id)).order_by('layout_name')
+		
 			
 	# to view fields without being able to modify prior to deletion
 	def disable_fields(self):
@@ -321,10 +329,9 @@ class LysateForm(UserModelForm):
 			try:
 				layout_element = layout_elements.get(lysate=self.instance)
 				self.initial['well_position'] = str(layout_element)
-			except Exception as e:
+			except Exception as e: # After old data has layout elements created, we can remove this
 				print(self.instance.lysate_id)
 				pass
-			
 			if self.instance.powder_sample:
 				if self.instance.powder_sample.sample:
 					self.initial['collaborator_id'] = self.instance.powder_sample.sample.skeletal_code
@@ -366,6 +373,11 @@ class ExtractionBatchForm(UserModelForm):
 			self.fields[option].required = False
 		for option in ['rotated']:
 			self.fields[option].disabled = True
+		# ensure current values are allowed form values
+		if self.instance.protocol:
+			self.fields['protocol'].queryset = ExtractionProtocol.objects.filter(Q(active=True) | Q(id=self.instance.protocol.id) ).order_by('-start_date')
+		if self.instance.control_set:
+			self.fields['control_set'].queryset = ControlSet.objects.filter(Q(active=True) | Q(id=self.instance.control_set.id)).order_by('layout_name')
 			
 	# to view fields without being able to modify prior to deletion
 	def disable_fields(self):
@@ -390,7 +402,8 @@ class ExtractForm(UserModelForm):
 			layout_elements = self.instance.extractionbatchlayout_set
 			layout_element = layout_elements.get(extract=self.instance)
 			self.initial['well_position'] = str(layout_element)
-			self.initial['fluidx_barcode'] = layout_element.lysate.barcode
+			if layout_element.lysate:
+				self.initial['fluidx_barcode'] = layout_element.lysate.barcode
 		
 ExtractFormset = modelformset_factory(Extract, form=ExtractForm, extra=0)
 			
@@ -523,6 +536,11 @@ class LibraryBatchForm(UserModelForm):
 			self.fields[option].required = False
 		for option in ['rotated']:
 			self.fields[option].disabled = True
+		# ensure current values are allowed form values
+		if self.instance.protocol:
+			self.fields['protocol'].queryset = LibraryProtocol.objects.filter(Q(active=True) | Q(id=self.instance.protocol.id) ).order_by('-start_date')
+		if self.instance.control_set:
+			self.fields['control_set'].queryset = ControlSet.objects.filter(Q(active=True) | Q(id=self.instance.control_set.id)).order_by('layout_name')
 	
 	# to view fields without being able to modify prior to deletion
 	def disable_fields(self):
@@ -600,6 +618,12 @@ class CaptureBatchForm(UserModelForm):
 		super().__init__(*args, **kwargs)
 		for option in ['date', 'robot', 'hyb_wash_temps', 'reagent_batch']:
 			self.fields[option].required = False
+		# single-stranded plates already have indices from library creation
+		if self.instance:
+			self.fields['p5_index_start'].required = self.instance.requires_p5_index_start()
+		# ensure current values are allowed form values
+		if self.instance.protocol:
+			self.fields['protocol'].queryset = CaptureProtocol.objects.filter(Q(active=True) | Q(id=self.instance.protocol.id) ).order_by('-start_date')
 	
 	# to view fields without being able to modify prior to deletion
 	def disable_fields(self):
@@ -611,8 +635,8 @@ class CapturedLibraryForm(UserModelForm):
 	library_id = forms.CharField(disabled=True)
 	library_batch = forms.CharField(disabled=True, required=False)
 	well_position_library_batch = forms.CharField(disabled=True, required=False)
-	p5_index = BarcodeSelect(queryset=P5_Index.objects.all(), disabled=True)
-	p7_index = BarcodeSelect(queryset=P7_Index.objects.all(), disabled=True)
+	p5_index = BarcodeSelect(queryset=P5_Index.objects.all(), disabled=True, required=False)
+	p7_index = BarcodeSelect(queryset=P7_Index.objects.all(), disabled=True, required=False)
 	p5_barcode = forms.CharField(disabled=True, required=False)
 	p7_barcode = forms.CharField(disabled=True, required=False)
 	class Meta:

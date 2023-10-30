@@ -9,7 +9,11 @@ def length_check(headers, fields):
 
 # simple parsing of a spreadsheet file into a single header row and the data rows that follow
 def spreadsheet_headers_and_data_rows(spreadsheet_file):
-	s = spreadsheet_file.read().decode("utf-8")
+	s = spreadsheet_file.read()
+	try: # for web file upload
+		s = s.decode("utf-8")
+	except: # direct file
+		pass
 	lines = s.splitlines()
 	header = lines[0]
 	data_rows = lines[1:]

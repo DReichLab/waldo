@@ -1,6 +1,6 @@
 from sequencing_run.ssh_command import ssh_command
 from sequencing_run.models import SequencingRun, SequencingRunID, SequencingAnalysisRun, Flowcell, OrderedSequencingRunID
-from samples.models import CaptureLayout
+from samples.models import SequencedLibrary, get_value
 from sequencing_run.barcode_prep import barcodes_set, i5_set, i7_set
 import os
 import re
@@ -305,26 +305,15 @@ def adna2_index_barcode_keys_used(sequencing_date_string, combined_sequencing_ru
 		target_file = "{0}/{1}_{2}/{3}".format(settings.RUN_FILES_DIRECTORY, sequencing_date_string, combined_sequencing_run_name, file_name)
 	else:
 		target_file = os.path.abspath("{}/{}".format(output_dir, file_name))
-	keys_queryset = CaptureLayout.objects.filter(sequencingrun__name__in=sequencing_run_names)
+	sequenced_libraries = SequencedLibrary.objects.filter(sequencing_run__name__in=sequencing_run_names)
 	with open(target_file, 'w') as f:
-		for key in keys_queryset:
+		for sequenced_library in sequenced_libraries:
+			key = sequenced_library.indexed_library
 			# Try to grab indices and barcodes, make blank if not in database
-			try:
-				p5_index = key.p5_index.sequence
-			except:
-				p5_index = ''
-			try:
-				p7_index = key.p7_index.sequence
-			except:
-				p7_index = ''
-			try:
-				p5_barcode = key.library.p5_barcode.sequence
-			except:
-				p5_barcode = ''
-			try:
-				p7_barcode = key.library.p7_barcode.sequence
-			except:
-				p7_barcode = ''
+			p5_index = get_value(key, 'get_i5', 'sequence')
+			p7_index = get_value(key, 'get_i7', 'sequence')
+			p5_barcode = get_value(key, 'library', 'p5_barcode', 'sequence')
+			p7_barcode = get_value(key, 'library', 'p7_barcode', 'sequence')
 			
 			# Determine if this is a library or a control.
 			# If it's a control, parse the name for the output file
@@ -346,8 +335,8 @@ def adna2_index_barcode_keys_used(sequencing_date_string, combined_sequencing_ru
 			if 'Twist' in experiment:
 					experiment = 'Twist1.4M'
 			elif '1240k' in experiment:
-					experiment = '1240K+'
-			
+					experiment = '1240K+'  # TODO Don't lie about whether there is MT
+
 			# Format and write index_barcode_key line to the file
 			f.write("{}_{}_{}_{}\t{}\t{}\t{}\n".format(p5_index, p7_index, p5_barcode, p7_barcode, library, capture_batch, experiment))
 	pass
@@ -359,12 +348,12 @@ def get_udg_treatments(sequencing_date_string, combined_sequencing_run_name, seq
 		target_file = "{0}/{1}_{2}/{3}".format(settings.RUN_FILES_DIRECTORY, sequencing_date_string, combined_sequencing_run_name, file_name)
 	else:
 		target_file = os.path.abspath("{}/{}".format(output_dir, file_name))
-	keys_queryset = CaptureLayout.objects.filter(sequencingrun__name__in=sequencing_run_names)
+	keys_queryset = SequencedLibrary.objects.filter(sequencing_run__name__in=sequencing_run_names)
 	with open(target_file, 'w') as f:
 		for key in keys_queryset:
-			library = key.library
+			library = key.indexed_library.library
 			if library is None:
-				library_id = key.control_type.control_type
+				library_id = key.indexed_library.control_type.control_type
 				if library_id == 'PCR Negative':
 					library_id = 'Contl.PCR'
 				elif library_id == 'Capture Positive':

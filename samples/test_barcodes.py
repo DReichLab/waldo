@@ -1,9 +1,9 @@
 from django.test import SimpleTestCase
 
-from .models import parse_sample_string, Barcode, Library
-from .layout import PLATE_ROWS, PLATE_WELL_COUNT, PLATE_WELL_COUNT_HALF, plate_location, reverse_plate_location, BARCODES_BY_POSITION, barcode_at_position, barcodes_for_location, p7_qbarcode_source, indices_for_location
+from .models import parse_sample_string, Barcode, Library, reverse_complement
+from .layout import *
 
-class BarcodesTest(SimpleTestCase):
+class BarcodesLayoutTest(SimpleTestCase):
 	def test_barcode_total_number(self):
 		self.assertEqual(PLATE_WELL_COUNT_HALF, len(BARCODES_BY_POSITION))
 		
@@ -101,6 +101,40 @@ class BarcodesTest(SimpleTestCase):
 		self.assertEquals(starting+1, p5)
 		self.assertEquals(96, p7)
 
+	def test_single_position_index_and_back(self):
+		position = 1
+		offset = 1
+		i5, i7 = indices_for_location(position, offset)
+		self.assertEquals(position, location_from_indices(i5, i7))
+
+	def test_indices_from_location_and_back(self):
+		for position in range(0, PLATE_WELL_COUNT):
+			for offset in range(1, PLATE_WELL_COUNT//2, 2):
+				#print(position, offset)
+				i5, i7 = indices_for_location(position, offset)
+				self.assertEquals(position, location_from_indices(i5, i7))
+
+	def test_single_position_indices_single_stranded_A1(self):
+		expected_row = 'A'
+		expected_column = 1
+		row, column = plate_location(location_from_indices('1ss', ''))
+		self.assertEquals(expected_row, row)
+		self.assertEquals(expected_column, column)
+
+	def test_single_position_indices_single_stranded_H12(self):
+		expected_row = 'H'
+		expected_column = 12
+		row, column = plate_location(location_from_indices('96ss', ''))
+		self.assertEquals(expected_row, row)
+		self.assertEquals(expected_column, column)
+
+	def test_single_position_indices_single_stranded_loop(self):
+		for location in range(0, PLATE_WELL_COUNT):
+			expected_row, expected_column = plate_location(location)
+		row, column = plate_location(location_from_indices(f'{location+1}ss', ''))
+		self.assertEquals(expected_row, row)
+		self.assertEquals(expected_column, column)
+
 # sequences do not actually matter because barcodes are checked by reference and sequences are enforced unique
 class LibraryBarcodeCheckTest(SimpleTestCase):
 	def test_library_barcode_match(self):
@@ -138,3 +172,21 @@ class LibraryBarcodeCheckTest(SimpleTestCase):
 		self.assertTrue(l1.barcodes_are_distinct(l2))
 		self.assertTrue(l2.barcodes_are_distinct(l1))
 		self.assertFalse(l2.barcodes_are_distinct(l2))
+
+class ReverseComplementTest(SimpleTestCase):
+	def test_bad_base(self):
+		sequence = 'B'
+		self.assertRaises(KeyError, reverse_complement, sequence)
+
+	def test_reverse_complement_self(self):
+		sequence = 'ACGT'
+		result = reverse_complement(sequence)
+		self.assertEquals(sequence, result)
+
+	def test_reverse_complement_index(self):
+		sequence = 'CCTGCGA'
+		expected = 'TCGCAGG'
+		result = reverse_complement(sequence)
+		self.assertEquals(expected, result)
+		twice = reverse_complement(result)
+		self.assertEquals(sequence, twice)

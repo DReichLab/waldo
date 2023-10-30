@@ -32,11 +32,16 @@ def parse_sample_string(s):
 	else:
 		raise ValueError('Error parsing sample {}'.format(s))
 
-def get_value(obj, property_name, default=''):
-	if obj is None:
-		return default
-	else:
-		return getattr(obj, property_name)
+def get_value(obj, *property_name_chain, default=''):
+	current_object = obj
+	for property_name in property_name_chain:
+		if current_object is None:
+			return default
+		current_object = getattr(current_object, property_name)
+		# resolve functions to objects to enable using methods in chain
+		if callable(current_object):
+			current_object = current_object()
+	return current_object
 		
 class Timestamped(models.Model):
 	creation_timestamp = models.DateTimeField(default=timezone.now, null=True)
@@ -168,7 +173,7 @@ class WetLabStaff(Timestamped):
 		return self.first_name[0] + self.last_name[0]
 	
 	def name(self):
-		return f'{first_name} {last_name}'
+		return f'{self.first_name} {self.last_name}'
 	
 class SupportStaff(Timestamped):
 	first_name = models.CharField(max_length=30, db_index=True)
@@ -293,6 +298,7 @@ class Sample(Timestamped):
 	
 	expected_complexity = models.ForeignKey(ExpectedComplexity, on_delete=models.SET_NULL, null=True)
 	approved_negative_results = models.BooleanField(default=False, help_text='Approved for full reporting of negative results and photographs')
+	approved_photo_sharing = models.BooleanField(null=True, help_text='Approved for sharing sample photographs. Null indicates unknown.')
 	
 	class Meta:
 		unique_together = ['reich_lab_id', 'control']
@@ -678,20 +684,21 @@ def create_lysate(lysate_layout_element, lysate_batch, user):
 			else:
 				raise ValueError(f'powder sample without sample {powder_sample.powder_sample_id}')
 		else: # lysate name for a control
-			num_existing_lysates_for_control_type = LysateBatchLayout.objects.filter(lysate_batch=lysate_batch, control_type=lysate_layout_element.control_type, powder_sample=None).count()
+			num_existing_lysates_for_control_type = LysateBatchLayout.objects.filter(lysate_batch=lysate_batch, control_type=lysate_layout_element.control_type, powder_sample=None, lysate__isnull=False).count()
 			prior_id = control_name_string(lysate_batch.batch_name, lysate_layout_element.control_type, num_existing_lysates_for_control_type)
 			lysate_id = ''
 		lysate_id = f'{prior_id}.Y{next_lysate_number}'
-		print(f'created lysate id {lysate_id}')
+		print(f'created lysate id {lysate_id} {lysate_layout_element}')
 		# library negatives have no lysis volume
 		is_library_negative = (lysate_layout_element.control_type is not None) and (lysate_layout_element.control_type.control_type == LIBRARY_NEGATIVE)
 		total_volume_produced = lysate_batch.protocol.total_lysis_volume if not is_library_negative else 0
+		powder_used_mg = powder_sample.powder_for_extract if powder_sample else 0
 		lysate = Lysate(lysate_id=lysate_id,
 					reich_lab_lysate_number=next_lysate_number,
 					powder_sample=powder_sample,
 					sample=sample,
 					lysate_batch=lysate_batch,
-					powder_used_mg=powder_sample.powder_for_extract,
+					powder_used_mg=powder_used_mg,
 					total_volume_produced=total_volume_produced)
 		lysate.save(save_user=user)
 		lysate_layout_element.lysate = lysate
@@ -732,16 +739,24 @@ class LysateBatch(Timestamped):
 	control_set = models.ForeignKey(ControlSet, on_delete=models.SET_NULL, null=True)
 	
 	OPEN = 0
-	LYSATES_CREATED = 1
+	IN_PROGRESS = 100
+	CLOSED = 200
+	STOP = 1000
+	
 	LYSATE_BATCH_STATES = (
 		(OPEN, 'Open'),
-		(LYSATES_CREATED, 'Lysates created')
+		(IN_PROGRESS, 'In progress'),
+		(CLOSED, 'Closed'),
+		(STOP, 'Stop')
 	)
 	status = models.PositiveSmallIntegerField(default = OPEN, choices=LYSATE_BATCH_STATES)
 	
 	# return string representing status. For templates
 	def get_status(self):
-		return self.LYSATE_BATCH_STATES[self.status][1]
+		for state_int, state_name in self.LYSATE_BATCH_STATES:
+			if state_int == self.status:
+				return state_name
+		raise ValueError(f'No lysate batch status {self.status}')
 		
 	# retain only powder samples in layout_element_ids
 	# in addition, preserve controls
@@ -1056,6 +1071,7 @@ def queue_spreadsheet_header():
 		'Priority',
 		'Expected Complexity',
 		'Sampling Tech',
+		'Sample Prep Lab',
 		'UDG',
 		'Shipment ID',
 		'Collaborator',
@@ -1078,14 +1094,20 @@ def queue_to_spreadsheet_row(queue_item, sample=None):
 	elif sample is None: # the default case where we have queue_item entry
 		sample = queue_item.sample
 	
-	name = sample.collaborator.name() if sample.collaborator else ''
-	preparation_method = queue_item.sample_prep_protocol.preparation_method if (queue_item and  queue_item.sample_prep_protocol) else ''
+	name = get_value(sample, 'collaborator', 'name')
+	preparation_method = get_value(queue_item, 'sample_prep_protocol', 'preparation_method')
 	country = sample.get_country()
+
+	if hasattr(queue_item, 'sample_prep_lab'):
+		prep_lab = get_value(queue_item, 'sample_prep_lab')
+	else: # bone samples are handled in house
+		prep_lab = REICH_LAB
 	
 	return [
 		get_value(queue_item, 'priority'),
 		get_value(sample.expected_complexity, 'description'),
 		preparation_method,
+		prep_lab,
 		get_value(queue_item, 'udg_treatment'),
 		get_value(sample.shipment, 'shipment_name'),
 		name,
@@ -1233,16 +1255,24 @@ class ExtractionBatch(Timestamped):
 	rotated = models.BooleanField(default=False, help_text='True for second extract plates that are rotated 180 degrees')
 	
 	OPEN = 0
-	EXTRACTED = 1
+	IN_PROGRESS = 100
+	CLOSED = 200
+	STOP = 1000
+	
 	EXTRACT_BATCH_STATES = (
 		(OPEN, 'Open'),
-		(EXTRACTED, 'Extracted')
+		(IN_PROGRESS, 'In progress'),
+		(CLOSED, 'Closed'),
+		(STOP, 'Stop')
 	)
 	status = models.PositiveSmallIntegerField(default = OPEN, choices=EXTRACT_BATCH_STATES)
 	
 	# return string representing status. For templates
 	def get_status(self):
-		return self.EXTRACT_BATCH_STATES[self.status][1]
+		for state_int, state_name in self.EXTRACT_BATCH_STATES:
+			if state_int == self.status:
+				return state_name
+		raise ValueError(f'No extract batch status {self.status}')
 	
 	# retain only lysates in layout_element_ids
 	# in addition, preserve controls
@@ -1273,7 +1303,7 @@ class ExtractionBatch(Timestamped):
 								rotated=self.rotated
 								)
 			library_batch.save(save_user=user)
-			
+
 			# layout for library batch with same layout
 			for layout_element in layout:
 				# create corresponding library batch layout element
@@ -1431,10 +1461,12 @@ class ExtractionBatchLayout(TimestampedWellPosition):
 			additional_values = None
 			if self.lysate:
 				try:
-					lysate_layout_element = LysateBatchLayout.objects.get(lysate=self.lysate)
+					lysate_layout_element = LysateBatchLayout.objects.exclude(lysate__lysate_batch__batch_name__startswith='Crowd').get(lysate=self.lysate, lysate__lysate_batch__status=LysateBatch.CLOSED)
 					additional_values = lysate_layout_element.to_spreadsheet_row(cumulative)
 				except LysateBatchLayout.DoesNotExist:
 					pass
+				except LysateBatchLayout.MultipleObjectsReturned:
+					raise ValueError(f'{self.lysate.lysate_id} has multiple lysate batch layout')
 			if additional_values is None:
 				additional_values = empty_values(LysateBatchLayout.spreadsheet_header(cumulative))
 			values += additional_values
@@ -1468,7 +1500,10 @@ class ExtractionBatchLayout(TimestampedWellPosition):
 			
 			# Generating from lysates (either real or control)
 			if self.control_type is None or lysate is not None:
-				sample = lysate.powder_sample.sample
+				if lysate.powder_sample:
+					sample = lysate.powder_sample.sample
+				else:
+					sample = None
 				next_extract_number = lysate.highest_extract() +1
 				prior_id = str(lysate.lysate_id)
 				
@@ -1533,10 +1568,17 @@ def create_library_from_extract(layout_element, user):
 			next_library_number = existing_libraries + 1
 			reich_lab_library_id = f'{extract.extract_id}.L{next_library_number}'
 		elif layout_element.control_type.control_type == LIBRARY_POSITIVE:
-			next_library_number = 1 # if there is more than one library positive, we need to check existing
+			num_existing = LibraryBatchLayout.objects.filter(library_batch=library_batch, library__isnull=False, control_type__control_type=LIBRARY_POSITIVE).count()
+			next_library_number = num_existing + 1
 			reich_lab_library_id = f'LP{library_batch.id}.L{next_library_number}'
+		# control starting from this step (Mob)
+		elif layout_element.control_type.control_type == LIBRARY_NEGATIVE:
+			# library negative controls with already created libraries
+			num_existing = LibraryBatchLayout.objects.filter(library_batch=library_batch, library__isnull=False, control_type__control_type=LIBRARY_NEGATIVE).count()
+			next_library_number = 1
+			reich_lab_library_id = f'{control_name_string(library_batch.name, layout_element.control_type, num_existing)}.L{next_library_number}'
 		else:
-			raise ValueError(f'Unexpected case in creating library, neither extract nor library positive {layout_element.id}')
+			raise ValueError(f'Unexpected case in creating library, neither extract nor library positive/negative {layout_element.id}')
 		# TODO check existing extract amount
 		# assign barcodes
 		if library_batch.protocol.library_type == 'ds':
@@ -1601,16 +1643,27 @@ class LibraryBatch(Timestamped):
 	p7_offset = models.SmallIntegerField(null=True, validators=[MinValueValidator(0), MaxValueValidator(PLATE_WELL_COUNT_HALF-1), validate_even], help_text='Must be even in [0,46]')
 	
 	OPEN = 0
-	LIBRARIED = 1
+	IN_PROGRESS = 100
+	CLOSED = 200
+	STOP = 1000
 	LIBRARY_BATCH_STATES = (
 		(OPEN, 'Open'),
-		(LIBRARIED, 'Libraried')
+		(IN_PROGRESS, 'In progress'),
+		(CLOSED, 'Closed'),
+		(STOP, 'Stop')
 	)
 	status = models.PositiveSmallIntegerField(default = OPEN, choices=LIBRARY_BATCH_STATES)
 	
 	# return string representing status. For templates
 	def get_status(self):
-		return self.LIBRARY_BATCH_STATES[self.status][1]
+		for state_int, state_name in self.LIBRARY_BATCH_STATES:
+			if state_int == self.status:
+				return state_name
+		raise ValueError(f'No library batch status {self.status}')
+		
+	def clean(self):
+		if self.status == self.CLOSED and self.prep_date is None:
+			raise ValidationError(_('Closed library batch needs prep date'))
 	
 	def check_p7_offset(self):
 		if self.p7_offset is None or self.p7_offset < 0 or self.p7_offset >= PLATE_WELL_COUNT_HALF:
@@ -1645,6 +1698,25 @@ class LibraryBatch(Timestamped):
 		# remove extracts that are assigned but preserve controls
 		to_clear = LibraryBatchLayout.objects.filter(library_batch=self).exclude(id__in=layout_ids).exclude(control_type__isnull=False)
 		to_clear.delete()
+
+	# Library batches created from extract batches reuse the controls.
+	# This sets controls for batches starting from this point.
+	# The wetlab calls these Mobs.
+	def set_controls(self, user):
+		# extract controls are assigned explicitly, not populated from control set
+		control_types = [LIBRARY_NEGATIVE, LIBRARY_POSITIVE]
+		controls = ControlLayout.objects.filter(control_set=self.control_set, control_type__control_type__in=control_types, active=True).order_by('column', 'row')
+
+		existing_controls = LibraryBatchLayout.objects.filter(library_batch=self, control_type__control_type__in=control_types).order_by('column', 'row')
+		# examine existing controls for sample numbers and remove existing
+		extract_negative_sample_id, library_negative_sample_id = existing_controls_cleanup(existing_controls, user)
+
+		# create new control layout entries for library controls
+		for control in controls:
+			layout_element = LibraryBatchLayout(library_batch=self, control_type=control.control_type, row=control.row, column=control.column)
+
+			layout_element.ul_extract_used = 0
+			layout_element.save(save_user=user)
 		
 	def libraries_from_spreadsheet(self, spreadsheet, user):
 		headers, data_rows = spreadsheet_headers_and_data_rows(spreadsheet)
@@ -1664,8 +1736,8 @@ class LibraryBatch(Timestamped):
 		# fail if a library batch is not ready
 		for library_batch in other_library_batches:
 			print(library_batch.name)
-			if library_batch.status != LibraryBatch.LIBRARIED:
-				raise ValueError(f'{library_batch.name} status is not {LibraryBatch.LIBRARY_BATCH_STATES[LibraryBatch.LIBRARIED][1]}')
+			if library_batch.status != LibraryBatch.CLOSED:
+				raise ValueError(f'{library_batch.name} status is "{library_batch.get_status()}"')
 		
 		# create capture
 		capture_plate = CaptureOrShotgunPlate.objects.create(name=capture_name,
@@ -1675,7 +1747,7 @@ class LibraryBatch(Timestamped):
 		
 		# copy from library layout
 		other_library_batches_flat = other_library_batches.values_list('id', flat=True)
-		to_copy = LibraryBatchLayout.objects.filter(library_batch__in=([self] + [x for x in other_library_batches_flat]), library_batch__status=LibraryBatch.LIBRARIED).exclude(control_type__control_type=LIBRARY_POSITIVE)
+		to_copy = LibraryBatchLayout.objects.filter(library_batch__in=([self] + [x for x in other_library_batches_flat]), library_batch__status=LibraryBatch.CLOSED).exclude(control_type__control_type=LIBRARY_POSITIVE)
 		for x in to_copy:
 			copied = CaptureLayout(capture_batch = capture_plate, 
 								row = x.row,
@@ -1707,16 +1779,18 @@ class LibraryBatch(Timestamped):
 		# capture positive depends upon library type
 		if self.protocol.library_type == 'ds':
 			capture_positive_library = Library.objects.get(reich_lab_library_id=CAPTURE_POSITIVE_LIBRARY_NAME_DS)
-		else:
-			raise NotImplementedError(f'Unimplemented capture positive for library type {self.protocol.library_type}')
-		capture_positive = CaptureLayout(capture_batch=capture_plate,
+			capture_positive = CaptureLayout(capture_batch=capture_plate,
 								   control_type=capture_positive_position.control_type, row=capture_positive_position.row, column=capture_positive_position.column,
 								   library = capture_positive_library)
-		capture_positive.save(save_user=user)
+			capture_positive.save(save_user=user)
+		else:
+			#raise NotImplementedError(f'Unimplemented capture positive for library type {self.protocol.library_type}')
+			pass # TODO wetlab does not have single-stranded capture positive yet
 		
 	def assign_extract(self, extract, row, column, control_type=None):
+		if control_type == None:
 		# ensure this extract has a sample number
-		extract.ensure_ids()
+			extract.ensure_ids()
 		try:
 			library_batch_layout_element = LibraryBatchLayout.objects.get(library_batch=self,
 									extract=extract,
@@ -1747,20 +1821,38 @@ def validate_barcode_dna_sequence(sequence):
 			validate_index_dna_sequence(sequence)
 		else:
 			raise ValidationError(_('%(sequence)s contains empty barcode'), params={'sequence': sequence})
+
+REVERSE_COMPLEMENT_MAP = {
+	'A': 'T',
+	'T': 'A',
+	'C': 'G',
+	'G': 'C'
+	}
+def reverse_complement(sequence):
+	result = ''
+	for char in sequence[::-1]:
+		result += REVERSE_COMPLEMENT_MAP[char]
+	if len(result) != len(sequence):
+		raise ValueError('Length mismatch')
+	return result
+
 	
 class Barcode(models.Model):
-	label = models.CharField(max_length=10, db_index=True)
+	label = models.CharField(max_length=20, db_index=True)
 	sequence = models.CharField(max_length=31, db_index=True, unique=True, validators=[validate_barcode_dna_sequence])
+	reich_lab_default = models.BooleanField(default=False)
 	
 class P5_Index(models.Model):
 	label = models.CharField(max_length=10, db_index=True) # cannot be unique because double and single stranded are named with same integers
 	label2 = models.CharField(max_length=20, blank=True)
 	sequence = models.CharField(max_length=8, db_index=True, unique=True, validators=[validate_index_dna_sequence])
+	reich_lab_default = models.BooleanField(default=False)
 	
 class P7_Index(models.Model):
 	label = models.CharField(max_length=10, db_index=True) # cannot be unique because double and single stranded are named with same integers
 	label2 = models.CharField(max_length=20, blank=True)
 	sequence = models.CharField(max_length=8, db_index=True, unique=True, validators=[validate_index_dna_sequence])
+	reich_lab_default = models.BooleanField(default=False)
 	
 class Library(Timestamped):
 	sample = models.ForeignKey(Sample, on_delete=models.PROTECT, null=True)
@@ -1846,8 +1938,8 @@ class LibraryBatchLayout(TimestampedWellPosition):
 	def to_spreadsheet_row(self, cumulative=False):
 		values = [ str(self),
 			get_value(self.library, 'reich_lab_library_id'),
-			get_value(self.library.p5_barcode, 'label'),
-			get_value(self.library.p7_barcode, 'label'),
+			get_value(self.library, 'p5_barcode', 'label'),
+			get_value(self.library, 'p7_barcode', 'label'),
 			get_value(self.library, 'nanodrop'),
 			get_value(self.library, 'qpcr'),
 			get_value(self.library, 'plate_id'),
@@ -1915,21 +2007,28 @@ class CaptureOrShotgunPlate(Timestamped):
 	reagent_batch = models.PositiveSmallIntegerField(null=True, help_text='Twist batch or bait batch number')
 	notes = models.TextField(blank=True)
 	
-	p5_index_start = models.PositiveSmallIntegerField(null=True, validators=[MinValueValidator(1), MaxValueValidator(47), validate_odd], help_text='Must be odd in [1, 48]')# revisit this for single stranded
+	p5_index_start = models.PositiveSmallIntegerField(null=True, validators=[MinValueValidator(1), MaxValueValidator(47), validate_odd], help_text='Must be odd in [1, 48]')# TODO revisit this for single stranded
 	
 	needs_sequencing = models.BooleanField(default=True, help_text='True for new plates. False for plates sequenced before website switchover.')
 	
-	STOP = -100
 	OPEN = 0
 	IN_PROGRESS = 100
 	CLOSED = 200
+	STOP = 1000
 	CAPTURE_BATCH_STATES = (
-		(STOP, 'Stop'),
 		(OPEN, 'Open'),
 		(IN_PROGRESS, 'In Progress'),
-		(CLOSED, 'Closed')
+		(CLOSED, 'Closed'),
+		(STOP, 'Stop')
 	)
 	status = models.SmallIntegerField(default = OPEN, choices=CAPTURE_BATCH_STATES)
+	
+	# return string representing status. For templates
+	def get_status(self):
+		for state_int, state_name in self.CAPTURE_BATCH_STATES:
+			if state_int == self.status:
+				return state_name
+		raise ValueError(f'No capture/raw batch status {self.status}')
 	
 	def layout_elements(self):
 		return CaptureLayout.objects.filter(capture_batch=self).order_by('row', 'column', 'library__sample__reich_lab_id')
@@ -1939,7 +2038,7 @@ class CaptureOrShotgunPlate(Timestamped):
 			int_position = reverse_plate_location_coordinate(layout_element.row, layout_element.column)
 			# indices are only assigned if the library has none
 			if layout_element.library is None or (layout_element.library.p5_index is None and layout_element.library.p7_index is None):
-				# double-stranded, TODO single-stranded
+				# double-stranded
 				p5_int, p7_int = indices_for_location(int_position, self.p5_index_start)
 				print(f'indices {p5_int} {p7_int}')
 				p5 = P5_Index.objects.get(label=str(p5_int))
@@ -1982,6 +2081,11 @@ class CaptureOrShotgunPlate(Timestamped):
 			
 	def clean(self):
 		super(CaptureOrShotgunPlate, self).clean()
+		if self.status == self.CLOSED:
+			if self.date is None:
+				raise ValidationError(_('Closed plate needs date'))
+			for element in self.layout_elements():
+				element.clean()
 		self.well_barcode_check()
 		
 	def from_spreadsheet(self, spreadsheet, user):
@@ -2007,7 +2111,7 @@ class CaptureOrShotgunPlate(Timestamped):
 		sequencing_run, created = SequencingRun.objects.get_or_create(name=sequencing_run_name)
 		if not created:
 			raise ValueError(f'SequencingRun {sequencing_run_name} already exists')
-		sequencing_run.assign_captures([self.id])
+		sequencing_run.assign_captures([self.id], user)
 		return sequencing_run
 		
 	def add_library(self, library_str_id, row, column, user):
@@ -2015,9 +2119,9 @@ class CaptureOrShotgunPlate(Timestamped):
 		library_to_add = None
 		if library_str_id == PCR_NEGATIVE:
 			control_type = ControlType.objects.get(control_type=library_str_id)
-		elif library_str_id == CAPTURE_POSITIVE:
+		elif library_str_id == CAPTURE_POSITIVE or library_str_id == CAPTURE_POSITIVE_LIBRARY_NAME_DS:
 			# TODO this assumes double-stranded
-			control_type = ControlType.objects.get(control_type=library_str_id)
+			control_type = ControlType.objects.get(control_type=CAPTURE_POSITIVE)
 			library_to_add = Library.objects.get(reich_lab_library_id=CAPTURE_POSITIVE_LIBRARY_NAME_DS)
 		else:
 			library_to_add = Library.objects.get(reich_lab_library_id=library_str_id)
@@ -2041,6 +2145,13 @@ class CaptureOrShotgunPlate(Timestamped):
 			position = TimestampedWellPosition()
 			position.set_position(position_str)
 			self.add_library(library_str, position.row, position.column, user)
+
+	# single-stranded libraries already have indices assigned
+	def requires_p5_index_start(self):
+		for layout_element in self.layout_elements():
+			if layout_element.control_type == None and get_value(layout_element.library.library_batch.protocol.library_type) == 'ds':
+				return True
+		return False # single stranded or empty
 	
 # library -> indices added
 class CaptureLayout(TimestampedWellPosition):
@@ -2070,6 +2181,22 @@ class CaptureLayout(TimestampedWellPosition):
 					})
 		elif self.control_type is None:
 			raise ValidationError(_('Should have either library or control'))
+
+	# return the index either from capture, or from library if there
+	def _get_index(self, index_str):
+		if hasattr(self, index_str):
+			index = getattr(self, index_str)
+			if index is not None:
+				return index
+		if hasattr(self.library, index_str):
+			return getattr(self.library, index_str)
+		return None
+
+	def get_i5(self):
+		return self._get_index('p5_index')
+
+	def get_i7(self):
+		return self._get_index('p7_index')
 						
 	@staticmethod
 	def spreadsheet_header(no_dashes=False, cumulative=False):
@@ -2098,19 +2225,20 @@ class CaptureLayout(TimestampedWellPosition):
 			return header
 		
 	def to_spreadsheet_row(self, cumulative=False):
+		# until historical elements are backfilled, need to fill unlinked elements with blanks
 		if self.p5_index: # DS
 			p5_index_label = self.p5_index.label
 			p5_index_sequence = self.p5_index.sequence
 		else: # SS or index-only library
-			p5_index_label = self.library.p5_index.label
-			p5_index_sequence = self.library.p5_index.sequence
+			p5_index_label = get_value(self.library, 'p5_index', 'label')
+			p5_index_sequence = get_value(self.library, 'p5_index', 'sequence')
 			
 		if self.p7_index: # DS
 			p7_index_label = self.p7_index.label
 			p7_index_sequence = self.p7_index.sequence
 		else: # SS or index-only library
-			p7_index_label = self.library.p7_index.label
-			p7_index_sequence = self.library.p7_index.sequence
+			p7_index_label = get_value(self.library, 'p7_index', 'label')
+			p7_index_sequence = get_value(self.library, 'p7_index', 'sequence')
 		
 		library_batch = ''
 		well_position_library_batch = ''
@@ -2121,10 +2249,10 @@ class CaptureLayout(TimestampedWellPosition):
 		if self.library:
 			identifier = self.library.reich_lab_library_id
 			
-			p5_barcode_label = self.library.p5_barcode.label if self.library.p5_barcode else ''
-			p5_barcode_sequence = self.library.p5_barcode.sequence if self.library.p5_barcode else ''
-			p7_barcode_label = self.library.p7_barcode.label if self.library.p7_barcode else ''
-			p7_barcode_sequence = self.library.p7_barcode.sequence if self.library.p7_barcode else ''
+			p5_barcode_label = get_value(self.library.p5_barcode, 'label')
+			p5_barcode_sequence = get_value(self.library.p5_barcode, 'sequence')
+			p7_barcode_label = get_value(self.library.p7_barcode, 'label')
+			p7_barcode_sequence = get_value(self.library.p7_barcode, 'sequence')
 			
 			if self.library.library_batch:
 				library_batch = self.library.library_batch.name
@@ -2148,8 +2276,7 @@ class CaptureLayout(TimestampedWellPosition):
 				self.nanodrop,
 				library_batch,
 				well_position_library_batch,
-				#self.capture_batch.name,
-				self.capture_batch.protocol.name,
+				get_value(self, 'capture_batch', 'protocol', 'name'),
 				p5_index_label,
 				p5_index_sequence,
 				p7_index_label,
@@ -2199,22 +2326,32 @@ class SequencingRun(Timestamped):
 	date_pulldown_complete = models.DateField(null=True)
 	reich_lab_release_version = models.CharField(max_length=20, blank=True)
 	
-	indexed_libraries = models.ManyToManyField(CaptureLayout)
+	indexed_libraries = models.ManyToManyField(CaptureLayout, through='SequencedLibrary')
 	captures = models.ManyToManyField(CaptureOrShotgunPlate) # for marking whether captures have been sequenced
 	
-	def assign_captures(self, capture_ids):
+	def assign_captures(self, capture_ids, user):
 		# remove captures that are not in list
 		for capture in self.captures.all():
 			if capture.id not in capture_ids:
 				self.captures.remove(capture)
 				for element_to_remove in CaptureLayout.objects.filter(capture_batch__id=capture.id):
-					self.indexed_libraries.remove(element_to_remove)
+					try:
+						sequenced_library = SequencedLibrary.objects.get(indexed_library=element_to_remove, sequencing_run=self)
+						sequenced_library.delete()
+					except SequencedLibrary.DoesNotExist:
+						pass
 		# add captures in list
 		for capture_id in capture_ids:
 			capture = CaptureOrShotgunPlate.objects.get(id=capture_id)
 			self.captures.add(capture)
 			for element_to_add in CaptureLayout.objects.filter(capture_batch=capture):
-				self.indexed_libraries.add(element_to_add)
+				self.assign_capture_layout_element(element_to_add, user)
+
+	def assign_capture_layout_element(self, capture_layout_element, user, dnu='', notes=''):
+		sequenced_library, created = SequencedLibrary.objects.get_or_create(indexed_library=capture_layout_element, sequencing_run=self)
+		sequenced_library.do_not_use = dnu
+		sequenced_library.notes = notes
+		sequenced_library.save(save_user=user)
 	
 	# only one library type is allowed
 	def check_library_type(self):
@@ -2223,31 +2360,116 @@ class SequencingRun(Timestamped):
 		
 	def check_index_barcode_combinations(self):
 		combinations = {}
-		for layout_element in self.indexed_libraries.all():
+		for sequenced_library in SequencedLibrary.objects.filter(sequencing_run=self):
+			layout_element = sequenced_library.indexed_library
 			try:
-				p5_index = layout_element.p5_index.sequence
-				p7_index = layout_element.p7_index.sequence
-				p5_barcode = layout_element.library.p5_barcode.sequence if layout_element.library else ''
-				p7_barcode = layout_element.library.p7_barcode.sequence if layout_element.library else ''
+				p5_index = get_value(layout_element, 'get_i5', 'sequence')
+				p7_index = get_value(layout_element, 'get_i7', 'sequence')
+				p5_barcode = get_value(layout_element, 'library', 'p5_barcode', 'sequence')
+				p7_barcode = get_value(layout_element, 'library', 'p7_barcode', 'sequence')
 				
 				s = f'{p5_index}_{p7_index}_{p5_barcode}_{p7_barcode}'
+				this_id = get_value(sequenced_library, 'indexed_library', 'library', 'reich_lab_library_id')
 				if s in combinations:
-					raise ValueError(f'duplicate index-barcode_combination {s}')
-				combinations[s] = True
+					raise ValueError(f'duplicate index-barcode_combination {s} {combinations[s]} {this_id}')
+				combinations[s] = f'{sequenced_library.id} {this_id}'
 			except Exception as e:
 				library = layout_element.library.reich_lab_library_id if  layout_element.library else ''
 				control = layout_element.control_type.control_type if layout_element.control_type else ''
 				print(f'error checking {layout_element} {library} {control}')
-				raise
+				raise e
 	
-	# currently unused, implemented in view
-	def to_spreadsheet(self):
+	def to_spreadsheet(self, cumulative=False):
 		lines = []
-		header = CaptureLayout.spreadsheet_header(True)
+		header = SequencedLibrary.spreadsheet_header(cumulative)
 		lines.append(header)
-		for indexed_library in indexed_libraries.all().order_by('column', 'row', 'library__sample__reich_lab_id'):
-			lines.append(indexed_library.to_spreadsheet_row())
+		for sequenced_library in SequencedLibrary.objects.filter(sequencing_run=self, ).order_by('indexed_library__column', 'indexed_library__row', 'indexed_library__capture_batch__protocol__name', 'indexed_library__library__sample__reich_lab_id', 'indexed_library__library__reich_lab_library_id'):
+			lines.append(sequenced_library.to_spreadsheet_row(cumulative))
 		return lines
+
+	# For the analysis pipeline, a sequencing run needs to know the barcodes and indices used to give hints for demultiplexing
+	def i5_indices(self):
+		indices = [index.sequence for index in P5_Index.objects.filter(reich_lab_default=True)]
+
+		# indices for this sequencing run
+		for sequenced_library in SequencedLibrary.objects.filter(sequencing_run=self):
+			sequence = get_value(sequenced_library.indexed_library, 'p5_index', 'sequence', default=None)
+			if sequence is not None and sequence not in indices:
+				indices.append(sequence)
+		return indices
+
+	def i7_indices(self):
+		indices = [index.sequence for index in P7_Index.objects.filter(reich_lab_default=True)]
+
+		# indices for this sequencing run
+		for sequenced_library in SequencedLibrary.objects.filter(sequencing_run=self):
+			sequence = get_value(sequenced_library.indexed_library, 'p7_index', 'sequence', default=None)
+			if sequence is not None and sequence not in indices:
+				indices.append(sequence)
+		return indices
+
+	def barcodes(self):
+		barcode_sequences = [barcode.sequence for barcode in Barcode.objects.filter(reich_lab_default=True)]
+
+		for sequenced_library in SequencedLibrary.objects.filter(sequencing_run=self):
+			p5_barcode_sequence = get_value(sequenced_library.indexed_library, 'library', 'p5_barcode', 'sequence', default=None)
+			if p5_barcode_sequence is not None and p5_barcode_sequence not in barcode_sequences:
+				barcode_sequences.append(p5_barcode_sequence)
+
+			p7_barcode_sequence = get_value(sequenced_library.indexed_library, 'library', 'p7_barcode', 'sequence', default=None)
+			if p7_barcode_sequence is not None and p7_barcode_sequence not in barcode_sequences:
+				barcode_sequences.append(p7_barcode_sequence)
+		return barcode_sequences
+
+
+class SequencedLibrary(Timestamped):
+	indexed_library = models.ForeignKey(CaptureLayout, on_delete=models.CASCADE)
+	sequencing_run = models.ForeignKey(SequencingRun, on_delete=models.CASCADE)
+
+	do_not_use = models.TextField(blank=True)
+	notes = models.TextField(blank=True)
+
+	class Meta:
+		unique_together = ['indexed_library', 'sequencing_run']
+
+	@staticmethod
+	def spreadsheet_header(no_dashes=False, cumulative=False):
+		header = CaptureLayout.spreadsheet_header(False, cumulative)
+		# add new fields to the right or capture layout fields to preserve
+		header += [
+			'do_not_use',
+			'notes']
+
+		if no_dashes:
+			return [x.rstrip('-') for x in header]
+		else:
+			return header
+
+	def to_spreadsheet_row(self, cumulative=False):
+		if self.indexed_library.library:
+			library_id = self.indexed_library.library.reich_lab_library_id
+		elif self.indexed_library.control_type:
+			library_id = self.indexed_library.control_type.control_type
+		else:
+			raise NotImplementedError()
+
+		line = self.indexed_library.to_spreadsheet_row(cumulative)
+		line += [
+			self.do_not_use,
+			self.notes]
+		return line
+
+	def from_spreadsheet_row(self, headers, arg_array, user):
+		raise NotImplementedError()
+		reich_lab_library_id = get_spreadsheet_value(headers, arg_array, 'library_id-')
+		if self.indexed_library.library and self.indexed_library.library.reich_lab_library_id != reich_lab_library_id:
+			raise ValueError(f'reich_lab_library_id mismatch {self.indexed_library.library.reich_lab_library_id} {reich_lab_library_id}')
+		sequencing_run_name = get_spreadsheet_value(headers, arg_array, 'sequencing_run-')
+		if sequencing_run.name != sequencing_run_name:
+			raise ValueError(f'sequencing run name mismatch {sequencing_run.name} {sequencing_run_name}')
+		self.do_not_use = arg_array[headers.index('do_not_use')]
+		self.notes = arg_array[headers.index('notes')]
+		self.save(save_user=user)
 	
 class RadiocarbonShipment(Timestamped):
 	ship_id = models.CharField(max_length=20, db_index=True, unique=True)

@@ -2,7 +2,7 @@
 
 {% load static %}
 
-{% block title %}Sample Selection For Powder Batch {{powder_batch_name}}{% endblock %}
+{% block title %}Powder Prep Queue Selection For Powder Batch {{powder_batch_name}}{% endblock %}
 
 {% block content %}
 <script src="{% static "samples/list.js" %}"></script>
@@ -41,6 +41,7 @@ table{
 		<th><button class="sort" type="button" data-sort="priority">Priority</button></th>
 		<th><button class="sort" type="button" data-sort="expected_complexity">Expected Complexity</button></th>
 		<th><button class="sort" type="button" data-sort="sampling_tech">Sampling Tech</button></th>
+		<th><button class="sort" type="button" data-sort="sample_prep_lab">Prep Lab</button></th>
 		<th><button class="sort" type="button" data-sort="udg">UDG</button></th>
 		<th><button class="sort" type="button" data-sort="shipment_id">Shipment ID</button></th>
 		<th><button class="sort" type="button" data-sort="collaborator">Collaborator</button></th>
@@ -61,6 +62,7 @@ table{
 		<td class="priority">{{queued.priority}}</td>
 		<td class="expected_complexity">{{queued.sample.expected_complexity.description}}</td>
 		<td class="sampling_tech">{{queued.sample_prep_protocol.preparation_method}}</td>
+		<td class="sample_prep_lab">{{queued.sample_prep_lab}}</td>
 		<td class="udg">{{queued.udg_treatment}}</td>
 		<td class="shipment_id">{{queued.sample.shipment.shipment_name}}</td>
 		<td class="collaborator">{{queued.sample.collaborator.first_name}} {{queued.sample.collaborator.last_name}}</td>
@@ -83,7 +85,7 @@ table{
 
 <script>
 	var list_options = {
-		valueNames: ['priority', 'expected_complexity', 'sampling_tech', 'udg', 'shipment_id', 'collaborator', 'skeletal_element', 'skeletal_code', 'country', 'region', 'period', 'culture', 'notes', 'notes_2', 'sample_prep_queue_id'],
+		valueNames: ['priority', 'expected_complexity', 'sampling_tech', 'sample_prep_lab', 'udg', 'shipment_id', 'collaborator', 'skeletal_element', 'skeletal_code', 'country', 'region', 'period', 'culture', 'notes', 'notes_2', 'sample_prep_queue_id'],
 		searchColumns: ['priority', 'expected_complexity', 'sampling_tech', 'udg', 'shipment_id', 'collaborator', 'skeletal_element', 'country', 'region', 'period', 'culture'],
 		searchDelay: 500
 	};
