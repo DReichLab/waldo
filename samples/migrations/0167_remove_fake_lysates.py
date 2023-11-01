@@ -8,7 +8,7 @@ def remove_fake_lysates(apps, queryset):
 	LysateBatchLayout = apps.get_model('samples', 'LysateBatchLayout')
 	ExtractionBatchLayout = apps.get_model('samples', 'ExtractionBatchLayout')
 	
-	for lysate in Lysate.objects.filter(lysate_id__endswith='.NY'):
+	for lysate in Lysate.objects.filter(lysate_id__contains='.NY'):
 		for extract in Extract.objects.filter(lysate=lysate):
 			extract.sample = lysate.powder_sample.sample
 			extract.lysate = None
