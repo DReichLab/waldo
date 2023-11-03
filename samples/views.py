@@ -184,8 +184,12 @@ def powder_batches(request):
 				powder_batch.technician_fk = wetlab_staff
 			powder_batch.save()
 			return redirect(f'{reverse("powder_batch_assign_samples")}?name={powder_batch.name}')
-		
-	batches = PowderBatch.objects.all().annotate(
+
+	if 'all' in request.GET:
+		batches = PowderBatch.objects.all()
+	else:
+		batches = PowderBatch.objects.filter(status__lt=PowderBatch.CLOSED)
+	batches = batches.annotate(
 					Count('sampleprepqueue', distinct=True),
 					Count('powdersample', distinct=True),
 					num_queue_entries = Count('sampleprepqueue', distinct=True) + Count('powderprepqueue', distinct=True),
