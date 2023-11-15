@@ -1406,7 +1406,7 @@ class ExtractionBatch(Timestamped):
 			if lysate is not None:
 				self.add_lysate(lysate, position.row, position.column, user)
 			else:
-				skipped_text += f'Crowd spreadsheet skipping: {object_str}\n'
+				skipped_text += f'Crowd spreadsheet skipping: {str(position)} "{object_str}"\n'
 				 
 		return skipped_text
 	
