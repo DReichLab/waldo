@@ -1396,12 +1396,18 @@ class ExtractionBatch(Timestamped):
 			if use_lysate_ids:
 				object_str = get_spreadsheet_value(headers, line, 'Lysate')
 				if object_str.startswith('S'): # ignore controls and nonsamples
-					lysate = Lysate.objects.get(lysate_id=object_str)
+					try:
+						lysate = Lysate.objects.get(lysate_id=object_str)
+					except Lysate.DoesNotExist:
+						raise ValueError(f'{object_str} not found')
 			else:
 				object_str = get_spreadsheet_value(headers, line, 'Library')
 				if object_str.startswith('S'): # ignore controls and nonsamples
-					library = Library.objects.get(reich_lab_library_id=object_str)
-					lysate = library.extract.lysate
+					try:
+						library = Library.objects.get(reich_lab_library_id=object_str)
+						lysate = library.extract.lysate
+					except Library.DoesNotExist:
+						raise ValueError(f'{object_str} not found')
 
 			if lysate is not None:
 				self.add_lysate(lysate, position.row, position.column, user)
