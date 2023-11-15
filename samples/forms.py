@@ -713,7 +713,7 @@ class SpreadsheetForm(forms.Form):
 	spreadsheet = forms.FileField(help_text='Retain headers from downloaded spreadsheet')
 	
 class BatchUploadForm(forms.Form):
-	spreadsheet = forms.FileField(help_text='"Library" and "Position" header')
+	spreadsheet = forms.FileField(help_text='Include header line')
 	
 class BatchUploadRotateableForm(BatchUploadForm):
 	rotated = forms.BooleanField(required=False, help_text='Rotate after upload')

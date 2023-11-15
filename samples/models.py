@@ -1376,19 +1376,37 @@ class ExtractionBatch(Timestamped):
 		self.set_controls(user)
 		headers, data_row_fields = spreadsheet_headers_and_data_row_fields(spreadsheet)
 		skipped_text = ''
+
+		# Spreadsheet contains either Lysate or Library column to identify lysates
+		use_lysate_ids = None
+		if 'Lysate' in headers:
+			use_lysate_ids = True
+		elif 'Library' in headers:
+			use_lysate_ids = False
+		else:
+			raise ValueError("Spreadsheet needs either 'Lysate' or 'Library'")
 		
 		for line in data_row_fields:
-			library_str = get_spreadsheet_value(headers, line, 'Library')
 			position_str = get_spreadsheet_value(headers, line, 'Position')
 			position = TimestampedWellPosition()
 			position.set_position(position_str)
 			
-			if library_str.startswith('S'): # ignore controls and nonsamples
-				library = Library.objects.get(reich_lab_library_id=library_str)
-				lysate = library.extract.lysate
+			lysate = None
+			object_str = None
+			if use_lysate_ids:
+				object_str = get_spreadsheet_value(headers, line, 'Lysate')
+				if object_str.startswith('S'): # ignore controls and nonsamples
+					lysate = Lysate.objects.get(lysate_id=object_str)
+			else:
+				object_str = get_spreadsheet_value(headers, line, 'Library')
+				if object_str.startswith('S'): # ignore controls and nonsamples
+					library = Library.objects.get(reich_lab_library_id=object_str)
+					lysate = library.extract.lysate
+
+			if lysate is not None:
 				self.add_lysate(lysate, position.row, position.column, user)
 			else:
-				skipped_text += f'Crowd spreadsheet skipping: {library_str}\n'
+				skipped_text += f'Crowd spreadsheet skipping: {object_str}\n'
 				 
 		return skipped_text
 	

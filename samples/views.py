@@ -889,8 +889,9 @@ def extract_batch_load_crowd(request):
 			message = f'Values updated. {message}'
 	else:
 		spreadsheet_form = BatchUploadRotateableForm()
-		message = 'For each desired lysate, use a derived library'
-	return render(request, 'samples/batch_load_file.html', { 'title': f'Extracts for {extract_batch_name}', 'form': spreadsheet_form, 'message': message} )
+		message = '''For each desired lysate, use either the lysate id or an existing derived library id.
+			Column headers should be Lysate and Position or Library and Position.'''
+	return render(request, 'samples/batch_load_file.html', { 'title': f'Extracts for {extract_batch_name}', 'form': spreadsheet_form, 'message': message, 'batch_type': 'extract batch', 'batch_name': extract_batch_name} )
 	
 @login_required
 def extract_batch_to_library_batch(request):
@@ -1335,7 +1336,7 @@ def capture_blob_spreadsheet_upload(request):
 			message = 'Values updated'
 	else:
 		spreadsheet_form = BatchUploadForm()
-		message = ''
+		message = 'Provide Library and Position columns'
 		
 	return render(request, 'samples/batch_load_file.html', { 'batch_type': 'Blob', 'batch_name': capture_batch_name, 'form': spreadsheet_form, 'message': message} )
 
