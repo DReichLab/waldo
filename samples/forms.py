@@ -288,7 +288,7 @@ class LysateBatchForm(UserModelForm):
 	
 	class Meta:
 		model = LysateBatch
-		fields = ['batch_name', 'protocol', 'control_set', 'date', 'note', 'technician', 'status']
+		fields = ['batch_name', 'protocol', 'control_set', 'date', 'note', 'technician', 'status', 'freezer_date']
 		widgets = {
 			'note': Textarea(attrs={'cols': 60, 'rows': 2}),
 		}

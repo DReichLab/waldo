@@ -750,6 +750,7 @@ class LysateBatch(Timestamped):
 		(STOP, 'Stop')
 	)
 	status = models.PositiveSmallIntegerField(default = OPEN, choices=LYSATE_BATCH_STATES)
+	freezer_date = models.DateField(null=True)
 	
 	# return string representing status. For templates
 	def get_status(self):
