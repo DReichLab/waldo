@@ -295,7 +295,7 @@ class LysateBatchForm(UserModelForm):
 		
 	def __init__(self, *args, **kwargs):
 		super().__init__(*args, **kwargs)
-		for option in ['protocol', 'date']:
+		for option in ['protocol', 'date', 'freezer_date']:
 			self.fields[option].required = False
 		# ensure current values are allowed form values
 		if self.instance.protocol:
