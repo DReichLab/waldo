@@ -1,49 +1,7 @@
 from django.core.management.base import BaseCommand, CommandError
+from django.core.files import File
 from django.db import transaction
-from samples.models import ExtractionBatch, LibraryBatch, Library, LIBRARY_POSITIVE, LIBRARY_NEGATIVE, LibraryBatchLayout, P5_Index, P7_Index, WetLabStaff, REICH_LAB, LibraryProtocol
-
-# TODO This should be in create_library_from_extract
-def ss(layout_element, i5, i7, user, ul_extract_used):
-	library_batch = layout_element.library_batch
-	extract = layout_element.extract
-	sample = extract.sample if extract else None
-
-	if layout_element.library is not None:
-		return layout_element.library
-	else:
-		if extract:
-			existing_libraries = extract.num_libraries()
-			next_library_number = existing_libraries + 1
-			reich_lab_library_id = f'{extract.extract_id}.L{next_library_number}'
-		elif layout_element.control_type.control_type == LIBRARY_POSITIVE:
-			next_library_number = 1 # if there is more than one library positive, we need to check existing
-			reich_lab_library_id = f'LP{library_batch.id}.L{next_library_number}'
-		# control starting from this step (Mob)
-		elif layout_element.control_type.control_type == LIBRARY_NEGATIVE:
-			# library negative controls with already created libraries
-			num_existing = LibraryBatchLayout.objects.filter(library_batch=library_batch, library__isnull=False, control_type__control_type=LIBRARY_NEGATIVE).count()
-			next_library_number = 1
-			reich_lab_library_id = f'{control_name_string(library_batch.name, layout_element.control_type, num_existing)}.L{next_library_number}'
-		else:
-			raise ValueError(f'Unexpected case in creating library, neither extract nor library positive/negative {layout_element.id}')
-
-			raise ValueError(f'single stranded TODO')
-	library = Library(sample = sample,
-						extract = extract,
-						library_batch = library_batch,
-						reich_lab_library_id = reich_lab_library_id,
-						reich_lab_library_number = next_library_number,
-						udg_treatment = 'partial',#library_batch.protocol.udg_treatment,
-						library_type = library_batch.protocol.library_type,
-						library_prep_lab = REICH_LAB,
-						ul_extract_used = ul_extract_used,
-						p5_index = i5,
-						p7_index = i7
-					)
-	library.save(save_user=user)
-	layout_element.library = library
-	layout_element.ul_extract_used = library.ul_extract_used
-	layout_element.save(save_user=user)
+from samples.models import ExtractionBatch, LibraryBatch, LIBRARY_POSITIVE, LIBRARY_NEGATIVE, LibraryBatchLayout, P5_Index, P7_Index, WetLabStaff, REICH_LAB, LibraryProtocol, create_library_from_extract, Extract, ControlSet
 
 class Command(BaseCommand):
 	help = 'Populate a library batch with libraries from existing extracts.'
@@ -52,8 +10,10 @@ class Command(BaseCommand):
 		parser.add_argument("library_batch_name")
 		parser.add_argument("layout_file")
 		parser.add_argument('user', help='Wetlab user first name')
-		parser.add_argument('-p', '--protocol', help='library protocol', default='10.1.ssDNA_library_prep_Bravo_v4.0')
+		parser.add_argument('-p', '--protocol', help='library protocol', default='10.1.ssDNA_library_prep_Bravo_v4.2')
 		parser.add_argument('-s', '--source_extract_batch', help='Create new library batch from this extract batch.')
+		parser.add_argument('-n', '--new_batch', action='store_true', help='Create new library batch')
+		parser.add_argument('-c', '--controls', default='DS_2_2_1', help='control layout to use')
 		parser.add_argument('-e', '--extract_ul', help='Use this many ul of extract for each library.', type=float)
 
 	def handle(self, *args, **options):
@@ -65,6 +25,10 @@ class Command(BaseCommand):
 			if options['source_extract_batch']:
 				extract_batch = ExtractionBatch.objects.get(batch_name=options['source_extract_batch'])
 				library_batch = extract_batch.create_library_batch(options['library_batch_name'], user)
+			elif options['new_batch']:
+				library_batch, created = LibraryBatch.objects.get_or_create(name=options['library_batch_name'])
+				library_batch.control_set = ControlSet.objects.get(layout_name=options['controls'])
+				library_batch.set_controls(user)
 			else:
 				library_batch = LibraryBatch.objects.get(name=options['library_batch_name'])
 
@@ -79,17 +43,5 @@ class Command(BaseCommand):
 				ul_extract_used = library_batch.protocol.volume_extract_used_standard
 
 			with open(options['layout_file']) as f:
-				for line in f:
-					well_position_str, i7_str, i5_str = line.split()
-					row = well_position_str[0]
-					column = int(well_position_str[1:])
-					i5 = P5_Index.objects.get(label=i5_str)
-					i7 = P7_Index.objects.get(label=i7_str)
-					try:
-						layout_element = library_batch.layout_elements().get(row=row, column=column)
-					except LibraryBatchLayout.DoesNotExist as e:
-						self.stderr.write(f'{row} {column}')
-						raise e
-					ss(layout_element, i5, i7, user, ul_extract_used)
-			library_batch.status = LibraryBatch.CLOSED
-			library_batch.save()
+				single_stranded_file = File(f)
+				library_batch.single_stranded_from_file(single_stranded_file, user, ul_extract_used=ul_extract_used)

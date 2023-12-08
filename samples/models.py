@@ -1,4 +1,5 @@
 from django.db import models
+from django.db import transaction
 from django.utils import timezone
 from datetime import date
 
@@ -657,6 +658,16 @@ def control_name_string(batch_name, control_type, num_existing):
 		raise ValueError(f'Unhandled control type {control_type_str}')
 		
 	return f'control_{short_control_str}_{num_existing+1}_{batch_name}'
+
+# map a control_name_string back to a control type
+def control_from_name_string(control_name_string_str):
+	if control_name_string_str.startswith('control_'):
+		parts = control_name_string_str.split('_')
+		if parts[1] == 'extract':
+			return ControlType.objects.get(control_type=EXTRACT_NEGATIVE)
+		elif parts[1] == 'library':
+			return ControlType.objects.get(control_type=LIBRARY_NEGATIVE)
+	raise ValueError(f'Unanticipated control name string {control_name_string_str}')
 	
 # How many lysates are there for this sample
 def lysates_for_sample(sample):
@@ -1438,7 +1449,11 @@ class Extract(Timestamped):
 	
 	# ensure this extract has a Reich lab sample number
 	def ensure_ids(self):
-		self.sample.assign_reich_lab_sample_number()
+		sample = self.get_sample()
+		if sample is not None:
+			self.sample = sample
+			self.save()
+			sample.assign_reich_lab_sample_number()
 		
 	def num_libraries(self):
 		return self.library_set.count()
@@ -1447,7 +1462,7 @@ class Extract(Timestamped):
 		if self.sample:
 			return self.sample
 		elif self.lysate:
-			return lysate.get_sample()
+			return self.lysate.get_sample()
 		return None
 	
 # lysate -> extract
@@ -1580,7 +1595,7 @@ class LibraryProtocol(Timestamped):
 
 # Create the library corresponding
 # we create library for library positive for record keeping if there is no extract
-def create_library_from_extract(layout_element, user):
+def create_library_from_extract(layout_element, user, *, i5=None, i7=None, ul_extract_used=None):
 	library_batch = layout_element.library_batch
 	extract = layout_element.extract
 	sample = extract.sample if extract else None
@@ -1603,16 +1618,22 @@ def create_library_from_extract(layout_element, user):
 			next_library_number = 1
 			reich_lab_library_id = f'{control_name_string(library_batch.name, layout_element.control_type, num_existing)}.L{next_library_number}'
 		else:
-			raise ValueError(f'Unexpected case in creating library, neither extract nor library positive/negative {layout_element.id}')
+			raise ValueError(f'Unexpected case in creating library, neither extract nor library positive/negative {str(layout_element)} {layout_element.id}')
 		# TODO check existing extract amount
-		# assign barcodes
+		if ul_extract_used is None:
+			ul_extract_used = library_batch.protocol.volume_extract_used_standard
+		# assign barcodes/indices
 		if library_batch.protocol.library_type == 'ds':
 			int_position = reverse_plate_location_coordinate(layout_element.row, layout_element.column)
 			p5_qstr, p7_qstr = barcodes_for_location(int_position, library_batch.p7_offset)
 			p5_barcode = Barcode.objects.get(label = p5_qstr)
 			p7_barcode = Barcode.objects.get(label = p7_qstr)
 		elif library_batch.protocol.library_type == 'ss':
-			raise ValueError(f'single stranded TODO')
+			# indices are assigned in arguments
+			if i5 is None or i7 is None:
+				raise ValueError(f'single stranded needs assigned indices')
+			p5_barcode = None
+			p7_barcode = None
 		else:
 			raise ValueError(f'unhandled library type {library_batch.protocol.library_type}')
 			
@@ -1624,10 +1645,13 @@ def create_library_from_extract(layout_element, user):
 						udg_treatment = library_batch.protocol.udg_treatment,
 						library_type = library_batch.protocol.library_type,
 						library_prep_lab = REICH_LAB,
-						ul_extract_used = library_batch.protocol.volume_extract_used_standard,
+						ul_extract_used = ul_extract_used,
+						p5_index = i5,
+						p7_index = i7,
 						p5_barcode = p5_barcode,
 						p7_barcode = p7_barcode
 					)
+		library.clean()
 		library.save(save_user=user)
 		layout_element.library = library
 		layout_element.ul_extract_used = library.ul_extract_used
@@ -1812,23 +1836,77 @@ class LibraryBatch(Timestamped):
 			#raise NotImplementedError(f'Unimplemented capture positive for library type {self.protocol.library_type}')
 			pass # TODO wetlab does not have single-stranded capture positive yet
 		
-	def assign_extract(self, extract, row, column, control_type=None):
+	def assign_extract(self, extract, row, column, control_type=None, user=None):
 		if control_type == None:
 		# ensure this extract has a sample number
 			extract.ensure_ids()
-		try:
-			library_batch_layout_element = LibraryBatchLayout.objects.get(library_batch=self,
-									extract=extract,
-									control_type = control_type,
-									row = row,
-									column = column)
-		except LibraryBatchLayout.DoesNotExist:
-			library_batch_layout_element = LibraryBatchLayout(library_batch=self,
-									extract=extract,
-									control_type = control_type,
-									row = row,
-									column = column)
-			library_batch_layout_element.save()
+		library_batch_layout_element, created = LibraryBatchLayout.objects.get_or_create(library_batch=self,
+								row = row,
+								column = column)
+		if not created and extract and extract != library_batch_layout_element.extract:
+			raise ValueError(f'{row}{column} {get_value(extract, "extract_id")} -> {library_batch_layout_element.extract.extract_id}')
+		library_batch_layout_element.extract = extract
+		library_batch_layout_element.control_type = control_type
+		library_batch_layout_element.save(save_user=user)
+		return library_batch_layout_element
+
+	def single_stranded_from_file(self, spreadsheet_file, user, *, ul_extract_used=None):
+		if ul_extract_used is None:
+			ul_extract_used = self.protocol.volume_extract_used_standard
+		with transaction.atomic():
+			headers, data_row_fields = spreadsheet_headers_and_data_row_fields(spreadsheet_file)
+
+			extract_failures = []
+			for line in data_row_fields:
+				position_str = get_spreadsheet_value(headers, line, 'Position')
+				row = position_str[0]
+				column = int(position_str[1:])
+				extract_id = get_spreadsheet_value(headers, line, 'Extract')
+
+				i5_str = get_spreadsheet_value(headers, line, 'I5')
+				i7_str = get_spreadsheet_value(headers, line, 'I7')
+				if not i5_str.endswith('ss'):
+					i5_str += 'ss'
+				i5 = P5_Index.objects.get(label=i5_str)
+				i7 = P7_Index.objects.get(label=i7_str)
+
+				# if control elements already exist, respect them
+				try:
+					layout_element = LibraryBatchLayout.objects.get(library_batch=self, row=row, column=column)
+				except LibraryBatchLayout.DoesNotExist:
+					layout_element = None
+				if layout_element and layout_element.control_type is not None:
+					control_type = layout_element.control_type
+					extract = layout_element.extract
+
+				elif extract_id.startswith('control'): # expect control_extract_1_Crowd.38 format
+					raise NotImplementedError()
+					control_type = control_from_name_string(extract_id)
+					extract = None
+				elif len(extract_id) > 0:
+					control_type = None
+					try:
+						extract = Extract.objects.get(extract_id=extract_id)
+					except Extract.DoesNotExist as e:
+						print(f'{position_str} {extract_id} not found')
+						extract_failures.append(extract_id)
+				else: # new extract, identified by sample
+					print(f'{position_str} {extract_id} not found')
+					raise NotImplementedError()
+					sample_id = get_spreadsheet_value(headers, line, 'Sample') # sample primary key, not Reich Lab ID
+					skeletal_code = get_spreadsheet_value(headers, line, 'Skeletal_Code')
+					extraction_lab = get_spreadsheet_value(headers, line, 'Lab')
+
+					control_type = None
+					sample = Sample.objects.get(id=sample_id, skeletal_code=skeletal_code)
+					extract = sample.originating_extract(extraction_lab)
+				try:
+					layout_element = self.assign_extract(extract, row, column, control_type, user)
+				except ValueError as e:
+					extract_failures.append(str(e))
+				create_library_from_extract(layout_element, user, i5=i5, i7=i7, ul_extract_used=ul_extract_used)
+			if len(extract_failures) > 0:
+				raise ValueError('\n'.join(extract_failures))
 	
 def validate_index_dna_sequence(sequence):
 	valid_bases = 'ACGT'
