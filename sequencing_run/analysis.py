@@ -30,7 +30,7 @@ index_additions = '''  ,
 # dynamic scratch parent directory that depends on user
 def get_scratch_directory():
 	user = getpass.getuser()
-	directory = "/n/scratch3/users/{}/{}/automated_pipeline".format(user[0], user)
+	directory = "/n/scratch/users/{}/{}/automated_pipeline".format(user[0], user)
 	return directory
 
 # additional_replacements is for string replacements in json and sh template files. These are used for i5 and i7 index labels for Broad shotgun sequencing. 
