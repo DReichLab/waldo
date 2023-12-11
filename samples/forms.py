@@ -539,6 +539,8 @@ class LibraryBatchForm(UserModelForm):
 		# ensure current values are allowed form values
 		if self.instance.protocol:
 			self.fields['protocol'].queryset = LibraryProtocol.objects.filter(Q(active=True) | Q(id=self.instance.protocol.id) ).order_by('-start_date')
+			if self.instance.protocol.library_type == 'ss':
+				self.fields['p7_offset'].required = False
 		if self.instance.control_set:
 			self.fields['control_set'].queryset = ControlSet.objects.filter(Q(active=True) | Q(id=self.instance.control_set.id)).order_by('layout_name')
 	

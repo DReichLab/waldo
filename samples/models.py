@@ -1715,7 +1715,7 @@ class LibraryBatch(Timestamped):
 			raise ValidationError(_('Closed library batch needs prep date'))
 	
 	def check_p7_offset(self):
-		if self.p7_offset is None or self.p7_offset < 0 or self.p7_offset >= PLATE_WELL_COUNT_HALF:
+		if self.protocol.library_type == 'ds' and (self.p7_offset is None or self.p7_offset < 0 or self.p7_offset >= PLATE_WELL_COUNT_HALF):
 			raise ValueError(f'p7_offset is out of range: {self.p7_offset}')
 			
 	# convenience 
