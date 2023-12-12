@@ -1753,7 +1753,7 @@ class LibraryBatch(Timestamped):
 	# The wetlab calls these Mobs.
 	def set_controls(self, user):
 		# extract controls are assigned explicitly, not populated from control set
-		control_types = [LIBRARY_NEGATIVE, LIBRARY_POSITIVE]
+		control_types = EXTRACT_AND_LIBRARY_CONTROLS
 		controls = ControlLayout.objects.filter(control_set=self.control_set, control_type__control_type__in=control_types, active=True).order_by('column', 'row')
 
 		existing_controls = LibraryBatchLayout.objects.filter(library_batch=self, control_type__control_type__in=control_types).order_by('column', 'row')
@@ -1762,7 +1762,11 @@ class LibraryBatch(Timestamped):
 
 		# create new control layout entries for library controls
 		for control in controls:
-			layout_element = LibraryBatchLayout(library_batch=self, control_type=control.control_type, row=control.row, column=control.column)
+			# Mobs extract negative controls are replaced by library negative controls
+			control_type = control.control_type
+			if control_type.control_type == EXTRACT_NEGATIVE:
+				control_type = ControlType.objects.get(control_type=LIBRARY_NEGATIVE)
+			layout_element = LibraryBatchLayout(library_batch=self, control_type=control_type, row=control.row, column=control.column)
 
 			layout_element.ul_extract_used = 0
 			layout_element.save(save_user=user)
@@ -1891,8 +1895,6 @@ class LibraryBatch(Timestamped):
 						print(f'{position_str} {extract_id} not found')
 						extract_failures.append(extract_id)
 				else: # new extract, identified by sample
-					print(f'{position_str} {extract_id} not found')
-					raise NotImplementedError()
 					sample_id = get_spreadsheet_value(headers, line, 'Sample') # sample primary key, not Reich Lab ID
 					skeletal_code = get_spreadsheet_value(headers, line, 'Skeletal_Code')
 					extraction_lab = get_spreadsheet_value(headers, line, 'Lab')
