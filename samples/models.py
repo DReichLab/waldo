@@ -1721,6 +1721,11 @@ class LibraryBatch(Timestamped):
 	# convenience 
 	def layout_elements(self):
 		return LibraryBatchLayout.objects.filter(library_batch=self).order_by('column', 'row', 'library__sample__reich_lab_id')
+
+	def rotate(self, user):
+		rotate_plate(self.layout_elements(), user)
+		self.rotated = not self.rotated
+		self.save(save_user=user)
 	
 	def create_libraries(self, user):
 		self.check_p7_offset()

@@ -14,6 +14,7 @@ class Command(BaseCommand):
 		parser.add_argument('-s', '--source_extract_batch', help='Create new library batch from this extract batch.')
 		parser.add_argument('-n', '--new_batch', action='store_true', help='Create new library batch')
 		parser.add_argument('-c', '--controls', default='DS_2_2_1', help='control layout to use')
+		parser.add_argument('--rotate_after_controls', action='store_true', help='Rotate after adding controls')
 		parser.add_argument('-e', '--extract_ul', help='Use this many ul of extract for each library.', type=float)
 
 	def handle(self, *args, **options):
@@ -29,6 +30,8 @@ class Command(BaseCommand):
 				library_batch, created = LibraryBatch.objects.get_or_create(name=options['library_batch_name'])
 				library_batch.control_set = ControlSet.objects.get(layout_name=options['controls'])
 				library_batch.set_controls(user)
+				if options['rotate_after_controls']:
+					library_batch.rotate(user)
 			else:
 				library_batch = LibraryBatch.objects.get(name=options['library_batch_name'])
 
