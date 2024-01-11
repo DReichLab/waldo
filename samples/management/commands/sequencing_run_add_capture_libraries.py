@@ -29,10 +29,12 @@ class Command(BaseCommand):
 			user = wetlab_user.login_user
 
 			with open(options['library_positions']) as f:
-				f.readline() # discard header
+				header_line = f.readline() # header
+				headers = re.split('\t|\n', header_line)
 				for line in f:
 					fields = re.split('\t|\n', line)
-					library_id = fields[0]
+					library_index = headers.index('Library')
+					library_id = fields[library_index]
 
 					if options['ignore_positions']:
 						if library_id == PCR_NEGATIVE:
@@ -40,13 +42,15 @@ class Command(BaseCommand):
 						else:
 							layout_element = CaptureLayout.objects.get(capture_batch=capture, library__reich_lab_library_id=library_id)
 					else:
-						position = fields[1]
+						position_index = headers.index('Position')
+						position = fields[position_index]
 						row = position[0]
 						column = int(position[1:])
 						if library_id == PCR_NEGATIVE:
 							layout_element = CaptureLayout.objects.get(capture_batch=capture, row=row, column=column, control_type__control_type=PCR_NEGATIVE)
 						else:
 							layout_element = CaptureLayout.objects.get(capture_batch=capture, row=row, column=column, library__reich_lab_library_id=library_id)
+
 					# add this indexed library to sequencing run
 					sequenced_library = SequencedLibrary(indexed_library=layout_element, sequencing_run=sequencing_run)
 					sequenced_library.save(save_user=user)
