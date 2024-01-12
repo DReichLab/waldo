@@ -261,7 +261,7 @@ class ExtractionProtocolForm(UserModelForm):
 		model = ExtractionProtocol
 		fields = ['name', 'start_date', 'end_date', 'description', 'manual_robotic', 'total_lysis_volume', 'lysate_fraction_extracted', 'final_extract_volume', 'binding_buffer', 'manuscript_summary', 'protocol_reference', 'active']
 
-ExtractionProtocolFormset = modelformset_factory(ExtractionProtocol, form=ExtractionProtocolForm, extra=0, max_num=100)
+ExtractionProtocolFormset = modelformset_factory(ExtractionProtocol, form=ExtractionProtocolForm, extra=1, max_num=100)
 		
 # to display the extraction protocol method instead of a primary key
 class ExtractionProtocolSelect(ModelChoiceField):
