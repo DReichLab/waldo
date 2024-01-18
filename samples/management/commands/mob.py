@@ -17,6 +17,7 @@ class Command(BaseCommand):
 		parser.add_argument('--library_ids', help='Allow existing library ids to stand in for their extracts', action='store_true')
 		parser.add_argument('--controls', help='Add controls from control layout. Controls in explicit layout are always added and do not require this option.', action='store_true')
 		parser.add_argument('--user', help='Wetlab user first name')
+		parser.add_argument('--rotate', action='store_true', help='Rotate new elements as they are added to the plate')
 		
 	def handle(self, *args, **options):
 		library_batch = LibraryBatch.objects.get(name=options['library_batch_name'])
@@ -44,6 +45,8 @@ class Command(BaseCommand):
 					
 					position = TimestampedWellPosition()
 					position.set_position(well_position)
+					if options['rotate']:
+						position.rotate()
 					
 					self.stderr.write(f'{id_to_parse}')
 					# existing extracts
