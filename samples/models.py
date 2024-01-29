@@ -22,10 +22,14 @@ import re, string
 
 REICH_LAB = 'Reich Lab'
 
-def parse_sample_string(s):
+def parse_sample_string(s, full=True):
 	# we expect a sample number to start with 'S'
 	# S1234a
-	match = re.fullmatch('S([\d]+)([a-z]{0,2})', s)
+	pattern = 'S([\d]+)([a-z]{0,2})'
+	if full:
+		match = re.fullmatch(pattern, s)
+	else:
+		match = re.match(pattern, s)
 	if match:
 		sample_number = int(match.group(1))
 		control = match.group(2)
@@ -2018,6 +2022,15 @@ class Library(Timestamped):
 		elif self.extract:
 			return self.extract.get_sample()
 		return None
+
+	def get_control_type(self):
+		# first check layout object
+		try:
+			layout_element = LibraryBatchLayout.objects.get(library=self)
+			return layout_element.control_type
+		except LibraryBatchLayout.DoesNotExist:
+			# TODO
+			pass
 	
 # extract -> library
 class LibraryBatchLayout(TimestampedWellPosition):
