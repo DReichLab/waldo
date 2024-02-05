@@ -283,9 +283,9 @@ def load_pulldown_stdout(pulldown_stdout, release_label, sequencing_run_name, da
 		for line in f:
 			if 'mean depth' in line:
 				fields = line.split()
-				if fields[2] != 'mean' or fields[3] != 'depth:' or fields[5] != 'coverage:' or fields[0] != fields[1]:
+				if fields[2] != 'mean' or fields[3] != 'depth:' or fields[5] != 'coverage:' or fields[0].replace('_d','') != fields[1]:
 					raise ValueError('Parse problem in pulldown stdout: {}'.format(line))
-				library_id = fields[0]
+				library_id = fields[1]
 				try:
 					instance_id, library_id_obj = individual_from_library_id(library_id)
 					coverage = float(fields[4])
