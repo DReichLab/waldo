@@ -73,9 +73,7 @@ class Command(BaseCommand):
 		parser.add_argument('ess', help='Tab-delimited extended sample sheet file')
 		parser.add_argument('sequencing_run', help='name of sequencing run in database for sample sheet')
 		parser.add_argument('-u', '--update', action='store_true', help='Fill in blank data with fields from ESS')
-		parser.add_argument('--allow_no_dnu', action='store_true', help='Allow no DNU field when processing a sample sheet')
 		parser.add_argument('--dnu', nargs='*', help='Series of strings to identify "Do Not Use" header')
-		parser.add_argument('--allow_no_notes', action='store_true', help='Allow no wetlab notes field when processing a sample sheet')
 		parser.add_argument('--notes', nargs='*', help='Series of strings to identify "wetlab_notes" header')
 		parser.add_argument('--update_library_layout', action='store_true', help='')
 		parser.add_argument('--update_extract_layout', action='store_true', help='')
@@ -94,12 +92,8 @@ class Command(BaseCommand):
 		pcr_negative = ControlType.objects.get(control_type=PCR_NEGATIVE)
 
 		dnu_header = do_not_use_label(headers, options['dnu'])
-		if dnu_header is None and not options['allow_no_dnu']:
-			raise ValueError('Do_Not_Use -like header not found and required unless allow_no_dnu is set')
 		self.stderr.write(f'DNU header: {dnu_header}')
 		notes_header = notes_label(headers, options['notes'])
-		if notes_header is None and not options['allow_no_notes']:
-			raise ValueError('wetlab_notes -like header not found and required unless allow_no_notes is set')
 		self.stderr.write(f'notes header: {notes_header}')
 
 		extract_control_sample_number, library_control_sample_number =  controls(headers, data_rows)
@@ -200,6 +194,7 @@ class Command(BaseCommand):
 
 					is_control = False
 					if library:
+						library.clean()
 						library.save()
 						is_control = library.is_control()
 
@@ -215,6 +210,7 @@ class Command(BaseCommand):
 						raise NotImplementedError(f'Unexpected index lengths {len(i5.sequence)}, {len(i7.sequence)}')
 					layout_element.row = capture_row
 					layout_element.column = capture_column
+					layout_element.clean()
 					layout_element.save()
 
 					# assign capture layout to sequencing run
@@ -229,13 +225,13 @@ class Command(BaseCommand):
 						# find the associated extract
 						if library:
 							extract = library.extract
-							library_layout_element = LibraryBatchLayout.objects.get_or_create(library_batch=library.library_batch, library=library, control_type=control_type)
+							library_layout_element, create_library_layout = LibraryBatchLayout.objects.get_or_create(library_batch=library.library_batch, library=library, control_type=control_type)
 
 							if options['update_extract_layout']:
 								extract_batch = library.extract.extract_batch
 								if extract_batch:
 									if library.extract.lysate:
-										ExtractionBatchLayout.objects.get_or_create(extract_batch=extract_batch, row=capture_row, column=capture_column, extract=library.extract, lysate=library.extract.lysate)
+										extract_layout_element, created_extract_layout = ExtractionBatchLayout.objects.get_or_create(extract_batch=extract_batch, row=capture_row, column=capture_column, extract=library.extract, lysate=library.extract.lysate)
 										if update_lysate_layout:
 						# TODO validate library batch layout
 
