@@ -1470,6 +1470,7 @@ class Extract(Timestamped):
 		return None
 	
 # lysate -> extract
+# for old batches, powder -> extract
 class ExtractionBatchLayout(TimestampedWellPosition):
 	extract_batch = models.ForeignKey(ExtractionBatch, on_delete=models.CASCADE, null=True) # use a null extract batch to mark lost lysate
 	lysate = models.ForeignKey(Lysate, on_delete=models.CASCADE, null=True)
@@ -1477,6 +1478,21 @@ class ExtractionBatchLayout(TimestampedWellPosition):
 	lysate_volume_used = models.FloatField(null=True) # for lost only, until we can migrate all values in extracts
 	notes = models.TextField(blank=True)
 	extract = models.ForeignKey(Extract, on_delete=models.SET_NULL, null=True, help_text='extract created in this well location')
+	# fields for old batches
+	powder_sample = models.ForeignKey(PowderSample, on_delete=models.CASCADE, null=True)
+	powder_used_mg = models.FloatField(null=True)
+	#powder_batch = models.ForeignKey(PowderBatch, on_delete=models.CASCADE, null=True, help_text='Powder batch where powder was weighed')
+
+	def clean(self):
+		# this can map either lysate xor powder_sample to an extract
+		if self.control_type is None:
+			if self.lysate is not None and self.powder_sample is not None:
+				raise ValidationError(_('Cannot have both lysate and powder'), code='invalid')
+			elif self.lysate is None and self.powder_sample is None:
+				raise ValidationError(_('Non controls must have a lysate or powder'), code='invalid')
+		else:
+			if (self.lysate and self.lysate.sample and self.lysate.sample.control is None) or (self.powder_sample and self.powder_sample.sample.control is None):
+				raise ValidationError(_('Controls cannot have samples (%(lysate)s)'), code='invalid', params={'lysate', self.lysate.lysate_id})
 	
 	@staticmethod
 	def spreadsheet_header(cumulative=False):
@@ -1577,6 +1593,14 @@ class ExtractionBatchLayout(TimestampedWellPosition):
 		if self.control_type is not None:
 			if self.lysate is not None:
 				raise NotImplementedError('Not expecting to destroy_control for ExtractionBatch layouts')
+
+	def get_sample(self):
+		if self.lysate:
+			return self.lysate.get_sample()
+		elif self.powder_sample:
+			return self.sample
+		else:
+			return None
 			
 @receiver(pre_delete, sender=ExtractionBatchLayout, dispatch_uid='extractionbatchlayout_delete_signal')
 def delete_dependent_extract(sender, instance, using, **kwargs):
