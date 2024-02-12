@@ -25,6 +25,7 @@ REICH_LAB = 'Reich Lab'
 def parse_sample_string(s, full=True):
 	# we expect a sample number to start with 'S'
 	# S1234a
+	# control string will be blank for real samples
 	pattern = 'S([\d]+)([a-z]{0,2})'
 	if full:
 		match = re.fullmatch(pattern, s)
@@ -1489,7 +1490,10 @@ class ExtractionBatchLayout(TimestampedWellPosition):
 			if self.lysate is not None and self.powder_sample is not None:
 				raise ValidationError(_('Cannot have both lysate and powder'), code='invalid')
 			elif self.lysate is None and self.powder_sample is None:
-				raise ValidationError(_('Non controls must have a lysate or powder'), code='invalid')
+				# TODO External extracts currently have extract batches, which is not necessary. We should be able to remove these, and validate all entries independent of lab
+				if self.extract:
+					if 'Reich' in self.extract.extraction_lab:
+						raise ValidationError(_('Non controls must have a lysate or powder'), code='invalid')
 		else:
 			if (self.lysate and self.lysate.sample and self.lysate.sample.control is None) or (self.powder_sample and self.powder_sample.sample.control is None):
 				raise ValidationError(_('Controls cannot have samples (%(lysate)s)'), code='invalid', params={'lysate', self.lysate.lysate_id})
