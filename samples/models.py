@@ -2052,13 +2052,22 @@ class Library(Timestamped):
 		return None
 
 	def get_control_type(self):
-		# first check layout object
-		try:
+		# this fails if there is no layout object
+		layout_element = LibraryBatchLayout.objects.get(library=self)
+		return layout_element.control_type
+
+	def is_control(self):
+		try: # look in layout element first
 			layout_element = LibraryBatchLayout.objects.get(library=self)
-			return layout_element.control_type
+			return layout_element.control_type is not None
 		except LibraryBatchLayout.DoesNotExist:
-			# TODO
-			pass
+			# for batches that have not been loaded yet, try to infer control from library id
+			sample = self.get_sample()
+			if sample is not None:
+				return sample.is_control()
+			if reich_lab_library_id.startswith('control'):
+				return True
+			raise NotImplementedError('Unexpected unknown library control state')
 	
 # extract -> library
 class LibraryBatchLayout(TimestampedWellPosition):
