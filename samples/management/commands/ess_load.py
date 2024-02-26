@@ -67,7 +67,7 @@ def controls(headers, data_rows):
 	return extract_control_sample_number, library_control_sample_number
 
 class Command(BaseCommand):
-	help = 'Check/Load extended sample sheet (ESS) file from tab-delimited file into database. This fails if there is inconsistent (present but different) data. '
+	help = 'Check/Load extended sample sheet (ESS) file from tab-delimited file into database. This fails if there is inconsistent (present but different) data. This will not create any Sample, PowderSample, Lysate, Extract, or Library objects, which are assumed to exist already. Layout elements to assign locations may be created.'
 	
 	def add_arguments(self, parser):
 		parser.add_argument('ess', help='Tab-delimited extended sample sheet file')
@@ -166,14 +166,19 @@ class Command(BaseCommand):
 						library_style = get_spreadsheet_value(headers, row, 'Library_Style')
 						field_check(library, 'library_type', library_style, update)
 
+					# new controls are marked in name
+					if library_id.startswith('control'):
+						control_type_obj = control_from_name_string(library_id)
+						control_type = control_type_obj.control_type
 					# if this is an old-style control, we need to identify type
 					# identify extract and library negative controls based on sample and plate location
-					sample, control_letter = parse_sample_string(library_id, full=False)
-					if control_letter:
-						if sample == extract_control_sample_number:
-							control_type = EXTRACT_NEGATIVE
-						elif sample == library_control_sample_number:
-							control_type = LIBRARY_NEGATIVE
+					else:
+						sample, control_letter = parse_sample_string(library_id, full=False)
+						if control_letter:
+							if sample == extract_control_sample_number:
+								control_type = EXTRACT_NEGATIVE
+							elif sample == library_control_sample_number:
+								control_type = LIBRARY_NEGATIVE
 
 				except Library.DoesNotExist:
 					library = None
@@ -233,6 +238,11 @@ class Command(BaseCommand):
 									if library.extract.lysate:
 										extract_layout_element, created_extract_layout = ExtractionBatchLayout.objects.get_or_create(extract_batch=extract_batch, row=capture_row, column=capture_column, extract=library.extract, lysate=library.extract.lysate)
 										if update_lysate_layout:
+											if library.extract.lysate.powder_sample:
+												pass
+											else: # no powder sample
+												pass # TODO
+
 						# TODO validate library batch layout
 
 	def barcode_from_str(self, class_name, barcode_str):
