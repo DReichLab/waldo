@@ -20,11 +20,13 @@
 	<th>Collaborator</th>
 	<th>Collaborator ID</th>
 	<th>Burial Code</th>
+	<th>Site</th>
 </tr>
 <tr>
 	<td>{{ sample.collaborator.name }}</td>
 	<td>{{ sample.skeletal_code }}</td>
 	<td>{{ sample.burial_code }}</td>
+	<td>{{ sample.location_fk.site }}</td>
 </tr>
 </table>
 
