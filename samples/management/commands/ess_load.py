@@ -1,7 +1,7 @@
 from django.core.management.base import BaseCommand, CommandError
 from django.conf import settings
 from django.db import transaction
-from samples.models import Library, P5_Index, P7_Index, Barcode, CaptureOrShotgunPlate, SequencingRun, LibraryBatch, CaptureLayout, ControlType, EXTRACT_NEGATIVE, LIBRARY_NEGATIVE, PCR_NEGATIVE, CAPTURE_POSITIVE, CAPTURE_POSITIVE_LIBRARY_NAME_DS, LibraryBatchLayout, ExtractionBatch, ExtractionBatchLayout, LysateBatch, LysateBatchLayout, parse_sample_string
+from samples.models import Library, P5_Index, P7_Index, Barcode, CaptureOrShotgunPlate, SequencingRun, LibraryBatch, CaptureLayout, ControlType, EXTRACT_NEGATIVE, LIBRARY_NEGATIVE, PCR_NEGATIVE, CAPTURE_POSITIVE, CAPTURE_POSITIVE_LIBRARY_NAME_DS, LibraryBatchLayout, ExtractionBatch, ExtractionBatchLayout, LysateBatch, LysateBatchLayout, parse_sample_string, get_value
 from samples.spreadsheet import *
 from samples.layout import plate_location, location_from_indices
 
@@ -75,8 +75,9 @@ class Command(BaseCommand):
 		parser.add_argument('-u', '--update', action='store_true', help='Fill in blank data with fields from ESS')
 		parser.add_argument('--dnu', nargs='*', help='Series of strings to identify "Do Not Use" header')
 		parser.add_argument('--notes', nargs='*', help='Series of strings to identify "wetlab_notes" header')
-		parser.add_argument('--update_library_layout', action='store_true', help='')
-		parser.add_argument('--update_extract_layout', action='store_true', help='')
+		parser.add_argument('-l', '--update_library_layout', action='store_true', help='')
+		parser.add_argument('-e', '--update_extract_layout', action='store_true', help='')
+		parser.add_argument('-y', '--update_lysate_layout', action='store_true', help='')
 		
 	def handle(self, *args, **options):
 		ess_file = options['ess']
@@ -231,18 +232,47 @@ class Command(BaseCommand):
 						if library:
 							extract = library.extract
 							library_layout_element, create_library_layout = LibraryBatchLayout.objects.get_or_create(library_batch=library.library_batch, library=library, control_type=control_type)
+							library_layout_element.extract = extract
+							library_layout_element.ul_extract_used = library.ul_extract_used
+							library_layout_element.row = capture_row
+							library_layout_element.column = capture_column
+							library_layout_element.save()
 
-							if options['update_extract_layout']:
-								extract_batch = library.extract.extract_batch
-								if extract_batch:
-									if library.extract.lysate:
-										extract_layout_element, created_extract_layout = ExtractionBatchLayout.objects.get_or_create(extract_batch=extract_batch, row=capture_row, column=capture_column, extract=library.extract, lysate=library.extract.lysate)
-										if update_lysate_layout:
-											if library.extract.lysate.powder_sample:
-												pass
-											else: # no powder sample
-												pass # TODO
+					if options['update_extract_layout']:
+						extract = get_value(library, 'extract', None)
+						extract_batch = get_value(library, 'extract', 'extract_batch', default=None)
+						# if lysates exist for this extract, we build
+						# if there is no lysate, powders
+						if extract_batch:
+							try:
+								extract_layout_element = ExtractionBatchLayout.objects.get(extract_batch=extract_batch, extract=library.extract)
+								# TODO check that values for existing layout element match what we expect from ESS
+								if extract_layout_element.lysate != extract.lysate:
+									raise ValueError(f'{extract.lysate.lysate_id} lysate mismatch')
+								if extract_layout_element.extract_batch != extract.extract_batch:
+									raise ValueError(f'{str(extract_layout_element.id)} extract batch mismatch')
+								if extract_layout_element.control_type != control_type:
+									raise ValueError(f'{str(extract_layout_element.id)} control type mismatch')
 
+							except ExtractionBatchLayout.DoesNotExist:
+								if library.extract.lysate:
+									extract_layout_element = ExtractionBatchLayout.objects.create(extract_batch=extract_batch, row=capture_row, column=capture_column, extract=library.extract, lysate=library.extract.lysate)
+								elif control_type is not None:
+									pass
+
+
+					if options['update_lysate_layout']:
+						if library.extract.lysate:
+							extract_layout_element, created_extract_layout = ExtractionBatchLayout.objects.get_or_create(extract_batch=extract_batch, row=capture_row, column=capture_column, extract=library.extract, lysate=library.extract.lysate)
+
+							if library.extract.lysate.powder_sample:
+								lysate_layout_element, created_lysate_layout = LysateBatchLayout.objects.get()
+								pass
+							else: # no powder sample
+								pass # TODO
+						else:
+							pass
+						# TODO
 						# TODO validate library batch layout
 
 	def barcode_from_str(self, class_name, barcode_str):
