@@ -1485,6 +1485,10 @@ class ExtractionBatchLayout(TimestampedWellPosition):
 	#powder_batch = models.ForeignKey(PowderBatch, on_delete=models.CASCADE, null=True, help_text='Powder batch where powder was weighed')
 
 	def clean(self):
+		# extract batches should match
+		if self.extract_batch and self.extract and self.extract.extract_batch:
+			if self.extract_batch != self.extract.extract_batch:
+				raise ValidationError(_(f'extract batch mismatch {str(self.extract_batch)} {str(self.extract.extract_batch)}'), code='invalid')
 		# this can map either lysate xor powder_sample to an extract
 		if self.control_type is None:
 			if self.lysate is not None and self.powder_sample is not None:
