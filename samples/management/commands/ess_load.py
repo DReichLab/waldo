@@ -4,7 +4,10 @@ from django.db import transaction
 from samples.models import Library, P5_Index, P7_Index, Barcode, CaptureOrShotgunPlate, SequencingRun, LibraryBatch, CaptureLayout, ControlType, EXTRACT_NEGATIVE, LIBRARY_NEGATIVE, PCR_NEGATIVE, CAPTURE_POSITIVE, CAPTURE_POSITIVE_LIBRARY_NAME_DS, LibraryBatchLayout, ExtractionBatch, ExtractionBatchLayout, LysateBatch, LysateBatchLayout, parse_sample_string, get_value
 from samples.spreadsheet import *
 from samples.layout import plate_location, location_from_indices
+from collections import Counter
 
+# raise exception if values do not match and existing value is non-empty
+# allow updating of empty values
 def field_check(library, field_name, value, update):
 	existing_value = getattr(library, field_name)
 	if existing_value == None or existing_value == '':
@@ -44,6 +47,84 @@ def fill_library_layout(library, row, column, control_type):
 def fill_extract_layout(extract, row, column, control_type):
 	pass # TODO
 
+# TODO read entry
+class ESS_Entry:
+	# read values from ESS file, with mutiple possible formats
+	def __init__(self, row, headers, sequencing_run, dnu_header, notes_header):
+		try: # Zhao ESS
+			self.well_location = None
+			self.library_well_location = None
+			self.library_id = get_spreadsheet_value(headers, row, 'Sample_Name')
+
+			self.i7 = self.barcode_from_str(P7_Index, get_spreadsheet_value(headers, row, 'Index'))
+			self.i5 = self.barcode_from_str(P5_Index, get_spreadsheet_value(headers, row, 'Index2'))
+
+			p5_barcode_str = get_spreadsheet_value(headers, row, 'P5_barcode')
+			self.p5_barcode = self.barcode_from_str(Barcode, p5_barcode_str)
+
+			p7_barcode_str = get_spreadsheet_value(headers, row, 'P7_barcode')
+			self.p7_barcode = self.barcode_from_str(Barcode, p7_barcode_str)
+
+			self.experiment = get_spreadsheet_value(headers, row, 'Experiment')
+			capture_name =  get_spreadsheet_value(headers, row, 'Capture_Name')
+			self.capture = CaptureOrShotgunPlate.objects.get(name=capture_name)
+
+			self.library_batch = None
+			if 'Batch_id' in headers:
+				batch_str = get_spreadsheet_value(headers, row, 'Batch_id')
+				if batch_str != 'control_library': # leave controls with None library_batch
+					self.library_batch = LibraryBatch.objects.get(name=batch_str)
+
+			self.udg = None
+			if 'UDG_treatment' in headers:
+				self.udg = get_spreadsheet_value(headers, row, 'UDG_treatment').lower()
+
+			self.library_style = None
+			if 'Library_Style' in headers:
+				self.library_style = get_spreadsheet_value(headers, row, 'Library_Style')
+
+		except ValueError: # WALDO ESS
+			self.well_location = get_spreadsheet_value(headers, row, 'well_position-')
+			self.library_well_location = get_spreadsheet_value(headers, row, 'well_position_library_batch-plate_id-')
+			self.library_id = get_spreadsheet_value(headers, row, 'library_id-')
+
+			self.i7 = self.barcode_from_str(P7_Index, get_spreadsheet_value(headers, row, 'p7_index-'))
+			self.i5 = self.barcode_from_str(P5_Index, get_spreadsheet_value(headers, row, 'p5_index-'))
+
+			p5_barcode_str = get_spreadsheet_value(headers, row, 'p5_barcode-')
+			self.p5_barcode = self.barcode_from_str(Barcode, p5_barcode_str)
+
+			p7_barcode_str = get_spreadsheet_value(headers, row, 'p7_barcode-')
+			self.p7_barcode = self.barcode_from_str(Barcode, p7_barcode_str)
+
+			# infer capture from sequencing run
+			self.experiment = get_spreadsheet_value(headers, row, 'experiment-')
+			capture_ids = SequencedLibrary.objects.filter(sequencing_run=sequencing_run).values_list('indexed_library__capture_batch', flat=True).distinct()
+			self.capture = CaptureOrShotgunPlate.objects.get(id__in=capture_ids, protocol__name__contains=self.experiment)
+
+			batch_str = get_spreadsheet_value(headers, row, 'library_batch-')
+			self.library_batch = LibraryBatch.objects.get(name=batch_str)
+
+			self.udg = get_spreadsheet_value(headers, row, 'udg_treatment-').lower()
+			self.library_style = get_spreadsheet_value(headers, row, 'library_type-')
+
+		dnu_value = get_spreadsheet_value(headers, row, dnu_header) if dnu_header else ''
+		notes_value = get_spreadsheet_value(headers, row, notes_header) if notes_header else ''
+
+		if self.experiment in ['1240k_plus', '1240K+']:
+			self.experiment = '1240k+'
+
+	def barcode_from_str(self, class_name, barcode_str):
+		if len(barcode_str) == 0 or barcode_str == '..':
+			barcode = None
+		else:
+			try:
+				barcode = class_name.objects.get(sequence=barcode_str.upper())
+			except class_name.DoesNotExist as e:
+				self.stderr.write(f'{barcode_str} not found')
+				raise e
+		return barcode
+
 # read in a plate, try to determine which Reich Lab sample IDs correspond to extract and library controls
 # Expecting to have two sample IDs, extract first
 # 1. extract control
@@ -52,9 +133,10 @@ def controls(headers, data_rows):
 	control_sample_numbers = {}
 	for row in data_rows:
 		library_id = get_spreadsheet_value(headers, row, 'Sample_Name')
-		sample_number, control = parse_sample_string(library_id, full=False)
-		if control is not None:
-			control_sample_numbers[sample_number] = 1
+		if not library_id.startswith('Contl'):
+			sample_number, control = parse_sample_string(library_id, full=False)
+			if len(control) > 0:
+				control_sample_numbers[sample_number] = 1
 	if len(control_sample_numbers) == 0:
 		return None, None # newer controls do not use Reich Lab sample numbers
 	elif len(control_sample_numbers) != 2:
@@ -65,6 +147,170 @@ def controls(headers, data_rows):
 	if extract_control_sample_number + 1 != library_control_sample_number:
 		raise ValueError(f'Expecting extract #{extract_control_sample_number} + 1 = library #{library_control_sample_number}')
 	return extract_control_sample_number, library_control_sample_number
+
+def process_row(row, headers, sequencing_run, options, capture_positive, pcr_negative, extract_control_sample_number, library_control_sample_number, dnu_header, notes_header, update):
+
+	ess_entry = ESS_Entry(row, headers, sequencing_run, dnu_header, notes_header)
+	try:
+		library = Library.objects.get(reich_lab_library_id=ess_entry.library_id)
+		control_type = None
+		# single-stranded
+		if len(ess_entry.i5.sequence) == 8 and len(ess_entry.i7.sequence) == 8:
+			if library.library_type != 'ss':
+				raise ValueError(f'Library type mismatch for {ess_entry.library_id}')
+			field_check(library, 'p5_index', ess_entry.i5, update)
+			field_check(library, 'p7_index', ess_entry.i7, update)
+			field_check(library, 'p5_barcode', None, False)
+			field_check(library, 'p7_barcode', None, False)
+		# double-stranded
+		elif len(ess_entry.i5.sequence) == 7 and len(ess_entry.i7.sequence) == 7:
+			if library.library_type != 'ds':
+				raise ValueError(f'Library type mismatch for {ess_entry.library_id}')
+			field_check(library, 'p5_index', None, False)
+			field_check(library, 'p7_index', None, False)
+			field_check(library, 'p5_barcode', ess_entry.p5_barcode, update)
+			field_check(library, 'p7_barcode', ess_entry.p7_barcode, update)
+		else:
+			raise NotImplementedError()
+
+		# experiment in sheet should match capture/shotgun batch
+		if ess_entry.experiment not in ess_entry.capture.protocol.name:
+			raise ValueError(f'ESS experiment {ess_entry.experiment} not in capture/shotgun protocol {ess_entry.capture.protocol.name}')
+
+		# library batch
+		if ess_entry.library_batch:
+			field_check(library, 'library_batch', ess_entry.library_batch, update)
+
+		if ess_entry.udg: # check udg between library and ESS
+			udg = ess_entry.udg
+			partial_values = ['half', 'partial', 'user']
+			library_udg = library.udg_treatment.lower()
+
+			if library_udg == '':
+				if update:
+					if udg == 'user':
+						udg = udg.upper()
+					library.udg_treatment = udg
+			elif udg != library_udg and not((udg in partial_values and library_udg in partial_values)):
+				raise ValueError(f'udg mismatch {library.reich_lab_library_id} [{library_udg}] [{udg}]')
+
+		if ess_entry.library_style:
+			field_check(library, 'library_type', ess_entry.library_style, update)
+
+		# new controls are marked in name
+		if ess_entry.library_id.startswith('control'):
+			control_type_obj = control_from_name_string(ess_entry.library_id)
+			control_type = control_type_obj.control_type
+		# if this is an old-style control, we need to identify type
+		# identify extract and library negative controls based on sample and plate location
+		else:
+			sample, control_letter = parse_sample_string(ess_entry.library_id, full=False)
+			if control_letter:
+				if sample == extract_control_sample_number:
+					control_type = EXTRACT_NEGATIVE
+				elif sample == library_control_sample_number:
+					control_type = LIBRARY_NEGATIVE
+
+	except Library.DoesNotExist:
+		library = None
+		if ess_entry.library_id == 'Contl.PCR' or ess_entry.library_id==PCR_NEGATIVE:
+			control_type = pcr_negative
+		elif ess_entry.library_id == 'Contl.Capture' or ess_entry.library_id==CAPTURE_POSITIVE:
+			control_type = capture_positive
+			library = Library.objects.get(reich_lab_library_id=CAPTURE_POSITIVE_LIBRARY_NAME_DS)
+		elif ess_entry.library_id.startswith('control'):
+			control_type_obj = control_from_name_string(ess_entry.library_id)
+			control_type = control_type_obj.control_type
+		else:
+			raise ValueError(f'{ess_entry.library_id} not found')
+
+	if update:
+		# update capture layout
+		layout_element, created = CaptureLayout.objects.get_or_create(capture_batch=ess_entry.capture, library=library, control_type=control_type)
+
+		is_control = False
+		if library:
+			library.clean()
+			library.save()
+			is_control = library.is_control()
+
+		if len(i5.sequence) < 8 and len(i7.sequence) < 8:
+			# only set indices for double-stranded libraries
+			layout_element.p5_index = i5
+			layout_element.p7_index = i7
+			capture_row, capture_column = plate_location(location_from_indices(int(i5.label), int(i7.label)))
+		elif len(i5.sequence) == 8 and len(i7.sequence) == 8:
+			# single stranded
+			capture_row, capture_column = plate_location(location_from_indices(i5.label, i7_label))
+		else:
+			raise NotImplementedError(f'Unexpected index lengths {len(i5.sequence)}, {len(i7.sequence)}')
+		layout_element.row = capture_row
+		layout_element.column = capture_column
+		layout_element.clean()
+		layout_element.save()
+
+		# assign capture layout to sequencing run
+		user = None
+		sequencing_run.assign_capture_layout_element(layout_element, user, dnu_value, notes_value)
+
+		# TODO controls in H9 may be from H12; check barcodes/indices from
+
+		# TODO prior batches: library layout, extract layout, lysate layout
+		# TODO extract, lysate, powder used
+		if options['update_library_layout'] and control_type != capture_positive and control_type != pcr_negative:
+			# find the associated extract
+			# layout for library batch is slightly different than for capture due to controls moving
+			if library:
+				extract = library.extract
+				library_layout_element, create_library_layout = LibraryBatchLayout.objects.get_or_create(library_batch=library.library_batch, library=library, control_type=control_type)
+				library_layout_element.extract = extract
+				library_layout_element.ul_extract_used = library.ul_extract_used
+				library_layout_element.row = capture_row
+				library_layout_element.column = capture_column
+				library_layout_element.save()
+
+		if options['update_extract_layout'] and control_type != capture_positive and control_type != pcr_negative:
+			# library and extract controls have extract entries
+			extract = get_value(library, 'extract', None)
+			extract_batch = get_value(library, 'extract', 'extract_batch', default=None)
+			# if lysates exist for this extract, we build
+			# if there is no lysate, powders
+			if extract_batch:
+				try:
+					extract_layout_element = ExtractionBatchLayout.objects.get(extract_batch=extract_batch, extract=library.extract)
+					# TODO check that values for existing layout element match what we expect from ESS
+					if extract_layout_element.lysate != extract.lysate:
+						raise ValueError(f'{extract.lysate.lysate_id} lysate mismatch')
+					if extract_layout_element.extract_batch != extract.extract_batch:
+						raise ValueError(f'{str(extract_layout_element.id)} extract batch mismatch')
+					if extract_layout_element.control_type != control_type:
+						raise ValueError(f'{str(extract_layout_element.id)} control type mismatch')
+
+				except ExtractionBatchLayout.DoesNotExist:
+					if library.extract.lysate:
+						extract_layout_element = ExtractionBatchLayout.objects.create(extract_batch=extract_batch, row=capture_row, column=capture_column, extract=library.extract, lysate=library.extract.lysate)
+					elif control_type is not None:
+						pass
+				extract_batch.clean()
+			else:
+				raise NotImplementedError('Expecting to always have')
+
+
+		if options['update_lysate_layout'] and control_type != capture_positive and control_type != pcr_negative:
+			if library.extract.lysate:
+				extract_layout_element, created_extract_layout = ExtractionBatchLayout.objects.get_or_create(extract_batch=extract_batch, row=capture_row, column=capture_column, extract=library.extract, lysate=library.extract.lysate)
+
+				if library.extract.lysate.powder_sample:
+					lysate_layout_element, created_lysate_layout = LysateBatchLayout.objects.get()
+					pass
+				else: # no powder sample
+					pass # TODO
+			else:
+				pass
+			# TODO
+			# TODO validate library batch layout
+
+	return ess_entry
 
 class Command(BaseCommand):
 	help = 'Check/Load extended sample sheet (ESS) file from tab-delimited file into database. This fails if there is inconsistent (present but different) data. This will not create any Sample, PowderSample, Lysate, Extract, or Library objects, which are assumed to exist already. Layout elements to assign locations may be created.'
@@ -99,189 +345,20 @@ class Command(BaseCommand):
 
 		extract_control_sample_number, library_control_sample_number =  controls(headers, data_rows)
 
+		capture_or_shotgun_batches = Counter()
+		library_batches = Counter()
 		with transaction.atomic():
 			for row in data_rows:
-				library_id = get_spreadsheet_value(headers, row, 'Sample_Name')
+				ess_entry = process_row(row, headers, sequencing_run, options, capture_positive, pcr_negative, extract_control_sample_number, library_control_sample_number, dnu_header, notes_header, update)
+				capture_or_shotgun_batches.update([ess_entry.capture])
+				library_batches.update([ess_entry.library_batch])
 
-				i7 = self.barcode_from_str(P7_Index, get_spreadsheet_value(headers, row, 'Index'))
-				i5 = self.barcode_from_str(P5_Index, get_spreadsheet_value(headers, row, 'Index2'))
-
-				p5_barcode_str = get_spreadsheet_value(headers, row, 'P5_barcode')
-				p5_barcode = self.barcode_from_str(Barcode, p5_barcode_str)
-
-				p7_barcode_str = get_spreadsheet_value(headers, row, 'P7_barcode')
-				p7_barcode = self.barcode_from_str(Barcode, p7_barcode_str)
-
-				capture_name =  get_spreadsheet_value(headers, row, 'Capture_Name')
-				capture = CaptureOrShotgunPlate.objects.get(name=capture_name)
-
-				try:
-					library = Library.objects.get(reich_lab_library_id=library_id)
-					control_type = None
-					# single-stranded
-					if len(i5.sequence) == 8 and len(i7.sequence) == 8:
-						if library.library_type != 'ss':
-							raise ValueError(f'Library type mismatch for {library_id}')
-						field_check(library, 'p5_index', i5, update)
-						field_check(library, 'p7_index', i7, update)
-						field_check(library, 'p5_barcode', None, False)
-						field_check(library, 'p7_barcode', None, False)
-					# double-stranded
-					elif len(i5.sequence) == 7 and len(i7.sequence) == 7:
-						if library.library_type != 'ds':
-							raise ValueError(f'Library type mismatch for {library_id}')
-						field_check(library, 'p5_index', None, False)
-						field_check(library, 'p7_index', None, False)
-						field_check(library, 'p5_barcode', p5_barcode, update)
-						field_check(library, 'p7_barcode', p7_barcode, update)
-					else:
-						raise NotImplementedError()
-
-					# experiment in sheet should match capture/shotgun batch
-					experiment = get_spreadsheet_value(headers, row, 'Experiment')
-					if experiment in ['1240k_plus', '1240K+']:
-						experiment = '1240k+'
-					if experiment not in capture.protocol.name:
-						raise ValueError(f'ESS experiment {experiment} not in capture/shotgun protocol {capture.protocol.name}')
-
-					# library batch
-					if 'Batch_id' in headers:
-						batch_str = get_spreadsheet_value(headers, row, 'Batch_id')
-						library_batch = LibraryBatch.objects.get(name=batch_str)
-						field_check(library, 'library_batch', library_batch, update)
-
-					if 'UDG_treatment' in headers:
-						udg = get_spreadsheet_value(headers, row, 'UDG_treatment').lower()
-						partial_values = ['half', 'partial', 'user']
-						library_udg = library.udg_treatment.lower()
-
-						if library_udg == '':
-							if update:
-								if udg == 'user':
-									udg = udg.upper()
-								library.udg_treatment = udg
-						elif not((udg in partial_values and library_udg in partial_values) or udg == library_udg):
-							raise ValueError(f'udg mismatch {library.reich_lab_library_id} [{library_udg}] [{udg}]')
-
-					if 'Library_Style' in headers:
-						library_style = get_spreadsheet_value(headers, row, 'Library_Style')
-						field_check(library, 'library_type', library_style, update)
-
-					# new controls are marked in name
-					if library_id.startswith('control'):
-						control_type_obj = control_from_name_string(library_id)
-						control_type = control_type_obj.control_type
-					# if this is an old-style control, we need to identify type
-					# identify extract and library negative controls based on sample and plate location
-					else:
-						sample, control_letter = parse_sample_string(library_id, full=False)
-						if control_letter:
-							if sample == extract_control_sample_number:
-								control_type = EXTRACT_NEGATIVE
-							elif sample == library_control_sample_number:
-								control_type = LIBRARY_NEGATIVE
-
-				except Library.DoesNotExist:
-					library = None
-					if library_id == 'Contl.PCR' or library_id==PCR_NEGATIVE:
-						control_type = pcr_negative
-					elif library_id == 'Contl.Capture' or library_id==CAPTURE_POSITIVE:
-						control_type = capture_positive
-						library = Library.objects.get(reich_lab_library_id=CAPTURE_POSITIVE_LIBRARY_NAME_DS)
-					elif library_id.startswith('control'):
-						control_type_obj = control_from_name_string(library_id)
-						control_type = control_type_obj.control_type
-					else:
-						raise ValueError(f'{library_id} not found')
-
-				if update:
-					# update capture layout
-					layout_element, created = CaptureLayout.objects.get_or_create(capture_batch=capture, library=library, control_type=control_type)
-
-					is_control = False
-					if library:
-						library.clean()
-						library.save()
-						is_control = library.is_control()
-
-					if len(i5.sequence) < 8 and len(i7.sequence) < 8:
-						# only set indices for double-stranded libraries
-						layout_element.p5_index = i5
-						layout_element.p7_index = i7
-						capture_row, capture_column = plate_location(location_from_indices(int(i5.label), int(i7.label)))
-					elif len(i5.sequence) == 8 and len(i7.sequence) == 8:
-						# single stranded
-						capture_row, capture_column = plate_location(location_from_indices(i5.label, i7_label))
-					else:
-						raise NotImplementedError(f'Unexpected index lengths {len(i5.sequence)}, {len(i7.sequence)}')
-					layout_element.row = capture_row
-					layout_element.column = capture_column
-					layout_element.clean()
-					layout_element.save()
-
-					# assign capture layout to sequencing run
-					dnu_value = get_spreadsheet_value(headers, row, dnu_header) if dnu_header else ''
-					notes_value = get_spreadsheet_value(headers, row, notes_header) if notes_header else ''
-					user = None
-					sequencing_run.assign_capture_layout_element(layout_element, user, dnu_value, notes_value)
-
-					# TODO prior batches: library layout, extract layout, lysate layout
-					# TODO extract, lysate, powder used
-					if options['update_library_layout']:
-						# find the associated extract
-						if library:
-							extract = library.extract
-							library_layout_element, create_library_layout = LibraryBatchLayout.objects.get_or_create(library_batch=library.library_batch, library=library, control_type=control_type)
-							library_layout_element.extract = extract
-							library_layout_element.ul_extract_used = library.ul_extract_used
-							library_layout_element.row = capture_row
-							library_layout_element.column = capture_column
-							library_layout_element.save()
-
-					if options['update_extract_layout']:
-						extract = get_value(library, 'extract', None)
-						extract_batch = get_value(library, 'extract', 'extract_batch', default=None)
-						# if lysates exist for this extract, we build
-						# if there is no lysate, powders
-						if extract_batch:
-							try:
-								extract_layout_element = ExtractionBatchLayout.objects.get(extract_batch=extract_batch, extract=library.extract)
-								# TODO check that values for existing layout element match what we expect from ESS
-								if extract_layout_element.lysate != extract.lysate:
-									raise ValueError(f'{extract.lysate.lysate_id} lysate mismatch')
-								if extract_layout_element.extract_batch != extract.extract_batch:
-									raise ValueError(f'{str(extract_layout_element.id)} extract batch mismatch')
-								if extract_layout_element.control_type != control_type:
-									raise ValueError(f'{str(extract_layout_element.id)} control type mismatch')
-
-							except ExtractionBatchLayout.DoesNotExist:
-								if library.extract.lysate:
-									extract_layout_element = ExtractionBatchLayout.objects.create(extract_batch=extract_batch, row=capture_row, column=capture_column, extract=library.extract, lysate=library.extract.lysate)
-								elif control_type is not None:
-									pass
-
-
-					if options['update_lysate_layout']:
-						if library.extract.lysate:
-							extract_layout_element, created_extract_layout = ExtractionBatchLayout.objects.get_or_create(extract_batch=extract_batch, row=capture_row, column=capture_column, extract=library.extract, lysate=library.extract.lysate)
-
-							if library.extract.lysate.powder_sample:
-								lysate_layout_element, created_lysate_layout = LysateBatchLayout.objects.get()
-								pass
-							else: # no powder sample
-								pass # TODO
-						else:
-							pass
-						# TODO
-						# TODO validate library batch layout
-
-	def barcode_from_str(self, class_name, barcode_str):
-		if len(barcode_str) == 0 or barcode_str == '..':
-			barcode = None
-		else:
-			try:
-				barcode = class_name.objects.get(sequence=barcode_str.upper())
-			except class_name.DoesNotExist as e:
-				self.stderr.write(f'{barcode_str} not found')
-				raise e
-		return barcode
+			# validate batches
+			for capture in capture_or_shotgun_batches:
+				self.stdout.write(f'{capture}\t{capture_or_shotgun_batches[capture]}')
+				capture.clean()
+			for library_batch in library_batches:
+				self.stdout.write(f'{library_batch}\t{library_batches[library_batch]}')
+				if library_batch:
+					library_batch.clean()
+			# TODO extract and lysate batch validation
