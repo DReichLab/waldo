@@ -1709,7 +1709,7 @@ def validate_even(value):
 		)
 
 class LibraryBatch(Timestamped):
-	name = models.CharField(max_length=150, blank=True, unique=True, help_text='Usually ends with _DS')
+	name = models.CharField(max_length=150, blank=True, unique=True, help_text='Usually ends with _DS') #TODO no blanks
 	protocol = models.ForeignKey(LibraryProtocol, on_delete=models.PROTECT, null=True)
 	technician = models.CharField(max_length=50, blank=True)
 	prep_date = models.DateField(null=True)
@@ -2069,7 +2069,8 @@ class Library(Timestamped):
 			sample = self.get_sample()
 			if sample is not None:
 				return sample.is_control()
-			if reich_lab_library_id.startswith('control'):
+			library_id = self.reich_lab_library_id
+			if library_id.startswith('control') or library_id.startswith('Contl.') or library_id == 'capture_positive_ds':
 				return True
 			raise NotImplementedError('Unexpected unknown library control state')
 	

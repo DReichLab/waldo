@@ -108,8 +108,8 @@ class ESS_Entry:
 			self.udg = get_spreadsheet_value(headers, row, 'udg_treatment-').lower()
 			self.library_style = get_spreadsheet_value(headers, row, 'library_type-')
 
-		dnu_value = get_spreadsheet_value(headers, row, dnu_header) if dnu_header else ''
-		notes_value = get_spreadsheet_value(headers, row, notes_header) if notes_header else ''
+		self.dnu_value = get_spreadsheet_value(headers, row, dnu_header) if dnu_header else ''
+		self.notes_value = get_spreadsheet_value(headers, row, notes_header) if notes_header else ''
 
 		if self.experiment in ['1240k_plus', '1240K+']:
 			self.experiment = '1240k+'
@@ -148,7 +148,7 @@ def controls(headers, data_rows):
 		raise ValueError(f'Expecting extract #{extract_control_sample_number} + 1 = library #{library_control_sample_number}')
 	return extract_control_sample_number, library_control_sample_number
 
-def process_row(row, headers, sequencing_run, options, capture_positive, pcr_negative, extract_control_sample_number, library_control_sample_number, dnu_header, notes_header, update):
+def process_row(row, headers, sequencing_run, options, capture_positive, pcr_negative, extract_control_sample_number, library_control_sample_number, dnu_header, notes_header, update, command):
 
 	ess_entry = ESS_Entry(row, headers, sequencing_run, dnu_header, notes_header)
 	try:
@@ -207,9 +207,9 @@ def process_row(row, headers, sequencing_run, options, capture_positive, pcr_neg
 			sample, control_letter = parse_sample_string(ess_entry.library_id, full=False)
 			if control_letter:
 				if sample == extract_control_sample_number:
-					control_type = EXTRACT_NEGATIVE
+					control_type = ControlType.objects.get(control_type=EXTRACT_NEGATIVE)
 				elif sample == library_control_sample_number:
-					control_type = LIBRARY_NEGATIVE
+					control_type = ControlType.objects.get(control_type=LIBRARY_NEGATIVE)
 
 	except Library.DoesNotExist:
 		library = None
@@ -232,18 +232,22 @@ def process_row(row, headers, sequencing_run, options, capture_positive, pcr_neg
 		if library:
 			library.clean()
 			library.save()
-			is_control = library.is_control()
+			try:
+				is_control = library.is_control()
+			except NotImplementedError as e:
+				command.stderr.write(f'{ess_entry.library_id} {library}')
+				raise e
 
-		if len(i5.sequence) < 8 and len(i7.sequence) < 8:
+		if len(ess_entry.i5.sequence) < 8 and len(ess_entry.i7.sequence) < 8:
 			# only set indices for double-stranded libraries
-			layout_element.p5_index = i5
-			layout_element.p7_index = i7
-			capture_row, capture_column = plate_location(location_from_indices(int(i5.label), int(i7.label)))
-		elif len(i5.sequence) == 8 and len(i7.sequence) == 8:
+			layout_element.p5_index = ess_entry.i5
+			layout_element.p7_index = ess_entry.i7
+			capture_row, capture_column = plate_location(location_from_indices(int(ess_entry.i5.label), int(ess_entry.i7.label)))
+		elif len(ess_entry.i5.sequence) == 8 and len(ess_entry.i7.sequence) == 8:
 			# single stranded
-			capture_row, capture_column = plate_location(location_from_indices(i5.label, i7_label))
+			capture_row, capture_column = plate_location(location_from_indices(ess_entry.i5.label, ess_entry.i7_label))
 		else:
-			raise NotImplementedError(f'Unexpected index lengths {len(i5.sequence)}, {len(i7.sequence)}')
+			raise NotImplementedError(f'Unexpected index lengths {len(ess_entry.i5.sequence)}, {len(ess_entry.i7.sequence)}')
 		layout_element.row = capture_row
 		layout_element.column = capture_column
 		layout_element.clean()
@@ -251,7 +255,7 @@ def process_row(row, headers, sequencing_run, options, capture_positive, pcr_neg
 
 		# assign capture layout to sequencing run
 		user = None
-		sequencing_run.assign_capture_layout_element(layout_element, user, dnu_value, notes_value)
+		sequencing_run.assign_capture_layout_element(layout_element, user, ess_entry.dnu_value, ess_entry.notes_value)
 
 		# TODO controls in H9 may be from H12; check barcodes/indices from
 
@@ -349,7 +353,7 @@ class Command(BaseCommand):
 		library_batches = Counter()
 		with transaction.atomic():
 			for row in data_rows:
-				ess_entry = process_row(row, headers, sequencing_run, options, capture_positive, pcr_negative, extract_control_sample_number, library_control_sample_number, dnu_header, notes_header, update)
+				ess_entry = process_row(row, headers, sequencing_run, options, capture_positive, pcr_negative, extract_control_sample_number, library_control_sample_number, dnu_header, notes_header, update, self)
 				capture_or_shotgun_batches.update([ess_entry.capture])
 				library_batches.update([ess_entry.library_batch])
 
