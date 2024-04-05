@@ -40,14 +40,22 @@ def notes_label(headers, custom_search):
 			return header
 	return None
 
-def fill_library_layout(library, row, column, control_type):
-	if library.extract:
-		LibraryBatchLayout.objects.get_or_create(library_batch=library_batch, row=capture_row, column=capture_column, library=library, extract=library.extract)
+def h9_library_layout(library_batch, command):
+	h9_elements = library_batch.layout_elements().filter(row='H', column=9).order_by('library__reich_lab_library_id')
+	for element in h9_elements:
+		command.stdout.write(f'{element.library.reich_lab_library_id}')
+	h9_count = h9_elements.count()
+	if h9_count > 2:
+		raise ValueError(f'too many H9 controls to split to H12')
+	elif h9_count == 2:
+		moving_element = h9_elements.last()
+		moving_element.column = 12
+		moving_element.save()
 
 def fill_extract_layout(extract, row, column, control_type):
 	pass # TODO
 
-# TODO read entry
+# read entry
 class ESS_Entry:
 	# read values from ESS file, with mutiple possible formats
 	def __init__(self, row, headers, sequencing_run, dnu_header, notes_header):
@@ -297,7 +305,7 @@ def process_row(row, headers, sequencing_run, options, capture_positive, pcr_neg
 						pass
 				extract_batch.clean()
 			else:
-				raise NotImplementedError('Expecting to always have')
+				command.stderr.write(f'No extract batch for {ess_entry.library_id}')
 
 
 		if options['update_lysate_layout'] and control_type != capture_positive and control_type != pcr_negative:
@@ -362,7 +370,9 @@ class Command(BaseCommand):
 				self.stdout.write(f'{capture}\t{capture_or_shotgun_batches[capture]}')
 				capture.clean()
 			for library_batch in library_batches:
-				self.stdout.write(f'{library_batch}\t{library_batches[library_batch]}')
-				if library_batch:
-					library_batch.clean()
+				self.stdout.write(f'{get_value(library_batch, "name")}\t{library_batches[library_batch]}')
+				if library_batch is not None:
+					h9_library_layout(library_batch, self)
+					if library_batch:
+						library_batch.clean()
 			# TODO extract and lysate batch validation
