@@ -1749,10 +1749,13 @@ class LibraryBatch(Timestamped):
 	def clean(self):
 		if self.status == self.CLOSED and self.prep_date is None:
 			raise ValidationError(_('Closed library batch needs prep date'))
+		# one entry per well position
+		if self.layout_elements().count() - self.layout_elements().distinct('column', 'row').count() > 0:
+			raise ValidationError(_('Multiple library batch layout elements in the same position'))
 	
 	def check_p7_offset(self):
 		if self.protocol.library_type == 'ds' and (self.p7_offset is None or self.p7_offset < 0 or self.p7_offset >= PLATE_WELL_COUNT_HALF):
-			raise ValueError(f'p7_offset is out of range: {self.p7_offset}')
+			raise ValidationError(_(f'p7_offset is out of range: {self.p7_offset}'))
 			
 	# convenience 
 	def layout_elements(self):
