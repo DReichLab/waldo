@@ -18,10 +18,13 @@ class Command(BaseCommand):
 		date_string = options['date_string']
 		date = datetime.datetime.strptime(date_string, "%Y%m%d").date()
 		
-		analysis_run = SequencingAnalysisRun.objects.get(name=name, sequencing_date=date)
-		s = f'{analysis_run.id}: {str(analysis_run.name)}'
-		self.stdout.write(s)
-		if not options['dry_run']:
-			analysis_run.triggering_flowcells.clear()
-			analysis_run.prior_flowcells_for_analysis.clear()
-			analysis_run.delete()
+		analysis_runs = SequencingAnalysisRun.objects.filter(name=name, sequencing_date=date)
+		if len(analysis_runs) == 0:
+			self.stderr.write('No matching SequencingAnalysisRun objects')
+		for analysis_run in analysis_runs:
+			s = f'{analysis_run.id}: {str(analysis_run.name)}'
+			self.stdout.write(s)
+			if not options['dry_run']:
+				analysis_run.triggering_flowcells.clear()
+				analysis_run.prior_flowcells_for_analysis.clear()
+				analysis_run.delete()
