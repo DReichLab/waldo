@@ -110,7 +110,29 @@ def library_anno_line(instance_id_raw, sequencing_run_name, release_label, compo
 	
 	#Skeletal code
 	#mod_append(fields, get_text(sample, 'skeletal_code_renamed'))
-	mod_append(fields, get_text(sample, 'skeletal_code'))
+	#mod_append(fields, get_text(sample, 'skeletal_code'))
+	# Build a string like "skeletal_code (skeleltal_code_renamed, accession_number, burial_code)"
+	# But, with no blanks and no repeated information
+	skeletal_code = get_text(sample, 'skeletal_code')
+	skeletal_code_renamed = get_text(sample, 'skeletal_code_renamed')
+	accession_number = get_text(sample, 'accession_number')
+	burial_code = get_text(sample, 'burial_code')
+	skeletal_code_possible_name_elements = [skeletal_code, skeletal_code_renamed, accession_number, burial_code]
+	skeletal_code_name_elements = []
+	for skeletal_code_possible_name_element in skeletal_code_possible_name_elements:
+		if not skeletal_code_possible_name_element: # is empty
+			continue
+		if skeletal_code_possible_name_element in skeletal_code_name_elements: # duplicate info
+			continue
+		else:
+			skeletal_code_name_elements.append(skeletal_code_possible_name_element)
+	skeletal_code_final = skeletal_code_name_elements[0]
+	if len(skeletal_code_name_elements) > 1:
+		skeletal_code_final += ' ('
+		for skeletal_code_name_element in skeletal_code_name_elements[1:]:
+			skeletal_code_final += skeletal_code_name_element + ', '
+		skeletal_code_final = skeletal_code_final[:-2] + ')' # remove trailing comma and space, replace with parenthesis 
+	mod_append(fields, skeletal_code_final)
 	#Skeletal element
 	mod_append(fields, get_text(sample, 'skeletal_element'))
 	#Year this sample was first published [missing: GreenScience 2010 (Vi33.15, Vi33.26), Olalde2018 (I2657), RasmussenNature2010 (Australian)]
@@ -138,7 +160,23 @@ def library_anno_line(instance_id_raw, sequencing_run_name, release_label, compo
 	else:
 		mod_append(fields, get_text(sample, 'group_label'))
 	#Locality
-	mod_append(fields, get_text(sample, 'locality'))
+	#mod_append(fields, get_text(sample, 'locality'))
+	# Build locality of form "site (level_1, level_2, level_3, level_4, level_5)"
+	site = get_text(sample.location_fk, 'site') if sample else ''
+	level_1 = get_text(sample.location_fk, 'level_1') if sample else ''
+	level_2 = get_text(sample.location_fk, 'level_2') if sample else ''
+	level_3 = get_text(sample.location_fk, 'level_3') if sample else ''
+	level_4 = get_text(sample.location_fk, 'level_4') if sample else ''
+	level_5 = get_text(sample.location_fk, 'level_5') if sample else ''
+	locality = site
+	if level_1 or level_2 or level_3 or level_4 or level_5: # at least one non-blank "level", build parenthetical
+		locality += ' ('
+		for level in [level_1, level_2, level_3, level_4, level_5]:
+			if not level: # blank level, pass
+				continue
+			locality += level + ', '
+		locality = locality[:-2] + ')' # replace trailing comma and space with closing parenthesis
+	mod_append(fields, locality)
 	#Country
 	country = sample.get_country() if sample else None
 	mod_append(fields, get_text(country, 'country_name'))
@@ -147,7 +185,7 @@ def library_anno_line(instance_id_raw, sequencing_run_name, release_label, compo
 	#Long
 	mod_append(fields, get_text(sample.location_fk, 'longitude') if sample else '')
 	#Data type
-	mod_append(fields, '1240K') # TODO
+	mod_append(fields, 'Twist1.4M')
 	#No. Libraries
 	mod_append(fields, str(len(component_library_ids)))
 	
@@ -370,9 +408,9 @@ def library_anno_line(instance_id_raw, sequencing_run_name, release_label, compo
 		if sex_ratio == -1:
 			pass
 		else:
-			if (0.1 <= sex_ratio and sex_ratio <= 0.3):
+			if (0.05 <= sex_ratio and sex_ratio <= 0.3):
 				assessment_sex_ratio = 3
-			elif (0.03 <= sex_ratio and sex_ratio <= 0.1) or (0.3 <= sex_ratio and sex_ratio <= 0.35):
+			elif (0.03 <= sex_ratio and sex_ratio <= 0.05) or (0.3 <= sex_ratio and sex_ratio <= 0.32):
 				assessment_sex_ratio = 1
 			if assessment_sex_ratio > 0:
 				sex_ratio_str = 'sexratio={:.3f}'.format(sex_ratio)
