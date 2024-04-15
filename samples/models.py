@@ -25,8 +25,8 @@ REICH_LAB = 'Reich Lab'
 def parse_sample_string(s, full=True):
 	# we expect a sample number to start with 'S'
 	# S1234a
-	# control string will be blank for real samples
-	pattern = 'S([\d]+)([a-z]{0,2})'
+	# control string will be blank (not NULL/None) for real samples
+	pattern = r'S([\d]+)([a-z]{0,2})'
 	if full:
 		match = re.fullmatch(pattern, s)
 	else:
@@ -37,6 +37,19 @@ def parse_sample_string(s, full=True):
 		return sample_number, control
 	else:
 		raise ValueError('Error parsing sample {}'.format(s))
+
+def parse_library_id(s):
+	pattern = r'S(?P<sample>[\d]+)(?P<control>[a-z]{0,2})(?:\.Y(?P<lysate>[\d]))?(?:\.E(?P<extract>[\d]))?(?:\.L(?P<library>[\d]))'
+	match = re.match(pattern, s)
+	if match:
+		groupdict = match.groupdict()
+		for key, value in groupdict.items():
+			if key != 'control' and value is not None:
+				groupdict[key] = int(value)
+		return groupdict
+	else:
+		raise ValueError('Error parsing library_id {}'.format(s))
+
 
 def get_value(obj, *property_name_chain, default=''):
 	current_object = obj
