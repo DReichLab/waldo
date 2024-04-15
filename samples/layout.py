@@ -26,6 +26,20 @@ def check_plate_domain(int_val):
 	if int_val < 0 or int_val >= PLATE_WELL_COUNT:
 		raise PlateDomainError(f'{int_val} is out of range for a plate location')
 
+# robotic plates should not have more than one element per well
+# layout elements should be all robotic or all manual
+# this is for batch validation
+def validate_single_occupancy_layout(layout_elements):
+	total_count = layout_elements.count()
+	if total_count > PLATE_WELL_COUNT:
+		raise ValidationError(_(f'More elements than well plate locations {count}'))
+	manual = layout_elements.filter(column__isnull=True, row__isnull=True)
+	robotic = layout_elements.filter(column__isnull=False, row__isnull=False)
+	if total_count != robotic.count() and total_count != manual.count():
+		raise ValidationError(_('Layout elements appear to be a mix of manual and robotic by well position'))
+	if robotic.count() > 0 and total_count - robotic.distinct('column', 'row').count() > 0:
+		raise ValidationError(_('Multiple layout elements in the same position'))
+
 # map integer in domain [0,PLATE_WELL_COUNT) to row and column pair (A, 1)
 # order is column first, then row (A1, B1, ..., H1, A2)
 def plate_location(int_val):

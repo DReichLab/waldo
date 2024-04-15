@@ -13,7 +13,7 @@ from django.db.models import Max, Min, Count, Q
 from django.db.models.signals import pre_delete
 from django.dispatch import receiver
 
-from .layout import PLATE_ROWS, PLATE_WELL_COUNT, PLATE_WELL_COUNT_HALF, validate_row_letter, plate_location, reverse_plate_location_coordinate, reverse_plate_location, duplicate_positions_check_db, p7_qbarcode_source, barcodes_for_location, indices_for_location, rotate_plate
+from .layout import PLATE_ROWS, PLATE_WELL_COUNT, PLATE_WELL_COUNT_HALF, validate_row_letter, plate_location, reverse_plate_location_coordinate, reverse_plate_location, duplicate_positions_check_db, p7_qbarcode_source, barcodes_for_location, indices_for_location, rotate_plate, validate_single_occupancy_layout
 from .sample_photos import num_sample_photos
 from .spreadsheet import *
 from .validation import *
@@ -767,6 +767,19 @@ class LysateBatch(Timestamped):
 	)
 	status = models.PositiveSmallIntegerField(default = OPEN, choices=LYSATE_BATCH_STATES)
 	freezer_date = models.DateField(null=True)
+
+	def clean(self):
+		super(LysateBatch, self).clean()
+		for lysate in Lysate.objects.filter(lysate_batch=self):
+			lysate.clean()
+		layout_elements = self.layout_elements()
+		for layout_element in layout_elements:
+			layout_element.clean()
+		validate_single_occupancy_layout(layout_elements)
+
+	# convenience
+	def layout_elements(self):
+		return LysateBatchLayout.objects.filter(lysate_batch=self).order_by('column', 'row', 'lysate__sample__reich_lab_id')
 	
 	# return string representing status. For templates
 	def get_status(self):
@@ -1283,6 +1296,19 @@ class ExtractionBatch(Timestamped):
 		(STOP, 'Stop')
 	)
 	status = models.PositiveSmallIntegerField(default = OPEN, choices=EXTRACT_BATCH_STATES)
+
+	def clean(self):
+		super(ExtractionBatch, self).clean()
+		for extract in Extract.objects.filter(extract_batch=self):
+			extract.clean()
+		layout_elements = self.layout_elements()
+		for layout_element in layout_elements:
+			layout_element.clean()
+		validate_single_occupancy_layout(layout_elements)
+
+	# convenience
+	def layout_elements(self):
+		return ExtractionBatchLayout.objects.filter(extract_batch=self).order_by('column', 'row', 'extract__sample__reich_lab_id')
 	
 	# return string representing status. For templates
 	def get_status(self):
@@ -1747,11 +1773,15 @@ class LibraryBatch(Timestamped):
 		raise ValueError(f'No library batch status {self.status}')
 		
 	def clean(self):
+		super(LibraryBatch, self).clean()
 		if self.status == self.CLOSED and self.prep_date is None:
 			raise ValidationError(_('Closed library batch needs prep date'))
-		# one entry per well position
-		if self.layout_elements().count() - self.layout_elements().distinct('column', 'row').count() > 0:
-			raise ValidationError(_('Multiple library batch layout elements in the same position'))
+		for library in Library.objects.filter(library_batch=self):
+			library.clean()
+		layout_elements = self.layout_elements()
+		for layout_element in layout_elements:
+			layout_element.clean()
+		validate_single_occupancy_layout(layout_elements)
 	
 	def check_p7_offset(self):
 		if self.protocol.library_type == 'ds' and (self.p7_offset is None or self.p7_offset < 0 or self.p7_offset >= PLATE_WELL_COUNT_HALF):
