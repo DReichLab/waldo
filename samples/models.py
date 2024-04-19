@@ -38,9 +38,9 @@ def parse_sample_string(s, full=True):
 	else:
 		raise ValueError('Error parsing sample {}'.format(s))
 
+compiled_library_re = re.compile(r'S(?P<sample>[\d]+)(?P<control>[a-z]{0,2})(?:\.Y(?P<lysate>[\d]))?(?:\.E(?P<extract>[\d]))?(?:\.L(?P<library>[\d]))')
 def parse_library_id(s):
-	pattern = r'S(?P<sample>[\d]+)(?P<control>[a-z]{0,2})(?:\.Y(?P<lysate>[\d]))?(?:\.E(?P<extract>[\d]))?(?:\.L(?P<library>[\d]))'
-	match = re.match(pattern, s)
+	match = re.match(compiled_library_re, s)
 	if match:
 		groupdict = match.groupdict()
 		for key, value in groupdict.items():
@@ -2535,7 +2535,7 @@ class SequencingRun(Timestamped):
 	date_analysis_complete = models.DateField(null=True)
 	date_ready_for_pulldown = models.DateField(null=True)
 	date_pulldown_complete = models.DateField(null=True)
-	reich_lab_release_version = models.CharField(max_length=20, blank=True)
+	reich_lab_release_version = models.CharField(max_length=20, blank=True) # proxy for ESS loaded
 	
 	indexed_libraries = models.ManyToManyField(CaptureLayout, through='SequencedLibrary')
 	captures = models.ManyToManyField(CaptureOrShotgunPlate) # for marking whether captures have been sequenced

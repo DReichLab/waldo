@@ -40,7 +40,7 @@ def notes_label(headers, custom_search):
 			return header
 	return None
 
-def h9_library_layout(library_batch, command):
+def h9_library_layout(library_batch, command, do_extract_move, do_lysate_move):
 	h9_elements = library_batch.layout_elements().filter(row='H', column=9).order_by('library__reich_lab_library_id')
 	for element in h9_elements:
 		command.stdout.write(f'{element.library.reich_lab_library_id}')
@@ -51,9 +51,25 @@ def h9_library_layout(library_batch, command):
 		moving_element = h9_elements.last()
 		moving_element.column = 12
 		moving_element.save()
+		# move prior batches
+		if do_extract_move:
+			extract_layout_element = ExtractionBatchLayout.objects.get(extract=moving_element.extract)
+			extract_layout_element.column = 12
+			extract_layout_element.save()
+			if do_lysate_move:
+				lysate_layout_element = LysateBatchLayout.objects.get(lysate=extract_layout_element.lysate)
+				lysate_layout_element.column = 12
+				lysate_layout_element.save()
 
-def fill_extract_layout(extract, row, column, control_type):
-	pass # TODO
+# returns True if locations should be propagated back to extract stage
+# can tell lysate based on sample names (SX.Y1.E1.L1 or SX.E1.L1)
+def continue_to_extract(library_batch_name):
+	# different technicians have different names for batches that start at library stage and do not continue back to extract/lysate
+	stop_names = ['Gang', 'Bunch', 'Bushel', 'Squad', 'Peck', 'Horde']
+	for name in stop_names:
+		if name in library_batch_name:
+			return False
+	return True
 
 # read entry
 class ESS_Entry:
@@ -148,13 +164,20 @@ def controls(headers, data_rows):
 	if len(control_sample_numbers) == 0:
 		return None, None # newer controls do not use Reich Lab sample numbers
 	elif len(control_sample_numbers) != 2:
-		raise ValueError(f'District control numbers: {len(control_sample_numbers)}')
+		raise ValueError(f'Distinct control numbers: {len(control_sample_numbers)}')
 	sorted_control_sample_number = sorted(control_sample_numbers)
 	extract_control_sample_number = sorted_control_sample_number[0]
 	library_control_sample_number = sorted_control_sample_number[1]
 	if extract_control_sample_number + 1 != library_control_sample_number:
 		raise ValueError(f'Expecting extract #{extract_control_sample_number} + 1 = library #{library_control_sample_number}')
 	return extract_control_sample_number, library_control_sample_number
+
+def all_lysates(headers, data_rows):
+	# count libraries starting from lysates (contain Y# in library ID)
+	lysate_count = 0
+	no_lysate_count = 0
+	for row in data_rows:
+		library_id = get_spreadsheet_value(headers, row, 'Sample_Name')
 
 def process_row(row, headers, sequencing_run, options, capture_positive, pcr_negative, extract_control_sample_number, library_control_sample_number, dnu_header, notes_header, update, command):
 
@@ -265,10 +288,8 @@ def process_row(row, headers, sequencing_run, options, capture_positive, pcr_neg
 		user = None
 		sequencing_run.assign_capture_layout_element(layout_element, user, ess_entry.dnu_value, ess_entry.notes_value)
 
-		# TODO controls in H9 may be from H12; check barcodes/indices from
-
-		# TODO prior batches: library layout, extract layout, lysate layout
-		# TODO extract, lysate, powder used
+		# prior batches: library layout, extract layout, lysate layout
+		# extract, lysate, powder used
 		if options['update_library_layout'] and control_type != capture_positive and control_type != pcr_negative:
 			# find the associated extract
 			# layout for library batch is slightly different than for capture due to controls moving
@@ -281,46 +302,57 @@ def process_row(row, headers, sequencing_run, options, capture_positive, pcr_neg
 				library_layout_element.column = capture_column
 				library_layout_element.save()
 
-		if options['update_extract_layout'] and control_type != capture_positive and control_type != pcr_negative:
+		if options['update_extract_layout'] and continue_to_extract(library_batch.name) and control_type != capture_positive and control_type != pcr_negative:
 			# library and extract controls have extract entries
-			extract = get_value(library, 'extract', None)
+			extract = get_value(library, 'extract', default=None)
 			extract_batch = get_value(library, 'extract', 'extract_batch', default=None)
-			# if lysates exist for this extract, we build
-			# if there is no lysate, powders
+			# if lysates exist for this extract, we build layout elements
+			# if there is no lysate, attempt to lookup powder
 			if extract_batch:
 				try:
-					extract_layout_element = ExtractionBatchLayout.objects.get(extract_batch=extract_batch, extract=library.extract)
-					# TODO check that values for existing layout element match what we expect from ESS
+					extract_layout_element = ExtractionBatchLayout.objects.get(extract_batch=extract_batch, extract=extract)
+					# check that values for existing layout element match what we expect from ESS
 					if extract_layout_element.lysate != extract.lysate:
 						raise ValueError(f'{extract.lysate.lysate_id} lysate mismatch')
 					if extract_layout_element.extract_batch != extract.extract_batch:
 						raise ValueError(f'{str(extract_layout_element.id)} extract batch mismatch')
 					if extract_layout_element.control_type != control_type:
 						raise ValueError(f'{str(extract_layout_element.id)} control type mismatch')
+					# lysis volumes are recorded in layout element
+					extract_layout_element.lysate_volume_used = extract.lysis_volume_extracted
+					# powder amounts for extracts need to be loaded separately because fake lysates have been removed
+					extract_layout_element.row = capture_row
+					extract_layout_element.column = capture_column
+					extract_layout_element.save()
 
-				except ExtractionBatchLayout.DoesNotExist:
-					if library.extract.lysate:
-						extract_layout_element = ExtractionBatchLayout.objects.create(extract_batch=extract_batch, row=capture_row, column=capture_column, extract=library.extract, lysate=library.extract.lysate)
+				except ExtractionBatchLayout.DoesNotExist as e:
+					raise e
+					# expecting layout elements to already exist
+					if extract.lysate:
+						extract_layout_element = ExtractionBatchLayout.objects.create(extract_batch=extract_batch, row=capture_row, column=capture_column, extract=extract, lysate=extract.lysate, lysate_volume_used=extract.lysis_volume_extracted)
 					elif control_type is not None:
 						pass
-				extract_batch.clean()
+					else: # no lysate, not a control, try to infer powder
+						powder = PowderSample.objects.get(sample=extract.sample)
+						extract_layout_element = ExtractionBatchLayout.objects.create(extract_batch=extract_batch, row=capture_row, column=capture_column, extract=library.extract, powder_sample=powder)
+						command.stderr.write(f'unknown powder amount for {ess_entry.library_id}')
+
 			else:
 				command.stderr.write(f'No extract batch for {ess_entry.library_id}')
+			ess_entry.extract_batch = extract_batch
 
-
-		if options['update_lysate_layout'] and control_type != capture_positive and control_type != pcr_negative:
-			if library.extract.lysate:
-				extract_layout_element, created_extract_layout = ExtractionBatchLayout.objects.get_or_create(extract_batch=extract_batch, row=capture_row, column=capture_column, extract=library.extract, lysate=library.extract.lysate)
-
-				if library.extract.lysate.powder_sample:
-					lysate_layout_element, created_lysate_layout = LysateBatchLayout.objects.get()
-					pass
-				else: # no powder sample
-					pass # TODO
-			else:
-				pass
-			# TODO
-			# TODO validate library batch layout
+			if options['update_lysate_layout'] and continue_to_extract(library_batch.name) and control_type != capture_positive and control_type != pcr_negative:
+				lysate = get_value(extract, 'lysate', default=None)
+				lysate_batch = get_value(lysate, 'lysate_batch', default=None)
+				if lysate_batch:
+					lysate_layout_element = LysateBatchLayout.objects.get(lysate_batch=lysate_batch, lysate=lysate)
+					lysate_layout_element.row = capture_row
+					lysate_layout_element.column = capture_column
+					lysate_layout_element.powder_used_mg = lysate.powder_used_mg
+					lysate_layout_element.save()
+				else:
+					command.stderr.write(f'No lysate batch for {ess_entry.library_id}')
+				ess_entry.lysate_batch = lysate_batch
 
 	return ess_entry
 
@@ -330,6 +362,7 @@ class Command(BaseCommand):
 	def add_arguments(self, parser):
 		parser.add_argument('ess', help='Tab-delimited extended sample sheet file')
 		parser.add_argument('sequencing_run', help='name of sequencing run in database for sample sheet')
+		parser.add_argument('release_version', help='string indicating what Reich Lab release this sequecing run first appeared in')
 		parser.add_argument('-u', '--update', action='store_true', help='Fill in blank data with fields from ESS')
 		parser.add_argument('--dnu', nargs='*', help='Series of strings to identify "Do Not Use" header')
 		parser.add_argument('--notes', nargs='*', help='Series of strings to identify "wetlab_notes" header')
@@ -359,11 +392,15 @@ class Command(BaseCommand):
 
 		capture_or_shotgun_batches = Counter()
 		library_batches = Counter()
+		extract_batches = Counter()
+		lysate_batches = Counter()
 		with transaction.atomic():
 			for row in data_rows:
 				ess_entry = process_row(row, headers, sequencing_run, options, capture_positive, pcr_negative, extract_control_sample_number, library_control_sample_number, dnu_header, notes_header, update, self)
 				capture_or_shotgun_batches.update([ess_entry.capture])
 				library_batches.update([ess_entry.library_batch])
+				extract_batches.update([ess_entry.extract_batch])
+				lysate_batches.update([ess_entry.lysate_batch])
 
 			# validate batches
 			for capture in capture_or_shotgun_batches:
@@ -372,7 +409,19 @@ class Command(BaseCommand):
 			for library_batch in library_batches:
 				self.stdout.write(f'{get_value(library_batch, "name")}\t{library_batches[library_batch]}')
 				if library_batch is not None:
-					h9_library_layout(library_batch, self)
+					# move H9 controls back to H12
+					h9_library_layout(library_batch, self, len(extract_batches) > 0, len(lysate_batches) > 0)
 					if library_batch:
 						library_batch.clean()
-			# TODO extract and lysate batch validation
+			# extract and lysate batch validation
+			for extract_batch in extract_batches:
+				self.stdout.write(f'{get_value(extract_batch, "batch_name")}\t{extract_batches[extract_batch]}')
+				if extract_batch is not None:
+					extract_batch.clean()
+			for lysate_batch in lysate_batches:
+				self.stdout.write(f'{get_value(lysate_batch, "batch_name")}\t{lysate_batches[lysate_batch]}')
+				if lysate_batch is not None:
+					lysate_batch.clean()
+
+			sequencing_run.reich_lab_release_version = options['release_version']
+			sequencing_run.save()
