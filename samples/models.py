@@ -286,7 +286,7 @@ class Sample(Timestamped):
 	location_fk = models.ForeignKey(Location, on_delete=models.SET_NULL, null=True)
 	periods = models.ManyToManyField(Period)
 	cultures = models.ManyToManyField(Culture)
-	publications = models.ManyToManyField(Publication)
+	publications = models.ManyToManyField(Publication) # TODO add individual id and group labels to relationship
 
 	individual_id = models.CharField(max_length=15, blank=True)
 	
@@ -1043,7 +1043,7 @@ class LysateBatchLayout(TimestampedWellPosition):
 		super(LysateBatchLayout, self).clean()
 		if self.powder_sample is None and (self.lysate_batch is None or self.control_type is None):
 			print('Null powder samples must be extract batch controls')
-			raise ValidationError(_('Null powder samples must be extract batch controls'))
+			raise ValidationError(_(f'Null powder samples must be extract batch controls {self.id}'))
 		if self.is_lost and self.lysate_batch is not None:
 			raise ValidationError(_('Lost powder cannot have lysate batch.'))
 			
