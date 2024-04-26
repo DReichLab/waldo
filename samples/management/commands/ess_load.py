@@ -302,8 +302,8 @@ def process_row(row, headers, sequencing_run, options, capture_positive, pcr_neg
 		if library:
 			extract = library.extract
 			library_layout_element, create_library_layout = LibraryBatchLayout.objects.get_or_create(library_batch=library.library_batch, library=library, control_type=control_type)
-			library_layout_element.extract = extract
-			library_layout_element.ul_extract_used = library.ul_extract_used
+			field_check(library_layout_element, 'extract', extract, update)
+			field_check(library_layout_element, 'ul_extract_used', library.ul_extract_used, update)
 			library_layout_element.row = capture_row
 			library_layout_element.column = capture_column
 			library_layout_element.save()
@@ -315,33 +315,20 @@ def process_row(row, headers, sequencing_run, options, capture_positive, pcr_neg
 		# if lysates exist for this extract, we build layout elements
 		# if there is no lysate, attempt to lookup powder
 		if extract_batch:
-			try:
-				extract_layout_element = ExtractionBatchLayout.objects.get(extract_batch=extract_batch, extract=extract)
-				# check that values for existing layout element match what we expect from ESS
-				if extract_layout_element.lysate != extract.lysate:
-					raise ValueError(f'{extract.lysate.lysate_id} lysate mismatch')
-				if extract_layout_element.extract_batch != extract.extract_batch:
-					raise ValueError(f'{str(extract_layout_element.id)} extract batch mismatch')
-				if extract_layout_element.control_type != control_type:
-					raise ValueError(f'{str(extract_layout_element.id)} control type mismatch')
-				# lysis volumes are recorded in layout element
-				extract_layout_element.lysate_volume_used = extract.lysis_volume_extracted
-				# powder amounts for extracts need to be loaded separately because fake lysates have been removed
-				extract_layout_element.row = capture_row
-				extract_layout_element.column = capture_column
-				extract_layout_element.save()
-
-			except ExtractionBatchLayout.DoesNotExist as e:
-				raise e
-				# expecting layout elements to already exist
-				if extract.lysate:
-					extract_layout_element = ExtractionBatchLayout.objects.create(extract_batch=extract_batch, row=capture_row, column=capture_column, extract=extract, lysate=extract.lysate, lysate_volume_used=extract.lysis_volume_extracted)
-				elif control_type is not None:
-					pass
-				else: # no lysate, not a control, try to infer powder
-					powder = PowderSample.objects.get(sample=extract.sample)
-					extract_layout_element = ExtractionBatchLayout.objects.create(extract_batch=extract_batch, row=capture_row, column=capture_column, extract=library.extract, powder_sample=powder)
-					command.stderr.write(f'unknown powder amount for {ess_entry.library_id}')
+			extract_layout_element = ExtractionBatchLayout.objects.get(extract_batch=extract_batch, extract=extract)
+			# check that values for existing layout element match what we expect from ESS
+			if extract_layout_element.lysate != extract.lysate:
+				raise ValueError(f'{extract.lysate.lysate_id} lysate mismatch')
+			if extract_layout_element.extract_batch != extract.extract_batch:
+				raise ValueError(f'{str(extract_layout_element.id)} extract batch mismatch')
+			if extract_layout_element.control_type != control_type:
+				raise ValueError(f'{str(extract_layout_element.id)} control type mismatch')
+			# lysis volumes are recorded in layout element
+			field_check(extract_layout_element, 'lysate_volume_used', extract.lysis_volume_extracted, update)
+			# powder amounts for extracts need to be loaded separately because fake lysates have been removed
+			extract_layout_element.row = capture_row
+			extract_layout_element.column = capture_column
+			extract_layout_element.save()
 
 		elif get_value(control_type, 'control_type') != LIBRARY_NEGATIVE:
 			command.stderr.write(f'No extract batch for {ess_entry.library_id}')
@@ -354,8 +341,8 @@ def process_row(row, headers, sequencing_run, options, capture_positive, pcr_neg
 				lysate_layout_element, created = LysateBatchLayout.objects.get_or_create(lysate_batch=lysate_batch, lysate=lysate)
 				lysate_layout_element.row = capture_row
 				lysate_layout_element.column = capture_column
-				lysate_layout_element.control_type = control_type
-				lysate_layout_element.powder_used_mg = lysate.powder_used_mg
+				field_check(lysate_layout_element, 'control_type', control_type, update)
+				field_check(lysate_layout_element, 'powder_used_mg', lysate.powder_used_mg, update)
 				lysate_layout_element.save()
 			elif get_value(control_type, 'control_type') != LIBRARY_NEGATIVE:
 				command.stderr.write(f'No lysate batch for {ess_entry.library_id}')
