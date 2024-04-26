@@ -15,9 +15,10 @@ class Command(BaseCommand):
 	def handle(self, *args, **options):
 		# read powder information from lysate file
 		with transaction.atomic():
+			exception_found = False
 			with open(options['lysate_ny']) as f:
 				for line in f:
-					fields = re.split('\t|\n' line)
+					fields = re.split('\t|\n', line)
 					powder_id_str = fields[2]
 					powder_id = fields[3]
 					extract_id_str = fields[4]
@@ -29,10 +30,19 @@ class Command(BaseCommand):
 
 					if powder_used1 != powder_used2:
 						raise ValueError(f'powder used mismatch {powder_used1} {powder_used2}')
-					if len(powder_id_str) > 0:
-						powder_sample = PowderSample.objects.get(powder_sample_id=powder_id_str, pk=int(powder_id))
-						extract = Extract.objects.get(extract_id=extract_id_str, pk=extract_id)
-						extract_layout_element = ExtractionBatchLayout.objects.get(pk=extract_layout_id, lysate=None, powder_sample=powder_sample, extract=extract)
-						extract_layout_element.powder_used_mg = float(powder_used1)
-						extract_layout_element.clean()
-						extract_layout_element.save()
+					try:
+						if len(powder_id_str) > 0:
+							powder_sample = PowderSample.objects.get(powder_sample_id=powder_id_str, pk=int(powder_id))
+							extract = Extract.objects.get(extract_id=extract_id_str, pk=extract_id)
+							extract_layout_element = ExtractionBatchLayout.objects.get(pk=extract_layout_id, lysate=None, powder_sample=powder_sample, extract=extract)
+							if powder_used1 != 'None':
+								extract_layout_element.powder_used_mg = float(powder_used1)
+							else:
+								self.stdout.write(line)
+							extract_layout_element.clean()
+							extract_layout_element.save()
+					except (ValueError, ExtractionBatchLayout.DoesNotExist) as e:
+						self.stdout.write(line)
+			if exception_found:
+				transaction.set_rollback(True)
+
