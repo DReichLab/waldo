@@ -8,13 +8,13 @@ from collections import Counter
 
 # raise exception if values do not match and existing value is non-empty
 # allow updating of empty values
-def field_check(library, field_name, value, update):
-	existing_value = getattr(library, field_name)
+def field_check(obj, field_name, value, update):
+	existing_value = getattr(obj, field_name)
 	if existing_value == None or existing_value == '':
 		if update:
-			setattr(library, field_name, value)
+			setattr(obj, field_name, value)
 	elif existing_value != value:
-		raise ValueError(f'Library {field_name} mismatch for {library.reich_lab_library_id} [{existing_value}] [{value}]')
+		raise ValueError(f'{obj.__class__.__name__} {field_name} mismatch for {obj.id} [{existing_value}] [{value}]')
 
 # return whether all nontrivial fields are in string, case insensitive
 def all_in_string(string, fields_to_check):
@@ -42,8 +42,8 @@ def notes_label(headers, custom_search):
 
 def h9_library_layout(library_batch, command, do_extract_move, do_lysate_move):
 	h9_elements = library_batch.layout_elements().filter(row='H', column=9).order_by('library__reich_lab_library_id')
-	for element in h9_elements:
-		command.stdout.write(f'{element.library.reich_lab_library_id}')
+	#for element in h9_elements:
+	#	command.stdout.write(f'{element.library.reich_lab_library_id}')
 	h9_count = h9_elements.count()
 	if h9_count > 2:
 		raise ValueError(f'too many H9 controls to split to H12')
@@ -52,11 +52,16 @@ def h9_library_layout(library_batch, command, do_extract_move, do_lysate_move):
 		moving_element.column = 12
 		moving_element.save()
 		# move prior batches
-		if do_extract_move:
-			extract_layout_element = ExtractionBatchLayout.objects.get(extract=moving_element.extract)
-			extract_layout_element.column = 12
-			extract_layout_element.save()
-			if do_lysate_move:
+		if do_extract_move and moving_element.extract is not None:
+			extract_layout_element = None
+			try:
+				extract_layout_element = ExtractionBatchLayout.objects.get(extract=moving_element.extract)
+				extract_layout_element.column = 12
+				extract_layout_element.save()
+			except ExtractionBatchLayout.MultipleObjectsReturned as e:
+				command.stdout.write(moving_element.extract)
+				raise e
+			if do_lysate_move and extract_layout_element is not None and extract_layout_element.lysate is not None:
 				lysate_layout_element = LysateBatchLayout.objects.get(lysate=extract_layout_element.lysate)
 				lysate_layout_element.column = 12
 				lysate_layout_element.save()
@@ -137,6 +142,8 @@ class ESS_Entry:
 
 		if self.experiment in ['1240k_plus', '1240K+']:
 			self.experiment = '1240k+'
+		self.extract_batch = None
+		self.lysate_batch = None
 
 	def barcode_from_str(self, class_name, barcode_str):
 		if len(barcode_str) == 0 or barcode_str == '..':
@@ -164,7 +171,7 @@ def controls(headers, data_rows):
 	if len(control_sample_numbers) == 0:
 		return None, None # newer controls do not use Reich Lab sample numbers
 	elif len(control_sample_numbers) != 2:
-		raise ValueError(f'Distinct control numbers: {len(control_sample_numbers)}')
+		raise ValueError(f'Distinct control numbers: {len(control_sample_numbers)}: {" ".join([str(num) for num in control_sample_numbers])}')
 	sorted_control_sample_number = sorted(control_sample_numbers)
 	extract_control_sample_number = sorted_control_sample_number[0]
 	library_control_sample_number = sorted_control_sample_number[1]
@@ -255,104 +262,104 @@ def process_row(row, headers, sequencing_run, options, capture_positive, pcr_neg
 		else:
 			raise ValueError(f'{ess_entry.library_id} not found')
 
-	if update:
-		# update capture layout
-		layout_element, created = CaptureLayout.objects.get_or_create(capture_batch=ess_entry.capture, library=library, control_type=control_type)
+	# update capture layout
+	layout_element, created = CaptureLayout.objects.get_or_create(capture_batch=ess_entry.capture, library=library, control_type=control_type)
 
-		is_control = False
+	is_control = False
+	if library:
+		library.clean()
+		library.save()
+		try:
+			is_control = library.is_control()
+		except NotImplementedError as e:
+			command.stderr.write(f'{ess_entry.library_id} {library}')
+			raise e
+
+	if len(ess_entry.i5.sequence) < 8 and len(ess_entry.i7.sequence) < 8:
+		# only set indices for double-stranded libraries
+		layout_element.p5_index = ess_entry.i5
+		layout_element.p7_index = ess_entry.i7
+		capture_row, capture_column = plate_location(location_from_indices(int(ess_entry.i5.label), int(ess_entry.i7.label)))
+	elif len(ess_entry.i5.sequence) == 8 and len(ess_entry.i7.sequence) == 8:
+		# single stranded
+		capture_row, capture_column = plate_location(location_from_indices(ess_entry.i5.label, ess_entry.i7_label))
+	else:
+		raise NotImplementedError(f'Unexpected index lengths {len(ess_entry.i5.sequence)}, {len(ess_entry.i7.sequence)}')
+	layout_element.row = capture_row
+	layout_element.column = capture_column
+	layout_element.clean()
+	layout_element.save()
+
+	# assign capture layout to sequencing run
+	user = None
+	sequencing_run.assign_capture_layout_element(layout_element, user, ess_entry.dnu_value, ess_entry.notes_value)
+
+	# prior batches: library layout, extract layout, lysate layout
+	# extract, lysate, powder used
+	if options['update_library_layout'] and control_type != capture_positive and control_type != pcr_negative:
+		# find the associated extract
+		# layout for library batch is slightly different than for capture due to controls moving
 		if library:
-			library.clean()
-			library.save()
+			extract = library.extract
+			library_layout_element, create_library_layout = LibraryBatchLayout.objects.get_or_create(library_batch=library.library_batch, library=library, control_type=control_type)
+			library_layout_element.extract = extract
+			library_layout_element.ul_extract_used = library.ul_extract_used
+			library_layout_element.row = capture_row
+			library_layout_element.column = capture_column
+			library_layout_element.save()
+
+	if options['update_extract_layout'] and control_type != capture_positive and control_type != pcr_negative and continue_to_extract(ess_entry.library_batch.name):
+		# library and extract controls have extract entries
+		extract = get_value(library, 'extract', default=None)
+		extract_batch = get_value(library, 'extract', 'extract_batch', default=None)
+		# if lysates exist for this extract, we build layout elements
+		# if there is no lysate, attempt to lookup powder
+		if extract_batch:
 			try:
-				is_control = library.is_control()
-			except NotImplementedError as e:
-				command.stderr.write(f'{ess_entry.library_id} {library}')
+				extract_layout_element = ExtractionBatchLayout.objects.get(extract_batch=extract_batch, extract=extract)
+				# check that values for existing layout element match what we expect from ESS
+				if extract_layout_element.lysate != extract.lysate:
+					raise ValueError(f'{extract.lysate.lysate_id} lysate mismatch')
+				if extract_layout_element.extract_batch != extract.extract_batch:
+					raise ValueError(f'{str(extract_layout_element.id)} extract batch mismatch')
+				if extract_layout_element.control_type != control_type:
+					raise ValueError(f'{str(extract_layout_element.id)} control type mismatch')
+				# lysis volumes are recorded in layout element
+				extract_layout_element.lysate_volume_used = extract.lysis_volume_extracted
+				# powder amounts for extracts need to be loaded separately because fake lysates have been removed
+				extract_layout_element.row = capture_row
+				extract_layout_element.column = capture_column
+				extract_layout_element.save()
+
+			except ExtractionBatchLayout.DoesNotExist as e:
 				raise e
+				# expecting layout elements to already exist
+				if extract.lysate:
+					extract_layout_element = ExtractionBatchLayout.objects.create(extract_batch=extract_batch, row=capture_row, column=capture_column, extract=extract, lysate=extract.lysate, lysate_volume_used=extract.lysis_volume_extracted)
+				elif control_type is not None:
+					pass
+				else: # no lysate, not a control, try to infer powder
+					powder = PowderSample.objects.get(sample=extract.sample)
+					extract_layout_element = ExtractionBatchLayout.objects.create(extract_batch=extract_batch, row=capture_row, column=capture_column, extract=library.extract, powder_sample=powder)
+					command.stderr.write(f'unknown powder amount for {ess_entry.library_id}')
 
-		if len(ess_entry.i5.sequence) < 8 and len(ess_entry.i7.sequence) < 8:
-			# only set indices for double-stranded libraries
-			layout_element.p5_index = ess_entry.i5
-			layout_element.p7_index = ess_entry.i7
-			capture_row, capture_column = plate_location(location_from_indices(int(ess_entry.i5.label), int(ess_entry.i7.label)))
-		elif len(ess_entry.i5.sequence) == 8 and len(ess_entry.i7.sequence) == 8:
-			# single stranded
-			capture_row, capture_column = plate_location(location_from_indices(ess_entry.i5.label, ess_entry.i7_label))
-		else:
-			raise NotImplementedError(f'Unexpected index lengths {len(ess_entry.i5.sequence)}, {len(ess_entry.i7.sequence)}')
-		layout_element.row = capture_row
-		layout_element.column = capture_column
-		layout_element.clean()
-		layout_element.save()
+		elif get_value(control_type, 'control_type') != LIBRARY_NEGATIVE:
+			command.stderr.write(f'No extract batch for {ess_entry.library_id}')
+		ess_entry.extract_batch = extract_batch
 
-		# assign capture layout to sequencing run
-		user = None
-		sequencing_run.assign_capture_layout_element(layout_element, user, ess_entry.dnu_value, ess_entry.notes_value)
-
-		# prior batches: library layout, extract layout, lysate layout
-		# extract, lysate, powder used
-		if options['update_library_layout'] and control_type != capture_positive and control_type != pcr_negative:
-			# find the associated extract
-			# layout for library batch is slightly different than for capture due to controls moving
-			if library:
-				extract = library.extract
-				library_layout_element, create_library_layout = LibraryBatchLayout.objects.get_or_create(library_batch=library.library_batch, library=library, control_type=control_type)
-				library_layout_element.extract = extract
-				library_layout_element.ul_extract_used = library.ul_extract_used
-				library_layout_element.row = capture_row
-				library_layout_element.column = capture_column
-				library_layout_element.save()
-
-		if options['update_extract_layout'] and continue_to_extract(library_batch.name) and control_type != capture_positive and control_type != pcr_negative:
-			# library and extract controls have extract entries
-			extract = get_value(library, 'extract', default=None)
-			extract_batch = get_value(library, 'extract', 'extract_batch', default=None)
-			# if lysates exist for this extract, we build layout elements
-			# if there is no lysate, attempt to lookup powder
-			if extract_batch:
-				try:
-					extract_layout_element = ExtractionBatchLayout.objects.get(extract_batch=extract_batch, extract=extract)
-					# check that values for existing layout element match what we expect from ESS
-					if extract_layout_element.lysate != extract.lysate:
-						raise ValueError(f'{extract.lysate.lysate_id} lysate mismatch')
-					if extract_layout_element.extract_batch != extract.extract_batch:
-						raise ValueError(f'{str(extract_layout_element.id)} extract batch mismatch')
-					if extract_layout_element.control_type != control_type:
-						raise ValueError(f'{str(extract_layout_element.id)} control type mismatch')
-					# lysis volumes are recorded in layout element
-					extract_layout_element.lysate_volume_used = extract.lysis_volume_extracted
-					# powder amounts for extracts need to be loaded separately because fake lysates have been removed
-					extract_layout_element.row = capture_row
-					extract_layout_element.column = capture_column
-					extract_layout_element.save()
-
-				except ExtractionBatchLayout.DoesNotExist as e:
-					raise e
-					# expecting layout elements to already exist
-					if extract.lysate:
-						extract_layout_element = ExtractionBatchLayout.objects.create(extract_batch=extract_batch, row=capture_row, column=capture_column, extract=extract, lysate=extract.lysate, lysate_volume_used=extract.lysis_volume_extracted)
-					elif control_type is not None:
-						pass
-					else: # no lysate, not a control, try to infer powder
-						powder = PowderSample.objects.get(sample=extract.sample)
-						extract_layout_element = ExtractionBatchLayout.objects.create(extract_batch=extract_batch, row=capture_row, column=capture_column, extract=library.extract, powder_sample=powder)
-						command.stderr.write(f'unknown powder amount for {ess_entry.library_id}')
-
-			else:
-				command.stderr.write(f'No extract batch for {ess_entry.library_id}')
-			ess_entry.extract_batch = extract_batch
-
-			if options['update_lysate_layout'] and continue_to_extract(library_batch.name) and control_type != capture_positive and control_type != pcr_negative:
-				lysate = get_value(extract, 'lysate', default=None)
-				lysate_batch = get_value(lysate, 'lysate_batch', default=None)
-				if lysate_batch:
-					lysate_layout_element = LysateBatchLayout.objects.get(lysate_batch=lysate_batch, lysate=lysate)
-					lysate_layout_element.row = capture_row
-					lysate_layout_element.column = capture_column
-					lysate_layout_element.powder_used_mg = lysate.powder_used_mg
-					lysate_layout_element.save()
-				else:
-					command.stderr.write(f'No lysate batch for {ess_entry.library_id}')
-				ess_entry.lysate_batch = lysate_batch
+		if options['update_lysate_layout'] and control_type != capture_positive and control_type != pcr_negative and continue_to_extract(ess_entry.library_batch.name):
+			lysate = get_value(extract, 'lysate', default=None)
+			lysate_batch = get_value(lysate, 'lysate_batch', default=None)
+			if lysate_batch:
+				lysate_layout_element, created = LysateBatchLayout.objects.get_or_create(lysate_batch=lysate_batch, lysate=lysate)
+				lysate_layout_element.row = capture_row
+				lysate_layout_element.column = capture_column
+				lysate_layout_element.control_type = control_type
+				lysate_layout_element.powder_used_mg = lysate.powder_used_mg
+				lysate_layout_element.save()
+			elif get_value(control_type, 'control_type') != LIBRARY_NEGATIVE:
+				command.stderr.write(f'No lysate batch for {ess_entry.library_id}')
+			ess_entry.lysate_batch = lysate_batch
 
 	return ess_entry
 
@@ -389,6 +396,10 @@ class Command(BaseCommand):
 		self.stderr.write(f'notes header: {notes_header}')
 
 		extract_control_sample_number, library_control_sample_number =  controls(headers, data_rows)
+		if extract_control_sample_number:
+			self.stderr.write(f'extract control {extract_control_sample_number}')
+		if library_control_sample_number:
+			self.stderr.write(f'library control {library_control_sample_number}')
 
 		capture_or_shotgun_batches = Counter()
 		library_batches = Counter()
@@ -396,7 +407,7 @@ class Command(BaseCommand):
 		lysate_batches = Counter()
 		with transaction.atomic():
 			for row in data_rows:
-				ess_entry = process_row(row, headers, sequencing_run, options, capture_positive, pcr_negative, extract_control_sample_number, library_control_sample_number, dnu_header, notes_header, update, self)
+				ess_entry = process_row(row, headers, sequencing_run, options, capture_positive, pcr_negative, extract_control_sample_number, library_control_sample_number, dnu_header, notes_header, True, self)
 				capture_or_shotgun_batches.update([ess_entry.capture])
 				library_batches.update([ess_entry.library_batch])
 				extract_batches.update([ess_entry.extract_batch])
@@ -404,10 +415,10 @@ class Command(BaseCommand):
 
 			# validate batches
 			for capture in capture_or_shotgun_batches:
-				self.stdout.write(f'{capture}\t{capture_or_shotgun_batches[capture]}')
+				self.stdout.write(f'{capture.name}\t{capture_or_shotgun_batches[capture]}')
 				capture.clean()
 			for library_batch in library_batches:
-				self.stdout.write(f'{get_value(library_batch, "name")}\t{library_batches[library_batch]}')
+				self.stdout.write(f'Library batch: {get_value(library_batch, "name")}\t{library_batches[library_batch]}')
 				if library_batch is not None:
 					# move H9 controls back to H12
 					h9_library_layout(library_batch, self, len(extract_batches) > 0, len(lysate_batches) > 0)
@@ -415,13 +426,15 @@ class Command(BaseCommand):
 						library_batch.clean()
 			# extract and lysate batch validation
 			for extract_batch in extract_batches:
-				self.stdout.write(f'{get_value(extract_batch, "batch_name")}\t{extract_batches[extract_batch]}')
+				self.stdout.write(f'Extract batch: {get_value(extract_batch, "batch_name")}\t{extract_batches[extract_batch]}')
 				if extract_batch is not None:
 					extract_batch.clean()
 			for lysate_batch in lysate_batches:
-				self.stdout.write(f'{get_value(lysate_batch, "batch_name")}\t{lysate_batches[lysate_batch]}')
+				self.stdout.write(f'Lysate batch: {get_value(lysate_batch, "batch_name")}\t{lysate_batches[lysate_batch]}')
 				if lysate_batch is not None:
 					lysate_batch.clean()
 
 			sequencing_run.reich_lab_release_version = options['release_version']
 			sequencing_run.save()
+			if not update:
+				transaction.set_rollback(True)
