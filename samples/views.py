@@ -614,7 +614,7 @@ def sample_summary(request):
 		# apparently it's not possible to filter a queryset using a method
 		powder_samples = PowderSample.objects.filter(sample=sample).order_by('powder_sample_id')
 		lysates = Lysate.objects.filter(Q(sample=sample) | Q(powder_sample__sample=sample)).order_by('reich_lab_lysate_number')
-		extracts = Extract.objects.filter(Q(sample=sample) | Q(lysate__powder_sample__sample=sample)).order_by('lysate', 'reich_lab_extract_number').order_by('lysate__reich_lab_lysate_number', 'reich_lab_extract_number')
+		extracts = Extract.objects.filter(Q(sample=sample) | Q(lysate__powder_sample__sample=sample)).order_by('lysate__reich_lab_lysate_number', 'reich_lab_extract_number')
 		# 
 		libraries = Library.objects.filter(Q(sample=sample) | Q(extract__in=extracts) ).distinct().order_by('extract__lysate__reich_lab_lysate_number', 'extract__reich_lab_extract_number', 'reich_lab_library_number')
 		captured_libraries = CaptureLayout.objects.filter(library__in=libraries) # TODO ordering
