@@ -788,11 +788,11 @@ class LysateBatch(Timestamped):
 		layout_elements = self.layout_elements()
 		for layout_element in layout_elements:
 			layout_element.clean()
-		#validate_single_occupancy_layout(layout_elements)
+		validate_single_occupancy_layout(layout_elements)
 
 	# convenience
 	def layout_elements(self):
-		return LysateBatchLayout.objects.filter(lysate_batch=self).order_by('column', 'row', 'lysate__sample__reich_lab_id')
+		return LysateBatchLayout.objects.filter(lysate_batch=self).exclude(lysate_batch=None).order_by('column', 'row', 'lysate__sample__reich_lab_id')
 	
 	# return string representing status. For templates
 	def get_status(self):
@@ -1321,7 +1321,7 @@ class ExtractionBatch(Timestamped):
 
 	# convenience
 	def layout_elements(self):
-		return ExtractionBatchLayout.objects.filter(extract_batch=self).order_by('column', 'row', 'extract__sample__reich_lab_id')
+		return ExtractionBatchLayout.objects.filter(extract_batch=self).exclude(extract_batch=None).order_by('column', 'row', 'extract__sample__reich_lab_id')
 	
 	# return string representing status. For templates
 	def get_status(self):
@@ -1802,7 +1802,7 @@ class LibraryBatch(Timestamped):
 			
 	# convenience 
 	def layout_elements(self):
-		return LibraryBatchLayout.objects.filter(library_batch=self).order_by('column', 'row', 'library__sample__reich_lab_id')
+		return LibraryBatchLayout.objects.filter(library_batch=self).exclude(library_batch=None).order_by('column', 'row', 'library__sample__reich_lab_id')
 
 	def rotate(self, user):
 		rotate_plate(self.layout_elements(), user)
@@ -2242,7 +2242,7 @@ class CaptureOrShotgunPlate(Timestamped):
 		raise ValueError(f'No capture/raw batch status {self.status}')
 	
 	def layout_elements(self):
-		return CaptureLayout.objects.filter(capture_batch=self).order_by('row', 'column', 'library__sample__reich_lab_id')
+		return CaptureLayout.objects.filter(capture_batch=self).exclude(capture_batch=None).order_by('row', 'column', 'library__sample__reich_lab_id')
 	
 	def assign_indices(self, user):
 		for layout_element in CaptureLayout.objects.filter(capture_batch=self):
