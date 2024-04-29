@@ -1,5 +1,8 @@
 import re
 
+from django.core.exceptions import ValidationError
+from django.utils.translation import gettext_lazy as _
+
 PLATE_ROWS = 'ABCDEFGH'
 PLATE_WELL_COUNT = 96
 PLATE_WELL_COUNT_HALF = PLATE_WELL_COUNT // 2
@@ -32,7 +35,7 @@ def check_plate_domain(int_val):
 def validate_single_occupancy_layout(layout_elements):
 	total_count = layout_elements.count()
 	if total_count > PLATE_WELL_COUNT:
-		raise ValidationError(_(f'More elements than well plate locations {count}'))
+		raise ValidationError(_(f'More elements than well plate locations {total_count}'))
 	manual = layout_elements.filter(column__isnull=True, row__isnull=True)
 	robotic = layout_elements.filter(column__isnull=False, row__isnull=False)
 	if total_count != robotic.count() and total_count != manual.count():
