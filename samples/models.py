@@ -367,7 +367,13 @@ class Sample(Timestamped):
 					extract_batch=None,
 					extraction_lab=extraction_lab)
 		return extract
-		
+
+	def highest_lysate(self):
+		max_value = Lysate.objects.filter(powder_sample__sample=self).aggregate(Max('reich_lab_lysate_number', default=0))['reich_lab_lysate_number__max']
+		if max_value:
+			return max_value
+		else:
+			return 0
 		
 class SamplePrepProtocol(Timestamped):
 	preparation_method = models.CharField(max_length=50, help_text='Method used to produce bone powder')
@@ -585,6 +591,13 @@ class PowderSample(Timestamped):
 		preparation_method = arg_array[headers.index('sample_prep_protocol')]
 		self.sample_prep_protocol = SamplePrepProtocol.objects.get(preparation_method=preparation_method)
 		self.save(save_user=user)
+
+	# return the highest lysate number for this sample
+	def highest_lysate(self):
+		if self.sample:
+			return self.sample.highest_lysate()
+		else:
+			return 0
 	
 class ExtractionProtocol(Timestamped):
 	name = models.CharField(max_length=150)
@@ -686,11 +699,6 @@ def control_from_name_string(control_name_string_str):
 		elif parts[1] == 'library':
 			return ControlType.objects.get(control_type=LIBRARY_NEGATIVE)
 	raise ValueError(f'Unanticipated control name string {control_name_string_str}')
-	
-# How many lysates are there for this sample
-def lysates_for_sample(sample):
-	existing_lysates = Lysate.objects.filter(powder_sample__sample=sample)
-	return len(existing_lysates)
 
 # this creates a lysate for a layout_element if it does not exist, and returns the existing one otherwise
 def create_lysate(lysate_layout_element, lysate_batch, user):
@@ -708,7 +716,7 @@ def create_lysate(lysate_layout_element, lysate_batch, user):
 		if powder_sample:
 			if powder_sample:
 				sample = powder_sample.sample
-				next_lysate_number = lysates_for_sample(powder_sample.sample) +1
+				next_lysate_number = powder_sample.highest_lysate() +1
 				prior_id = str(sample)
 			else:
 				raise ValueError(f'powder sample without sample {powder_sample.powder_sample_id}')
@@ -912,7 +920,7 @@ class LysateBatch(Timestamped):
 				layout_element.save(save_user=user)
 				
 	def create_lysates(self, user):
-		layout = LysateBatchLayout.objects.filter(lysate_batch=self).order_by('row', 'column')
+		layout = self.layout_elements()
 		duplicate_positions_check_db(layout)
 		for layout_element in layout:
 			# create lysate entry, if it does not exist
@@ -1501,6 +1509,13 @@ class Extract(Timestamped):
 		
 	def num_libraries(self):
 		return self.library_set.count()
+
+	def highest_library(self):
+		max_value = Library.objects.filter(extract=self).aggregate(Max('reich_lab_library_number', default=0))['reich_lab_library_number__max']
+		if max_value:
+			return max_value
+		else:
+			return 0
 		
 	def get_sample(self):
 		if self.sample:
@@ -1679,7 +1694,7 @@ def create_library_from_extract(layout_element, user, *, i5=None, i7=None, ul_ex
 		return layout_element.library
 	else:
 		if extract:
-			existing_libraries = extract.num_libraries()
+			existing_libraries = extract.highest_library()
 			next_library_number = existing_libraries + 1
 			reich_lab_library_id = f'{extract.extract_id}.L{next_library_number}'
 		elif layout_element.control_type.control_type == LIBRARY_POSITIVE:
