@@ -537,12 +537,14 @@ class LibraryBatchForm(UserModelForm):
 		for option in ['rotated']:
 			self.fields[option].disabled = True
 		# ensure current values are allowed form values
-		if self.instance.protocol:
-			self.fields['protocol'].queryset = LibraryProtocol.objects.filter(Q(active=True) | Q(id=self.instance.protocol.id) ).order_by('-start_date')
-			if self.instance.protocol.library_type == 'ss':
-				self.fields['p7_offset'].required = False
-		if self.instance.control_set:
-			self.fields['control_set'].queryset = ControlSet.objects.filter(Q(active=True) | Q(id=self.instance.control_set.id)).order_by('layout_name')
+		self.fields['p7_offset'].required = False
+		if self.instance:
+			if self.instance.protocol:
+				self.fields['protocol'].queryset = LibraryProtocol.objects.filter(Q(active=True) | Q(id=self.instance.protocol.id) ).order_by('-start_date')
+				if self.instance.protocol.library_type == 'ds':
+					self.fields['p7_offset'].required = True
+			if self.instance.control_set:
+				self.fields['control_set'].queryset = ControlSet.objects.filter(Q(active=True) | Q(id=self.instance.control_set.id)).order_by('layout_name')
 	
 	# to view fields without being able to modify prior to deletion
 	def disable_fields(self):
@@ -573,12 +575,13 @@ class LibraryForm(UserModelForm):
 	def __init__(self, *args, **kwargs):
 		super().__init__(*args, **kwargs)
 		self.fields['reich_lab_library_id'].disabled = True
-		for option in ['nanodrop', 'qpcr_ds', 'qpcr_assay_a_1_ss', 'qpcr_assay_a_2_ss', 'qpcr_assay_b_1_ss', 'qpcr_assay_b_2_ss', 'assay_a_percent_inhibition', 'assay_b_total_molecules']:
+		for option in ['p5_index', 'p7_index', 'p5_barcode', 'p7_barcode', 'nanodrop', 'qpcr_ds', 'qpcr_assay_a_1_ss', 'qpcr_assay_a_2_ss', 'qpcr_assay_b_1_ss', 'qpcr_assay_b_2_ss', 'assay_a_percent_inhibition', 'assay_b_total_molecules']:
 			self.fields[option].required = False
 		if self.instance:
 			layout_elements = self.instance.librarybatchlayout_set
 			layout_element = layout_elements.get(library=self.instance)
 			self.initial['well_position'] = str(layout_element)
+
 
 LibraryFormset = modelformset_factory(Library, form=LibraryForm, extra=0)
 

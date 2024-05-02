@@ -115,6 +115,8 @@ USE_L10N = True
 
 USE_TZ = True
 
+DATA_UPLOAD_MAX_NUMBER_FIELDS = 2000
+
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/1.8/howto/static-files/

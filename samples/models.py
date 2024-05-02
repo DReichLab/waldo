@@ -1731,9 +1731,7 @@ def create_library_from_extract(layout_element, user, *, i5=None, i7=None, ul_ex
 			p5_barcode = Barcode.objects.get(label = p5_qstr)
 			p7_barcode = Barcode.objects.get(label = p7_qstr)
 		elif library_batch.protocol.library_type == 'ss':
-			# indices are assigned in arguments
-			if i5 is None or i7 is None:
-				raise ValueError(f'single stranded needs assigned indices')
+			# indices are assigned in arguments, or deferred and loaded later
 			p5_barcode = None
 			p7_barcode = None
 		else:
@@ -1753,7 +1751,8 @@ def create_library_from_extract(layout_element, user, *, i5=None, i7=None, ul_ex
 						p5_barcode = p5_barcode,
 						p7_barcode = p7_barcode
 					)
-		library.clean()
+		if library_batch.protocol.library_type != 'ss': # ss indices can be assigned later
+			library.clean()
 		library.save(save_user=user)
 		layout_element.library = library
 		layout_element.ul_extract_used = library.ul_extract_used
@@ -1841,8 +1840,9 @@ class LibraryBatch(Timestamped):
 		layout = self.layout_elements()
 		duplicate_positions_check_db(layout)
 		
-		for layout_element in layout:
-			create_library_from_extract(layout_element, user)
+		with transaction.atomic():
+			for layout_element in layout:
+				create_library_from_extract(layout_element, user)
 			
 	def get_robot_layout(self):
 		self.check_p7_offset()
@@ -1885,6 +1885,7 @@ class LibraryBatch(Timestamped):
 			layout_element.ul_extract_used = 0
 			layout_element.save(save_user=user)
 		
+	@transaction.atomic
 	def libraries_from_spreadsheet(self, spreadsheet, user):
 		headers, data_rows = spreadsheet_headers_and_data_rows(spreadsheet)
 		
@@ -2120,6 +2121,8 @@ class Library(Timestamped):
 			raise ValidationError(_('Library must have either indices or barcodes')) 
 		if self.sample and self.extract and self.sample != self.extract.get_sample():
 			raise ValidationError(_('Library has sample mismatch'))
+		if self.library_type == 'ss' and self.p5_index is None or self.p7_index is None:
+			raise ValidationError(_('single-stranded library is missing indices'))
 			
 	# barcodes and indices are unique, so we only need to check ids, not DNA sequences
 	def barcodes_are_distinct(self, other):
@@ -2247,7 +2250,7 @@ class LibraryBatchLayout(TimestampedWellPosition):
 		except Barcode.DoesNotExist:
 			library.p7_barcode = None
 
-		library.nanodrop = float(arg_array[headers.index('nanodrop')])
+		library.nanodrop = value_convert_or_none(arg_array[headers.index('nanodrop')], float)
 		library.qpcr_ds = value_convert_or_none(arg_array[headers.index('qpcr_ds')], decimal.Decimal)
 		library.qpcr_assay_a_1_ss = value_convert_or_none(arg_array[headers.index('qpcr_assay_a_1_ss')], decimal.Decimal)
 		library.qpcr_assay_a_2_ss = value_convert_or_none(arg_array[headers.index('qpcr_assay_a_2_ss')], decimal.Decimal)
