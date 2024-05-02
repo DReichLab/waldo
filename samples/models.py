@@ -1774,7 +1774,7 @@ def validate_even(value):
 		)
 
 class LibraryBatch(Timestamped):
-	name = models.CharField(max_length=150, blank=True, unique=True, help_text='Usually ends with _DS') #TODO no blanks
+	name = models.CharField(max_length=150, unique=True, help_text='Usually ends with _DS or _SS')
 	protocol = models.ForeignKey(LibraryProtocol, on_delete=models.PROTECT, null=True)
 	technician = models.CharField(max_length=50, blank=True)
 	prep_date = models.DateField(null=True)
