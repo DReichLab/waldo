@@ -565,7 +565,7 @@ class LibraryForm(UserModelForm):
 	
 	class Meta:
 		model = Library
-		fields = ['well_position', 'reich_lab_library_id', 'p5_index', 'p7_index', 'p5_barcode', 'p7_barcode', 'nanodrop', 'qpcr_ds', 'plate_id', 'fluidx_barcode', 'notes']
+		fields = ['well_position', 'reich_lab_library_id', 'p5_index', 'p7_index', 'p5_barcode', 'p7_barcode', 'nanodrop', 'qpcr_ds', 'qpcr_assay_a_1_ss', 'qpcr_assay_a_2_ss', 'qpcr_assay_b_1_ss', 'qpcr_assay_b_2_ss', 'assay_a_percent_inhibition', 'assay_b_total_molecules', 'plate_id', 'fluidx_barcode', 'notes']
 		widgets = {
 			'notes': Textarea(attrs={'cols': 60, 'rows': 2}),
 		}
@@ -573,7 +573,7 @@ class LibraryForm(UserModelForm):
 	def __init__(self, *args, **kwargs):
 		super().__init__(*args, **kwargs)
 		self.fields['reich_lab_library_id'].disabled = True
-		for option in ['nanodrop', 'qpcr_ds']:
+		for option in ['nanodrop', 'qpcr_ds', 'qpcr_assay_a_1_ss', 'qpcr_assay_a_2_ss', 'qpcr_assay_b_1_ss', 'qpcr_assay_b_2_ss', 'assay_a_percent_inhibition', 'assay_b_total_molecules']:
 			self.fields[option].required = False
 		if self.instance:
 			layout_elements = self.instance.librarybatchlayout_set
