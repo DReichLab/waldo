@@ -13,6 +13,10 @@ from django.db.models import Max, Min, Count, Q
 from django.db.models.signals import pre_delete
 from django.dispatch import receiver
 
+from django.db.models import CharField
+from django.db.models.functions import Length
+CharField.register_lookup(Length, 'length')
+
 from .layout import PLATE_ROWS, PLATE_WELL_COUNT, PLATE_WELL_COUNT_HALF, validate_row_letter, plate_location, reverse_plate_location_coordinate, reverse_plate_location, duplicate_positions_check_db, p7_qbarcode_source, barcodes_for_location, indices_for_location, rotate_plate, validate_single_occupancy_layout
 from .sample_photos import num_sample_photos
 from .spreadsheet import *
@@ -2011,6 +2015,9 @@ class LibraryBatch(Timestamped):
 				create_library_from_extract(layout_element, user, i5=i5, i7=i7, ul_extract_used=ul_extract_used)
 			if len(extract_failures) > 0:
 				raise ValueError('\n'.join(extract_failures))
+			self.status = self.IN_PROGRESS
+			self.clean()
+			self.save(save_user=user)
 	
 def validate_index_dna_sequence(sequence):
 	valid_bases = 'ACGT'
@@ -2148,6 +2155,8 @@ class LibraryBatchLayout(TimestampedWellPosition):
 	def spreadsheet_header(cumulative=False):
 		headers = ['well_position-',
 			'reich_lab_library_id-',
+			'p5_index',
+			'p7_index',
 			'p5_barcode',
 			'p7_barcode',
 			'nanodrop',
@@ -2164,6 +2173,8 @@ class LibraryBatchLayout(TimestampedWellPosition):
 	def to_spreadsheet_row(self, cumulative=False):
 		values = [ str(self),
 			get_value(self.library, 'reich_lab_library_id'),
+			get_value(self.library, 'p5_index', 'label'),
+			get_value(self.library, 'p7_index', 'label'),
 			get_value(self.library, 'p5_barcode', 'label'),
 			get_value(self.library, 'p7_barcode', 'label'),
 			get_value(self.library, 'nanodrop'),
@@ -2190,6 +2201,26 @@ class LibraryBatchLayout(TimestampedWellPosition):
 		if self.library.reich_lab_library_id != reich_lab_library_id:
 			raise ValueError(f'reich_lab_library_id mismatch {self.library.reich_lab_library_id} {reich_lab_library_id}')
 		library = self.library
+		try:
+			p5_str = arg_array[headers.index('p5_index')]
+			if not p5_str.endswith('ss'):
+				p5_str += 'ss'
+			library.p5_index = P5_Index.objects.get(label=p5_str)
+		except P5_Index.DoesNotExist:
+			library.p5_index = None
+		try:
+			library.p7_index = P7_Index.objects.get(label=arg_array[headers.index('p7_index')])
+		except P7_Index.DoesNotExist:
+			library.p7_index = None
+		try:
+			library.p5_barcode = Barcode.objects.get(label=arg_array[headers.index('p5_barcode')])
+		except Barcode.DoesNotExist:
+			library.p5_barcode = None
+		try:
+			library.p7_barcode = Barcode.objects.get(label=arg_array[headers.index('p7_barcode')])
+		except Barcode.DoesNotExist:
+			library.p7_barcode = None
+
 		library.nanodrop = float(arg_array[headers.index('nanodrop')])
 		library.qpcr = float(arg_array[headers.index('qpcr')])
 		library.plate_id = arg_array[headers.index('plate_id')]

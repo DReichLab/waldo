@@ -556,12 +556,16 @@ class BarcodeSelect(ModelChoiceField):
 			
 class LibraryForm(UserModelForm):
 	well_position = forms.CharField(disabled=True)
+	# single-stranded libraries have indices
+	p5_index = BarcodeSelect(queryset=P5_Index.objects.filter(sequence__length=8, reich_lab_default=True))
+	p7_index = BarcodeSelect(queryset=P7_Index.objects.filter(sequence__length=8, reich_lab_default=True))
+	# double-stranded libraries have barcodes
 	p5_barcode = BarcodeSelect(queryset=Barcode.objects.all())
 	p7_barcode = BarcodeSelect(queryset=Barcode.objects.all())
 	
 	class Meta:
 		model = Library
-		fields = ['well_position', 'reich_lab_library_id', 'p5_barcode', 'p7_barcode', 'nanodrop', 'qpcr', 'plate_id', 'fluidx_barcode', 'notes']
+		fields = ['well_position', 'reich_lab_library_id', 'p5_index', 'p7_index', 'p5_barcode', 'p7_barcode', 'nanodrop', 'qpcr', 'plate_id', 'fluidx_barcode', 'notes']
 		widgets = {
 			'notes': Textarea(attrs={'cols': 60, 'rows': 2}),
 		}
