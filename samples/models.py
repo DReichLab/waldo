@@ -939,7 +939,7 @@ class LysateBatch(Timestamped):
 			lysate = create_lysate(layout_element, self, user)
 	
 	def create_extract_batch(self, batch_name, user):
-		layout = LysateBatchLayout.objects.filter(lysate_batch=self)
+		layout = self.layout_elements()
 		duplicate_positions_check_db(layout)
 		try:
 			extract_batch = ExtractionBatch.objects.get(batch_name=batch_name)
@@ -967,7 +967,7 @@ class LysateBatch(Timestamped):
 		return extract_batch
 		
 	def lysates_from_spreadsheet(self, spreadsheet, user):
-		layout_elements = LysateBatchLayout.objects.filter(lysate_batch=self)
+		layout_elements = self.layout_elements()
 		headers, data_rows = spreadsheet_headers_and_data_rows(spreadsheet)
 		
 		for line in data_rows:
@@ -1358,14 +1358,14 @@ class ExtractionBatch(Timestamped):
 		
 	def create_extracts(self, user):
 		# order matters for the creation of controls without prior existing lysates
-		layout = ExtractionBatchLayout.objects.filter(extract_batch=self).order_by('column', 'row')
+		layout = self.layout_elements()
 		duplicate_positions_check_db(layout)
 		# create extracts
 		for layout_element in layout:
 			extract = layout_element.create_extract_from_lysate(user)
 	
 	def create_library_batch(self, batch_name, user):
-		layout = ExtractionBatchLayout.objects.filter(extract_batch=self)
+		layout = self.layout_elements()
 		duplicate_positions_check_db(layout)
 		try:
 			library_batch = LibraryBatch.objects.get(name=batch_name)
@@ -1393,13 +1393,13 @@ class ExtractionBatch(Timestamped):
 		return library_batch
 				
 	def rotate(self, user):
-		layout_elements = ExtractionBatchLayout.objects.filter(extract_batch=self)
+		layout_elements = self.layout_elements()
 		rotate_plate(layout_elements, user)
 		self.rotated = not self.rotated
 		self.save(save_user=user)
 	
 	def extracts_from_spreadsheet(self, spreadsheet, user):
-		layout_elements = ExtractionBatchLayout.objects.filter(extract_batch=self)
+		layout_elements = self.layout_elements()
 		headers, data_rows = spreadsheet_headers_and_data_rows(spreadsheet)
 			
 		for line in data_rows:
