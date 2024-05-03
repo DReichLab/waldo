@@ -2121,7 +2121,7 @@ class Library(Timestamped):
 			raise ValidationError(_('Library must have either indices or barcodes')) 
 		if self.sample and self.extract and self.sample != self.extract.get_sample():
 			raise ValidationError(_('Library has sample mismatch'))
-		if self.library_type == 'ss' and self.p5_index is None or self.p7_index is None:
+		if self.library_type == 'ss' and (self.p5_index is None or self.p7_index is None):
 			raise ValidationError(_('single-stranded library is missing indices'))
 			
 	# barcodes and indices are unique, so we only need to check ids, not DNA sequences
