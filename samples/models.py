@@ -67,11 +67,12 @@ def get_value(obj, *property_name_chain, default=''):
 			current_object = current_object()
 	return current_object
 
-# convert a non-empty string using a coversion function
+# convert a non-empty string using a conversion function
 # or return None
 def value_convert_or_none(value_str, conversion_function):
-	if len(value_str) > 0:
-		return conversion_function(value_str)
+	trimmed_value_str = value_str.strip()
+	if len(trimmed_value_str) > 0:
+		return conversion_function(trimmed_value_str)
 	return None
 		
 class Timestamped(models.Model):
