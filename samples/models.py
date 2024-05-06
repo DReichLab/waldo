@@ -179,6 +179,9 @@ class Collaborator(Timestamped):
 	
 	def name(self):
 		return f'{self.first_name} {self.last_name}'
+
+class PublicationType(models.Model):
+	category = models.CharField(max_length=50, blank=False, help_text='For example, genetic or archaeological')
 	
 class Publication(Timestamped):
 	title = models.CharField(max_length=200)
@@ -188,6 +191,7 @@ class Publication(Timestamped):
 	pages = models.CharField(max_length=30, blank=True)
 	author_list = models.TextField(blank=True)
 	url = models.CharField(max_length=50, blank=True)
+	publication_type = models.ForeignKey(PublicationType, on_delete=models.PROTECT, null=True)
 
 class WetLabStaff(Timestamped):
 	first_name = models.CharField(max_length=30, db_index=True)
@@ -234,6 +238,8 @@ class Country(Timestamped):
 	iso_alpha2_code = models.CharField(max_length=2, blank=True)
 	iso_alpha3_code = models.CharField(max_length=3, blank=True)
 
+CE_DATE_HELP = 'Positive is year in CE. Negative is year BCE.'
+
 class Location(Timestamped):
 	country = models.ForeignKey(Country, on_delete=models.PROTECT, null=True)
 	level_1 = models.CharField(max_length=100, blank=True) # coarsest
@@ -244,18 +250,28 @@ class Location(Timestamped):
 	site = models.TextField(blank=True)
 	latitude = models.CharField(max_length=20, blank=True) # TODO convert to spatial
 	longitude = models.CharField(max_length=20, blank=True) # TODO
+	ecological_zone = models.CharField(max_length=50, blank=True)
+	river_basin = models.CharField(max_length=50, blank=True)
+	mountain = models.CharField(max_length=50, blank=True)
 	
 class Period(Timestamped):
 	abbreviation = models.CharField(max_length=50)
 	text = models.TextField(blank=True)
 	description = models.TextField(blank=True)
 	date_range = models.CharField(max_length=50, blank=True)
+	date_start = models.IntegerField(null=True, help_text=CE_DATE_HELP)
+	date_end = models.IntegerField(null=True, help_text=CE_DATE_HELP)
+	date_accuracy = models.FloatField(null=True)
 	
 class Culture(Timestamped):
 	abbreviation = models.CharField(max_length=50)
 	text = models.TextField(blank=True)
 	description = models.TextField(blank=True)
 	date_range = models.CharField(max_length=50, blank=True)
+	date_start = models.IntegerField(null=True, help_text=CE_DATE_HELP)
+	date_end = models.IntegerField(null=True, help_text=CE_DATE_HELP)
+	date_accuracy = models.FloatField(null=True)
+	super_culture = models.ForeignKey('self', on_delete=models.PROTECT, null=True, help_text='')
 	
 class Storage(Timestamped):
 	equipment_type = models.CharField(max_length=50, blank=True)
@@ -287,19 +303,49 @@ class SkeletalElementCategory(models.Model):
 	category = models.CharField(max_length=50, blank=True)
 	sort_order = models.PositiveSmallIntegerField(default=1, help_text='For changing display order of categories in web interface')
 
+class SitePhase(Timestamped):
+	site = models.ForeignKey(Location, on_delete=models.PROTECT)
+	category = models.CharField(max_length=50, blank=True)
+	date_start = models.IntegerField(null=True, help_text=CE_DATE_HELP)
+	date_end = models.IntegerField(null=True, help_text=CE_DATE_HELP)
+	date_accuracy = models.FloatField(null=True)
+
+class ArchaeologicalAssemblageType(models.Model):
+	name = models.CharField(max_length=50, blank=False, unique=True, help_text='Category for archaeological assemblage')
+
+class ArchaeologicalAssemblage(Timestamped):
+	burial_code = models.TextField(blank=False)
+	category = models.ForeignKey(ArchaeologicalAssemblageType, on_delete=models.PROTECT, null=True) # TODO should be non-null, but needs to support null as types are not initially known
+	site_phase = models.ForeignKey(SitePhase, on_delete=models.PROTECT, null=True)
+	date_start = models.IntegerField(null=True, help_text='Date from Archaeologist. ' + CE_DATE_HELP)
+	date_end = models.IntegerField(null=True, help_text='Date from Archaeologist. ' + CE_DATE_HELP)
+	date_notes = models.TextField(blank=True)
+	resolved_date_start = models.IntegerField(null=True, help_text=CE_DATE_HELP)
+	resolved_date_end = models.IntegerField(null=True, help_text=CE_DATE_HELP)
+	date_accuracy = models.FloatField(null=True)
+
+class PublicationLabels(Timestamped):
+	sample = models.ForeignKey('Sample', on_delete=models.PROTECT)
+	publication = models.ForeignKey(Publication, on_delete=models.PROTECT)
+	individual_id = models.CharField(max_length=50, blank=False, help_text='Individual ID in paper')
+	group_label = models.CharField(max_length=200, blank=True, help_text='Group label for sample in paper')
+
 class Sample(Timestamped):
 	reich_lab_id = models.PositiveIntegerField(db_index=True, null=True, help_text=' assigned when a sample is selected from the queue by the wetlab')
 	control = models.CharField(max_length=2, blank=True, help_text='Non-empty value indicates this is a control')
 	queue_id = models.PositiveIntegerField(db_index=True, unique=True, null=True)
 	
-	collaborator = models.ForeignKey(Collaborator, on_delete=models.PROTECT, null=True)
+	collaborator = models.ForeignKey(Collaborator, on_delete=models.PROTECT, null=True) # sample provider
+	collection_keeper = models.ForeignKey(Collaborator, on_delete=models.PROTECT, null=True, related_name='collection_keeper')
+	excavator = models.ForeignKey(Collaborator, on_delete=models.PROTECT, null=True, related_name='excavator')
+
 	shipment = models.ForeignKey(Shipment, on_delete=models.PROTECT, null=True)
 	return_id = models.ForeignKey(Return, on_delete=models.PROTECT, null=True)
 	
 	location_fk = models.ForeignKey(Location, on_delete=models.SET_NULL, null=True)
 	periods = models.ManyToManyField(Period)
 	cultures = models.ManyToManyField(Culture)
-	publications = models.ManyToManyField(Publication) # TODO add individual id and group labels to relationship
+	#publications = models.ManyToManyField(Publication, through='PublicationLabels', related_name='published_id_and_group_label')
 
 	individual_id = models.CharField(max_length=15, blank=True)
 	
@@ -307,6 +353,7 @@ class Sample(Timestamped):
 	skeletal_element_category = models.ForeignKey(SkeletalElementCategory, null=True, on_delete=models.PROTECT)
 	skeletal_code = models.CharField(max_length=150, blank=True, help_text='Sample identification code assigned by the collaborator')
 	skeletal_code_renamed = models.TextField(blank=True, help_text='Sample identification code assigned by the Reich Lab')
+	archaeological_assemblage = models.ForeignKey(ArchaeologicalAssemblage, on_delete=models.PROTECT, null=True)
 	sample_date = models.TextField(blank=True, help_text='Age of sample; either a radiocarbon date or a date interval.')
 	average_bp_date = models.FloatField(null=True, help_text='Average Before Present date, calculated from average of calibrated date range after conversion to BP dates')
 	date_fix_flag = models.TextField(help_text='Flag for any issues with the date information submitted by the collaborator', blank=True)
@@ -2789,7 +2836,8 @@ class RadiocarbonDatingInvoice(Timestamped):
 	note = models.TextField(blank=True)
 	
 class RadiocarbonDatedSample(Timestamped):
-	sample = models.ForeignKey(Sample, on_delete=models.PROTECT)
+	sample = models.ForeignKey(Sample, on_delete=models.PROTECT, null=True)
+	archaeological_assemblage = models.ForeignKey(ArchaeologicalAssemblage, on_delete=models.PROTECT, null=True)
 	radiocarbon_shipment = models.ForeignKey(RadiocarbonShipment, on_delete=models.PROTECT, null=True)
 	calibration = models.ForeignKey(RadiocarbonCalibration, on_delete=models.PROTECT, null=True)
 	first_publication = models.ForeignKey(Publication, on_delete=models.PROTECT, null=True)
@@ -2819,6 +2867,11 @@ class RadiocarbonDatedSample(Timestamped):
 	skeletal_element_sent = models.CharField(max_length=50, blank=True)
 	sample_grams = models.FloatField(null=True)
 	material_returned = models.TextField(blank=True)
+	method = models.CharField(max_length=20, blank=True)
+
+	def clean(self):
+		if sample is None and assemblage is None:
+			raise ValidationError(_('Radiocarbon needs either sample or assemblage'))
 	
 class DistributionsShipment(Timestamped):
 	collaborator = models.ForeignKey(Collaborator, on_delete=models.PROTECT)
