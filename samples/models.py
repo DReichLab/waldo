@@ -1814,10 +1814,11 @@ class LibraryBatch(Timestamped):
 		
 	def clean(self):
 		super(LibraryBatch, self).clean()
-		if self.status == self.CLOSED and self.prep_date is None:
-			raise ValidationError(_('Closed library batch needs prep date'))
-		for library in Library.objects.filter(library_batch=self):
-			library.clean()
+		if self.status == self.CLOSED:
+			if self.prep_date is None:
+				raise ValidationError(_('Closed library batch needs prep date'))
+			for library in Library.objects.filter(library_batch=self):
+				library.clean()
 		layout_elements = self.layout_elements()
 		for layout_element in layout_elements:
 			layout_element.clean()
@@ -2118,10 +2119,10 @@ class Library(Timestamped):
 		super(Library, self).clean()
 		if (self.p5_index is not None or self.p7_index is not None) and (self.p5_barcode is not None or self.p7_barcode is not None):
 			raise ValidationError(_('Library cannot have both indices and barcodes. Single-stranded libraries should have only indices, and double-stranded libraries should have only barcodes.'))
-		if self.p5_index is None and self.p7_index is None and self.p5_barcode is None and self.p7_barcode is None:
-			raise ValidationError(_('Library must have either indices or barcodes')) 
 		if self.sample and self.extract and self.sample != self.extract.get_sample():
 			raise ValidationError(_('Library has sample mismatch'))
+		if self.p5_index is None and self.p7_index is None and self.p5_barcode is None and self.p7_barcode is None:
+			raise ValidationError(_('Library must have either indices or barcodes'))
 		if self.library_type == 'ss' and (self.p5_index is None or self.p7_index is None):
 			raise ValidationError(_('single-stranded library is missing indices'))
 			
