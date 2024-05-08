@@ -345,7 +345,7 @@ class Sample(Timestamped):
 	location_fk = models.ForeignKey(Location, on_delete=models.SET_NULL, null=True)
 	periods = models.ManyToManyField(Period)
 	cultures = models.ManyToManyField(Culture)
-	#publications = models.ManyToManyField(Publication, through='PublicationLabels', related_name='published_id_and_group_label')
+	publications = models.ManyToManyField(Publication, through='PublicationLabels', related_name='published_id_and_group_label')
 
 	individual_id = models.CharField(max_length=15, blank=True)
 	
