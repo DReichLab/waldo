@@ -1339,7 +1339,8 @@ class ExtractionBatch(Timestamped):
 		layout_elements = self.layout_elements()
 		for layout_element in layout_elements:
 			layout_element.clean()
-		validate_single_occupancy_layout(layout_elements)
+		if self.status == self.CLOSED:
+			validate_single_occupancy_layout(layout_elements)
 
 	# convenience
 	def layout_elements(self):
@@ -1815,15 +1816,16 @@ class LibraryBatch(Timestamped):
 		
 	def clean(self):
 		super(LibraryBatch, self).clean()
+		layout_elements = self.layout_elements()
+		for layout_element in layout_elements:
+			layout_element.clean()
 		if self.status == self.CLOSED:
 			if self.prep_date is None:
 				raise ValidationError(_('Closed library batch needs prep date'))
 			for library in Library.objects.filter(library_batch=self):
 				library.clean()
-		layout_elements = self.layout_elements()
-		for layout_element in layout_elements:
-			layout_element.clean()
-		validate_single_occupancy_layout(layout_elements)
+
+			validate_single_occupancy_layout(layout_elements)
 	
 	def check_p7_offset(self):
 		if self.protocol.library_type == 'ds' and (self.p7_offset is None or self.p7_offset < 0 or self.p7_offset >= PLATE_WELL_COUNT_HALF):
