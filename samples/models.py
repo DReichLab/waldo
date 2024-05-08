@@ -809,7 +809,8 @@ class LysateBatch(Timestamped):
 		layout_elements = self.layout_elements()
 		for layout_element in layout_elements:
 			layout_element.clean()
-		validate_single_occupancy_layout(layout_elements)
+		if self.status == self.CLOSED:
+			validate_single_occupancy_layout(layout_elements)
 
 	# convenience
 	def layout_elements(self):
