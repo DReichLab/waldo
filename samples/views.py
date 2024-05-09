@@ -614,10 +614,10 @@ def sample_summary(request):
 	if sample:
 		# apparently it's not possible to filter a queryset using a method
 		powder_samples = PowderSample.objects.filter(sample=sample).order_by('powder_sample_id')
-		lysates = Lysate.objects.filter(Q(sample=sample) | Q(powder_sample__sample=sample)).order_by('reich_lab_lysate_number')
-		extracts = Extract.objects.filter(Q(sample=sample) | Q(lysate__powder_sample__sample=sample)).order_by('lysate__reich_lab_lysate_number', 'reich_lab_extract_number')
+		lysates = Lysate.objects.filter(Q(sample=sample) | Q(powder_sample__sample=sample)).select_related('lysatebatchlayout').order_by('reich_lab_lysate_number')
+		extracts = Extract.objects.filter(Q(sample=sample) | Q(lysate__powder_sample__sample=sample)).select_related('extractionbatchlayout').order_by('lysate__reich_lab_lysate_number', 'reich_lab_extract_number')
 		# 
-		libraries = Library.objects.filter(Q(sample=sample) | Q(extract__in=extracts) ).distinct().order_by('extract__lysate__reich_lab_lysate_number', 'extract__reich_lab_extract_number', 'reich_lab_library_number')
+		libraries = Library.objects.filter(Q(sample=sample) | Q(extract__in=extracts) ).distinct().select_related('librarybatchlayout').order_by('extract__lysate__reich_lab_lysate_number', 'extract__reich_lab_extract_number', 'reich_lab_library_number')
 		captured_libraries = CaptureLayout.objects.filter(library__in=libraries).order_by('library__extract__lysate__reich_lab_lysate_number',  'library__extract__reich_lab_extract_number', 'library__reich_lab_library_number', 'capture_batch__date')
 		
 		return render(request, 'samples/sample_summary.html', { 'form': form, 'reich_lab_sample_number': reich_lab_sample_number, 'sample': sample, 'powder_samples': powder_samples, 'lysates': lysates, 'extracts': extracts, 'libraries': libraries, 'captured_libraries': captured_libraries, } )
@@ -1096,7 +1096,7 @@ def libraries_in_batch(request):
 		
 	elif request.method == 'GET':
 		library_batch_form = LibraryBatchForm(instance=library_batch, user=request.user)
-		libraries_formset = LibraryFormset(queryset=Library.objects.filter(library_batch=library_batch).select_related('p5_index', 'p7_index', 'p5_barcode', 'p7_barcode').prefetch_related('librarybatchlayout_set').order_by('librarybatchlayout__column', 'librarybatchlayout__row', 'sample__reich_lab_id'), form_kwargs={'user': request.user})
+		libraries_formset = LibraryFormset(queryset=Library.objects.filter(library_batch=library_batch).select_related('p5_index', 'p7_index', 'p5_barcode', 'p7_barcode').prefetch_related('librarybatchlayout').order_by('librarybatchlayout__column', 'librarybatchlayout__row', 'sample__reich_lab_id'), form_kwargs={'user': request.user})
 	
 	return render(request, 'samples/libraries_in_batch.html', { 'library_batch_name': library_batch_name, 'library_batch': library_batch, 'library_batch_form': library_batch_form, 'formset': libraries_formset} )
 	

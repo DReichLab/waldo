@@ -21,12 +21,14 @@
 	<th>Collaborator ID</th>
 	<th>Burial Code</th>
 	<th>Site</th>
+	<th>Individual ID</th>
 </tr>
 <tr>
 	<td>{{ sample.collaborator.name }}</td>
 	<td>{{ sample.skeletal_code }}</td>
 	<td>{{ sample.burial_code }}</td>
 	<td>{{ sample.location_fk.site }}</td>
+	<td>{{ sample.individual_id }}</td>
 </tr>
 </table>
 
@@ -56,12 +58,16 @@
 	<th>Lysate</th>
 	<th>Lysate Batch</th>
 	<th>FluidX Barcode</th>
+	<th>Powder Used (mg) [layout]</th>
+	<th>Powder Used (mg)</th>
 </tr>
 {% for lysate in lysates %}
 <tr>
 	<td>{{ lysate.lysate_id }}</td>
 	<td><a href="lysates_in_batch?lysate_batch_name={{ lysate.lysate_batch.batch_name }}">{{  lysate.lysate_batch.batch_name }}</a></td>
 	<td>{{ lysate.barcode }}</td>
+	<td>{{ lysate.lysatebatchlayout.powder_used_mg}}</td>
+	<td>{{ lysate.powder_used_mg}}</td>
 </tr>
 {% endfor %}
 </table>
@@ -72,11 +78,17 @@
 <tr>
 	<th>Extract</th>
 	<th>Extract Batch</th>
+	<th>Lysate used (micro L) [layout]</th>
+	<th>Lysate used (micro L)</th>
+	<th>Powder Used (mg) [layout]</th>
 </tr>
 {% for extract in extracts %}
 <tr>
 	<td>{{ extract.extract_id }}</td>
 	<td><a href="extracts_in_batch?extract_batch_name={{ extract.extract_batch.batch_name }}">{{ extract.extract_batch.batch_name }}</a></td>
+	<td>{{ extract.extractionbatchlayout.lysate_volume_used }}</td>
+	<td>{{ extract.lysis_volume_extracted }}</td>
+	<td>{{ extract.extractionbatchlayout.powder_used_mg }}</td>
 </tr>
 {% endfor %}
 </table>
@@ -91,6 +103,8 @@
 	<th>FluidX Barcode</th>
 	<th>Library Type</th>
 	<th>UDG treatment</th>
+	<th>extract used (micro L) [layout]</th>
+	<th>extract used (micro L)</th>
 </tr>
 {% for library in libraries %}
 <tr>
@@ -100,6 +114,8 @@
 	<td>{{ library.fluidx_barcode }}</td>
 	<td>{{ library.library_type }}</td>
 	<td>{{ library.udg_treatment }}</td>
+	<td>{{ library.librarybatchlayout.ul_extract_used }}</td>
+	<td>{{ library.ul_extract_used }}</td>
 </tr>
 {% endfor %}
 </table>

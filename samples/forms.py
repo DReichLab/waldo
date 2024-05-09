@@ -325,9 +325,8 @@ class LysateForm(UserModelForm):
 		for option in ['lysate_id']:
 			self.fields[option].disabled = True
 		if self.instance:
-			layout_elements = self.instance.lysatebatchlayout_set
 			try:
-				layout_element = layout_elements.get(lysate=self.instance)
+				layout_element = self.instance.lysatebatchlayout
 				self.initial['well_position'] = str(layout_element)
 			except Exception as e: # After old data has layout elements created, we can remove this
 				print(self.instance.lysate_id)
@@ -399,8 +398,7 @@ class ExtractForm(UserModelForm):
 		self.fields['extract_id'].disabled = True
 		
 		if self.instance:
-			layout_elements = self.instance.extractionbatchlayout_set
-			layout_element = layout_elements.get(extract=self.instance)
+			layout_element = self.instance.extractionbatchlayout
 			self.initial['well_position'] = str(layout_element)
 			if layout_element.lysate:
 				self.initial['fluidx_barcode'] = layout_element.lysate.barcode
@@ -580,8 +578,7 @@ class LibraryForm(UserModelForm):
 		for option in ['p5_index', 'p7_index', 'p5_barcode', 'p7_barcode', 'nanodrop', 'qpcr_ds', 'qpcr_assay_a_1_ss', 'qpcr_assay_a_2_ss', 'qpcr_assay_b_1_ss', 'qpcr_assay_b_2_ss', 'assay_a_percent_inhibition', 'assay_b_total_molecules']:
 			self.fields[option].required = False
 		if self.instance:
-			layout_elements = self.instance.librarybatchlayout_set
-			layout_element = layout_elements.get(library=self.instance)
+			layout_element = self.instance.librarybatchlayout
 			self.initial['well_position'] = str(layout_element)
 
 

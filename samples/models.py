@@ -1095,7 +1095,7 @@ class LysateBatchLayout(TimestampedWellPosition):
 	control_type = models.ForeignKey(ControlType, on_delete=models.PROTECT, null=True)
 	powder_used_mg = models.FloatField(null=True)
 	notes = models.TextField(blank=True)
-	lysate = models.ForeignKey(Lysate, on_delete=models.SET_NULL, null=True, help_text='Lysate created in this well from powder')
+	lysate = models.OneToOneField(Lysate, on_delete=models.SET_NULL, null=True, help_text='Lysate created in this well from powder')
 	is_lost = models.BooleanField(default=False)
 	powder_batch = models.ForeignKey(PowderBatch, on_delete=models.CASCADE, null=True, help_text='Powder batch where powder was weighed')
 	
@@ -1599,7 +1599,7 @@ class ExtractionBatchLayout(TimestampedWellPosition):
 	control_type = models.ForeignKey(ControlType, on_delete=models.PROTECT, null=True)
 	lysate_volume_used = models.FloatField(null=True) # for lost only, until we can migrate all values in extracts
 	notes = models.TextField(blank=True)
-	extract = models.ForeignKey(Extract, on_delete=models.SET_NULL, null=True, help_text='extract created in this well location')
+	extract = models.OneToOneField(Extract, on_delete=models.SET_NULL, null=True, help_text='extract created in this well location')
 	# fields for old batches
 	powder_sample = models.ForeignKey(PowderSample, on_delete=models.CASCADE, null=True)
 	powder_used_mg = models.FloatField(null=True)
@@ -2223,6 +2223,10 @@ class Library(Timestamped):
 			if library_id.startswith('control') or library_id.startswith('Contl.') or library_id == 'capture_positive_ds':
 				return True
 			raise NotImplementedError('Unexpected unknown library control state')
+
+	# compute the amount of powder used to generate this library
+	def powder_equivalent(self):
+		pass
 	
 # extract -> library
 class LibraryBatchLayout(TimestampedWellPosition):
@@ -2231,7 +2235,7 @@ class LibraryBatchLayout(TimestampedWellPosition):
 	control_type = models.ForeignKey(ControlType, on_delete=models.PROTECT, null=True)
 	ul_extract_used = models.FloatField(null=True) # populated from library protocol, needs to done after layout elements are created
 	notes = models.TextField(blank=True)
-	library = models.ForeignKey(Library, on_delete=models.SET_NULL, null=True, help_text='')
+	library = models.OneToOneField(Library, on_delete=models.SET_NULL, null=True, help_text='library created from extract')
 	
 	@staticmethod
 	def spreadsheet_header(cumulative=False):
