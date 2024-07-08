@@ -154,6 +154,14 @@ def library_anno_line(instance_id_raw, sequencing_run_name, release_label, compo
 	mod_append(fields, get_number(sample, 'average_bp_date', 0))
 	#Date: One of two formats. (Format 1) 95.4% CI calibrated radiocarbon age (Conventional Radiocarbon Age BP, Lab number) e.g. 5983-5747 calBCE (6980±50 BP, Beta-226472). (Format 2) Archaeological context date, e.g. 2500-1700 BCE
 	mod_append(fields, get_text(sample, 'sample_date'))
+	# Age at death, Morphological sex from physical anthropology
+	morphological_sex = get_text(sample, 'morphological_sex') # three db fields to build anno file entry from
+	morphological_age = get_text(sample, 'morphological_age')
+	morphological_age_range = get_text(sample, 'morphological_age_range')
+	if morphological_age_range and not morphological_age_range.endswith('mos'):
+		morphological_age_range += ' yrs' # add " yrs" to end if not listed explicitly in months
+	morphological_column_elements = [morphological_age, morphological_age_range, morphological_sex]
+	mod_append(fields, '; '.join(filter(None, morphological_column_elements))) # concatenate non-empty fields
 	#Group_ID (format convention which we try to adhere to is "Country_<Geographic.Region_<Geographic.Subregion_>><Archaeological.Period.Or.DateBP_<Alternative.Archaeological.Period_>><Archaeological.Culture_<Alternative.Archaeological.Culture>><genetic.subgrouping.index.if.necessary_><"o_"sometimes.with.additional.detail.if.an.outlier><additional.suffix.especially.relative.status.if.we.recommend.removing.from.main.analysis.grouping><"contam_".if.contaminated><"lc_".if.<15000.SNPs.on.autosomal.targets><".SG".or.".DG".if.shotgun.data>; HG=hunter-gatherer, N=Neolithic, C=Chalcolithic/CopperAge, BA=BronzeAge, IA=IronAge, E=Early, M=Middle, L=Late, A=Antiquity)
 	if is_control:
 		mod_append(fields, 'Control')
