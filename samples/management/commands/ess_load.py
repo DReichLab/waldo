@@ -163,7 +163,10 @@ class ESS_Entry:
 def controls(headers, data_rows):
 	control_sample_numbers = {}
 	for row in data_rows:
-		library_id = get_spreadsheet_value(headers, row, 'Sample_Name')
+		try:
+			library_id = get_spreadsheet_value(headers, row, 'Sample_Name')
+		except ValueError:
+			library_id = get_spreadsheet_value(headers, row, 'library_id-')
 		if not library_id.startswith('Contl'):
 			sample_number, control = parse_sample_string(library_id, full=False)
 			if len(control) > 0:

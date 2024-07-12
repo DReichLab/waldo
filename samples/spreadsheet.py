@@ -32,9 +32,15 @@ def spreadsheet_headers_and_data_row_fields(spreadsheet_file):
 
 def get_spreadsheet_value(headers, data_row_fields, desired_header):
 	length_check(headers, data_row_fields)
-	index = headers.index(desired_header)
+	try:
+		index = headers.index(desired_header)
+	except ValueError as e:
+		if desired_header.endswith(HEADER_READ_ONLY_INDICATOR):
+			index = headers.index(desired_header[:-1])
+		else:
+			raise e
 	return data_row_fields[index]
-	
+
 # mark header as read-only
 def spreadsheet_header_read_only(header):
 	if header.endswith(HEADER_READ_ONLY_INDICATOR):
