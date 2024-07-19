@@ -1,7 +1,7 @@
 from django.core.management.base import BaseCommand, CommandError
 from django.conf import settings
 from django.db import transaction
-from samples.models import Library, P5_Index, P7_Index, Barcode, CaptureOrShotgunPlate, SequencingRun, LibraryBatch, CaptureLayout, ControlType, EXTRACT_NEGATIVE, LIBRARY_NEGATIVE, PCR_NEGATIVE, CAPTURE_POSITIVE, CAPTURE_POSITIVE_LIBRARY_NAME_DS, LibraryBatchLayout, ExtractionBatch, ExtractionBatchLayout, LysateBatch, LysateBatchLayout, parse_sample_string, get_value
+from samples.models import Library, P5_Index, P7_Index, Barcode, CaptureOrShotgunPlate, SequencingRun, LibraryBatch, CaptureLayout, ControlType, EXTRACT_NEGATIVE, LIBRARY_NEGATIVE, PCR_NEGATIVE, CAPTURE_POSITIVE, CAPTURE_POSITIVE_LIBRARY_NAME_DS, LibraryBatchLayout, ExtractionBatch, ExtractionBatchLayout, LysateBatch, LysateBatchLayout, parse_sample_string, get_value, SequencedLibrary
 from samples.spreadsheet import *
 from samples.layout import plate_location, location_from_indices
 from collections import Counter
@@ -78,7 +78,7 @@ def continue_to_extract(library_batch_name):
 
 # read entry
 class ESS_Entry:
-	# read values from ESS file, with mutiple possible formats
+	# read values from ESS file, with multiple possible formats
 	def __init__(self, row, headers, sequencing_run, dnu_header, notes_header):
 		try: # Zhao ESS
 			self.well_location = None
@@ -132,7 +132,10 @@ class ESS_Entry:
 			self.capture = CaptureOrShotgunPlate.objects.get(id__in=capture_ids, protocol__name__contains=self.experiment)
 
 			batch_str = get_spreadsheet_value(headers, row, 'library_batch-')
-			self.library_batch = LibraryBatch.objects.get(name=batch_str)
+			try:
+				self.library_batch = LibraryBatch.objects.get(name=batch_str)
+			except LibraryBatch.DoesNotExist:
+				self.library_batch = None
 
 			self.udg = get_spreadsheet_value(headers, row, 'udg_treatment-').lower()
 			self.library_style = get_spreadsheet_value(headers, row, 'library_type-')
@@ -167,7 +170,7 @@ def controls(headers, data_rows):
 			library_id = get_spreadsheet_value(headers, row, 'Sample_Name')
 		except ValueError:
 			library_id = get_spreadsheet_value(headers, row, 'library_id-')
-		if not library_id.startswith('Contl'):
+		if not (library_id.startswith('Contl') or library_id == PCR_NEGATIVE or library_id == CAPTURE_POSITIVE):
 			sample_number, control = parse_sample_string(library_id, full=False)
 			if len(control) > 0:
 				control_sample_numbers[sample_number] = 1
@@ -191,7 +194,9 @@ def all_lysates(headers, data_rows):
 
 def process_row(row, headers, sequencing_run, options, capture_positive, pcr_negative, extract_control_sample_number, library_control_sample_number, dnu_header, notes_header, update, command):
 
+	# parse spreadsheet row into fields
 	ess_entry = ESS_Entry(row, headers, sequencing_run, dnu_header, notes_header)
+	# perform field checks
 	try:
 		library = Library.objects.get(reich_lab_library_id=ess_entry.library_id)
 		control_type = None
