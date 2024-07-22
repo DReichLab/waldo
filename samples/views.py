@@ -189,7 +189,8 @@ def powder_batches(request):
 		batches = PowderBatch.objects.all()
 	else:
 		batches = PowderBatch.objects.filter(status__lt=PowderBatch.CLOSED)
-	batches = batches.annotate(
+	if 'fast' not in request.GET:
+		batches = batches.annotate(
 					Count('sampleprepqueue', distinct=True),
 					Count('powdersample', distinct=True),
 					num_queue_entries = Count('sampleprepqueue', distinct=True) + Count('powderprepqueue', distinct=True),
