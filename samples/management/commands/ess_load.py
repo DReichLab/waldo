@@ -311,7 +311,8 @@ def process_row(row, headers, sequencing_run, options, capture_positive, pcr_neg
 			extract = library.extract
 			library_layout_element, create_library_layout = LibraryBatchLayout.objects.get_or_create(library_batch=library.library_batch, library=library, control_type=control_type)
 			field_check(library_layout_element, 'extract', extract, update)
-			field_check(library_layout_element, 'ul_extract_used', library.ul_extract_used, update)
+			if get_value(library.ul_extract_used, default=0) > 0:
+				field_check(library_layout_element, 'ul_extract_used', library.ul_extract_used, update)
 			library_layout_element.row = capture_row
 			library_layout_element.column = capture_column
 			library_layout_element.save()
@@ -332,7 +333,8 @@ def process_row(row, headers, sequencing_run, options, capture_positive, pcr_neg
 			if extract_layout_element.control_type != control_type:
 				raise ValueError(f'{str(extract_layout_element.id)} control type mismatch')
 			# lysis volumes are recorded in layout element
-			field_check(extract_layout_element, 'lysate_volume_used', extract.lysis_volume_extracted, update)
+			if get_value(extract.lysis_volume_extracted, default=0) > 0:
+				field_check(extract_layout_element, 'lysate_volume_used', extract.lysis_volume_extracted, update)
 			# powder amounts for extracts need to be loaded separately because fake lysates have been removed
 			extract_layout_element.row = capture_row
 			extract_layout_element.column = capture_column
@@ -350,7 +352,8 @@ def process_row(row, headers, sequencing_run, options, capture_positive, pcr_neg
 				lysate_layout_element.row = capture_row
 				lysate_layout_element.column = capture_column
 				field_check(lysate_layout_element, 'control_type', control_type, update)
-				field_check(lysate_layout_element, 'powder_used_mg', lysate.powder_used_mg, update)
+				if get_value(lysate.powder_used_mg, default=0) > 0:
+					field_check(lysate_layout_element, 'powder_used_mg', lysate.powder_used_mg, update)
 				lysate_layout_element.save()
 			elif get_value(control_type, 'control_type') != LIBRARY_NEGATIVE:
 				command.stderr.write(f'No lysate batch for {ess_entry.library_id}')
