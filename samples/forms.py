@@ -543,6 +543,8 @@ class LibraryBatchForm(UserModelForm):
 				self.fields['protocol'].queryset = LibraryProtocol.objects.filter(Q(active=True) | Q(id=self.instance.protocol.id) ).order_by('-start_date')
 				if self.instance.protocol.library_type == 'ds':
 					self.fields['p7_offset'].required = True
+					# to keep offset consistent with libraries, only allow changing offset when batch is open
+					self.fields['p7_offset'].disabled = (self.instance.status != LibraryBatch.OPEN)
 			if self.instance.control_set:
 				self.fields['control_set'].queryset = ControlSet.objects.filter(Q(active=True) | Q(id=self.instance.control_set.id)).order_by('layout_name')
 	

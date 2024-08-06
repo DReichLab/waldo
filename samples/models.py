@@ -1752,8 +1752,31 @@ def create_library_from_extract(layout_element, user, *, i5=None, i7=None, ul_ex
 	extract = layout_element.extract
 	sample = extract.sample if extract else None
 	
+	# TODO check existing extract amount
+	if ul_extract_used is None:
+		ul_extract_used = library_batch.protocol.volume_extract_used_standard
+
+	# barcodes/indices
+	if library_batch.protocol.library_type == 'ds':
+		int_position = reverse_plate_location_coordinate(layout_element.row, layout_element.column)
+		p5_qstr, p7_qstr = barcodes_for_location(int_position, library_batch.p7_offset)
+		p5_barcode = Barcode.objects.get(label = p5_qstr)
+		p7_barcode = Barcode.objects.get(label = p7_qstr)
+	elif library_batch.protocol.library_type == 'ss':
+		# indices are assigned in arguments, or deferred and loaded later
+		p5_barcode = None
+		p7_barcode = None
+	else:
+		raise ValueError(f'unhandled library type {library_batch.protocol.library_type}')
+
 	if layout_element.library is not None:
-		return layout_element.library
+		layout_element.library.p5_barcode = p5_barcode
+		layout_element.library.p7_barcode = p7_barcode
+		layout_element.library.p5_index = i5
+		layout_element.library.p7_index = i7
+		layout_element.library.save(save_user=user)
+		layout_element.ul_extract_used = layout_element.library.ul_extract_used
+		layout_element.save(save_user=user)
 	else:
 		if extract:
 			existing_libraries = extract.highest_library()
@@ -1771,21 +1794,6 @@ def create_library_from_extract(layout_element, user, *, i5=None, i7=None, ul_ex
 			reich_lab_library_id = f'{control_name_string(library_batch.name, layout_element.control_type, num_existing)}.L{next_library_number}'
 		else:
 			raise ValueError(f'Unexpected case in creating library, neither extract nor library positive/negative {str(layout_element)} {layout_element.id}')
-		# TODO check existing extract amount
-		if ul_extract_used is None:
-			ul_extract_used = library_batch.protocol.volume_extract_used_standard
-		# assign barcodes/indices
-		if library_batch.protocol.library_type == 'ds':
-			int_position = reverse_plate_location_coordinate(layout_element.row, layout_element.column)
-			p5_qstr, p7_qstr = barcodes_for_location(int_position, library_batch.p7_offset)
-			p5_barcode = Barcode.objects.get(label = p5_qstr)
-			p7_barcode = Barcode.objects.get(label = p7_qstr)
-		elif library_batch.protocol.library_type == 'ss':
-			# indices are assigned in arguments, or deferred and loaded later
-			p5_barcode = None
-			p7_barcode = None
-		else:
-			raise ValueError(f'unhandled library type {library_batch.protocol.library_type}')
 			
 		library = Library(sample = sample,
 						extract = extract,
@@ -1807,7 +1815,7 @@ def create_library_from_extract(layout_element, user, *, i5=None, i7=None, ul_ex
 		layout_element.library = library
 		layout_element.ul_extract_used = library.ul_extract_used
 		layout_element.save(save_user=user)
-		return library
+	return layout_element.library
 	
 def validate_odd(value):
 	if value % 2 != 1:
