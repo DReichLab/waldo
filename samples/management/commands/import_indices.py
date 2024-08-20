@@ -9,10 +9,12 @@ class Command(BaseCommand):
 	def add_arguments(self, parser):
 		parser.add_argument("type", choices=['i5', 'i7'])
 		parser.add_argument("barcodes_file")
+		parser.add_argument('-d', "--default",  action='store_true')
 		
 	def handle(self, *args, **options):
 		barcode_type = options['type']
 		barcodes_file = options['barcodes_file']
+		default = options['default']
 		
 		if barcode_type == 'i5':
 			barcodes = P5_Index.objects
@@ -25,5 +27,5 @@ class Command(BaseCommand):
 					fields = line.split()
 					label = fields[0]
 					sequence = fields[1]
-					barcode, created = barcodes.get_or_create(label=label, sequence=sequence)
+					barcode, created = barcodes.get_or_create(label=label, sequence=sequence, reich_lab_default=default)
 					barcode.full_clean()
