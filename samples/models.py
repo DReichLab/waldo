@@ -2361,7 +2361,7 @@ class CaptureOrShotgunPlate(Timestamped):
 	
 	p5_index_start = models.PositiveSmallIntegerField(null=True, validators=[MinValueValidator(1), MaxValueValidator(47), validate_odd], help_text='Must be odd in [1, 48]')# TODO revisit this for single stranded
 	
-	needs_sequencing = models.BooleanField(default=True, help_text='True for new plates. False for plates sequenced before website switchover.')
+	needs_sequencing = models.BooleanField(default=True, help_text='True for new plates. False for plates sequenced before website switchover or if wells are manually assigned to sequencing runs.')
 	
 	OPEN = 0
 	IN_PROGRESS = 100
@@ -2477,6 +2477,7 @@ class CaptureOrShotgunPlate(Timestamped):
 			library_to_add = Library.objects.get(reich_lab_library_id=CAPTURE_POSITIVE_LIBRARY_NAME_DS)
 		else:
 			library_to_add = Library.objects.get(reich_lab_library_id=library_str_id)
+			control_type = library_to_add.get_control_type()
 		try:
 			layout_element = CaptureLayout.objects.get(capture_batch=self, library=library_to_add, row=row, column=column, control_type=control_type)
 		except CaptureLayout.DoesNotExist:
@@ -2484,9 +2485,24 @@ class CaptureOrShotgunPlate(Timestamped):
 			layout_element.save(save_user=user)
 		return layout_element
 		
-	# Shotgun plates do not have capture positive
+	# Shotgun plates do not have capture positive TODO
 	def assign_capture_positive_or_pcr_negative(self, is_shotgun=False):
 		raise NotImplementedError # needs control layout to toggle between capture positive and PCR negative
+
+	# if all contents of this batch have been assigned for sequencing, then set needs_sequencing to false
+	def needs_sequencing_assessment(self, print_all=False):
+		needs_sequencing_local = False
+		for layout_element in self.layout_elements():
+			if SequencedLibrary.objects.filter(indexed_library=layout_element).count() == 0:
+				needs_sequencing_local = True
+				if print_all:
+					print('\t'.join([str(layout_element.id), str(layout_element), get_value(layout_element, "library", "reich_lab_library_id"), get_value(layout_element, "capture_batch", "protocol", "name")]))
+				else:
+					break
+		if self.needs_sequencing != needs_sequencing_local:
+			self.needs_sequencing = needs_sequencing_local
+			self.save()
+		return self.needs_sequencing
 	
 	def blob_spreadsheet(self, spreadsheet, user):
 		headers, data_row_fields = spreadsheet_headers_and_data_row_fields(spreadsheet)
@@ -2704,6 +2720,12 @@ class SequencingRun(Timestamped):
 		sequenced_library.do_not_use = dnu
 		sequenced_library.notes = notes
 		sequenced_library.save(save_user=user)
+
+	def add_capture_columns(self, capture_id, columns, user):
+		capture = CaptureOrShotgunPlate.objects.get(name=capture_id)
+		layout_elements = CaptureLayout.objects.filter(capture_batch=capture, column__in=columns)
+		for layout_element in layout_elements:
+			self.assign_capture_layout_element(layout_element, user)
 	
 	# only one library type is allowed
 	def check_library_type(self):
