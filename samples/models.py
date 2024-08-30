@@ -758,6 +758,10 @@ def control_from_name_string(control_name_string_str):
 			return ControlType.objects.get(control_type=EXTRACT_NEGATIVE)
 		elif parts[1] == 'library':
 			return ControlType.objects.get(control_type=LIBRARY_NEGATIVE)
+	elif control_name_string_str == CAPTURE_POSITIVE_LIBRARY_NAME_DS:
+		return ControlType.objects.get(control_type=CAPTURE_POSITIVE)
+	elif control_name_string_str == PCR_NEGATIVE:
+		return ControlType.objects.get(control_type=PCR_NEGATIVE)
 	raise ValueError(f'Unanticipated control name string {control_name_string_str}')
 
 # this creates a lysate for a layout_element if it does not exist, and returns the existing one otherwise

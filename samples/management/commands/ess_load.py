@@ -1,7 +1,7 @@
 from django.core.management.base import BaseCommand, CommandError
 from django.conf import settings
 from django.db import transaction
-from samples.models import Library, P5_Index, P7_Index, Barcode, CaptureOrShotgunPlate, SequencingRun, LibraryBatch, CaptureLayout, ControlType, EXTRACT_NEGATIVE, LIBRARY_NEGATIVE, PCR_NEGATIVE, CAPTURE_POSITIVE, CAPTURE_POSITIVE_LIBRARY_NAME_DS, LibraryBatchLayout, ExtractionBatch, ExtractionBatchLayout, LysateBatch, LysateBatchLayout, parse_sample_string, get_value, SequencedLibrary
+from samples.models import Library, P5_Index, P7_Index, Barcode, CaptureOrShotgunPlate, SequencingRun, LibraryBatch, CaptureLayout, ControlType, EXTRACT_NEGATIVE, LIBRARY_NEGATIVE, PCR_NEGATIVE, CAPTURE_POSITIVE, CAPTURE_POSITIVE_LIBRARY_NAME_DS, LibraryBatchLayout, ExtractionBatch, ExtractionBatchLayout, LysateBatch, LysateBatchLayout, parse_sample_string, get_value, SequencedLibrary, control_from_name_string
 from samples.spreadsheet import *
 from samples.layout import plate_location, location_from_indices
 from collections import Counter
@@ -244,9 +244,8 @@ def process_row(row, headers, sequencing_run, options, capture_positive, pcr_neg
 			field_check(library, 'library_type', ess_entry.library_style, update)
 
 		# new controls are marked in name
-		if ess_entry.library_id.startswith('control'):
-			control_type_obj = control_from_name_string(ess_entry.library_id)
-			control_type = control_type_obj.control_type
+		if ess_entry.library_id.startswith('control') or ess_entry.library_id == PCR_NEGATIVE or ess_entry.library_id == CAPTURE_POSITIVE or ess_entry.library_id == CAPTURE_POSITIVE_LIBRARY_NAME_DS:
+			control_type = control_from_name_string(ess_entry.library_id)
 		# if this is an old-style control, we need to identify type
 		# identify extract and library negative controls based on sample and plate location
 		else:
@@ -265,8 +264,7 @@ def process_row(row, headers, sequencing_run, options, capture_positive, pcr_neg
 			control_type = capture_positive
 			library = Library.objects.get(reich_lab_library_id=CAPTURE_POSITIVE_LIBRARY_NAME_DS)
 		elif ess_entry.library_id.startswith('control'):
-			control_type_obj = control_from_name_string(ess_entry.library_id)
-			control_type = control_type_obj.control_type
+			control_type = control_from_name_string(ess_entry.library_id)
 		else:
 			raise ValueError(f'{ess_entry.library_id} not found')
 
