@@ -170,7 +170,7 @@ def controls(headers, data_rows):
 			library_id = get_spreadsheet_value(headers, row, 'Sample_Name')
 		except ValueError:
 			library_id = get_spreadsheet_value(headers, row, 'library_id-')
-		if not (library_id.startswith('Contl') or library_id == PCR_NEGATIVE or library_id == CAPTURE_POSITIVE):
+		if not (library_id.startswith('Contl') or library_id == PCR_NEGATIVE or library_id == CAPTURE_POSITIVE or library_id == CAPTURE_POSITIVE_LIBRARY_NAME_DS or library_id.startswith('control')):
 			sample_number, control = parse_sample_string(library_id, full=False)
 			if len(control) > 0:
 				control_sample_numbers[sample_number] = 1
