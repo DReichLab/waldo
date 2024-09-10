@@ -9,7 +9,7 @@ from django.core.exceptions import ValidationError
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.utils.translation import gettext_lazy as _
 
-from django.db.models import Max, Min, Count, Q
+from django.db.models import Max, Min, Count, Q, Sum
 from django.db.models.signals import pre_delete
 from django.dispatch import receiver
 
@@ -659,6 +659,13 @@ class PowderSample(Timestamped):
 			return self.sample.highest_lysate()
 		else:
 			return 0
+			
+	def powder_remaining(self):
+		lysates = LysateBatchLayout.objects.filter(powder_sample=self, powder_used_mg__isnull=False)
+		powder_for_lysates = lysates.aggregate(Sum('powder_used_mg'))['powder_used_mg__sum'] if lysates.exists() else 0
+		extracts = ExtractionBatchLayout.objects.filter(powder_sample=self, powder_used_mg__isnull=False)
+		powder_for_extracts = extracts.aggregate(Sum('powder_used_mg'))['powder_used_mg__sum'] if extracts.exists() else 0
+		return self.total_powder_produced_mg - powder_for_lysates - powder_for_extracts
 	
 class ExtractionProtocol(Timestamped):
 	name = models.CharField(max_length=150)
@@ -2226,7 +2233,19 @@ class Library(Timestamped):
 
 	# compute the amount of powder used to generate this library
 	def powder_equivalent(self):
-		pass
+		try:
+			extract_layout = ExtractionBatchLayout.objects.get(extract=self.extract)
+		except ExtractionBatchLayout.DoesNotExist:
+			return -1.0
+		if extract_layout.powder_used_mg is not None and extract_layout.powder_used_mg > 0:
+			extract_powder = extract_layout.powder_used_mg
+		else:
+			lysate_layout = LysateBatchLayout.objects.get(lysate=extract_layout.lysate)
+			extract_powder = lysate_layout.powder_used_mg * extract_layout.lysate_volume_used / extract_layout.lysate.total_volume_produced
+		
+		library_layout = LibraryBatchLayout.objects.get(library=self)
+		return extract_powder * library_layout.ul_extract_used / self.extract.extract_batch.protocol.final_extract_volume
+		
 	
 # extract -> library
 class LibraryBatchLayout(TimestampedWellPosition):

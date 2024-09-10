@@ -39,13 +39,16 @@
 	<th>Powder Sample</th>
 	<th>Powder Batch</th>
 	<th>Photos</th>
+	<th>Powder produced (mg)</th>
+	<th>Powder remaining (mg)</th>
 </tr>
 {% for powder_sample in powder_samples %}
 <tr>
 	<td>{{ powder_sample.powder_sample_id }}</td>
 	<td><a href="powder_samples?powder_batch={{ powder_sample.powder_batch.name }}">{{ powder_sample.powder_batch.name }}</a></td>
 	<td><a href="sample?sample=S{{reich_lab_sample_number}}">S{{reich_lab_sample_number}}</a></td>
-	
+	<td>{{ powder_sample.total_powder_produced_mg }}</td>
+	<td>{{ powder_sample.powder_remaining }}</td>
 </tr>
 {% endfor %}
 </table>
@@ -78,6 +81,7 @@
 <tr>
 	<th>Extract</th>
 	<th>Extract Batch</th>
+	<th>Extract Protocol Volume</th>
 	<th>Lysate used (micro L) [layout]</th>
 	<th>Lysate used (micro L)</th>
 	<th>Powder Used (mg) [layout]</th>
@@ -86,6 +90,7 @@
 <tr>
 	<td>{{ extract.extract_id }}</td>
 	<td><a href="extracts_in_batch?extract_batch_name={{ extract.extract_batch.batch_name }}">{{ extract.extract_batch.batch_name }}</a></td>
+	<td>{{ extract.extract_batch.protocol.final_extract_volume }}</td>
 	<td>{{ extract.extractionbatchlayout.lysate_volume_used }}</td>
 	<td>{{ extract.lysis_volume_extracted }}</td>
 	<td>{{ extract.extractionbatchlayout.powder_used_mg }}</td>
@@ -105,6 +110,7 @@
 	<th>UDG treatment</th>
 	<th>extract used (micro L) [layout]</th>
 	<th>extract used (micro L)</th>
+	<th>powder used equivalent (mg)</th>
 </tr>
 {% for library in libraries %}
 <tr>
@@ -116,6 +122,7 @@
 	<td>{{ library.udg_treatment }}</td>
 	<td>{{ library.librarybatchlayout.ul_extract_used }}</td>
 	<td>{{ library.ul_extract_used }}</td>
+	<td>{{ library.powder_equivalent }}</td>
 </tr>
 {% endfor %}
 </table>
