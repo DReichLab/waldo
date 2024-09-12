@@ -1,7 +1,7 @@
 from django.core.management.base import BaseCommand, CommandError
 from django.conf import settings
 from django.db import transaction
-from samples.models import Library, P5_Index, P7_Index, Barcode, CaptureOrShotgunPlate, SequencingRun, LibraryBatch, CaptureLayout, ControlType, EXTRACT_NEGATIVE, LIBRARY_NEGATIVE, PCR_NEGATIVE, CAPTURE_POSITIVE, CAPTURE_POSITIVE_LIBRARY_NAME_DS, LibraryBatchLayout, ExtractionBatch, ExtractionBatchLayout, LysateBatch, LysateBatchLayout, parse_sample_string, get_value, SequencedLibrary, control_from_name_string
+from samples.models import Library, P5_Index, P7_Index, Barcode, CaptureOrShotgunPlate, SequencingRun, LibraryBatch, CaptureLayout, ControlType, EXTRACT_NEGATIVE, LIBRARY_NEGATIVE, PCR_NEGATIVE, CAPTURE_POSITIVE, CAPTURE_POSITIVE_LIBRARY_NAME_DS, LibraryBatchLayout, ExtractionBatch, ExtractionBatchLayout, LysateBatch, LysateBatchLayout, parse_sample_string, get_value, SequencedLibrary, control_from_name_string, TimestampedWellPosition
 from samples.spreadsheet import *
 from samples.layout import plate_location, location_from_indices
 from collections import Counter
@@ -41,29 +41,38 @@ def notes_label(headers, custom_search):
 	return None
 
 def h9_library_layout(library_batch, command, do_extract_move, do_lysate_move):
-	h9_elements = library_batch.layout_elements().filter(row='H', column=9).order_by('library__reich_lab_library_id')
+	source_position = TimestampedWellPosition()
+	source_position.row = 'H'
+	source_position.column = 9
+	destination_position = TimestampedWellPosition()
+	destination_position.row = 'H'
+	destination_position.column = 12
+	if library_batch.rotated:
+		source_position.rotate()
+		destination_position.rotate()
+	h9_elements = library_batch.layout_elements().filter(row=source_position.row, column=source_position.column).order_by('library__reich_lab_library_id')
 	#for element in h9_elements:
 	#	command.stdout.write(f'{element.library.reich_lab_library_id}')
 	h9_count = h9_elements.count()
 	if h9_count > 2:
-		raise ValueError(f'too many H9 controls to split to H12')
+		raise ValueError(f'too many {str(source_position)} controls to split to {str(destination_position)}')
 	elif h9_count == 2:
 		moving_element = h9_elements.last()
-		moving_element.column = 12
+		moving_element.column = destination_position.column
 		moving_element.save()
 		# move prior batches
 		if do_extract_move and moving_element.extract is not None:
 			extract_layout_element = None
 			try:
 				extract_layout_element = ExtractionBatchLayout.objects.get(extract=moving_element.extract)
-				extract_layout_element.column = 12
+				extract_layout_element.column = destination_position.column
 				extract_layout_element.save()
 			except ExtractionBatchLayout.MultipleObjectsReturned as e:
 				command.stdout.write(moving_element.extract)
 				raise e
 			if do_lysate_move and extract_layout_element is not None and extract_layout_element.lysate is not None:
 				lysate_layout_element = LysateBatchLayout.objects.get(lysate=extract_layout_element.lysate)
-				lysate_layout_element.column = 12
+				lysate_layout_element.column = destination_position.column
 				lysate_layout_element.save()
 
 # returns True if locations should be propagated back to extract stage
