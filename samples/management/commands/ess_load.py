@@ -366,7 +366,7 @@ def process_row(row, headers, sequencing_run, options, capture_positive, pcr_neg
 				command.stderr.write(f'No lysate batch for {ess_entry.library_id}')
 			ess_entry.lysate_batch = lysate_batch
 
-	return ess_entry
+	return ess_entry, control_type
 
 class Command(BaseCommand):
 	help = 'Check/Load extended sample sheet (ESS) file from tab-delimited file into database. This fails if there is inconsistent (present but different) data. This will not create any Sample, PowderSample, Lysate, Extract, or Library objects, which are assumed to exist already. Layout elements to assign locations may be created.'
@@ -412,11 +412,12 @@ class Command(BaseCommand):
 		lysate_batches = Counter()
 		with transaction.atomic():
 			for row in data_rows:
-				ess_entry = process_row(row, headers, sequencing_run, options, capture_positive, pcr_negative, extract_control_sample_number, library_control_sample_number, dnu_header, notes_header, True, self)
+				ess_entry, control_type = process_row(row, headers, sequencing_run, options, capture_positive, pcr_negative, extract_control_sample_number, library_control_sample_number, dnu_header, notes_header, True, self)
 				capture_or_shotgun_batches.update([ess_entry.capture])
-				library_batches.update([ess_entry.library_batch])
-				extract_batches.update([ess_entry.extract_batch])
-				lysate_batches.update([ess_entry.lysate_batch])
+				if control_type != capture_positive and control_type != pcr_negative:
+					library_batches.update([ess_entry.library_batch])
+					extract_batches.update([ess_entry.extract_batch])
+					lysate_batches.update([ess_entry.lysate_batch])
 
 			# validate batches
 			for capture in capture_or_shotgun_batches:
