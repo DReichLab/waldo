@@ -127,6 +127,11 @@ class SampleSummaryLookupForm(forms.Form):
 		to_field_name='reich_lab_id',
 		required=False
 	)
+	sample_control = CharField(
+		help_text='Sample control letter',
+		required=False,
+		max_length=2
+	)
 	lysate = ModelChoiceField(
 		queryset=Lysate.objects.all(),
 		widget=TextInput,

@@ -545,6 +545,7 @@ def sample(request):
 		form = SampleImageForm(request.POST, request.FILES)
 		if form.is_valid():
 			reich_lab_sample_number = reich_lab_sample_number_from_string(request.GET['sample'])
+			sample_control_letter = request.GET['sample_control']
 			print(reich_lab_sample_number)
 			photo = request.FILES.get('photo')
 			label = form.cleaned_data['image_type']
@@ -555,8 +556,9 @@ def sample(request):
 	elif request.method == 'GET':
 		# database, not Reich Lab ID
 		reich_lab_sample_number = reich_lab_sample_number_from_string(request.GET['sample'])
+		sample_control_letter = request.GET['sample_control']
 	
-	sample = Sample.objects.get(reich_lab_id=reich_lab_sample_number)
+	sample = Sample.objects.get(reich_lab_id=reich_lab_sample_number, control=sample_control_letter)
 	collaborator_id = sample.skeletal_code
 	
 	images = photo_list(reich_lab_sample_number)
