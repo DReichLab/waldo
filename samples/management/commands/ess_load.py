@@ -318,7 +318,7 @@ def process_row(row, headers, sequencing_run, options, capture_positive, pcr_neg
 			extract = library.extract
 			library_layout_element, create_library_layout = LibraryBatchLayout.objects.get_or_create(library_batch=library.library_batch, library=library, control_type=control_type)
 			field_check(library_layout_element, 'extract', extract, update)
-			if get_value(library.ul_extract_used, default=0) > 0:
+			if get_value(library, 'ul_extract_used', default=0) > 0:
 				field_check(library_layout_element, 'ul_extract_used', library.ul_extract_used, update)
 			library_layout_element.row = capture_row
 			library_layout_element.column = capture_column
@@ -340,7 +340,7 @@ def process_row(row, headers, sequencing_run, options, capture_positive, pcr_neg
 			if extract_layout_element.control_type != control_type:
 				raise ValueError(f'{str(extract_layout_element.id)} control type mismatch')
 			# lysis volumes are recorded in layout element
-			if get_value(extract.lysis_volume_extracted, default=0) > 0:
+			if get_value(extract, 'lysis_volume_extracted', default=0) > 0:
 				field_check(extract_layout_element, 'lysate_volume_used', extract.lysis_volume_extracted, update)
 			# powder amounts for extracts need to be loaded separately because fake lysates have been removed
 			extract_layout_element.row = capture_row
@@ -394,6 +394,7 @@ class Command(BaseCommand):
 
 		capture_positive = ControlType.objects.get(control_type=CAPTURE_POSITIVE)
 		pcr_negative = ControlType.objects.get(control_type=PCR_NEGATIVE)
+		library_negative = ControlType.objects.get(control_type=LIBRARY_NEGATIVE)
 
 		dnu_header = do_not_use_label(headers, options['dnu'])
 		self.stderr.write(f'DNU header: {dnu_header}')
@@ -416,8 +417,10 @@ class Command(BaseCommand):
 				capture_or_shotgun_batches.update([ess_entry.capture])
 				if control_type != capture_positive and control_type != pcr_negative:
 					library_batches.update([ess_entry.library_batch])
-					extract_batches.update([ess_entry.extract_batch])
-					lysate_batches.update([ess_entry.lysate_batch])
+					if ess_entry.extract_batch is not None or control_type != library_negative:
+						extract_batches.update([ess_entry.extract_batch])
+					if ess_entry.lysate_batch is not None or control_type != library_negative:
+						lysate_batches.update([ess_entry.lysate_batch])
 
 			# validate batches
 			for capture in capture_or_shotgun_batches:
