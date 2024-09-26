@@ -1,5 +1,6 @@
 from django.core.management.base import BaseCommand, CommandError
 from django.conf import settings
+from django.core.exceptions import ValidationError
 from django.db import transaction
 from samples.models import Library, P5_Index, P7_Index, Barcode, CaptureOrShotgunPlate, SequencingRun, LibraryBatch, CaptureLayout, ControlType, EXTRACT_NEGATIVE, LIBRARY_NEGATIVE, PCR_NEGATIVE, CAPTURE_POSITIVE, CAPTURE_POSITIVE_LIBRARY_NAME_DS, LibraryBatchLayout, ExtractionBatch, ExtractionBatchLayout, LysateBatch, LysateBatchLayout, parse_sample_string, get_value, SequencedLibrary, control_from_name_string, TimestampedWellPosition
 from samples.spreadsheet import *
@@ -432,7 +433,14 @@ class Command(BaseCommand):
 					# move H9 controls back to H12
 					h9_library_layout(library_batch, self, len(extract_batches) > 0, len(lysate_batches) > 0)
 					if library_batch:
-						library_batch.clean()
+						try:
+							library_batch.clean()
+						except ValidationError as e:
+							# diagnostic state of failed validation
+							for element in library_batch.layout_elements():
+								library_id = get_value(element, 'library', 'reich_lab_library_id')
+								self.stdout.write(f'{element}\t{library_id}')
+							raise e
 			# extract and lysate batch validation
 			for extract_batch in extract_batches:
 				self.stdout.write(f'Extract batch: {get_value(extract_batch, "batch_name")}\t{extract_batches[extract_batch]}')
