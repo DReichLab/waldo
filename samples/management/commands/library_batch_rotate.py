@@ -9,6 +9,7 @@ class Command(BaseCommand):
 	def add_arguments(self, parser):
 		parser.add_argument('library_batch')
 		parser.add_argument('-d', '--delete_libraries', action='store_true')
+		parser.add_argument('--skip_elements', action='store_true', help='Set skip_elements to change batch rotation flag without moving each well position')
 		
 	def handle(self, *args, **options):
 		library_batch = LibraryBatch.objects.get(name=options['library_batch'])
@@ -16,7 +17,8 @@ class Command(BaseCommand):
 		library_batch.save()
 
 		for layout_element in library_batch.layout_elements():
-			layout_element.rotate()
+			if not options['skip_elements']:
+				layout_element.rotate()
 			if options['delete_libraries']:
 				library = layout_element.library
 				if library is not None:
