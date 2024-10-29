@@ -134,6 +134,13 @@ class BarcodesLayoutTest(SimpleTestCase):
 		row, column = plate_location(location_from_indices(f'{location+1}ss', ''))
 		self.assertEquals(expected_row, row)
 		self.assertEquals(expected_column, column)
+		
+	def test_location_for_barcodes(self):
+		for location in range(0, PLATE_WELL_COUNT_HALF):
+			p5_label = barcode_at_position(location)
+			row, column = location_for_p5_barcode(p5_label)
+			well_location_inferred = reverse_plate_location_coordinate(row, column)
+			self.assertEquals(location, well_location_inferred)
 
 # sequences do not actually matter because barcodes are checked by reference and sequences are enforced unique
 class LibraryBarcodeCheckTest(SimpleTestCase):

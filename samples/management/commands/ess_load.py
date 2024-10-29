@@ -4,7 +4,7 @@ from django.core.exceptions import ValidationError
 from django.db import transaction
 from samples.models import Library, P5_Index, P7_Index, Barcode, CaptureOrShotgunPlate, SequencingRun, LibraryBatch, CaptureLayout, ControlType, EXTRACT_NEGATIVE, LIBRARY_NEGATIVE, PCR_NEGATIVE, CAPTURE_POSITIVE, CAPTURE_POSITIVE_LIBRARY_NAME_DS, LibraryBatchLayout, ExtractionBatch, ExtractionBatchLayout, LysateBatch, LysateBatchLayout, parse_sample_string, get_value, SequencedLibrary, control_from_name_string, TimestampedWellPosition
 from samples.spreadsheet import *
-from samples.layout import plate_location, location_from_indices
+from samples.layout import plate_location, location_from_indices, location_for_p5_barcode
 from collections import Counter
 
 # raise exception if values do not match and existing value is non-empty
@@ -40,25 +40,53 @@ def notes_label(headers, custom_search):
 		if all_in_string(header, ['wetlab', 'notes']) or all_in_string(header, custom_search):
 			return header
 	return None
+	
+def barcode_matches_position(library_layout_element):
+	p5 = get_value(library_layout_element, 'library', 'p5_barcode', 'label', default=None)
+	if p5 is None:
+		return None, False
+	row, column = location_for_p5_barcode(p5)
+	concordance = (row == library_layout_element.row and column == library_layout_element.column)
+	return p5, concordance
 
-def h9_library_layout(library_batch, command, do_extract_move, do_lysate_move):
+# split a single well with exactly two libraries into two wells, to undo movement at capture stage
+# if there is only one library, this does nothing
+# if there are more than two, an execption is thrown
+# order is determined by Reich lab library ID string
+# for example:
+# H9 -> H12
+# H3 -> H6
+def split_well(library_batch, command, do_extract_move, do_lysate_move, source_str, destination_str):
 	source_position = TimestampedWellPosition()
-	source_position.row = 'H'
-	source_position.column = 9
+	source_position.row = source_str[0]
+	source_position.column = int(source_str[1:])
 	destination_position = TimestampedWellPosition()
-	destination_position.row = 'H'
-	destination_position.column = 12
+	destination_position.row = destination_str[0]
+	destination_position.column = int(destination_str[1:])
 	if library_batch.rotated:
 		source_position.rotate()
 		destination_position.rotate()
-	h9_elements = library_batch.layout_elements().filter(row=source_position.row, column=source_position.column).order_by('library__reich_lab_library_id')
-	#for element in h9_elements:
-	#	command.stdout.write(f'{element.library.reich_lab_library_id}')
-	h9_count = h9_elements.count()
-	if h9_count > 2:
+	source_elements = library_batch.layout_elements().filter(row=source_position.row, column=source_position.column).order_by('library__reich_lab_library_id')
+	source_count = source_elements.count()
+	if source_count > 2:
 		raise ValueError(f'too many {str(source_position)} controls to split to {str(destination_position)}')
-	elif h9_count == 2:
-		moving_element = h9_elements.last()
+	elif source_count == 2:
+		# first try to select based on barcodes
+		p5_1, match_1 = barcode_matches_position(source_elements[0])
+		p5_2, match_2 = barcode_matches_position(source_elements[1])
+		command.stdout.write(f'barcode match check {match_1} {match_2}')
+		if match_1 and match_2:
+			raise ValueError('two barcode matches, expecting only one')
+		# If one barcode matches, and the other doesn't, then move the non-matching element.
+		elif match_1:
+			moving_element = source_elements[1]
+		elif match_2:
+			moving_element = source_elements[0]
+		else: # move the last by sorting 
+			moving_element = source_elements.last()
+		command.stdout.write(f'moving {library_batch.name} {moving_element.library.reich_lab_library_id} from {source_str} to {destination_str}')
+		
+		moving_element.row = destination_position.row
 		moving_element.column = destination_position.column
 		moving_element.save()
 		# move prior batches
@@ -66,6 +94,7 @@ def h9_library_layout(library_batch, command, do_extract_move, do_lysate_move):
 			extract_layout_element = None
 			try:
 				extract_layout_element = ExtractionBatchLayout.objects.get(extract=moving_element.extract)
+				extract_layout_element.row = destination_position.row
 				extract_layout_element.column = destination_position.column
 				extract_layout_element.save()
 			except ExtractionBatchLayout.MultipleObjectsReturned as e:
@@ -73,6 +102,7 @@ def h9_library_layout(library_batch, command, do_extract_move, do_lysate_move):
 				raise e
 			if do_lysate_move and extract_layout_element is not None and extract_layout_element.lysate is not None:
 				lysate_layout_element = LysateBatchLayout.objects.get(lysate=extract_layout_element.lysate)
+				lysate_layout_element.row = destination_position.row
 				lysate_layout_element.column = destination_position.column
 				lysate_layout_element.save()
 
@@ -434,7 +464,8 @@ class Command(BaseCommand):
 				self.stdout.write(f'Library batch: {get_value(library_batch, "name")}\t{library_batches[library_batch]}')
 				if library_batch is not None:
 					# move H9 controls back to H12
-					h9_library_layout(library_batch, self, len(extract_batches) > 0, len(lysate_batches) > 0)
+					split_well(library_batch, self, len(extract_batches) > 0, len(lysate_batches) > 0, 'H9', 'H12')
+					split_well(library_batch, self, len(extract_batches) > 0, len(lysate_batches) > 0, 'H3', 'H6')
 					if library_batch:
 						try:
 							library_batch.clean()

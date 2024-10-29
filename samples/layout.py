@@ -192,6 +192,13 @@ def barcodes_for_location(int_position, p7_offset):
 	p7 = barcode_at_position((mod_position + p7_offset + left_right_offset) % PLATE_WELL_COUNT_HALF)
 	return p5, p7
 	
+# infer possible locations on a plate given the barcodes
+# returns in the range A1-H6 because it is not possible to tell whether on left or right from only P5 barcode
+# using p7 requires more state than is available from a single pair of barcodes
+def location_for_p5_barcode(p5):
+	row, column = plate_location(BARCODES_BY_POSITION.index(p5))
+	return row, column
+	
 # TODO currently double-stranded only
 # return a pair of indices (p5, p7) as integers
 # p5 is in [1,48]
