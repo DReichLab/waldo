@@ -266,16 +266,10 @@ def powder_batch_delete(request):
 def powder_samples(request):
 	powder_batch_name = request.GET['powder_batch']
 	powder_batch = PowderBatch.objects.get(name=powder_batch_name)
-	# whether there are samples assigned to this batch determines what formset to use because powder batches are either starting from samples or (exclusively) powders
-	direct_samples = PowderSample.objects.filter(powder_batch=powder_batch).order_by('sample__reich_lab_id')
-	is_sample_batch = len(direct_samples) > 0
 	
 	if request.method == 'POST':
 		powder_batch_form = PowderBatchForm(request.POST, instance=powder_batch, user=request.user)
-		if is_sample_batch:
-			powder_batch_entry_formset = PowderSampleFormset(request.POST, request.FILES, form_kwargs={'user': request.user})
-		else:
-			powder_batch_entry_formset = PreparedPowderSampleFormset(request.POST, request.FILES, form_kwargs={'user': request.user})
+		powder_batch_entry_formset = PreparedPowderSampleFormset(request.POST, request.FILES, form_kwargs={'user': request.user})
 		
 		if powder_batch_form.is_valid():
 			powder_batch_form.save()
@@ -287,10 +281,8 @@ def powder_samples(request):
 		
 	elif request.method == 'GET':
 		powder_batch_form = PowderBatchForm(initial={'name': powder_batch_name, 'date': powder_batch.date, 'status': powder_batch.status, 'notes': powder_batch.notes}, instance=powder_batch, user=request.user)
-		if is_sample_batch:
-			powder_batch_entry_formset = PowderSampleFormset(queryset=direct_samples, form_kwargs={'user': request.user})
-		else:
-			powder_batch_entry_formset = PreparedPowderSampleFormset(queryset=LysateBatchLayout.objects.filter(powder_batch=powder_batch).order_by('powder_sample__sample__reich_lab_id'), form_kwargs={'user': request.user})
+
+		powder_batch_entry_formset = PreparedPowderSampleFormset(queryset=LysateBatchLayout.objects.filter(powder_batch=powder_batch).order_by('powder_sample__sample__reich_lab_id'), form_kwargs={'user': request.user})
 	
 	# open can have new samples assigned
 	return render(request, 'samples/powder_samples.html', { 'powder_batch_name': powder_batch_name, 'powder_batch_form': powder_batch_form, 'formset': powder_batch_entry_formset} )
@@ -308,10 +300,10 @@ def powder_samples_spreadsheet(request):
 
 	writer = csv.writer(response, delimiter='\t')
 	# header
-	writer.writerow(PowderSample.spreadsheet_header(cumulative))
-	powder_samples = PowderSample.objects.filter(powder_batch=powder_batch).order_by('sample__reich_lab_id')
-	for powder_sample in powder_samples:
-		writer.writerow(powder_sample.to_spreadsheet_row(cumulative))
+	writer.writerow(LysateBatchLayout.spreadsheet_header_powder(cumulative))
+	powder_samples_by_lysate_layout = powder_batch.lysate_layout_elements()
+	for powder_sample_by_lysate_layout in powder_samples_by_lysate_layout:
+		writer.writerow(powder_sample_by_lysate_layout.to_spreadsheet_row_powder(cumulative))
 	return response
 	
 @login_required
@@ -323,7 +315,7 @@ def powder_samples_spreadsheet_upload(request):
 		print(f'powder sample spreadsheet {powder_batch_name}')
 		if spreadsheet_form.is_valid():
 			spreadsheet = request.FILES.get('spreadsheet')
-			powder_batch.powder_samples_from_spreadsheet(spreadsheet, request.user)
+			powder_batch.powder_samples_from_lysate_layout_spreadsheet(spreadsheet, request.user)
 			message = 'Values updated'
 	else:
 		spreadsheet_form = SpreadsheetForm()

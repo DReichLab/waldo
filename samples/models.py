@@ -541,11 +541,29 @@ class PowderBatch(Timestamped):
 				powder_sample = powder_samples.get(powder_sample_id=powder_sample_id)
 				powder_sample.from_spreadsheet_row(headers[1:], fields[1:], user)
 				
+	def powder_samples_from_lysate_layout_spreadsheet(self, spreadsheet_file, user):
+		headers, data_rows = spreadsheet_headers_and_data_rows(spreadsheet_file)
+		layout_elements = LysateBatchLayout.objects.filter(powder_batch=self)
+		if headers[0] != 'lysate_layout_id-':
+			raise ValueError('lysate_layout_id- is not first')
+			
+		for line in data_rows:
+			fields = re.split('\t', line)
+			lysate_layout_id = fields[0]
+			if len(lysate_layout_id) > 0:
+				print(lysate_layout_id)
+				powder_sample_layout = layout_elements.get(id=lysate_layout_id)
+				powder_sample_layout.from_spreadsheet_row_powder(headers[1:], fields[1:], user)
+				
 	# Return number of lysate batch wells that have powder from this batch. Missing and unassigned powders have a LysateBatchLayout object with null lysate batch and do not count. 
 	# If a powder sample appears in 2 wells, this counts as 2. 
 	def number_plated_powder_samples(self):
 		elements = LysateBatchLayout.objects.filter(powder_batch=self, lysate_batch__isnull=False, is_lost=False, control_type__isnull=True, powder_sample__isnull=False)
 		return len(elements)
+		
+	# return sorted list of powders from their lysate layout elements so that we have access to their powder used amounts
+	def lysate_layout_elements(self):
+		return LysateBatchLayout.objects.filter(powder_batch=self).order_by('powder_sample__sample__reich_lab_id')
 		
 	# close status if all powders have been assigned and status is ready to plate
 	# ready to plate status if status was closed but not all powders are assigned
@@ -665,7 +683,8 @@ class PowderSample(Timestamped):
 		powder_for_lysates = lysates.aggregate(Sum('powder_used_mg'))['powder_used_mg__sum'] if lysates.exists() else 0
 		extracts = ExtractionBatchLayout.objects.filter(powder_sample=self, powder_used_mg__isnull=False)
 		powder_for_extracts = extracts.aggregate(Sum('powder_used_mg'))['powder_used_mg__sum'] if extracts.exists() else 0
-		return self.total_powder_produced_mg - powder_for_lysates - powder_for_extracts
+		total_powder = self.total_powder_produced_mg if self.total_powder_produced_mg else 0
+		return total_powder - powder_for_lysates - powder_for_extracts
 	
 class ExtractionProtocol(Timestamped):
 	name = models.CharField(max_length=150)
@@ -1183,6 +1202,59 @@ class LysateBatchLayout(TimestampedWellPosition):
 			lysate.barcode = arg_array[headers.index('barcode')]
 			lysate.notes = arg_array[headers.index('notes')]
 			lysate.save(save_user=user)
+			
+	# At the powder batch stage, the wetlab measures powder for lysates.
+	# This supports powder sample fields but also includes the powder measure. 
+	def spreadsheet_header_powder(cumulative=False):
+		return ['lysate_layout_id-'] + PowderSample.spreadsheet_header(cumulative)
+	
+	def to_spreadsheet_row_powder(self, cumulative=False):
+		preparation_method = get_value(self, 'powder_sample', 'sample_prep_protocol', 'preparation_method')
+		shipment_name = get_value(self, 'powder_sample', 'sample', 'shipment', 'shipment_name')
+		values = [self.id, 
+			get_value(self, 'powder_sample', 'powder_sample_id'),
+			get_value(self, 'powder_sample', 'sample', 'skeletal_element_category', 'category'),
+			get_value(self, 'powder_sample', 'sampling_notes'),
+			get_value(self, 'powder_sample', 'total_powder_produced_mg'),
+			get_value(self, 'powder_used_mg'),
+			get_value(self, 'powder_sample', 'storage_location'),
+			get_value(self, 'powder_sample', 'sample_prep_lab'),
+			preparation_method,
+			shipment_name,
+			csv_text_escape(get_value(self, 'powder_sample', 'sample', 'skeletal_code')),
+			get_value(self, 'powder_sample', 'sample', 'group_label'),
+			get_value(self, 'powder_sample', 'sample', 'notes'),
+			get_value(self, 'powder_sample', 'sample', 'notes_2'),
+			get_value(self, 'powder_sample', 'sample', 'location_str'),
+		]
+		if cumulative:
+			prep_entry = None
+			try:
+				prep_entry = SamplePrepQueue.objects.get(sample=self.sample, powder_batch=self.powder_batch)
+			except SamplePrepQueue.DoesNotExist:
+				try:
+					prep_entry = PowderPrepQueue.objects.get(sample=self.sample, powder_batch=self.powder_batch)
+				except PowderPrepQueue.DoesNotExist:
+					pass
+			values += queue_to_spreadsheet_row(prep_entry, self.sample)
+		return values
+		
+	def from_spreadsheet_row_powder(self, headers, arg_array, user):
+		skeletal_element_category = arg_array[headers.index('skeletal_element_category')]
+		if self.powder_sample.sample.skeletal_element_category.category != skeletal_element_category:
+			self.powder_sample.sample.skeletal_element_category = SkeletalElementCategory.objects.get(category=skeletal_element_category)
+			self.powder_sample.sample.save(save_user=user)
+		
+		self.powder_sample.sampling_notes = arg_array[headers.index('sampling_notes')]
+		self.powder_sample.total_powder_produced_mg = float( arg_array[headers.index('total_powder_produced_mg')])
+		self.powder_used_mg = float(arg_array[headers.index('powder_for_extract')])
+		self.powder_sample.storage_location = arg_array[headers.index('storage_location')]
+		self.powder_sample.sample_prep_lab = arg_array[headers.index('sample_prep_lab')]
+		
+		preparation_method = arg_array[headers.index('sample_prep_protocol')]
+		self.powder_sample.sample_prep_protocol = SamplePrepProtocol.objects.get(preparation_method=preparation_method)
+		self.powder_sample.save(save_user=user)
+		self.save(save_user=user)
 		
 @receiver(pre_delete, sender=LysateBatchLayout, dispatch_uid='lysatebatchlayout_delete_signal')
 def delete_dependent_lysate(sender, instance, using, **kwargs):
