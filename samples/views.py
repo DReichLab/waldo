@@ -608,13 +608,15 @@ def sample_summary(request):
 	if sample:
 		# apparently it's not possible to filter a queryset using a method
 		powder_samples = PowderSample.objects.filter(sample=sample).order_by('powder_sample_id')
-		lysates = Lysate.objects.filter(Q(sample=sample) | Q(powder_sample__sample=sample)).select_related('lysatebatchlayout').order_by('reich_lab_lysate_number')
-		extracts = Extract.objects.filter(Q(sample=sample) | Q(lysate__powder_sample__sample=sample)).select_related('extractionbatchlayout').order_by('lysate__reich_lab_lysate_number', 'reich_lab_extract_number')
+		lysate_layouts = LysateBatchLayout.objects.filter(Q(powder_sample__sample=sample) | Q(lysate__sample=sample) | Q(lysate__powder_sample__sample=sample)).distinct().select_related('lysate').order_by('lysate__reich_lab_lysate_number')
+		extract_layouts = ExtractionBatchLayout.objects.filter(Q(extract__sample=sample) | Q(extract__lysate__powder_sample__sample=sample) | Q(extract__lysate__sample=sample)).distinct().select_related('extract').order_by('lysate__sample__reich_lab_id', 'lysate__reich_lab_lysate_number', 'lysate__reich_lab_lysate_number', 'extract__reich_lab_extract_number')
+		extracts = [layout.extract for layout in extract_layouts.all()]
 		# 
-		libraries = Library.objects.filter(Q(sample=sample) | Q(extract__in=extracts) ).distinct().select_related('librarybatchlayout').order_by('extract__lysate__reich_lab_lysate_number', 'extract__reich_lab_extract_number', 'reich_lab_library_number')
-		captured_libraries = CaptureLayout.objects.filter(library__in=libraries).order_by('library__extract__lysate__reich_lab_lysate_number',  'library__extract__reich_lab_extract_number', 'library__reich_lab_library_number', 'capture_batch__date')
+		library_layouts = LibraryBatchLayout.objects.filter(Q(library__sample=sample) | Q(library__extract__in=extracts) ).distinct().select_related('library').order_by('library__extract__sample__reich_lab_id', 'library__extract__lysate__reich_lab_lysate_number', 'library__extract__reich_lab_extract_number', 'library__reich_lab_library_number')
+		libraries = [layout.library for layout in library_layouts.all()]
+		captured_libraries = CaptureLayout.objects.filter(library__in=libraries).order_by('library__sample__reich_lab_id', 'library__extract__lysate__reich_lab_lysate_number',  'library__extract__reich_lab_extract_number', 'library__reich_lab_library_number', 'capture_batch__date')
 		
-		return render(request, 'samples/sample_summary.html', { 'form': form, 'reich_lab_sample_number': reich_lab_sample_number, 'sample': sample, 'powder_samples': powder_samples, 'lysates': lysates, 'extracts': extracts, 'libraries': libraries, 'captured_libraries': captured_libraries, } )
+		return render(request, 'samples/sample_summary.html', { 'form': form, 'reich_lab_sample_number': reich_lab_sample_number, 'sample': sample, 'powder_samples': powder_samples, 'lysate_layouts': lysate_layouts, 'extract_layouts': extract_layouts, 'library_layouts': library_layouts, 'captured_libraries': captured_libraries, } )
 	else:
 		return render(request, 'samples/sample_summary.html', { 'form': form, } )
 

@@ -2305,15 +2305,24 @@ class Library(Timestamped):
 
 	# compute the amount of powder used to generate this library
 	def powder_equivalent(self):
+		extract_powder = None
 		try:
 			extract_layout = ExtractionBatchLayout.objects.get(extract=self.extract)
+			if extract_layout.powder_used_mg is not None and extract_layout.powder_used_mg > 0:
+				extract_powder = extract_layout.powder_used_mg
 		except ExtractionBatchLayout.DoesNotExist:
-			return -1.0
-		if extract_layout.powder_used_mg is not None and extract_layout.powder_used_mg > 0:
-			extract_powder = extract_layout.powder_used_mg
-		else:
-			lysate_layout = LysateBatchLayout.objects.get(lysate=extract_layout.lysate)
-			extract_powder = lysate_layout.powder_used_mg * extract_layout.lysate_volume_used / extract_layout.lysate.total_volume_produced
+			pass
+		if extract_powder is None: # no direct powder used for extract, infer through lysate. New samples will be in this case. 
+			if extract_layout:
+				lysis_used = get_value(extract_layout, 'lysate_volume_used', default=0)
+			else:
+				lysis_used = get_value(self, 'extract', 'lysis_volume_extracted', default=0)
+			try:
+				lysate_layout = LysateBatchLayout.objects.get(lysate=self.extract.lysate)
+				powder_for_lysate = lysate_layout.powder_used_mg
+			except LysateBatchLayout.DoesNotExist:
+				powder_for_lysate = get_value(self, 'extract', 'lysate', 'powder_used_mg')
+			extract_powder = powder_for_lysate * lysis_used / get_value(self, 'extract', 'lysate', 'total_volume_produced', default=lysis_used)
 		
 		library_layout = LibraryBatchLayout.objects.get(library=self)
 		return extract_powder * library_layout.ul_extract_used / self.extract.extract_batch.protocol.final_extract_volume

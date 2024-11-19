@@ -63,14 +63,16 @@
 	<th>FluidX Barcode</th>
 	<th>Powder Used (mg) [layout]</th>
 	<th>Powder Used (mg)</th>
+	<th>Lysate Produced (micro L)</th>
 </tr>
-{% for lysate in lysates %}
+{% for lysate_layout in lysate_layouts %}
 <tr>
-	<td>{{ lysate.lysate_id }}</td>
-	<td><a href="lysates_in_batch?lysate_batch_name={{ lysate.lysate_batch.batch_name }}">{{  lysate.lysate_batch.batch_name }}</a></td>
-	<td>{{ lysate.barcode }}</td>
-	<td>{{ lysate.lysatebatchlayout.powder_used_mg}}</td>
-	<td>{{ lysate.powder_used_mg}}</td>
+	<td>{{ lysate_layout.lysate.lysate_id }}</td>
+	<td><a href="lysates_in_batch?lysate_batch_name={{ lysate_layout.lysate.lysate_batch.batch_name }}">{{  lysate_layout.lysate_batch.batch_name }}</a></td>
+	<td>{{ lysate_layout.lysate.barcode }}</td>
+	<td>{{ lysate_layout.powder_used_mg}}</td>
+	<td>{{ lysate_layout.lysate.powder_used_mg}}</td>
+	<td>{{ lysate_layout.lysate.total_volume_produced}}</td>
 </tr>
 {% endfor %}
 </table>
@@ -86,14 +88,14 @@
 	<th>Lysate used (micro L)</th>
 	<th>Powder Used (mg) [layout]</th>
 </tr>
-{% for extract in extracts %}
+{% for extract_layout in extract_layouts %}
 <tr>
-	<td>{{ extract.extract_id }}</td>
-	<td><a href="extracts_in_batch?extract_batch_name={{ extract.extract_batch.batch_name }}">{{ extract.extract_batch.batch_name }}</a></td>
-	<td>{{ extract.extract_batch.protocol.final_extract_volume }}</td>
-	<td>{{ extract.extractionbatchlayout.lysate_volume_used }}</td>
-	<td>{{ extract.lysis_volume_extracted }}</td>
-	<td>{{ extract.extractionbatchlayout.powder_used_mg }}</td>
+	<td>{{ extract_layout.extract.extract_id }}</td>
+	<td><a href="extracts_in_batch?extract_batch_name={{ extract_layout.extract.extract_batch.batch_name }}">{{ extract_layout.extract.extract_batch.batch_name }}</a></td>
+	<td>{{ extract_layout.extract_batch.protocol.final_extract_volume }}</td>
+	<td>{{ extract_layout.lysate_volume_used }}</td>
+	<td>{{ extract_layout.extract.lysis_volume_extracted }}</td>
+	<td>{{ extract_layout.powder_used_mg }}</td>
 </tr>
 {% endfor %}
 </table>
@@ -112,17 +114,17 @@
 	<th>extract used (micro L)</th>
 	<th>powder used equivalent (mg)</th>
 </tr>
-{% for library in libraries %}
+{% for library_layout in library_layouts %}
 <tr>
-	<td>{{ library.reich_lab_library_id }}</td>
-	<td><a href="libraries_in_batch?library_batch_name={{ library.library_batch.name }}">{{ library.library_batch.name }}</a></td>
-	<td>{{ library.library_batch.prep_date |date:'Y-m-d' }}</td>
-	<td>{{ library.fluidx_barcode }}</td>
-	<td>{{ library.library_type }}</td>
-	<td>{{ library.udg_treatment }}</td>
-	<td>{{ library.librarybatchlayout.ul_extract_used }}</td>
-	<td>{{ library.ul_extract_used }}</td>
-	<td>{{ library.powder_equivalent }}</td>
+	<td>{{ library_layout.library.reich_lab_library_id }}</td>
+	<td><a href="libraries_in_batch?library_batch_name={{ library_layout.library_batch.name }}">{{ library_layout.library_batch.name }}</a></td>
+	<td>{{ library_layout.library_batch.prep_date |date:'Y-m-d' }}</td>
+	<td>{{ library_layout.library.fluidx_barcode }}</td>
+	<td>{{ library_layout.library.library_type }}</td>
+	<td>{{ library_layout.library.udg_treatment }}</td>
+	<td>{{ library_layout.ul_extract_used }}</td>
+	<td>{{ library_layout.library.ul_extract_used }}</td>
+	<td>{{ library_layout.library.powder_equivalent }}</td>
 </tr>
 {% endfor %}
 </table>
