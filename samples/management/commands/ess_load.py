@@ -2,7 +2,7 @@ from django.core.management.base import BaseCommand, CommandError
 from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.db import transaction
-from samples.models import Library, P5_Index, P7_Index, Barcode, CaptureOrShotgunPlate, SequencingRun, LibraryBatch, CaptureLayout, ControlType, EXTRACT_NEGATIVE, LIBRARY_NEGATIVE, PCR_NEGATIVE, CAPTURE_POSITIVE, CAPTURE_POSITIVE_LIBRARY_NAME_DS, LibraryBatchLayout, ExtractionBatch, ExtractionBatchLayout, LysateBatch, LysateBatchLayout, parse_sample_string, get_value, SequencedLibrary, control_from_name_string, TimestampedWellPosition
+from samples.models import Library, P5_Index, P7_Index, Barcode, CaptureOrShotgunPlate, SequencingRun, LibraryBatch, CaptureLayout, ControlType, EXTRACT_NEGATIVE, LIBRARY_NEGATIVE, PCR_NEGATIVE, CAPTURE_POSITIVE, CAPTURE_POSITIVE_LIBRARY_NAME_DS, OTHER_CONTROL, LibraryBatchLayout, ExtractionBatch, ExtractionBatchLayout, LysateBatch, LysateBatchLayout, parse_sample_string, get_value, SequencedLibrary, control_from_name_string, TimestampedWellPosition
 from samples.spreadsheet import *
 from samples.layout import plate_location, location_from_indices, location_for_p5_barcode
 from collections import Counter
@@ -217,7 +217,7 @@ def controls(headers, data_rows):
 	if len(control_sample_numbers) == 0:
 		return None, None # newer controls do not use Reich Lab sample numbers
 	elif len(control_sample_numbers) != 2:
-		raise ValueError(f'Distinct control numbers: {len(control_sample_numbers)}: {" ".join([str(num) for num in control_sample_numbers])}')
+		return None, None # older plates may have more than 2 controls due to manual preparation
 	sorted_control_sample_number = sorted(control_sample_numbers)
 	extract_control_sample_number = sorted_control_sample_number[0]
 	library_control_sample_number = sorted_control_sample_number[1]
@@ -295,6 +295,11 @@ def process_row(row, headers, sequencing_run, options, capture_positive, pcr_neg
 					control_type = ControlType.objects.get(control_type=EXTRACT_NEGATIVE)
 				elif sample == library_control_sample_number:
 					control_type = ControlType.objects.get(control_type=LIBRARY_NEGATIVE)
+				else: # if we find a control based on id but do not know what type it is, copy type from database or label as "other"
+					try:
+						control_type = library.get_control_type()
+					except LibraryBatchLayout.DoesNotExist:
+						control_type = ControlType.objects.get(control_type=OTHER_CONTROL)
 
 	except Library.DoesNotExist:
 		library = None

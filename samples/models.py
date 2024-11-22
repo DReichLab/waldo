@@ -729,6 +729,7 @@ EXTRACT_AND_LIBRARY_CONTROLS = [EXTRACT_NEGATIVE, LIBRARY_NEGATIVE, LIBRARY_POSI
 PCR_NEGATIVE = 'PCR Negative'
 CAPTURE_POSITIVE = 'Capture Positive'
 CAPTURE_POSITIVE_LIBRARY_NAME_DS = 'capture_positive_ds'
+OTHER_CONTROL = 'other'
 
 # find the Reich Lab sample number associated with a layout element
 # Lookup depends on the type of layout element
