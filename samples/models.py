@@ -1159,7 +1159,7 @@ class LysateBatchLayout(TimestampedWellPosition):
 			'barcode',
 			'notes']
 		if cumulative:
-			headers += PowderSample.spreadsheet_header(cumulative)
+			headers += LysateBatchLayout.spreadsheet_header_powder(cumulative)
 		return headers
 		
 	def to_spreadsheet_row(self, cumulative=False):
@@ -1181,12 +1181,8 @@ class LysateBatchLayout(TimestampedWellPosition):
 		values.append(get_value(self.lysate, 'notes'))
 		
 		if cumulative:
-			additional_values = None
-			if self.powder_sample:
-				additional_values = self.powder_sample.to_spreadsheet_row(cumulative)
-			else:
-				additional_values = empty_values(PowderSample.spreadsheet_header(cumulative))
-			values += additional_values
+			values += self.to_spreadsheet_row_powder(cumulative)
+		return values
 		
 		return values
 		
@@ -1230,13 +1226,13 @@ class LysateBatchLayout(TimestampedWellPosition):
 		if cumulative:
 			prep_entry = None
 			try:
-				prep_entry = SamplePrepQueue.objects.get(sample=self.sample, powder_batch=self.powder_batch)
+				prep_entry = SamplePrepQueue.objects.get(powder_batch=self.powder_batch, prepared_powder=self)
 			except SamplePrepQueue.DoesNotExist:
 				try:
-					prep_entry = PowderPrepQueue.objects.get(sample=self.sample, powder_batch=self.powder_batch)
+					prep_entry = PowderPrepQueue.objects.get(powder_batch=self.powder_batch, prepared_powder=self)
 				except PowderPrepQueue.DoesNotExist:
 					pass
-			values += queue_to_spreadsheet_row(prep_entry, self.sample)
+			values += queue_to_spreadsheet_row(prep_entry, get_value(self, 'powder_sample', 'sample'))
 		return values
 		
 	def from_spreadsheet_row_powder(self, headers, arg_array, user):
