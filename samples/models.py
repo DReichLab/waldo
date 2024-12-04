@@ -1322,7 +1322,7 @@ class SamplePrepQueue(Timestamped):
 	udg_treatment = models.CharField(max_length=10)
 	powder_batch = models.ForeignKey(PowderBatch, null=True, on_delete=models.SET_NULL,)
 	powder_sample = models.ForeignKey(PowderSample, null=True, on_delete=models.SET_NULL) # needed to unassign
-	prepared_powder = models.ForeignKey(LysateBatchLayout, on_delete=models.SET_NULL, null=True)
+	prepared_powder = models.OneToOneField(LysateBatchLayout, on_delete=models.SET_NULL, null=True)
 	
 	# create a PowderSample and assign Reich Lab Sample Number
 	def new_reich_lab_powder_sample(self, user):
@@ -1377,7 +1377,7 @@ class PowderPrepQueue(Timestamped):
 	powder_sample = models.ForeignKey(PowderSample, on_delete=models.SET_NULL, null=True)
 	udg_treatment = models.CharField(max_length=10)
 	powder_batch = models.ForeignKey(PowderBatch, null=True, on_delete=models.SET_NULL, help_text='Powder batch where weighed for lysate')
-	prepared_powder = models.ForeignKey(LysateBatchLayout, on_delete=models.SET_NULL, null=True)
+	prepared_powder = models.OneToOneField(LysateBatchLayout, on_delete=models.SET_NULL, null=True)
 	sample_prep_protocol = models.ForeignKey(SamplePrepProtocol, on_delete=models.SET_NULL, null=True)
 	sample_prep_lab = models.CharField(max_length=50, blank=True, help_text='Name of lab where bone powder was produced')
 	
