@@ -47,8 +47,8 @@
 	<td>{{ powder_sample.powder_sample_id }}</td>
 	<td><a href="powder_samples?powder_batch={{ powder_sample.powder_batch.name }}">{{ powder_sample.powder_batch.name }}</a></td>
 	<td><a href="sample?sample=S{{reich_lab_sample_number}}">S{{reich_lab_sample_number}}</a></td>
-	<td>{{ powder_sample.total_powder_produced_mg }}</td>
-	<td>{{ powder_sample.powder_remaining }}</td>
+	<td>{{ powder_sample.total_powder_produced_mg | floatformat }}</td>
+	<td>{{ powder_sample.powder_remaining | floatformat }}</td>
 </tr>
 {% endfor %}
 </table>
@@ -70,9 +70,9 @@
 	<td>{{ lysate_layout.lysate.lysate_id }}</td>
 	<td><a href="lysates_in_batch?lysate_batch_name={{ lysate_layout.lysate.lysate_batch.batch_name }}">{{  lysate_layout.lysate_batch.batch_name }}</a></td>
 	<td>{{ lysate_layout.lysate.barcode }}</td>
-	<td>{{ lysate_layout.powder_used_mg}}</td>
-	<td>{{ lysate_layout.lysate.powder_used_mg}}</td>
-	<td>{{ lysate_layout.lysate.total_volume_produced}}</td>
+	<td>{{ lysate_layout.powder_used_mg | floatformat }}</td>
+	<td>{{ lysate_layout.lysate.powder_used_mg | floatformat }}</td>
+	<td>{{ lysate_layout.lysate.total_volume_produced | floatformat }}</td>
 </tr>
 {% endfor %}
 </table>
@@ -92,10 +92,10 @@
 <tr>
 	<td>{{ extract_layout.extract.extract_id }}</td>
 	<td><a href="extracts_in_batch?extract_batch_name={{ extract_layout.extract.extract_batch.batch_name }}">{{ extract_layout.extract.extract_batch.batch_name }}</a></td>
-	<td>{{ extract_layout.extract_batch.protocol.final_extract_volume }}</td>
-	<td>{{ extract_layout.lysate_volume_used }}</td>
-	<td>{{ extract_layout.extract.lysis_volume_extracted }}</td>
-	<td>{{ extract_layout.powder_used_mg }}</td>
+	<td>{{ extract_layout.extract_batch.protocol.final_extract_volume | floatformat }}</td>
+	<td>{{ extract_layout.lysate_volume_used | floatformat }}</td>
+	<td>{{ extract_layout.extract.lysis_volume_extracted | floatformat }}</td>
+	<td>{{ extract_layout.powder_used_mg | floatformat }}</td>
 </tr>
 {% endfor %}
 </table>
@@ -122,9 +122,9 @@
 	<td>{{ library_layout.library.fluidx_barcode }}</td>
 	<td>{{ library_layout.library.library_type }}</td>
 	<td>{{ library_layout.library.udg_treatment }}</td>
-	<td>{{ library_layout.ul_extract_used }}</td>
-	<td>{{ library_layout.library.ul_extract_used }}</td>
-	<td>{{ library_layout.library.powder_equivalent }}</td>
+	<td>{{ library_layout.ul_extract_used | floatformat }}</td>
+	<td>{{ library_layout.library.ul_extract_used | floatformat }}</td>
+	<td>{{ library_layout.library.powder_equivalent | floatformat }}</td>
 </tr>
 {% endfor %}
 </table>
