@@ -1085,10 +1085,11 @@ def libraries_in_batch(request):
 		if libraries_formset.is_valid():
 			libraries_formset.save()
 		if library_batch_form.is_valid() and libraries_formset.is_valid():
+			if library_batch.status == library_batch.CLOSED:
+				library_batch.clean()
+		if library_batch_form.is_valid():
 			if library_batch.status == library_batch.OPEN:
 				return redirect(f'{reverse("library_batch_assign_extract")}?library_batch_name={library_batch_name}')
-			elif library_batch.status == library_batch.CLOSED:
-				library_batch.clean()
 		
 	elif request.method == 'GET':
 		library_batch_form = LibraryBatchForm(instance=library_batch, user=request.user)
