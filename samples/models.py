@@ -1348,14 +1348,11 @@ class SamplePrepQueue(Timestamped):
 		
 		# LysateBatchLayout element for assignment to LysateBatch
 		# This represents a tube with powder weighed
-		try:
-			# do not lookup with powder batch because this was added later
-			prepared_powder = LysateBatchLayout.objects.get(lysate_batch=None, powder_sample=powder_sample, control_type=None, lysate=None)
-		except LysateBatchLayout.DoesNotExist:
+		if self.prepared_powder is None:
 			prepared_powder = LysateBatchLayout(lysate_batch=None, powder_sample=powder_sample, control_type=None, lysate=None, powder_batch=self.powder_batch)
 			prepared_powder.save(save_user=user)
+			self.prepared_powder = prepared_powder
 		
-		self.prepared_powder = prepared_powder
 		self.powder_sample = powder_sample
 		self.save_user = user
 		self.save()
@@ -1414,13 +1411,11 @@ class PowderPrepQueue(Timestamped):
 		
 		# LysateBatchLayout element for assignment to LysateBatch
 		# This represents a tube with powder weighed
-		try:
-			prepared_powder = LysateBatchLayout.objects.get(lysate_batch=None, powder_sample=powder_sample, control_type=None, lysate=None, powder_batch=self.powder_batch)
-		except LysateBatchLayout.DoesNotExist:
+		if self.prepared_powder is None:
 			prepared_powder = LysateBatchLayout(lysate_batch=None, powder_sample=powder_sample, control_type=None, lysate=None, powder_batch=self.powder_batch)
 			prepared_powder.save(save_user=user)
+			self.prepared_powder = prepared_powder
 		
-		self.prepared_powder = prepared_powder
 		self.powder_sample = powder_sample
 		self.save_user = user
 		self.save()
