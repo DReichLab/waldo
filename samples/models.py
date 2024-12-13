@@ -1281,14 +1281,12 @@ def queue_spreadsheet_header():
 # This could be rolled into an abstract base class for the SamplePrepQueue and PowderPrepQueue, but it should still work as a function and definitely does not require migrations this way
 # For cumulative data, we need to produce the same data available for a queue when only a sample is available
 def queue_to_spreadsheet_row(queue_item, sample=None):
+	if sample == '':
+		sample = None
 	if sample and queue_item and queue_item.sample != sample:
 		raise ValueError(f'Two samples {queue_item.sample.id} {sample.id}')
 	elif sample is None: # the default case where we have queue_item entry
-		sample = queue_item.sample
-	
-	name = get_value(sample, 'collaborator', 'name')
-	preparation_method = get_value(queue_item, 'sample_prep_protocol', 'preparation_method')
-	country = sample.get_country()
+		sample = get_value(queue_item, 'sample', default=None)
 
 	if hasattr(queue_item, 'sample_prep_lab'):
 		prep_lab = get_value(queue_item, 'sample_prep_lab')
@@ -1297,20 +1295,20 @@ def queue_to_spreadsheet_row(queue_item, sample=None):
 	
 	return [
 		get_value(queue_item, 'priority'),
-		get_value(sample.expected_complexity, 'description'),
-		preparation_method,
+		get_value(sample, 'expected_complexity', 'description'),
+		get_value(queue_item, 'sample_prep_protocol', 'preparation_method'),
 		prep_lab,
 		get_value(queue_item, 'udg_treatment'),
-		get_value(sample.shipment, 'shipment_name'),
-		name,
-		sample.skeletal_element,
-		csv_text_escape(sample.skeletal_code),
-		get_value(country, 'country_name'),
-		get_value(country, 'region'),
-		sample.period,
-		sample.culture,
-		sample.notes,
-		sample.notes_2,
+		get_value(sample, 'shipment', 'shipment_name'),
+		get_value(sample, 'collaborator', 'name'),
+		get_value(sample, 'skeletal_element'),
+		csv_text_escape(get_value(sample, 'skeletal_code')),
+		get_value(sample, 'get_country', 'country_name'),
+		get_value(sample, 'get_country', 'region'),
+		get_value(sample, 'period'),
+		get_value(sample, 'culture'),
+		get_value(sample, 'notes'),
+		get_value(sample, 'notes_2'),
 		get_value(queue_item, 'id'),
 	]
 		
