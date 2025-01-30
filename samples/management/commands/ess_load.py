@@ -298,6 +298,8 @@ def process_row(row, headers, sequencing_run, options, capture_positive, pcr_neg
 				else: # if we find a control based on id but do not know what type it is, copy type from database or label as "other"
 					try:
 						control_type = library.get_control_type()
+						if control_type is None:
+							control_type = ControlType.objects.get(control_type=OTHER_CONTROL)
 					except LibraryBatchLayout.DoesNotExist:
 						control_type = ControlType.objects.get(control_type=OTHER_CONTROL)
 
