@@ -119,20 +119,20 @@ def continue_to_extract(library_batch_name):
 # read entry
 class ESS_Entry:
 	# read values from ESS file, with multiple possible formats
-	def __init__(self, row, headers, sequencing_run, dnu_header, notes_header):
+	def __init__(self, row, headers, sequencing_run, dnu_header, notes_header, command):
 		try: # Zhao ESS
 			self.well_location = None
 			self.library_well_location = None
 			self.library_id = get_spreadsheet_value(headers, row, 'Sample_Name')
 
-			self.i7 = self.barcode_from_str(P7_Index, get_spreadsheet_value(headers, row, 'Index'))
-			self.i5 = self.barcode_from_str(P5_Index, get_spreadsheet_value(headers, row, 'Index2'))
+			self.i7 = self.barcode_from_str(P7_Index, get_spreadsheet_value(headers, row, 'Index'), command)
+			self.i5 = self.barcode_from_str(P5_Index, get_spreadsheet_value(headers, row, 'Index2'), command)
 
 			p5_barcode_str = get_spreadsheet_value(headers, row, 'P5_barcode')
-			self.p5_barcode = self.barcode_from_str(Barcode, p5_barcode_str)
+			self.p5_barcode = self.barcode_from_str(Barcode, p5_barcode_str, command)
 
 			p7_barcode_str = get_spreadsheet_value(headers, row, 'P7_barcode')
-			self.p7_barcode = self.barcode_from_str(Barcode, p7_barcode_str)
+			self.p7_barcode = self.barcode_from_str(Barcode, p7_barcode_str, command)
 
 			self.experiment = get_spreadsheet_value(headers, row, 'Experiment')
 			capture_name =  get_spreadsheet_value(headers, row, 'Capture_Name')
@@ -157,14 +157,14 @@ class ESS_Entry:
 			self.library_well_location = get_spreadsheet_value(headers, row, 'well_position_library_batch-plate_id-')
 			self.library_id = get_spreadsheet_value(headers, row, 'library_id-')
 
-			self.i7 = self.barcode_from_str(P7_Index, get_spreadsheet_value(headers, row, 'p7_index-'))
-			self.i5 = self.barcode_from_str(P5_Index, get_spreadsheet_value(headers, row, 'p5_index-'))
+			self.i7 = self.barcode_from_str(P7_Index, get_spreadsheet_value(headers, row, 'p7_index-'), command)
+			self.i5 = self.barcode_from_str(P5_Index, get_spreadsheet_value(headers, row, 'p5_index-'), command)
 
 			p5_barcode_str = get_spreadsheet_value(headers, row, 'p5_barcode-')
-			self.p5_barcode = self.barcode_from_str(Barcode, p5_barcode_str)
+			self.p5_barcode = self.barcode_from_str(Barcode, p5_barcode_str, command)
 
 			p7_barcode_str = get_spreadsheet_value(headers, row, 'p7_barcode-')
-			self.p7_barcode = self.barcode_from_str(Barcode, p7_barcode_str)
+			self.p7_barcode = self.barcode_from_str(Barcode, p7_barcode_str, command)
 
 			# infer capture from sequencing run
 			self.experiment = get_spreadsheet_value(headers, row, 'experiment-')
@@ -188,14 +188,14 @@ class ESS_Entry:
 		self.extract_batch = None
 		self.lysate_batch = None
 
-	def barcode_from_str(self, class_name, barcode_str):
+	def barcode_from_str(self, class_name, barcode_str, command):
 		if len(barcode_str) == 0 or barcode_str == '..':
 			barcode = None
 		else:
 			try:
 				barcode = class_name.objects.get(sequence=barcode_str.upper())
 			except class_name.DoesNotExist as e:
-				self.stderr.write(f'{barcode_str} not found')
+				command.stderr.write(f'{barcode_str} not found')
 				raise e
 		return barcode
 
@@ -235,7 +235,7 @@ def all_lysates(headers, data_rows):
 def process_row(row, headers, sequencing_run, options, capture_positive, pcr_negative, extract_control_sample_number, library_control_sample_number, dnu_header, notes_header, update, command):
 
 	# parse spreadsheet row into fields
-	ess_entry = ESS_Entry(row, headers, sequencing_run, dnu_header, notes_header)
+	ess_entry = ESS_Entry(row, headers, sequencing_run, dnu_header, notes_header, command)
 	# perform field checks
 	try:
 		library = Library.objects.get(reich_lab_library_id=ess_entry.library_id)
