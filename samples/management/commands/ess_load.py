@@ -136,7 +136,7 @@ class ESS_Entry:
 
 			self.experiment = get_spreadsheet_value(headers, row, 'Experiment')
 			capture_name =  get_spreadsheet_value(headers, row, 'Capture_Name')
-			self.capture = CaptureOrShotgunPlate.objects.get(name=capture_name)
+			self.capture = CaptureOrShotgunPlate.objects.get(name=capture_name, protocol__name=self.experiment)
 
 			self.library_batch = None
 			if 'Batch_id' in headers:
