@@ -333,7 +333,7 @@ def process_row(row, headers, sequencing_run, options, capture_positive, pcr_neg
 		capture_row, capture_column = plate_location(location_from_indices(int(ess_entry.i5.label), int(ess_entry.i7.label)))
 	elif len(ess_entry.i5.sequence) == 8 and len(ess_entry.i7.sequence) == 8:
 		# single stranded
-		capture_row, capture_column = plate_location(location_from_indices(ess_entry.i5.label, ess_entry.i7_label))
+		capture_row, capture_column = plate_location(location_from_indices(ess_entry.i5.label, ess_entry.i7.label))
 	else:
 		raise NotImplementedError(f'Unexpected index lengths {len(ess_entry.i5.sequence)}, {len(ess_entry.i7.sequence)}')
 	layout_element.row = capture_row
