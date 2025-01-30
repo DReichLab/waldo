@@ -84,3 +84,12 @@ class ParseLibraryID(SimpleTestCase):
 		self.assertEqual(None, groupdict['lysate'])
 		self.assertEqual(None, groupdict['extract'])
 		self.assertEqual(1, groupdict['library'])
+		
+	def test_multiple_digit(self):
+		s = 'S1234.Y29.E38.L47'
+		groupdict = parse_library_id(s)
+		self.assertEqual(1234, groupdict['sample'])
+		self.assertEqual('', groupdict['control'])
+		self.assertEqual(29, groupdict['lysate'])
+		self.assertEqual(38, groupdict['extract'])
+		self.assertEqual(47, groupdict['library'])

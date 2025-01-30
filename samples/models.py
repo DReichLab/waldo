@@ -43,7 +43,7 @@ def parse_sample_string(s, full=True):
 	else:
 		raise ValueError('Error parsing sample {}'.format(s))
 
-compiled_library_re = re.compile(r'S(?P<sample>[\d]+)(?P<control>[a-z]{0,2})(?:\.Y(?P<lysate>[\d]))?(?:\.E(?P<extract>[\d]))?(?:\.L(?P<library>[\d]))')
+compiled_library_re = re.compile(r'S(?P<sample>[\d]+)(?P<control>[a-z]{0,2})(?:\.Y(?P<lysate>[\d]+))?(?:\.E(?P<extract>[\d]+))?(?:\.L(?P<library>[\d]+))')
 def parse_library_id(s):
 	match = re.match(compiled_library_re, s)
 	if match:
