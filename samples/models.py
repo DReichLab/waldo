@@ -27,15 +27,21 @@ import re, string
 
 REICH_LAB = 'Reich Lab'
 
+# we expect a sample number to start with 'S'
+# S1234a
+# control string will be blank (not NULL/None) for real samples
+sample_re = r'S(?P<sample>[\d]+)(?P<control>[a-z]{0,2})'
+sample_re_compiled = re.compile(sample_re)
+lysate_re = r'(?:\.Y(?P<lysate>[\d]+))?'
+extract_re = r'(?:\.E(?P<extract>[\d]+))?'
+library_re = r'(?:\.L(?P<library>[\d]+))'
+compiled_library_re = re.compile(sample_re + lysate_re + extract_re + library_re)
+
 def parse_sample_string(s, full=True):
-	# we expect a sample number to start with 'S'
-	# S1234a
-	# control string will be blank (not NULL/None) for real samples
-	pattern = r'S([\d]+)([a-z]{0,2})'
 	if full:
-		match = re.fullmatch(pattern, s)
+		match = re.fullmatch(sample_re_compiled, s)
 	else:
-		match = re.match(pattern, s)
+		match = re.match(sample_re_compiled, s)
 	if match:
 		sample_number = int(match.group(1))
 		control = match.group(2)
@@ -43,7 +49,6 @@ def parse_sample_string(s, full=True):
 	else:
 		raise ValueError('Error parsing sample {}'.format(s))
 
-compiled_library_re = re.compile(r'S(?P<sample>[\d]+)(?P<control>[a-z]{0,2})(?:\.Y(?P<lysate>[\d]+))?(?:\.E(?P<extract>[\d]+))?(?:\.L(?P<library>[\d]+))')
 def parse_library_id(s):
 	match = re.match(compiled_library_re, s)
 	if match:
@@ -2297,7 +2302,7 @@ class Library(Timestamped):
 	def powder_equivalent(self):
 		extract_powder = None
 		try:
-			extract_layout = ExtractionBatchLayout.objects.get(extract=self.extract)
+			extract_layout = ExtractionBatchLayout.objects.exclude(extract=None).get(extract=self.extract)
 			if extract_layout.powder_used_mg is not None and extract_layout.powder_used_mg > 0:
 				extract_powder = extract_layout.powder_used_mg
 		except ExtractionBatchLayout.DoesNotExist:
@@ -2308,10 +2313,10 @@ class Library(Timestamped):
 			else:
 				lysis_used = get_value(self, 'extract', 'lysis_volume_extracted', default=0)
 			try:
-				lysate_layout = LysateBatchLayout.objects.get(lysate=self.extract.lysate)
+				lysate_layout = LysateBatchLayout.objects.exclude(lysate=None).get(lysate=self.extract.lysate)
 				powder_for_lysate = lysate_layout.powder_used_mg
 			except LysateBatchLayout.DoesNotExist:
-				powder_for_lysate = get_value(self, 'extract', 'lysate', 'powder_used_mg')
+				powder_for_lysate = get_value(self, 'extract', 'lysate', 'powder_used_mg', default=0)
 			extract_powder = powder_for_lysate * lysis_used / get_value(self, 'extract', 'lysate', 'total_volume_produced', default=lysis_used)
 		
 		library_layout = LibraryBatchLayout.objects.get(library=self)
