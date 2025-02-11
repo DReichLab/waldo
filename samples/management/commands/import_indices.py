@@ -8,8 +8,9 @@ class Command(BaseCommand):
 	
 	def add_arguments(self, parser):
 		parser.add_argument("type", choices=['i5', 'i7'])
-		parser.add_argument("barcodes_file")
-		parser.add_argument('-d', "--default",  action='store_true')
+		parser.add_argument("barcodes_file", help='text file with two columns: label and sequence')
+		parser.add_argument('-d', "--default",  action='store_true', help='new indices will be part of default set')
+		parser.add_argument('--allow_existing',  action='store_true', help='Do not fail if an index already exists')
 		
 	def handle(self, *args, **options):
 		barcode_type = options['type']
@@ -22,10 +23,18 @@ class Command(BaseCommand):
 			barcodes = P7_Index.objects
 
 		with transaction.atomic():
+			num_existing = 0
 			with open(barcodes_file) as f:
 				for line in f:
 					fields = line.split()
 					label = fields[0]
 					sequence = fields[1]
-					barcode, created = barcodes.get_or_create(label=label, sequence=sequence, reich_lab_default=default)
+					try:
+						barcode = barcodes.get(sequence=sequence)
+						self.stderr.write(f'{sequence} exists as {barcode.label} {barcode.label2}, new is {label}')
+						num_existing += 1
+					except (P5_Index.DoesNotExist, P7_Index.DoesNotExist):
+						barcode = barcodes.create(label=label, sequence=sequence, reich_lab_default=default)
 					barcode.full_clean()
+				if num_existing > 0 and not options['allow_existing']:
+					transaction.set_rollback(True)
