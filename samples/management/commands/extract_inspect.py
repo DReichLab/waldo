@@ -11,8 +11,9 @@ class Command(BaseCommand):
 	
 	def add_arguments(self, parser):
 		parser.add_argument('extract', nargs='+')
-		parser.add_argument('--renumber', action='store_true', help='Renumber extracts to match the extract_id string. S1234.Y1.E1')
-		parser.add_argument('--rename', action='store_true', help='Replace extract ID to match extract number')
+		group = parser.add_mutually_exclusive_group()
+		group.add_argument('--renumber', action='store_true', help='Renumber extracts to match the extract_id string. S1234.Y1.E1')
+		group.add_argument('--rename', action='store_true', help='Replace extract ID to match extract number')
 		parser.add_argument('-u', '--user', help='user to mark modifications')
 		
 	def handle(self, *args, **options):
@@ -31,6 +32,16 @@ class Command(BaseCommand):
 			for extract_id in options['extract']:
 				extract = Extract.objects.get(extract_id=extract_id)
 				self.stdout.write(str(extract.num_libraries()))
+				
+				if options['rename']:
+					s = f'S{extract.sample.reich_lab_id}'
+					if extract.lysate is not None:
+						s += f'.Y{extract.lysate.reich_lab_lysate_number}'
+					s += f'.E{extract.reich_lab_extract_number}'
+					extract.extract_id = s
+					extract.save(save_user=user)
+					extract_id = extract.extract_id
+					
 				for library in Library.objects.filter(extract=extract).order_by('reich_lab_library_number'):
 					self.stdout.write(library.reich_lab_library_id)
 					if not library.reich_lab_library_id.startswith(extract_id):
