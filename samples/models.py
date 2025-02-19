@@ -2309,18 +2309,24 @@ class Library(Timestamped):
 			pass
 		if extract_powder is None: # no direct powder used for extract, infer through lysate. New samples will be in this case. 
 			if extract_layout:
-				lysis_used = get_value(extract_layout, 'lysate_volume_used', default=0)
+				lysis_used = get_value(extract_layout, 'lysate_volume_used', default=None)
 			else:
-				lysis_used = get_value(self, 'extract', 'lysis_volume_extracted', default=0)
+				lysis_used = get_value(self, 'extract', 'lysis_volume_extracted', default=None)
 			try:
 				lysate_layout = LysateBatchLayout.objects.exclude(lysate=None).get(lysate=self.extract.lysate)
-				powder_for_lysate = lysate_layout.powder_used_mg
+				powder_for_lysate = get_value(lysate_layout, 'powder_used_mg', default=None)
 			except LysateBatchLayout.DoesNotExist:
-				powder_for_lysate = get_value(self, 'extract', 'lysate', 'powder_used_mg', default=0)
-			extract_powder = powder_for_lysate * lysis_used / get_value(self, 'extract', 'lysate', 'total_volume_produced', default=lysis_used)
+				powder_for_lysate = get_value(self, 'extract', 'lysate', 'powder_used_mg', default=None)
+			try:
+				extract_powder = powder_for_lysate * lysis_used / get_value(self, 'extract', 'lysate', 'total_volume_produced', default=lysis_used)
+			except (ZeroDivisionError, TypeError):
+				extract_powder = None
 		
 		library_layout = LibraryBatchLayout.objects.get(library=self)
-		return extract_powder * library_layout.ul_extract_used / self.extract.extract_batch.protocol.final_extract_volume
+		try:
+			return extract_powder * library_layout.ul_extract_used / self.extract.extract_batch.protocol.final_extract_volume
+		except TypeError:
+			return None
 		
 	
 # extract -> library
