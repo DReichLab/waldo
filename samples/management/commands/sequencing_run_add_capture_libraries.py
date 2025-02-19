@@ -46,10 +46,14 @@ class Command(BaseCommand):
 						position = fields[position_index]
 						row = position[0]
 						column = int(position[1:])
-						if library_id == PCR_NEGATIVE:
-							layout_element = CaptureLayout.objects.get(capture_batch=capture, row=row, column=column, control_type__control_type=PCR_NEGATIVE)
-						else:
-							layout_element = CaptureLayout.objects.get(capture_batch=capture, row=row, column=column, library__reich_lab_library_id=library_id)
+						try:
+							if library_id == PCR_NEGATIVE:
+								layout_element = CaptureLayout.objects.get(capture_batch=capture, row=row, column=column, control_type__control_type=PCR_NEGATIVE)
+							else:
+								layout_element = CaptureLayout.objects.get(capture_batch=capture, row=row, column=column, library__reich_lab_library_id=library_id)
+						except CaptureLayout.DoesNotExist as e:
+							self.stderr.write('\t'.join([row, str(column), library_id]))
+							raise e
 
 					# add this indexed library to sequencing run
 					sequenced_library = SequencedLibrary(indexed_library=layout_element, sequencing_run=sequencing_run)
