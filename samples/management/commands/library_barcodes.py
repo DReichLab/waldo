@@ -14,8 +14,12 @@ class Command(BaseCommand):
 		for library_id in library_ids:
 			library = Library.objects.get(reich_lab_library_id=library_id)
 
+			i5_label = get_value(library, 'p5_index', 'label')
+			i5_sequence = get_value(library, 'p5_index', 'sequence')
+			i7_label = get_value(library, 'p7_index', 'label')
+			i7_sequence = get_value(library, 'p7_index', 'sequence')
 			p5_label = get_value(library, 'p5_barcode', 'label')
 			p5_sequence = get_value(library, 'p5_barcode', 'sequence')
 			p7_label = get_value(library, 'p7_barcode', 'label')
 			p7_sequence = get_value(library, 'p7_barcode', 'sequence')
-			self.stdout.write('\t'.join([library_id, p5_label, p5_sequence, p7_label, p7_sequence]))
+			self.stdout.write('\t'.join([library_id, i5_label, i5_sequence, i7_label, i7_sequence, p5_label, p5_sequence, p7_label, p7_sequence]))

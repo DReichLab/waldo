@@ -2592,7 +2592,9 @@ class CaptureOrShotgunPlate(Timestamped):
 		sequencing_run.assign_captures([self.id], user)
 		return sequencing_run
 		
-	def add_library(self, library_str_id, row, column, user):
+	def add_library(self, library_str_id, row, column, user, **kwargs):
+		non_control_library = kwargs.get('non_control_library', False)
+		
 		control_type = None
 		library_to_add = None
 		if library_str_id == PCR_NEGATIVE:
@@ -2603,7 +2605,8 @@ class CaptureOrShotgunPlate(Timestamped):
 			library_to_add = Library.objects.get(reich_lab_library_id=CAPTURE_POSITIVE_LIBRARY_NAME_DS)
 		else:
 			library_to_add = Library.objects.get(reich_lab_library_id=library_str_id)
-			control_type = library_to_add.get_control_type()
+			if not non_control_library:
+				control_type = library_to_add.get_control_type()
 		try:
 			layout_element = CaptureLayout.objects.get(capture_batch=self, library=library_to_add, row=row, column=column, control_type=control_type)
 		except CaptureLayout.DoesNotExist:
@@ -2643,7 +2646,7 @@ class CaptureOrShotgunPlate(Timestamped):
 	# single-stranded libraries already have indices assigned
 	def requires_p5_index_start(self):
 		for layout_element in self.layout_elements():
-			if layout_element.control_type == None and get_value(layout_element.library.library_batch.protocol.library_type) == 'ds':
+			if layout_element.control_type == None and get_value(layout_element, 'library', 'library_batch', 'protocol', 'library_type') == 'ds':
 				return True
 		return False # single stranded or empty
 	
