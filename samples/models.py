@@ -215,6 +215,22 @@ class WetLabStaff(Timestamped):
 	
 	def name(self):
 		return f'{self.first_name} {self.last_name}'
+
+def get_wetlab_staff(name):
+	if type(name) == list: # change a list to a string
+		name = ' '.join(name)
+	names = re.split(r'\W+', name)
+	error = None
+	for name in names:
+		try:
+			return WetLabStaff.objects.get(Q(first_name__iexact=name) | Q(last_name__iexact=name) | Q(login_user__username__exact=name))
+		except (WetLabStaff.DoesNotExist, WetLabStaff.MultipleObjectsReturned) as e:
+			error = e
+	if len(names) == 2:
+		return WetLabStaff.objects.get(first_name__iexact=names[0], last_name__iexact=name)
+	if error is not None:
+		raise error
+	raise WetLabStaff.DoesNotExist
 	
 class SupportStaff(Timestamped):
 	first_name = models.CharField(max_length=30, db_index=True)
