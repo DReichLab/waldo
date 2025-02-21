@@ -215,3 +215,54 @@ class NuclearAnalysis(Timestamped):
 	find = models.TextField(blank=True)
 	pulldown_logfile_location = models.CharField(max_length=300, blank=True)
 	damage_restricted = models.BooleanField(default=False)
+
+class SNPSet(models.Model):
+	name = models.CharField(max_length=30, unique=True, null=False, blank=False)
+	description = models.TextField(blank=True)
+	count = models.PositiveIntegerField()
+
+deamination_help = "{} prime {} transitions as measured by Nick's mkdeamin program on forward strand at {}"
+# shared for both nuclear and MT analysis
+class Analysis2(Timestamped):
+	damage_restricted = models.BooleanField(default=False)
+	damage_5ct1 = models.FloatField(null=True, help_text=deamination_help.format(5, 'C->T', 'last base'))
+	damage_5ct2 = models.FloatField(null=True, help_text=deamination_help.format(5, 'C->T', 'second to last base'))
+	damage_3ga1 = models.FloatField(null=True, help_text=deamination_help.format(3, 'G->A', 'last base'))
+	damage_3ga2 = models.FloatField(null=True, help_text=deamination_help.format(3, 'G->A', 'second to last base'))
+	damage_3ct1 = models.FloatField(null=True, help_text=deamination_help.format(3, 'C->T', 'last base'))
+	damage_3ct2 = models.FloatField(null=True, help_text=deamination_help.format(3, 'C->T', 'second to last base'))
+	median_length = models.DecimalField(null=True, max_digits=10, decimal_places=1)
+	mean_length = models.DecimalField(null=True, max_digits=10, decimal_places=1)
+	
+class NuclearAnalysis2(Analysis2):
+	angsd_snps = models.IntegerField(null=True)
+	angsd_mean = models.FloatField(null=True)
+	angsd_z = models.FloatField(null=True)
+	
+# This is supplemental for libraries but do not make sense for multiple libraries
+class LibraryAnalysis(Timestamped):
+	nuclear = models.ForeignKey(NuclearAnalysis2, null=False, on_delete=models.CASCADE)
+	expected_coverage_10_marginal_uniqueness = models.FloatField()
+	expected_coverage_37_marginal_uniqueness = models.FloatField()
+	marginal_uniqueness = models.FloatField()
+
+class SNPCount(Timestamped):
+	analysis = models.ForeignKey(NuclearAnalysis2, on_delete=models.CASCADE)
+	snps = models.ForeignKey(SNPSet, on_delete=models.PROTECT)
+	unique_hits = models.IntegerField()
+	coverage = models.FloatField() # TODO why isn't this an integer
+	deduplicated = models.BooleanField(default=True)
+	
+class MTAnalysis2(Analysis2):
+	consensus_match = models.FloatField(null=True)
+	consensus_match_95ci_lower = models.FloatField(null=True, help_text='95% confidence interval lower bound')
+	consensus_match_95ci_upper = models.FloatField(null=True, help_text='95% confidence interval upper bound')
+	
+class HaplogroupCaller(Timestamped):
+	haplogroup_type = models.CharField(max_length=10, blank=False, help_text='Y, MT, etc.')
+	name = models.CharField(max_length=100, blank=False, unique=True)
+	description = models.TextField(blank=True)
+	
+class HaplogroupCall(Timestamped):
+	caller = models.ForeignKey(HaplogroupCaller, on_delete=models.PROTECT)
+	
