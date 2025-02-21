@@ -652,9 +652,10 @@ class CapturedLibraryForm(UserModelForm):
 	p7_index = BarcodeSelect(queryset=P7_Index.objects.all(), disabled=True, required=False)
 	p5_barcode = forms.CharField(disabled=True, required=False)
 	p7_barcode = forms.CharField(disabled=True, required=False)
+	notes = forms.CharField(required=False)
 	class Meta:
 		model = CaptureLayout
-		fields = ['well_position', 'library_id', 'nanodrop', 'library_batch', 'well_position_library_batch', 'p5_index', 'p7_index', 'p5_barcode', 'p5_barcode']
+		fields = ['well_position', 'library_id', 'nanodrop', 'library_batch', 'well_position_library_batch', 'p5_index', 'p7_index', 'p5_barcode', 'p5_barcode', 'notes']
 		
 	def __init__(self, *args, **kwargs):
 		super().__init__(*args, **kwargs)
