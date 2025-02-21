@@ -1969,6 +1969,8 @@ class LibraryBatch(Timestamped):
 		layout_elements = self.layout_elements()
 		for layout_element in layout_elements:
 			layout_element.clean()
+		if get_value(self.protocol, 'library_type') == 'ds' and self.p7_offset is None:
+			raise ValidationError(_('DS library batch needs P7 offset'))
 		if self.status == self.CLOSED:
 			if self.prep_date is None:
 				raise ValidationError(_('Closed library batch needs prep date'))
