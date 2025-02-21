@@ -64,6 +64,7 @@
 	<th>Powder Used (mg) [layout]</th>
 	<th>Powder Used (mg)</th>
 	<th>Lysate Produced (micro L)</th>
+	<th>Lysate Remaining (micro L)</th>
 </tr>
 {% for lysate_layout in lysate_layouts %}
 <tr>
@@ -73,6 +74,7 @@
 	<td>{{ lysate_layout.powder_used_mg | floatformat }}</td>
 	<td>{{ lysate_layout.lysate.powder_used_mg | floatformat }}</td>
 	<td>{{ lysate_layout.lysate.total_volume_produced | floatformat }}</td>
+	<td>{{ lysate_layout.lysate.remaining | floatformat }}</td>
 </tr>
 {% endfor %}
 </table>
