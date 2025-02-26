@@ -1680,6 +1680,23 @@ class Extract(Timestamped):
 		elif self.lysate:
 			return self.lysate.get_sample()
 		return None
+		
+	# Compute how much extract is left based on original extract amount generated minus:
+	# 1. extract used to make libraries
+	# 2. lost extract
+	def remaining(self):
+		extract_used = 0
+		# Rebecca kept track of extract used in libraries
+		# potential improvement is to move all of these computations into LibraryBatchLayout objects
+		libraries = Library.objects.filter(extract=self)
+		for library in libraries:
+			extract_used += library.ul_extract_used
+		# Lost extract is in LibraryBatchLayout
+		lost_extracts = LibraryBatchLayout.objects.filter(extract=self, library_batch=None)
+		for lost in lost_extracts:
+			extract_used += lost.ul_extract_used
+		extract_remaining = get_value(self, 'extract_batch', 'protocol', 'final_extract_volume') - extract_used
+		return extract_remaining
 	
 # lysate -> extract
 # for old batches, powder -> extract

@@ -89,6 +89,7 @@
 	<th>Lysate used (micro L) [layout]</th>
 	<th>Lysate used (micro L)</th>
 	<th>Powder Used (mg) [layout]</th>
+	<th>Extract Remaining (micro L)</th>
 </tr>
 {% for extract_layout in extract_layouts %}
 <tr>
@@ -98,6 +99,7 @@
 	<td>{{ extract_layout.lysate_volume_used | floatformat }}</td>
 	<td>{{ extract_layout.extract.lysis_volume_extracted | floatformat }}</td>
 	<td>{{ extract_layout.powder_used_mg | floatformat }}</td>
+	<td>{{ extract_layout.extract.remaining | floatformat }}</td>
 </tr>
 {% endfor %}
 </table>
