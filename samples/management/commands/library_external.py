@@ -9,7 +9,7 @@ class Command(BaseCommand):
 	
 	def add_arguments(self, parser):
 		parser.add_argument('-u', '--user', nargs='+', required=True, help='Wetlab Staff name or username')
-		parser.add_argument('-f', '--file', required=True, help='File containing tab-delimited columns: [1] sample number primary key (not Reich lab ID number), [2] I5 index sequence, [3] I7 index sequence, [4] P5 barcode sequence, [5] P7 barcode sequence, [6] library notes', default='10.1.ssDNA_library_prep_Bravo_v4.2')
+		parser.add_argument('-f', '--file', required=True, help='File containing tab-delimited columns: [1] sample number primary key (not Reich lab ID number), [2] I5 index sequence, [3] I7 index sequence, [4] P5 barcode sequence, [5] P7 barcode sequence, [6] library notes')
 		parser.add_argument('-s', '--create_samples', action='store_true', help='Specify negative integers for sample primary key. Matching values get same sample')
 		
 	def handle(self, *args, **options):
