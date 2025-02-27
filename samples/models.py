@@ -2273,8 +2273,8 @@ class Library(Timestamped):
 	
 	nanodrop = models.DecimalField(max_digits=5, decimal_places=2, null=True)
 	qpcr_ds = models.DecimalField(max_digits=4, decimal_places=2, null=True, help_text='DS qpcr value')
-	qpcr_assay_a_1_ss = models.DecimalField(max_digits=4, decimal_places=2, null=True, help_text='SS qpcr Assay A_1')
-	qpcr_assay_b_1_ss = models.DecimalField(max_digits=4, decimal_places=2, null=True, help_text='SS qpcr Assay B_1')
+	qpcr_assay_a_ss = models.DecimalField(max_digits=4, decimal_places=2, null=True, help_text='SS qpcr Assay A')
+	qpcr_assay_b_ss = models.DecimalField(max_digits=4, decimal_places=2, null=True, help_text='SS qpcr Assay B')
 	assay_a_percent_inhibition = models.FloatField(null=True)
 	assay_b_total_molecules = models.BigIntegerField(null=True)
 	
@@ -2381,8 +2381,8 @@ class LibraryBatchLayout(TimestampedWellPosition):
 			'p7_barcode',
 			'nanodrop',
 			'qpcr_ds',
-			'qpcr_assay_a_1_ss',
-			'qpcr_assay_b_1_ss',
+			'qpcr_assay_a_ss',
+			'qpcr_assay_b_ss',
 			'assay_a_percent_inhibition',
 			'assay_b_total_molecules',
 			'plate_id',
@@ -2403,8 +2403,8 @@ class LibraryBatchLayout(TimestampedWellPosition):
 			get_value(self.library, 'p7_barcode', 'label'),
 			get_value(self.library, 'nanodrop'),
 			get_value(self.library, 'qpcr_ds'),
-			get_value(self.library, 'qpcr_assay_a_1_ss'),
-			get_value(self.library, 'qpcr_assay_b_1_ss'),
+			get_value(self.library, 'qpcr_assay_a_ss'),
+			get_value(self.library, 'qpcr_assay_b_ss'),
 			get_value(self.library, 'assay_a_percent_inhibition'),
 			get_value(self.library, 'assay_b_total_molecules'),
 			get_value(self.library, 'plate_id'),
@@ -2451,8 +2451,8 @@ class LibraryBatchLayout(TimestampedWellPosition):
 
 		library.nanodrop = value_convert_or_none(arg_array[headers.index('nanodrop')], float)
 		library.qpcr_ds = value_convert_or_none(arg_array[headers.index('qpcr_ds')], decimal.Decimal)
-		library.qpcr_assay_a_1_ss = value_convert_or_none(arg_array[headers.index('qpcr_assay_a_1_ss')], decimal.Decimal)
-		library.qpcr_assay_b_1_ss = value_convert_or_none(arg_array[headers.index('qpcr_assay_b_1_ss')], decimal.Decimal)
+		library.qpcr_assay_a_ss = value_convert_or_none(arg_array[headers.index('qpcr_assay_a_ss')], decimal.Decimal)
+		library.qpcr_assay_b_ss = value_convert_or_none(arg_array[headers.index('qpcr_assay_b_ss')], decimal.Decimal)
 		library.assay_a_percent_inhibition = value_convert_or_none(arg_array[headers.index('assay_a_percent_inhibition')], float)
 		library.assay_b_total_molecules = value_convert_or_none(arg_array[headers.index('assay_b_total_molecules')], int)
 		library.plate_id = arg_array[headers.index('plate_id')]
