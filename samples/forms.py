@@ -5,7 +5,7 @@ from django.forms.widgets import TextInput, NumberInput
 from django.utils.translation import gettext_lazy as _
 from django.db.models import Q
 
-from samples.models import PowderBatch, PowderSample, Sample, SamplePrepProtocol, ControlType, ControlSet, ControlLayout, LysateBatch, ExtractionProtocol, ExpectedComplexity, SamplePrepQueue, Lysate, LysateBatchLayout, ExtractionBatch, ExtractionBatchLayout, LibraryProtocol, LibraryBatch, Extract, Storage, Library, LibraryBatchLayout, P5_Index, P7_Index, Barcode, CaptureProtocol, CaptureOrShotgunPlate, CaptureLayout, SequencingPlatform, SequencingRun, SkeletalElementCategory, get_value
+from samples.models import PowderBatch, PowderSample, Sample, SamplePrepProtocol, ControlType, ControlSet, ControlLayout, LysateBatch, ExtractionProtocol, ExpectedComplexity, SamplePrepQueue, Lysate, LysateBatchLayout, ExtractionBatch, ExtractionBatchLayout, LibraryProtocol, LibraryBatch, Extract, Storage, Library, LibraryBatchLayout, P5_Index, P7_Index, Barcode, CaptureProtocol, CaptureOrShotgunPlate, CaptureLayout, SequencingPlatform, SequencingRun, SkeletalElementCategory, get_value, LIBRARY_POSITIVE
 
 import datetime
 
@@ -525,10 +525,11 @@ class LibraryBatchForm(UserModelForm):
 	prep_date = forms.DateField(required=False)
 	cleanup_date = forms.DateField(required=False)
 	control_set = ControlSetSelect(queryset=ControlSet.objects.filter(active=True).order_by('layout_name'))
+	qpcr = forms.FloatField(required=False, disabled=True, help_text='Double stranded library positive qPCR')
 	
 	class Meta:
 		model = LibraryBatch
-		fields = ['name', 'protocol', 'technician', 'prep_date', 'prep_note', 'prep_robot', 'cleanup_robot', 'cleanup_person', 'cleanup_date', 'qpcr_machine', 'control_set', 'p7_offset', 'status', 'rotated', 'tip_batch']
+		fields = ['name', 'protocol', 'technician', 'prep_date', 'prep_note', 'prep_robot', 'cleanup_robot', 'cleanup_person', 'cleanup_date', 'qpcr_machine', 'qpcr', 'control_set', 'p7_offset', 'status', 'rotated', 'tip_batch']
 		widgets = {
 			'prep_note': Textarea(attrs={'cols': 60, 'rows': 2}),
 		}
@@ -550,6 +551,7 @@ class LibraryBatchForm(UserModelForm):
 					self.fields['p7_offset'].disabled = (self.instance.status != LibraryBatch.OPEN)
 			if self.instance.control_set:
 				self.fields['control_set'].queryset = ControlSet.objects.filter(Q(active=True) | Q(id=self.instance.control_set.id)).order_by('layout_name')
+			self.initial['qpcr'] = self.instance.qpcr_ds()
 	
 	# to view fields without being able to modify prior to deletion
 	def disable_fields(self):

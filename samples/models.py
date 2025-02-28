@@ -2202,6 +2202,13 @@ class LibraryBatch(Timestamped):
 			self.status = self.IN_PROGRESS
 			self.clean()
 			self.save(save_user=user)
+			
+	def qpcr_ds(self):
+		try:
+			control_positive_layout_element = self.layout_elements().get(control_type__control_type=LIBRARY_POSITIVE)
+			return get_value(control_positive_layout_element, 'library', 'qpcr_ds', default=float('nan'))
+		except (LibraryBatchLayout.DoesNotExist, LibraryBatchLayout.MultipleObjectsReturned):
+			return float('nan')
 	
 def validate_index_dna_sequence(sequence):
 	valid_bases = 'ACGT'
