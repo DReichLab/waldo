@@ -1957,6 +1957,7 @@ class LibraryBatch(Timestamped):
 	technician_fk = models.ForeignKey(WetLabStaff, on_delete=models.SET_NULL, null=True)
 	control_set = models.ForeignKey(ControlSet, on_delete=models.SET_NULL, null=True)
 	rotated = models.BooleanField(default=False, help_text='True for second extract plates that are rotated 180 degrees')
+	tip_batch = models.CharField(max_length=50, blank=True)
 	
 	# The offset determines completely the layout of barcodes for the library batch because the wetlab uses a system where the p5 barcodes are placed in the same location for all plates
 	# If we need to handle arbitrary layouts, migrate this state into barcodes in the layout objects 
