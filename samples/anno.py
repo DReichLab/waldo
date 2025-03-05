@@ -281,13 +281,15 @@ def library_anno_line(instance_id_raw, sequencing_run_name, release_label, compo
 	#mtDNA coverage (merged data)
 	mod_append(fields, get_number(mt, 'coverage'))
 	#mtDNA haplogroup if ≥2 coverage or published (merged data or consensus if not available)
-	#mtDNA match to consensus if ≥2 coverage (merged data)
 	if mt is not None and mt.coverage is not None and mt.coverage >= 2.0:
 		mod_append(fields, get_text(mt, 'haplogroup'))
-		mod_append(fields, reformat_interval(get_text(mt, 'consensus_match_95ci')))
 	else:
 		mod_append(fields, 'n/a (<2x coverage)')
-		mod_append(fields, 'n/a (<2x coverage)')
+	#mtDNA match to consensus if ≥10 coverage (merged data)
+	if mt is not None and mt.coverage is not None and mt.coverage >= 10.0:
+		mod_append(fields, reformat_interval(get_text(mt, 'consensus_match_95ci')))
+	else:
+		mod_append(fields, 'n/a (<10x coverage)')
 	#Damage rate in first nucleotide on sequences overlapping 1240k targets (merged data)
 	mod_append(fields, get_number(nuclear, 'damage_last_base'))
 	#Sex ratio [Y/(Y+X) counts] (merged data)
@@ -356,8 +358,8 @@ def library_anno_line(instance_id_raw, sequencing_run_name, release_label, compo
 	#mtDNA haplogroup if ≥2 coverage (by library)
 	haplogroup_by_library = [mt.haplogroup if (mt is not None and mt.coverage is not None and mt.coverage >= 2.0) else 'n/a (<2x coverage)' for mt in mt_list]
 	mod_append(fields, ','.join(haplogroup_by_library))
-	#mtDNA match to consensus if ≥2 coverage (by library)
-	consensus_match_by_library = [reformat_interval(get_text(mt, 'consensus_match_95ci')) if (mt is not None and mt.coverage is not None and mt.coverage >= 2.0) else 'n/a (<2x coverage)' for mt in mt_list]
+	#mtDNA match to consensus if ≥10 coverage (by library)
+	consensus_match_by_library = [reformat_interval(get_text(mt, 'consensus_match_95ci')) if (mt is not None and mt.coverage is not None and mt.coverage >= 10.0) else 'n/a (<10x coverage)' for mt in mt_list]
 	mod_append(fields, ','.join(consensus_match_by_library))
 	#batch notes (e.g. if a control well looks contaminated)
 	mod_append(fields, '') # TODO not yet pulled in from ESS files
@@ -369,13 +371,13 @@ def library_anno_line(instance_id_raw, sequencing_run_name, release_label, compo
 	assessment_reasons = []
 	assessment_snp = 0
 	if nuclear.unique_snps_hit < 500:
-		assessment_snp = 3
+		assessment_snp = 4
 		assessment_reasons.append('<500.SNPs')
 	elif nuclear.unique_snps_hit < 2500:
-		assessment_snp = 2
+		assessment_snp = 3
 		assessment_reasons.append('<2500.SNPs')
 	elif nuclear.unique_snps_hit <= 5000:
-		assessment_snp = 1
+		assessment_snp = 2
 		assessment_reasons.append('2500.to.5000.SNPs')
 		
 	assessment_damage = 0
@@ -385,24 +387,24 @@ def library_anno_line(instance_id_raw, sequencing_run_name, release_label, compo
 		udg = library_obj.udg_treatment.lower()
 		library_type = library_obj.library_type.lower()
 		# single stranded damage has different thresholds than double stranded
-		if (library_type == 'ds') and ((udg == 'partial') or (udg == 'half')) : # double stranded
+		if (library_type == 'ds') and ((udg == 'partial') or (udg == 'half') or (udg == 'user')) : # double stranded
 			try:
 				if nuclear.damage_last_base < 0.01:
-					assessment_damage = 3
-				elif nuclear.damage_last_base < 0.03:
-					assessment_damage = 0
-					damage_assessment_list_anyway = True
+					assessment_damage = 4
+				elif nuclear.damage_last_base <= 0.03:
+					assessment_damage = 1
+					#damage_assessment_list_anyway = True
 			except:
 				pass
 		elif 'ss' in library_type or 'minus' in udg:
 			try:
 				if nuclear.damage_last_base < 0.01:
-					assessment_damage = 3
-				elif nuclear.damage_last_base < 0.03:
+					assessment_damage = 4
+				elif nuclear.damage_last_base <= 0.03:
+					assessment_damage = 2
+				elif nuclear.damage_last_base <= 0.10:
 					assessment_damage = 1
-				elif nuclear.damage_last_base < 0.10:
-					assessment_damage = 0
-					damage_assessment_list_anyway = True
+					#damage_assessment_list_anyway = True
 			except:
 				pass
 		else:
@@ -416,9 +418,11 @@ def library_anno_line(instance_id_raw, sequencing_run_name, release_label, compo
 		if sex_ratio == -1:
 			pass
 		else:
-			if (0.05 <= sex_ratio and sex_ratio <= 0.3):
-				assessment_sex_ratio = 3
-			elif (0.03 <= sex_ratio and sex_ratio <= 0.05) or (0.3 <= sex_ratio and sex_ratio <= 0.32):
+			if (0.1 <= sex_ratio and sex_ratio <= 0.3):
+				assessment_sex_ratio = 4
+			elif (0.03 <= sex_ratio and sex_ratio < 0.1) or (0.3 < sex_ratio and sex_ratio <= 0.32):
+				assessment_sex_ratio = 2
+			elif (0.02 <= sex_ratio and sex_ratio < 0.03) or (0.32 < sex_ration and sex_ration <= 0.33):
 				assessment_sex_ratio = 1
 			if assessment_sex_ratio > 0:
 				sex_ratio_str = 'sexratio={:.3f}'.format(sex_ratio)
@@ -431,18 +435,18 @@ def library_anno_line(instance_id_raw, sequencing_run_name, release_label, compo
 	assessment_contammix = 0
 	contammix_list_anyway = False
 	try:
-		if mt is not None and mt.coverage is not None and mt.coverage >= 2.0:
+		if mt is not None and mt.coverage is not None and mt.coverage >= 10.0:
 			mtci = mt.consensus_match_95ci
 			mtci_values = [float(v) for v in mtci[mtci.index('[')+1:mtci.index(']')-1].split(',')]
 			mt_ci_lower = mtci_values[0]
 			mt_ci_upper = mtci_values[1]
 			if mt_ci_upper < 0.9:
+				assessment_contammix = 3
+			elif mt_ci_upper <= 0.95:
 				assessment_contammix = 2
-			elif mt_ci_upper < 0.95:
-				assessment_contammix = 1
 			elif mt_ci_upper < 0.98:
-				assessment_contammix = 0
-				contammix_list_anyway = True
+				assessment_contammix = 1
+			contammix_list_anyway = False
 			if assessment_contammix > 0 or contammix_list_anyway == True:
 				assessment_reasons.append('mtcontam=[{:.3f},{:.3f}]'.format(mt_ci_lower, mt_ci_upper))
 	except:
@@ -451,23 +455,25 @@ def library_anno_line(instance_id_raw, sequencing_run_name, release_label, compo
 	#(Xcontam listed if |Z|>2 standard errors from zero: 0.02-0.05="QUESTIONABLE", >0.05="QUESTIONABLE_CRITICAL" or "FAIL") 
 	assessment_angsd = 0
 	try:
-		if nuclear.sex == 'M' and nuclear.angsd_snps >= 200 and angsd_z > 2:
+		if nuclear.sex == 'M' and nuclear.angsd_snps >= 200: #and angsd_z > 2:
 			if angsd_min_range > 0.02:
-				assessment_angsd = 3
+				assessment_angsd = 4
 			elif angsd_min_range >= 0.01:
-				assessment_angsd = 1
+				assessment_angsd = 2
 			elif angsd_min_range >= 0.005:
-				assessment_angsd = 0
-			# always print 
-			assessment_reasons.append('Xcontam=[{:.3f},{:.3f}]'.format(angsd_min_range, angsd_max_range))
-			assessment_contammix = min(assessment_contammix, assessment_angsd) # angsd contamination will override mt contammix
+				assessment_angsd = 1
+			if assessment_angsd > 0:
+				assessment_reasons.append('ANGSD=[{:.3f},{:.3f}]'.format(angsd_min_range, angsd_max_range))
+			if angsd_max_range < 0.01 and assessment_contammix == 2: # QUESTIONABLE status overriden if upper bound of angsd is <0.01
+				assessment_contammix = min(assessment_contammix, assessment_angsd) # angsd contamination will override mt contammix
 	except:
 		pass
 		
 	assessment_map = { 0 : 'PASS',
-				1 : 'QUESTIONABLE',
-				2 : 'QUESTIONABLE_CRITICAL',
-				3 : 'QUESTIONABLE_CRITICAL' } # David switched fails back to this category
+				1 : 'PASS',
+				2 : 'QUESTIONABLE',
+				3 : 'CRITICAL',
+				4 : 'CRITICAL' } # David switched fails back to this category
 	assessment_overall = max(assessment_snp, assessment_damage, assessment_sex_ratio, assessment_contammix, assessment_angsd)
 	
 	assessment_reasons_str = ' ({})'.format(', '.join(assessment_reasons))
