@@ -1987,8 +1987,6 @@ class LibraryBatch(Timestamped):
 		layout_elements = self.layout_elements()
 		for layout_element in layout_elements:
 			layout_element.clean()
-		if get_value(self.protocol, 'library_type') == 'ds' and self.p7_offset is None:
-			raise ValidationError(_('DS library batch needs P7 offset'))
 		if self.status == self.CLOSED:
 			if self.prep_date is None:
 				raise ValidationError(_('Closed library batch needs prep date'))
@@ -1996,6 +1994,8 @@ class LibraryBatch(Timestamped):
 				library.clean()
 
 			validate_single_occupancy_layout(layout_elements)
+		if get_value(self.protocol, 'library_type') == 'ds' and self.p7_offset is None:
+			raise ValidationError(_('DS library batch needs P7 offset'))
 	
 	def check_p7_offset(self):
 		if self.protocol.library_type == 'ds' and (self.p7_offset is None or self.p7_offset < 0 or self.p7_offset >= PLATE_WELL_COUNT_HALF):

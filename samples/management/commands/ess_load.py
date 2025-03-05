@@ -477,11 +477,15 @@ class Command(BaseCommand):
 						try:
 							library_batch.clean()
 						except ValidationError as e:
-							# diagnostic state of failed validation
-							for element in library_batch.layout_elements():
-								library_id = get_value(element, 'library', 'reich_lab_library_id')
-								self.stdout.write(f'{element}\t{library_id}')
-							raise e
+							# ignore error if it is raised b/c of ds library batch with null p7 offset
+							if len(e.args) > 0 and e.args[0] == 'DS library batch needs P7 offset':
+								pass
+							else:
+								# diagnostic state of failed validation
+								for element in library_batch.layout_elements():
+									library_id = get_value(element, 'library', 'reich_lab_library_id')
+									self.stdout.write(f'{element}\t{library_id}')
+								raise e
 			# extract and lysate batch validation
 			for extract_batch in extract_batches:
 				self.stdout.write(f'Extract batch: {get_value(extract_batch, "batch_name")}\t{extract_batches[extract_batch]}')
