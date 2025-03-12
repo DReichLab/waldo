@@ -92,6 +92,10 @@ urlpatterns = [
 	path('delete_sample_photo', views.delete_sample_photo, name='delete_sample_photo'),
 	path('sample_summary', views.sample_summary, name='sample_summary'),
 	
+	path('sample_archaeology', views.sample_archaeology, name='sample_archaeology'),
+	path('sample_archaeology_update_headers', views.sample_archaeology_update_headers, name='sample_archaeology_update_headers'),
+	path('sample_archaeology_update', views.sample_archaeology_update, name='sample_archaeology_update'),
+	
 	path('storage_all', views.storage_all, name='storage_all'),
 	path('setup', views.setup, name='setup'),
 	

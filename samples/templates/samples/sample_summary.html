@@ -19,15 +19,19 @@
 <tr>
 	<th>Collaborator</th>
 	<th>Collaborator ID</th>
+	<th>Reich Lab Skeletal Code</th>
 	<th>Burial Code</th>
 	<th>Site</th>
+	<th>Site Phase</th>
 	<th>Individual ID</th>
 </tr>
 <tr>
 	<td>{{ sample.collaborator.name }}</td>
 	<td>{{ sample.skeletal_code }}</td>
-	<td>{{ sample.burial_code }}</td>
-	<td>{{ sample.location_fk.site }}</td>
+	<td>{{ sample.skeletal_code_renamed }}</td>
+	<td>{{ sample.archaeological_assemblage.burial_code }}</td>
+	<td>{{ sample.archaeological_assemblage.site_phase.site.site }}</td>
+	<td>{{ sample.archaeological_assemblage.site_phase.category }}</td>
 	<td>{{ sample.individual_id }}</td>
 </tr>
 </table>

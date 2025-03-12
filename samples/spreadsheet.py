@@ -1,7 +1,48 @@
 import re
+import types
 
 DELIMITER = '\t'
 HEADER_READ_ONLY_INDICATOR = '-'
+
+def spreadsheet_pass(spreadsheet_file, **kwargs):
+	if 'delimiter' in kwargs:
+		delimiter = kwargs['delimiter']
+	else:
+		delimiter = DELIMITER
+		
+	header = spreadsheet_file.readline()
+	for line in spreadsheet_file:
+		row = SpreadsheetRow(header, line, delimiter=delimiter)
+		yield row
+
+class SpreadsheetRow():
+	def __init__(self, header, data, **kwargs):
+		if 'delimiter' in kwargs:
+			delimiter = kwargs['delimiter']
+		else:
+			delimiter = DELIMITER
+			
+		try:
+			trimmed_header = header.rstrip('\r\n')
+			trimmed_data = data.rstrip('\r\n')
+		except TypeError:
+			trimmed_header = header.decode('utf-8').rstrip('\r\n')
+			trimmed_data = data.decode('utf-8').rstrip('\r\n')
+		self.headers = re.split(delimiter, trimmed_header)
+		self.data_row_fields = re.split(delimiter, trimmed_data)
+		
+		length_check(self.headers, self.data_row_fields)
+		
+	def get_value(self, desired_header):
+		get_spreadsheet_value(self.headers, self.data_row_fields, desired_header)
+		
+	def spreadsheet_row_to_obj(self):
+		x = types.SimpleNamespace()
+		for field, value in zip(self.headers, self.data_row_fields):
+			print(field)
+			print(value)
+			setattr(x, field, value)
+		return x
 
 def length_check(headers, fields):
 	if len(fields) != len (headers):

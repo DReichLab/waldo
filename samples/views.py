@@ -9,12 +9,14 @@ from django.contrib.auth.views import logout_then_login
 
 from django.db.models import Q, Count
 
+import codecs
 import csv
 import json
 from datetime import datetime
 
 from samples.pipeline import udg_and_strandedness
 from samples.models import Results, Library, Sample, PowderBatch, WetLabStaff, PowderSample, ControlType, ControlSet, ControlLayout, ExtractionProtocol, LysateBatch, SamplePrepQueue, PowderPrepQueue, PLATE_ROWS, LysateBatchLayout, ExtractionBatch, ExtractionBatchLayout, Lysate, LibraryBatch, LibraryBatchLayout, Extract, CaptureOrShotgunPlate, CaptureLayout, Storage
+from samples.intake import sample_site_update, sample_headers
 from .forms import *
 from sequencing_run.models import MTAnalysis
 
@@ -1509,3 +1511,31 @@ def logout_user(request):
 @login_required
 def password_changed(request):
 	return render(request, 'samples/password_changed.html', {} )
+
+@login_required
+def sample_archaeology(request):
+	return render(request, 'samples/sample_archaeology.html', {})
+
+@login_required
+def sample_archaeology_update_headers(request):
+	response = HttpResponse(content_type='text/csv')
+	response['Content-Disposition'] = f'attachment; filename="sample_archaeology_update.txt"'
+
+	writer = csv.writer(response, delimiter='\t')
+	# header
+	writer.writerow(sample_headers)
+	
+	return response
+
+@login_required
+def sample_archaeology_update(request):
+	if request.method == 'POST':
+		spreadsheet_form = SpreadsheetForm(request.POST, request.FILES)
+		if spreadsheet_form.is_valid():
+			spreadsheet = codecs.EncodedFile(request.FILES.get('spreadsheet'), 'utf-8', file_encoding='utf-8')
+			message = sample_site_update(spreadsheet, request.user)
+			message = 'Values updated. ' + message
+	else:
+		spreadsheet_form = SpreadsheetForm()
+		message = ''
+	return render(request, 'samples/spreadsheet_upload.html', { 'title': f'Sample Archaeology Update', 'form': spreadsheet_form, 'message': message} )
