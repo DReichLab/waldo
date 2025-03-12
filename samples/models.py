@@ -232,6 +232,15 @@ def get_wetlab_staff(name):
 		raise error
 	raise WetLabStaff.DoesNotExist
 	
+def is_active_wetlab(user):
+	if not (user.is_active and user.is_authenticated):
+		return False
+	try:
+		wetlab = WetLabStaff.objects.get(login_user=user)
+		return True
+	except WetLabStaff.DoesNotExist:
+		return False
+	
 class SupportStaff(Timestamped):
 	first_name = models.CharField(max_length=30, db_index=True)
 	last_name = models.CharField(max_length=30, db_index=True)

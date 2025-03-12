@@ -4,7 +4,7 @@ from django.shortcuts import redirect, render, reverse
 from django.http import HttpResponse, HttpResponseBadRequest
 from django.utils.http import urlencode
 
-from django.contrib.auth.decorators import login_required
+from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib.auth.views import logout_then_login
 
 from django.db.models import Q, Count
@@ -15,7 +15,7 @@ import json
 from datetime import datetime
 
 from samples.pipeline import udg_and_strandedness
-from samples.models import Results, Library, Sample, PowderBatch, WetLabStaff, PowderSample, ControlType, ControlSet, ControlLayout, ExtractionProtocol, LysateBatch, SamplePrepQueue, PowderPrepQueue, PLATE_ROWS, LysateBatchLayout, ExtractionBatch, ExtractionBatchLayout, Lysate, LibraryBatch, LibraryBatchLayout, Extract, CaptureOrShotgunPlate, CaptureLayout, Storage
+from samples.models import Results, Library, Sample, PowderBatch, WetLabStaff, PowderSample, ControlType, ControlSet, ControlLayout, ExtractionProtocol, LysateBatch, SamplePrepQueue, PowderPrepQueue, PLATE_ROWS, LysateBatchLayout, ExtractionBatch, ExtractionBatchLayout, Lysate, LibraryBatch, LibraryBatchLayout, Extract, CaptureOrShotgunPlate, CaptureLayout, Storage, is_active_wetlab
 from samples.intake import sample_site_update, sample_headers
 from .forms import *
 from sequencing_run.models import MTAnalysis
@@ -95,6 +95,7 @@ def landing(request):
 	return render(request, 'samples/landing.html', {} )
 
 @login_required
+@user_passes_test(is_active_wetlab, login_url='/samples/denied', redirect_field_name=None)
 def sample_prep_queue(request):
 	page_number = request.GET.get('page', 1)
 	page_size = request.GET.get('page_size', 25)
@@ -114,12 +115,14 @@ def sample_prep_queue(request):
 	return render(request, 'samples/generic_formset.html', { 'title': 'Sample Prep Queue', 'page_obj': page_obj, 'formset': formset, 'submit_button_text': 'Update queue entries' } )
 
 @login_required
+@user_passes_test(is_active_wetlab, login_url='/samples/denied', redirect_field_name=None)
 def sample_prep_queue_view(request):
 	# show unassigned samples
 	sample_queue = SamplePrepQueue.objects.filter(Q(powder_batch=None)).select_related('sample').select_related('sample_prep_protocol').order_by('priority', 'id')
 	return render(request, 'samples/sample_prep_queue_view.html', { 'queued_samples': sample_queue } )
 	
 @login_required
+@user_passes_test(is_active_wetlab, login_url='/samples/denied', redirect_field_name=None)
 def sample_prep_queue_spreadsheet(request):
 	sample_queue = SamplePrepQueue.objects.filter(Q(powder_batch=None)).select_related('sample').select_related('sample_prep_protocol').order_by('priority', 'id')
 	
@@ -134,12 +137,14 @@ def sample_prep_queue_spreadsheet(request):
 	return response
 	
 @login_required
+@user_passes_test(is_active_wetlab, login_url='/samples/denied', redirect_field_name=None)
 def powder_prep_queue_view(request):
 	# show unassigned powders
 	sample_queue = PowderPrepQueue.objects.filter(Q(powder_batch=None)).select_related('sample').select_related('sample_prep_protocol').order_by('priority', 'id')
 	return render(request, 'samples/powder_prep_queue_view.html', { 'queued_samples': sample_queue } )
 	
 @login_required
+@user_passes_test(is_active_wetlab, login_url='/samples/denied', redirect_field_name=None)
 def powder_prep_queue_spreadsheet(request):
 	sample_queue = PowderPrepQueue.objects.filter(Q(powder_batch=None)).select_related('sample').select_related('sample_prep_protocol').order_by('priority', 'id')
 	
@@ -154,6 +159,7 @@ def powder_prep_queue_spreadsheet(request):
 	return response
 
 @login_required
+@user_passes_test(is_active_wetlab, login_url='/samples/denied', redirect_field_name=None)
 def control_types(request):
 	if request.method == 'POST':
 		formset = ControlTypeFormset(request.POST, form_kwargs={'user': request.user})
@@ -173,6 +179,7 @@ def control_types(request):
 
 # show all powder batches
 @login_required
+@user_passes_test(is_active_wetlab, login_url='/samples/denied', redirect_field_name=None)
 def powder_batches(request):
 	wetlab_staff = WetLabStaff.objects.get(login_user=request.user)
 	form = PowderBatchForm(user=request.user, initial={'technician': wetlab_staff.initials()})
@@ -204,6 +211,7 @@ def powder_batches(request):
 	return render(request, 'samples/powder_batches.html', {'powder_batches' : batches, 'form' : form, 'plated_count': perform_plated_count, } )
 
 @login_required
+@user_passes_test(is_active_wetlab, login_url='/samples/denied', redirect_field_name=None)
 def powder_batch_assign_samples(request):
 	powder_batch_name = request.GET['name']
 	powder_batch = PowderBatch.objects.get(name=powder_batch_name)
@@ -247,6 +255,7 @@ def powder_batch_assign_samples(request):
 	return render(request, 'samples/powder_batch_assign_sample.html', { 'queued_samples': sample_queue, 'queued_powders': powder_queue, 'powder_batch_name': powder_batch_name, 'form': form, 'num_sample_prep': num_sample_prep, 'num_powder_samples': num_powder_samples, 'num_powder_prep': num_powder_prep } )
 	
 @login_required
+@user_passes_test(is_active_wetlab, login_url='/samples/denied', redirect_field_name=None)
 def powder_batch_delete(request):
 	powder_batch_name = request.GET['batch_name']
 	try:
@@ -265,6 +274,7 @@ def powder_batch_delete(request):
 
 # Edit the powder samples in a powder batch
 @login_required
+@user_passes_test(is_active_wetlab, login_url='/samples/denied', redirect_field_name=None)
 def powder_samples(request):
 	powder_batch_name = request.GET['powder_batch']
 	powder_batch = PowderBatch.objects.get(name=powder_batch_name)
@@ -291,6 +301,7 @@ def powder_samples(request):
 	
 # return a spreadsheet version of data for offline editing
 @login_required
+@user_passes_test(is_active_wetlab, login_url='/samples/denied', redirect_field_name=None)
 def powder_samples_spreadsheet(request):
 	powder_batch_name = request.GET['powder_batch_name']
 	powder_batch = PowderBatch.objects.get(name=powder_batch_name)
@@ -309,6 +320,7 @@ def powder_samples_spreadsheet(request):
 	return response
 	
 @login_required
+@user_passes_test(is_active_wetlab, login_url='/samples/denied', redirect_field_name=None)
 def powder_samples_spreadsheet_upload(request):
 	powder_batch_name = request.GET['powder_batch_name']
 	if request.method == 'POST':
@@ -325,6 +337,7 @@ def powder_samples_spreadsheet_upload(request):
 	return render(request, 'samples/spreadsheet_upload.html', { 'title': f'Powder batch samples for {powder_batch_name}', 'form': spreadsheet_form, 'message': message} )
 
 @login_required
+@user_passes_test(is_active_wetlab, login_url='/samples/denied', redirect_field_name=None)
 def extraction_protocols(request):
 	if request.method == 'POST':
 		extraction_protocol_formset = ExtractionProtocolFormset(request.POST, request.FILES, form_kwargs={'user': request.user})
@@ -339,6 +352,7 @@ def extraction_protocols(request):
 	return render(request, 'samples/extraction_protocols.html', { 'formset': extraction_protocol_formset } )
 	
 @login_required
+@user_passes_test(is_active_wetlab, login_url='/samples/denied', redirect_field_name=None)
 def control_sets(request):
 	control_sets_all = ControlSet.objects.all().order_by('layout_name')
 	
@@ -353,6 +367,7 @@ def control_sets(request):
 	return render(request, 'samples/control_sets.html', { 'form': form, 'control_sets': control_sets_all } )
 	
 @login_required
+@user_passes_test(is_active_wetlab, login_url='/samples/denied', redirect_field_name=None)
 def control_set(request):
 	control_set_name = request.GET['control_set_name']
 	control_set_instance = ControlSet.objects.get(layout_name=control_set_name)
@@ -373,6 +388,7 @@ def control_set(request):
 	return render(request, 'samples/control_set.html', { 'form': form, 'formset': formset, 'layout_name': control_set_name } )
 
 @login_required
+@user_passes_test(is_active_wetlab, login_url='/samples/denied', redirect_field_name=None)
 def lysate_batch (request):
 	if request.method == 'POST':
 		lysate_batch_form = LysateBatchForm(request.POST, user=request.user)
@@ -393,6 +409,7 @@ def lysate_batch (request):
 	return render(request, 'samples/lysate_batch.html', { 'lysate_batch_form': lysate_batch_form, 'lysate_batches': lysate_batches } )
 
 @login_required
+@user_passes_test(is_active_wetlab, login_url='/samples/denied', redirect_field_name=None)
 def lysate_batch_assign_powder(request):
 	lysate_batch_name = request.GET['lysate_batch_name']
 	lysate_batch = LysateBatch.objects.get(batch_name=lysate_batch_name)
@@ -450,6 +467,7 @@ def lysate_batch_assign_powder(request):
 	return render(request, 'samples/lysate_batch_assign_powder.html', { 'lysate_batch_name': lysate_batch_name, 'assigned_powder_samples': layout_powder_samples_already_selected, 'powder_samples': powder_samples_unselected, 'assigned_powder_samples_count': assigned_powder_samples_count, 'control_count': len(existing_controls), 'num_assignments': num_non_control_assignments, 'occupied_wells': occupied_well_count, 'form': lysate_batch_form  } )
 	
 @login_required
+@user_passes_test(is_active_wetlab, login_url='/samples/denied', redirect_field_name=None)
 def lysate_batch_delete(request):
 	lysate_batch_name = request.GET['batch_name']
 	try:
@@ -468,6 +486,7 @@ def lysate_batch_delete(request):
 	return render(request, 'samples/delete_batch.html', {'form': lysate_batch_form, 'batch_type': 'Lysate Batch', 'batch_name': lysate_batch_name, 'cancel_link': 'lysate_batch'})
 	
 @login_required
+@user_passes_test(is_active_wetlab, login_url='/samples/denied', redirect_field_name=None)
 def lysates_in_batch(request):
 	lysate_batch_name = request.GET['lysate_batch_name']
 	lysate_batch = LysateBatch.objects.get(batch_name=lysate_batch_name)
@@ -493,6 +512,7 @@ def lysates_in_batch(request):
 	
 # return a spreadsheet version of data for offline editing
 @login_required
+@user_passes_test(is_active_wetlab, login_url='/samples/denied', redirect_field_name=None)
 def lysates_spreadsheet(request):
 	lysate_batch_name = request.GET['lysate_batch_name']
 	lysate_batch = LysateBatch.objects.get(batch_name=lysate_batch_name)
@@ -511,6 +531,7 @@ def lysates_spreadsheet(request):
 	return response
 	
 @login_required
+@user_passes_test(is_active_wetlab, login_url='/samples/denied', redirect_field_name=None)
 def lysates_spreadsheet_upload(request):
 	lysate_batch_name = request.GET['lysate_batch_name']
 	if request.method == 'POST':
@@ -533,6 +554,7 @@ def reich_lab_sample_number_from_string(s):
 		return int(s)
 
 @login_required
+@user_passes_test(is_active_wetlab, login_url='/samples/denied', redirect_field_name=None)
 def sample(request):
 	form = SampleImageForm()
 	if request.method == 'POST':
@@ -559,6 +581,7 @@ def sample(request):
 	return render(request, 'samples/sample.html', { 'reich_lab_sample_number': reich_lab_sample_number, 'collaborator_id': collaborator_id, 'images': images, 'form': form} )
 	
 @login_required
+@user_passes_test(is_active_wetlab, login_url='/samples/denied', redirect_field_name=None)
 def delete_sample_photo(request):
 	photo_filename = request.GET['photo_filename']
 	reich_lab_sample_number = int(request.GET['reich_lab_sample_number'])
@@ -626,6 +649,7 @@ PLATE_ROWS = 'ABCDEFGH'
 WELL_PLATE_COLUMNS = range(1,13)
 
 @login_required
+@user_passes_test(is_active_wetlab, login_url='/samples/denied', redirect_field_name=None)
 def lysate_batch_plate_layout(request):
 	try:
 		lysate_batch_name = request.GET['lysate_batch_name']
@@ -657,6 +681,7 @@ def lysate_batch_plate_layout(request):
 	return render(request, 'samples/generic_layout.html', { 'layout_title': 'Powder Sample Layout For Lysate Batch', 'layout_name': lysate_batch_name, 'rows':PLATE_ROWS, 'columns':WELL_PLATE_COLUMNS, 'objects_map': objects_map, 'allow_layout_modifications': (lysate_batch.status == lysate_batch.OPEN) } )
 
 @login_required
+@user_passes_test(is_active_wetlab, login_url='/samples/denied', redirect_field_name=None)
 def lost_powder(request):
 	page_number = request.GET.get('page', 1)
 	page_size = request.GET.get('page_size', 25)
@@ -676,6 +701,7 @@ def lost_powder(request):
 	return render(request, 'samples/generic_formset.html', { 'title': 'Lost Powder', 'page_obj': page_obj, 'formset': formset, 'submit_button_text': 'Update lost powder' } )
 	
 @login_required
+@user_passes_test(is_active_wetlab, login_url='/samples/denied', redirect_field_name=None)
 def lysate_batch_to_extract_batch(request):
 	lysate_batch_name = request.GET['lysate_batch_name']
 	lysate_batch = LysateBatch.objects.get(batch_name=lysate_batch_name)
@@ -701,6 +727,7 @@ def lysate_batch_to_extract_batch(request):
 						} )
 	
 @login_required
+@user_passes_test(is_active_wetlab, login_url='/samples/denied', redirect_field_name=None)
 def extract_batch(request):
 	if request.method == 'POST':
 		extract_batch_form = ExtractionBatchForm(request.POST, user=request.user)
@@ -721,6 +748,7 @@ def extract_batch(request):
 	return render(request, 'samples/extract_batch.html', { 'extract_batch_form': extract_batch_form, 'extract_batches': extract_batches } )
 	
 @login_required
+@user_passes_test(is_active_wetlab, login_url='/samples/denied', redirect_field_name=None)
 def extract_batch_assign_lysate(request):
 	extract_batch_name = request.GET['extract_batch_name']
 	extract_batch = ExtractionBatch.objects.get(batch_name=extract_batch_name)
@@ -760,6 +788,7 @@ def extract_batch_assign_lysate(request):
 	return render(request, 'samples/extract_batch_assign_lysate.html', { 'extract_batch_name': extract_batch_name, 'assigned_lysates': already_selected_lysate_layout_elements, 'assigned_lysates_count': assigned_lysates_count, 'control_count': len(existing_controls), 'num_assignments': num_non_control_assignments, 'occupied_wells': occupied_well_count, 'form': extract_batch_form  } )
 	
 @login_required
+@user_passes_test(is_active_wetlab, login_url='/samples/denied', redirect_field_name=None)
 def extract_batch_delete(request):
 	extract_batch_name = request.GET['batch_name']
 	try:
@@ -778,10 +807,12 @@ def extract_batch_delete(request):
 	
 # allow adding any lysate to this batch, free form
 @login_required
+@user_passes_test(is_active_wetlab, login_url='/samples/denied', redirect_field_name=None)
 def extract_batch_add_lysate(request):
 	pass
 
 @login_required
+@user_passes_test(is_active_wetlab, login_url='/samples/denied', redirect_field_name=None)
 def extract_batch_layout(request):
 	try:
 		extract_batch_name = request.GET['extract_batch_name']
@@ -813,6 +844,7 @@ def extract_batch_layout(request):
 	return render(request, 'samples/generic_layout.html', { 'layout_title': 'Lysate Layout For Extract Batch', 'layout_name': extract_batch_name, 'rows':PLATE_ROWS, 'columns':WELL_PLATE_COLUMNS, 'objects_map': objects_map, 'allow_layout_modifications': (extract_batch.status == extract_batch.OPEN)  } )
 	
 @login_required
+@user_passes_test(is_active_wetlab, login_url='/samples/denied', redirect_field_name=None)
 def extracts_in_batch(request):
 	extract_batch_name = request.GET['extract_batch_name']
 	extract_batch = ExtractionBatch.objects.get(batch_name=extract_batch_name)
@@ -837,6 +869,7 @@ def extracts_in_batch(request):
 	
 # return a spreadsheet version of data for offline editing
 @login_required
+@user_passes_test(is_active_wetlab, login_url='/samples/denied', redirect_field_name=None)
 def extracts_spreadsheet(request):
 	extract_batch_name = request.GET['extract_batch_name']
 	extract_batch = ExtractionBatch.objects.get(batch_name=extract_batch_name)
@@ -855,6 +888,7 @@ def extracts_spreadsheet(request):
 	return response
 
 @login_required
+@user_passes_test(is_active_wetlab, login_url='/samples/denied', redirect_field_name=None)
 def extracts_spreadsheet_upload(request):
 	extract_batch_name = request.GET['extract_batch_name']
 	if request.method == 'POST':
@@ -872,6 +906,7 @@ def extracts_spreadsheet_upload(request):
 	
 # A Crowd batch starts from the extract batch stage. 
 @login_required
+@user_passes_test(is_active_wetlab, login_url='/samples/denied', redirect_field_name=None)
 def extract_batch_load_crowd(request):
 	extract_batch_name = request.GET['extract_batch_name']
 	if request.method == 'POST':
@@ -893,6 +928,7 @@ def extract_batch_load_crowd(request):
 	return render(request, 'samples/batch_load_file.html', { 'title': f'Extracts for {extract_batch_name}', 'form': spreadsheet_form, 'message': message, 'batch_type': 'extract batch', 'batch_name': extract_batch_name} )
 	
 @login_required
+@user_passes_test(is_active_wetlab, login_url='/samples/denied', redirect_field_name=None)
 def extract_batch_to_library_batch(request):
 	extract_batch_name = request.GET['extract_batch_name']
 	extract_batch = ExtractionBatch.objects.get(batch_name=extract_batch_name)
@@ -915,6 +951,7 @@ def extract_batch_to_library_batch(request):
 						} )
 
 @login_required
+@user_passes_test(is_active_wetlab, login_url='/samples/denied', redirect_field_name=None)
 def lost_lysate(request):
 	page_number = request.GET.get('page', 1)
 	page_size = request.GET.get('page_size', 25)
@@ -934,6 +971,7 @@ def lost_lysate(request):
 	return render(request, 'samples/generic_formset.html', { 'title': 'Lost Lysate', 'page_obj': page_obj, 'formset': formset, 'submit_button_text': 'Update lost lysate' } )
 	
 @login_required
+@user_passes_test(is_active_wetlab, login_url='/samples/denied', redirect_field_name=None)
 def library_protocols(request):
 	if request.method == 'POST':
 		form = LibraryProtocolForm(request.POST, user=request.user)
@@ -946,6 +984,7 @@ def library_protocols(request):
 	return render(request, 'samples/library_protocols.html', { 'form': form, 'library_protocols': library_protocols_queryset } )
 	
 @login_required
+@user_passes_test(is_active_wetlab, login_url='/samples/denied', redirect_field_name=None)
 def library_protocol(request):
 	library_protocol_name = request.GET['library_protocol_name']
 	library_protocol_instance = LibraryProtocol.objects.get(name=library_protocol_name)
@@ -959,6 +998,7 @@ def library_protocol(request):
 	return render(request, 'samples/generic_form.html', { 'title': f'Library Protocol {library_protocol_name}', 'form': form, } )
 	
 @login_required
+@user_passes_test(is_active_wetlab, login_url='/samples/denied', redirect_field_name=None)
 def library_batches(request):
 	if request.method == 'POST':
 		form = LibraryBatchForm(request.POST, user=request.user)
@@ -971,6 +1011,7 @@ def library_batches(request):
 	return render(request, 'samples/library_batches.html', { 'form': form, 'library_batches': library_batches_queryset } )
 	
 @login_required
+@user_passes_test(is_active_wetlab, login_url='/samples/denied', redirect_field_name=None)
 def library_batch_assign_extract(request):
 	library_batch_name = request.GET['library_batch_name']
 	library_batch = LibraryBatch.objects.get(name=library_batch_name)
@@ -1009,6 +1050,7 @@ def library_batch_assign_extract(request):
 	return render(request, 'samples/library_batch_assign_extract.html', { 'library_batch_name': library_batch_name, 'assigned_extracts': already_selected_extract_layout_elements, 'assigned_extracts_count': assigned_extracts_count, 'control_count': len(existing_controls), 'num_assignments': num_non_control_assignments, 'occupied_wells': occupied_well_count, 'form': library_batch_form  } )
 	
 @login_required
+@user_passes_test(is_active_wetlab, login_url='/samples/denied', redirect_field_name=None)
 def library_batch_delete(request):
 	library_batch_name = request.GET['batch_name']
 	try:
@@ -1027,6 +1069,7 @@ def library_batch_delete(request):
 	
 # return comma-delimited spreadsheet version of barcodes for robot
 @login_required
+@user_passes_test(is_active_wetlab, login_url='/samples/denied', redirect_field_name=None)
 def library_batch_barcodes_spreadsheet(request):
 	library_batch_name = request.GET['library_batch_name']
 	library_batch = LibraryBatch.objects.get(name=library_batch_name)
@@ -1044,6 +1087,7 @@ def library_batch_barcodes_spreadsheet(request):
 	return response
 
 @login_required
+@user_passes_test(is_active_wetlab, login_url='/samples/denied', redirect_field_name=None)
 def library_batch_layout(request):
 	try:
 		library_batch_name = request.GET['library_batch_name']
@@ -1074,6 +1118,7 @@ def library_batch_layout(request):
 	return render(request, 'samples/generic_layout.html', { 'layout_title': 'Extract Layout For Library Batch', 'layout_name': library_batch_name, 'rows':PLATE_ROWS, 'columns':WELL_PLATE_COLUMNS, 'objects_map': objects_map, 'allow_layout_modifications': (library_batch.status == library_batch.OPEN) } )
 	
 @login_required
+@user_passes_test(is_active_wetlab, login_url='/samples/denied', redirect_field_name=None)
 def libraries_in_batch(request):
 	library_batch_name = request.GET['library_batch_name']
 	library_batch = LibraryBatch.objects.get(name=library_batch_name)
@@ -1101,6 +1146,7 @@ def libraries_in_batch(request):
 	
 # return a spreadsheet version of data for offline editing
 @login_required
+@user_passes_test(is_active_wetlab, login_url='/samples/denied', redirect_field_name=None)
 def libraries_spreadsheet(request):
 	library_batch_name = request.GET['library_batch_name']
 	library_batch = LibraryBatch.objects.get(name=library_batch_name)
@@ -1118,6 +1164,7 @@ def libraries_spreadsheet(request):
 	return response
 
 @login_required
+@user_passes_test(is_active_wetlab, login_url='/samples/denied', redirect_field_name=None)
 def libraries_spreadsheet_upload(request):
 	library_batch_name = request.GET['library_batch_name']
 	if request.method == 'POST':
@@ -1134,6 +1181,7 @@ def libraries_spreadsheet_upload(request):
 	return render(request, 'samples/spreadsheet_upload.html', { 'title': f'Libraries for {library_batch_name}', 'form': spreadsheet_form, 'message': message} )
 	
 @login_required
+@user_passes_test(is_active_wetlab, login_url='/samples/denied', redirect_field_name=None)
 def library_batch_to_capture_batch(request):
 	library_batch_name = request.GET['library_batch_name']
 	library_batch = LibraryBatch.objects.get(name=library_batch_name)
@@ -1165,6 +1213,7 @@ def library_batch_to_capture_batch(request):
 						} )
 	
 @login_required
+@user_passes_test(is_active_wetlab, login_url='/samples/denied', redirect_field_name=None)
 def capture_protocols(request):
 	if request.method == 'POST':
 		form = CaptureProtocolForm(request.POST, user=request.user)
@@ -1177,6 +1226,7 @@ def capture_protocols(request):
 	return render(request, 'samples/capture_protocols.html', { 'form': form, 'capture_protocols': capture_protocols_queryset } )
 	
 @login_required
+@user_passes_test(is_active_wetlab, login_url='/samples/denied', redirect_field_name=None)
 def capture_protocol(request):
 	capture_protocol_name = request.GET['capture_protocol_name']
 	capture_protocol_instance = CaptureProtocol.objects.get(name=capture_protocol_name)
@@ -1190,6 +1240,7 @@ def capture_protocol(request):
 	return render(request, 'samples/generic_form.html', { 'title': f'Capture Protocol {capture_protocol_name}', 'form': form, } )
 	
 @login_required
+@user_passes_test(is_active_wetlab, login_url='/samples/denied', redirect_field_name=None)
 def capture_batches(request):
 	if request.method == 'POST':
 		form = CaptureBatchForm(request.POST, user=request.user)
@@ -1202,6 +1253,7 @@ def capture_batches(request):
 	return render(request, 'samples/capture_batches.html', { 'form': form, 'capture_batches': capture_batches_queryset } )
 	
 @login_required
+@user_passes_test(is_active_wetlab, login_url='/samples/denied', redirect_field_name=None)
 def capture_batch_assign_library(request):
 	capture_batch_name = request.GET['capture_batch_name']
 	capture_batch = CaptureOrShotgunPlate.objects.get(name=capture_batch_name)
@@ -1242,6 +1294,7 @@ def capture_batch_assign_library(request):
 	return render(request, 'samples/capture_batch_assign_library.html', { 'capture_batch_name': capture_batch_name, 'capture_batch': capture_batch, 'assigned_libraries': already_selected_library_layout_elements, 'assigned_libraries_count': assigned_libraries_count, 'control_count': len(existing_controls), 'num_assignments': num_non_control_assignments, 'occupied_wells': occupied_well_count, 'form': capture_batch_form  } )
 	
 @login_required
+@user_passes_test(is_active_wetlab, login_url='/samples/denied', redirect_field_name=None)
 def captures_in_batch(request):
 	capture_batch_name = request.GET['capture_batch_name']
 	capture_batch = CaptureOrShotgunPlate.objects.get(name=capture_batch_name)
@@ -1266,6 +1319,7 @@ def captures_in_batch(request):
 	return render(request, 'samples/captures_in_batch.html', { 'capture_batch_name': capture_batch_name, 'capture_batch': capture_batch, 'form': form, 'formset': captures_formset} )
 	
 @login_required
+@user_passes_test(is_active_wetlab, login_url='/samples/denied', redirect_field_name=None)
 def capture_batch_layout(request):
 	try:
 		capture_batch_name = request.GET['capture_batch_name']
@@ -1294,6 +1348,7 @@ def capture_batch_layout(request):
 		#(capture_batch.status == capture_batch.OPEN) } )
 		
 @login_required
+@user_passes_test(is_active_wetlab, login_url='/samples/denied', redirect_field_name=None)
 def capture_batch_spreadsheet(request):
 	capture_batch_name = request.GET['capture_batch_name']
 	capture_batch = CaptureOrShotgunPlate.objects.get(name=capture_batch_name)
@@ -1312,6 +1367,7 @@ def capture_batch_spreadsheet(request):
 	return response
 	
 @login_required
+@user_passes_test(is_active_wetlab, login_url='/samples/denied', redirect_field_name=None)
 def capture_spreadsheet_upload(request):
 	capture_batch_name = request.GET['capture_batch_name']
 	if request.method == 'POST':
@@ -1328,6 +1384,7 @@ def capture_spreadsheet_upload(request):
 	return render(request, 'samples/spreadsheet_upload.html', { 'title': f'Captures for {capture_batch_name}', 'form': spreadsheet_form, 'message': message} )
 	
 @login_required
+@user_passes_test(is_active_wetlab, login_url='/samples/denied', redirect_field_name=None)
 def capture_blob_spreadsheet_upload(request):
 	message = ''
 	capture_batch_name = request.GET['capture_batch_name']
@@ -1346,6 +1403,7 @@ def capture_blob_spreadsheet_upload(request):
 	return render(request, 'samples/batch_load_file.html', { 'batch_type': 'Blob', 'batch_name': capture_batch_name, 'form': spreadsheet_form, 'message': message} )
 
 @login_required
+@user_passes_test(is_active_wetlab, login_url='/samples/denied', redirect_field_name=None)
 def capture_batch_delete(request):
 	capture_batch_name = request.GET['batch_name']
 	try:
@@ -1363,6 +1421,7 @@ def capture_batch_delete(request):
 	return render(request, 'samples/delete_batch.html', {'form': capture_batch_form, 'batch_type': 'Capture or Shotgun Batch', 'batch_name': capture_batch_name, 'link': 'capture_batches'})
 	
 @login_required
+@user_passes_test(is_active_wetlab, login_url='/samples/denied', redirect_field_name=None)
 def capture_batch_to_sequencing_run(request):
 	capture_batch_name = request.GET['capture_batch_name']
 	capture_batch = CaptureOrShotgunPlate.objects.get(name=capture_batch_name)
@@ -1384,6 +1443,7 @@ def capture_batch_to_sequencing_run(request):
 						} )
 	
 @login_required
+@user_passes_test(is_active_wetlab, login_url='/samples/denied', redirect_field_name=None)
 def sequencing_runs(request):
 	if request.method == 'POST':
 		form = SequencingRunForm(request.POST, user=request.user)
@@ -1396,6 +1456,7 @@ def sequencing_runs(request):
 	return render(request, 'samples/sequencing_runs.html', { 'form': form, 'sequencing_runs': sequencing_run_queryset } )
 	
 @login_required
+@user_passes_test(is_active_wetlab, login_url='/samples/denied', redirect_field_name=None)
 def sequencing_run_assign_captures(request):
 	sequencing_run_name = request.GET['sequencing_run_name']
 	sequencing_run = SequencingRun.objects.get(name=sequencing_run_name)
@@ -1423,6 +1484,7 @@ def sequencing_run_assign_captures(request):
 	return render(request, 'samples/sequencing_run_assign_captures.html', { 'sequencing_run_name': sequencing_run_name, 'sequencing_run': sequencing_run,  'form': form, 'assigned_captures': assigned_captures, 'unassigned_captures': captures} )
 	
 @login_required
+@user_passes_test(is_active_wetlab, login_url='/samples/denied', redirect_field_name=None)
 def sequencing_run_spreadsheet(request):
 	sequencing_run_name = request.GET['sequencing_run_name']
 	sequencing_run = SequencingRun.objects.get(name=sequencing_run_name)
@@ -1441,6 +1503,7 @@ def sequencing_run_spreadsheet(request):
 	return response
 
 @login_required
+@user_passes_test(is_active_wetlab, login_url='/samples/denied', redirect_field_name=None)
 def sequencing_run_delete(request):
 	sequencing_run_name = request.GET['batch_name']
 	try:
@@ -1458,6 +1521,7 @@ def sequencing_run_delete(request):
 	return render(request, 'samples/delete_batch.html', {'form': sequencing_run_form, 'batch_type': 'Sequencing Run', 'batch_name': sequencing_run_name, 'link': 'sequencing_runs'})
 	
 @login_required
+@user_passes_test(is_active_wetlab, login_url='/samples/denied', redirect_field_name=None)
 def sequencing_platforms(request):
 	if request.method == 'POST':
 		form = SequencingPlatformForm(request.POST, user=request.user)
@@ -1470,6 +1534,7 @@ def sequencing_platforms(request):
 	return render(request, 'samples/sequencing_platforms.html', { 'form': form, 'sequencing_platforms': sequencing_platform_queryset } )
 	
 @login_required
+@user_passes_test(is_active_wetlab, login_url='/samples/denied', redirect_field_name=None)
 def sequencing_platform(request):
 	sequencing_platform_id = request.GET['sequencing_platform_id']
 	sequencing_platform_instance = SequencingPlatform.objects.get(id=sequencing_platform_id)
@@ -1483,6 +1548,7 @@ def sequencing_platform(request):
 	return render(request, 'samples/generic_form.html', { 'title': f'Sequencing Platform {str(sequencing_platform_instance)}', 'form': form, } )
 
 @login_required
+@user_passes_test(is_active_wetlab, login_url='/samples/denied', redirect_field_name=None)
 def storage_all(request):
 	page_number = request.GET.get('page', 1)
 	page_size = request.GET.get('page_size', 25)
@@ -1502,6 +1568,7 @@ def storage_all(request):
 	return render(request, 'samples/generic_formset.html', { 'title': 'Storage', 'page_obj': page_obj, 'formset': formset, 'submit_button_text': 'Update' } )
 	
 @login_required
+@user_passes_test(is_active_wetlab, login_url='/samples/denied', redirect_field_name=None)
 def setup(request):
 	return render(request, 'samples/setup.html', {})
 		
@@ -1511,6 +1578,10 @@ def logout_user(request):
 @login_required
 def password_changed(request):
 	return render(request, 'samples/password_changed.html', {} )
+	
+@login_required
+def denied(request):
+	return render(request, 'samples/denied.html', {})
 
 @login_required
 def sample_archaeology(request):
