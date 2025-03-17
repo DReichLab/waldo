@@ -1613,19 +1613,9 @@ def sample_archaeology_update(request):
 
 @login_required
 def sample_archaeology_sites(request):
-	page_number = request.GET.get('page', 1)
-	page_size = request.GET.get('page_size', 25)
 	sites = Location.objects.all()
-	#paginator = Paginator(sites, page_size)
-	# page_obj = paginator.get_page(page_number)
-	# page_obj.ordered = True
 	
-	if request.method == 'POST':
-		pass
-	elif request.method == 'GET':
-		pass
-	
-	return render(request, 'samples/sample_sites.html', {'sites' : sites,}) # 'page_obj': page_obj,} )
+	return render(request, 'samples/sample_sites.html', {'sites' : sites,})
 	
 @login_required
 def sample_archaeology_site(request):
@@ -1653,3 +1643,15 @@ def sample_archaeological_assemblage(request):
 	
 	title = f'Update {archaeological_assemblage.site_phase.site.site} {archaeological_assemblage.site_phase.category} {archaeological_assemblage.burial_code}'
 	return render(request, 'samples/generic_form.html', { 'title': title, 'form': form, } )
+	
+@login_required
+def sample_archaeology_periods(request):
+	periods = Period.objects.all()
+	
+	return render(request, 'samples/sample_periods_or_cultures.html', {'entries' : periods, 'title' : 'Periods'})
+	
+@login_required
+def sample_archaeology_cultures(request):
+	cultures = Culture.objects.all()
+	
+	return render(request, 'samples/sample_periods_or_cultures.html', {'entries' : cultures, 'title' : 'Cultures'})

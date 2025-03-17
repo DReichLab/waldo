@@ -1,0 +1,75 @@
+{% extends "samples/reich_lab_base.html" %}
+
+{% load static %}
+
+{% block title %}{{title}}{% endblock %}
+
+{% block content %}
+<script src="{% static "samples/list.js" %}"></script>
+
+<style>
+th {
+	position: sticky;
+	top: 0;
+	background: #eee;
+}
+
+#table_wrapper{
+	overflow-x: auto;
+	overflow-y: scroll;
+	height: 85vh;
+}
+
+table{
+	border-collapse: collapse;
+	border-spacing: 0;
+	width: 100%;
+}
+</style>
+
+<hr>
+
+<div id='periods_rows'>
+
+<input class="search" placeholder="Search" />
+<div id='table_wrapper'>
+<table>
+	<thead>
+	<tr>
+		<th><button class="sort" data-sort="abbreviation" data-default-order='desc'>Abbreviation</button></th>
+		<th><button class="sort" data-sort="text">Text</button></th>
+		<th><button class="sort" data-sort="description">Description</button></th>
+		<th><button class="sort" data-sort="date_start">Date Start Year</button></th>
+		<th><button class="sort" data-sort="date_end">Date End Year</button></th>
+		<th><button class="sort" data-sort="date_range">Date Range</button></th>
+		<th><button class="sort" data-sort="date_accuracy">Date Accuracy</button></th>
+	</tr>
+	</thead>
+	<tbody class="list">
+	{% for entry in entries %}
+	<tr>
+		<td class="abbreviation">{{entry.abbreviation}}</td>
+		<td class="text">{{entry.text}}</td>
+		<td class="description">{{entry.description}}</td>
+		<td class="date_start">{{entry.date_start}}</td>
+		<td class="date_end">{{entry.date_end}}</td>
+		<td class="date_range">{{entry.date_range}}</td>
+		<td class="date_accuracy">{{entry.date_accuracy}}</td>
+	</tr>
+	{% endfor %}
+	</tbody>
+</table>
+</div>
+</div>
+
+<script>
+	var list_options = {
+		valueNames: ['abbreviation', 'date_start', 'date_end', 'date_range', 'date_accuracy'
+		],
+		searchColumns: ['abbreviation', 'text', 'description', 'date_start', 'date_end', 'date_range', 'date_accuracy'],
+		searchDelay: 500
+	};
+	var powder_batch_list = new List('periods_rows', list_options);
+</script>
+
+{% endblock %}
