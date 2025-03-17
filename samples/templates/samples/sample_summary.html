@@ -24,15 +24,17 @@
 	<th>Site</th>
 	<th>Site Phase</th>
 	<th>Individual ID</th>
+	<th>Locality</th>
 </tr>
 <tr>
 	<td>{{ sample.collaborator.name }}</td>
 	<td>{{ sample.skeletal_code }}</td>
 	<td>{{ sample.skeletal_code_renamed }}</td>
-	<td>{{ sample.archaeological_assemblage.burial_code }}</td>
-	<td>{{ sample.archaeological_assemblage.site_phase.site.site }}</td>
+	<td><a href="sample_archaeological_assemblage?archaeological_assemblage_pk={{sample.archaeological_assemblage.id}}">{{ sample.archaeological_assemblage.burial_code }}</a></td>
+	<td><a href="sample_archaeology_site?site_pk={{sample.archaeological_assemblage.site_phase.site.id}}">{{ sample.archaeological_assemblage.site_phase.site.site }}</a></td>
 	<td>{{ sample.archaeological_assemblage.site_phase.category }}</td>
 	<td>{{ sample.individual_id }}</td>
+	<td>{{ sample.archaeological_assemblage.site_phase.site.locality_str }}</td>
 </tr>
 </table>
 

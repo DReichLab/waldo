@@ -284,6 +284,16 @@ class Location(Timestamped):
 	river_basin = models.CharField(max_length=50, blank=True)
 	mountain = models.CharField(max_length=50, blank=True)
 	
+	def locality_str(self):
+		levels = []
+		for level in [self.level_1, self.level_2, self.level_3, self.level_4, self.level_5]:
+			if len(level) > 0:
+				levels += [level]
+		s = self.country.country_name
+		if len(levels) > 0:
+			s += f'({", ".join(levels)})'
+		return s
+	
 class Period(Timestamped):
 	abbreviation = models.CharField(max_length=50)
 	text = models.TextField(blank=True)

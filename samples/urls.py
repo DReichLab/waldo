@@ -95,6 +95,9 @@ urlpatterns = [
 	path('sample_archaeology', views.sample_archaeology, name='sample_archaeology'),
 	path('sample_archaeology_update_headers', views.sample_archaeology_update_headers, name='sample_archaeology_update_headers'),
 	path('sample_archaeology_update', views.sample_archaeology_update, name='sample_archaeology_update'),
+	path('sample_archaeology_sites', views.sample_archaeology_sites, name='sample_archaeology_sites'),
+	path('sample_archaeology_site', views.sample_archaeology_site, name='sample_archaeology_site'),
+	path('sample_archaeological_assemblage', views.sample_archaeological_assemblage, name='sample_archaeological_assemblage'),
 	
 	path('storage_all', views.storage_all, name='storage_all'),
 	path('setup', views.setup, name='setup'),

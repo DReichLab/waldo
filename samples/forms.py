@@ -5,7 +5,7 @@ from django.forms.widgets import TextInput, NumberInput
 from django.utils.translation import gettext_lazy as _
 from django.db.models import Q
 
-from samples.models import PowderBatch, PowderSample, Sample, SamplePrepProtocol, ControlType, ControlSet, ControlLayout, LysateBatch, ExtractionProtocol, ExpectedComplexity, SamplePrepQueue, Lysate, LysateBatchLayout, ExtractionBatch, ExtractionBatchLayout, LibraryProtocol, LibraryBatch, Extract, Storage, Library, LibraryBatchLayout, P5_Index, P7_Index, Barcode, CaptureProtocol, CaptureOrShotgunPlate, CaptureLayout, SequencingPlatform, SequencingRun, SkeletalElementCategory, get_value, LIBRARY_POSITIVE
+from samples.models import PowderBatch, PowderSample, Sample, SamplePrepProtocol, ControlType, ControlSet, ControlLayout, LysateBatch, ExtractionProtocol, ExpectedComplexity, SamplePrepQueue, Lysate, LysateBatchLayout, ExtractionBatch, ExtractionBatchLayout, LibraryProtocol, LibraryBatch, Extract, Storage, Library, LibraryBatchLayout, P5_Index, P7_Index, Barcode, CaptureProtocol, CaptureOrShotgunPlate, CaptureLayout, SequencingPlatform, SequencingRun, SkeletalElementCategory, get_value, LIBRARY_POSITIVE, Location, SitePhase, ArchaeologicalAssemblage, ArchaeologicalAssemblageType, Country
 
 import datetime
 
@@ -741,3 +741,32 @@ class StorageForm(UserModelForm):
 
 StorageFormset = modelformset_factory(Storage, form=StorageForm)
 
+# to display country name
+class CountrySelect(ModelChoiceField):
+	def label_from_instance(self, obj):
+		return obj.country_name
+
+class SiteForm(UserModelForm):
+	site = forms.CharField()
+	country = CountrySelect(queryset=Country.objects.all().order_by('country_name'))
+	
+	class Meta:
+		model = Location
+		fields = ['site', 'country', 'level_1', 'level_2', 'level_3', 'level_4', 'level_5', 'latitude', 'longitude', 'ecological_zone', 'river_basin', 'mountain']
+
+class ArchaeologicalAssemblageTypeSelect(ModelChoiceField):
+	def label_from_instance(self, obj):
+		return obj.name
+		
+class ArchaeologicalAssemblageForm(UserModelForm):
+	site = CharField(disabled=True)
+	category = ArchaeologicalAssemblageTypeSelect(queryset=ArchaeologicalAssemblageType.objects.all().order_by('name'))
+	
+	class Meta:
+		model = ArchaeologicalAssemblage
+		fields = ['site', 'burial_code', 'category', 'date_start', 'date_end', 'date_notes', 'resolved_date_start', 'resolved_date_end', 'date_accuracy']
+		
+	def __init__(self, *args, **kwargs):
+		super(ArchaeologicalAssemblageForm, self).__init__(*args, **kwargs)
+		if self.instance:
+			self.fields['site'].initial = self.instance.site_phase.site.site

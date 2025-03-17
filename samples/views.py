@@ -15,7 +15,7 @@ import json
 from datetime import datetime
 
 from samples.pipeline import udg_and_strandedness
-from samples.models import Results, Library, Sample, PowderBatch, WetLabStaff, PowderSample, ControlType, ControlSet, ControlLayout, ExtractionProtocol, LysateBatch, SamplePrepQueue, PowderPrepQueue, PLATE_ROWS, LysateBatchLayout, ExtractionBatch, ExtractionBatchLayout, Lysate, LibraryBatch, LibraryBatchLayout, Extract, CaptureOrShotgunPlate, CaptureLayout, Storage, is_active_wetlab
+from samples.models import Results, Library, Sample, PowderBatch, WetLabStaff, PowderSample, ControlType, ControlSet, ControlLayout, ExtractionProtocol, LysateBatch, SamplePrepQueue, PowderPrepQueue, PLATE_ROWS, LysateBatchLayout, ExtractionBatch, ExtractionBatchLayout, Lysate, LibraryBatch, LibraryBatchLayout, Extract, CaptureOrShotgunPlate, CaptureLayout, Storage, is_active_wetlab, Location
 from samples.intake import sample_site_update, sample_headers
 from .forms import *
 from sequencing_run.models import MTAnalysis
@@ -1610,3 +1610,46 @@ def sample_archaeology_update(request):
 		spreadsheet_form = SpreadsheetForm()
 		message = ''
 	return render(request, 'samples/spreadsheet_upload.html', { 'title': f'Sample Archaeology Update', 'form': spreadsheet_form, 'message': message} )
+
+@login_required
+def sample_archaeology_sites(request):
+	page_number = request.GET.get('page', 1)
+	page_size = request.GET.get('page_size', 25)
+	sites = Location.objects.all()
+	#paginator = Paginator(sites, page_size)
+	# page_obj = paginator.get_page(page_number)
+	# page_obj.ordered = True
+	
+	if request.method == 'POST':
+		pass
+	elif request.method == 'GET':
+		pass
+	
+	return render(request, 'samples/sample_sites.html', {'sites' : sites,}) # 'page_obj': page_obj,} )
+	
+@login_required
+def sample_archaeology_site(request):
+	primary_key = request.GET['site_pk']
+	site = Location.objects.get(pk=primary_key)
+	
+	if request.method == 'POST':
+		site_form = SiteForm(request.POST, request.FILES, instance=site, user=request.user)
+		if site_form.is_valid():
+			site_form.save()
+	elif request.method == 'GET':
+		site_form = SiteForm(instance=site, user=request.user)
+	
+	return render(request, 'samples/generic_form.html', { 'title': f'Update site {site.site}', 'form': site_form, } )
+
+@login_required
+def sample_archaeological_assemblage(request):
+	primary_key = request.GET['archaeological_assemblage_pk']
+	archaeological_assemblage = ArchaeologicalAssemblage.objects.get(pk=primary_key)
+	
+	if request.method == 'POST':
+		form = ArchaeologicalAssemblageForm(request.POST, request.FILES, instance=archaeological_assemblage, user=request.user)
+	elif request.method == 'GET':
+		form = ArchaeologicalAssemblageForm(instance=archaeological_assemblage, user=request.user)
+	
+	title = f'Update {archaeological_assemblage.site_phase.site.site} {archaeological_assemblage.site_phase.category} {archaeological_assemblage.burial_code}'
+	return render(request, 'samples/generic_form.html', { 'title': title, 'form': form, } )

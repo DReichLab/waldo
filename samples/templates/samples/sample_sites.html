@@ -1,0 +1,69 @@
+{% extends "samples/reich_lab_base.html" %}
+
+{% load static %}
+
+{% block title %}Reich Lab Sample Sites{% endblock %}
+
+{% block content %}
+<script src="{% static "samples/list.js" %}"></script>
+
+<style>
+th {
+	position: sticky;
+	top: 0;
+	background: #eee;
+}
+
+#table_wrapper{
+	overflow-x: auto;
+	overflow-y: scroll;
+	height: 85vh;
+}
+
+table{
+	border-collapse: collapse;
+	border-spacing: 0;
+	width: 100%;
+}
+</style>
+
+<hr>
+
+<div id='sites_rows'>
+
+<input class="search" placeholder="Search" />
+<div id='table_wrapper'>
+<table>
+	<thead>
+	<tr>
+		<th><button class="sort" data-sort="site" data-default-order='desc'>Site</button></th>
+		<th><button class="sort" data-sort="country">Country</button></th>
+		<th><button class="sort" data-sort="level_1">Level 1</button></th>
+		<!--<th><button class="sort" data-sort="site_phases">Site Phases</button></th> -->
+	</tr>
+	</thead>
+	<tbody class="list">
+	{% for site in sites %}
+	<tr>
+		<td class="site"><a href="sample_archaeology_site?site_pk={{site.pk}}">{{site.site}}</a></td>
+		<td class="country">{{site.country.country_name}}</td>
+		<td class="level_1">{{site.level_1}}</td>
+		<!--<td class="site_phases"><a href="sample_archaeology_site_phases?site_pk={{site.pk}}">site phases</a></td>-->
+	</tr>
+	{% endfor %}
+	</tbody>
+</table>
+</div>
+</div>
+
+<script>
+	var list_options = {
+		valueNames: ['site', 'country', 'level_1'
+		],
+		searchColumns: ['site', 'country', 'level_1'],
+		searchDelay: 500
+	};
+	var powder_batch_list = new List('sites_rows', list_options);
+</script>
+
+{% endblock %}

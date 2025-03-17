@@ -1,6 +1,6 @@
 import re
 import sys
-from samples.models import Library, Sample, Results, Collaborator
+from samples.models import Library, Sample, Results, Collaborator, get_value
 from sequencing_run.models import AnalysisFiles, MTAnalysis, ShotgunAnalysis, NuclearAnalysis
 from sequencing_run.library_id import LibraryID
 
@@ -116,7 +116,7 @@ def library_anno_line(instance_id_raw, sequencing_run_name, release_label, compo
 	skeletal_code = get_text(sample, 'skeletal_code')
 	skeletal_code_renamed = get_text(sample, 'skeletal_code_renamed')
 	accession_number = get_text(sample, 'accession_number')
-	burial_code = get_text(sample, 'burial_code')
+	burial_code = get_value(sample, 'archaeological_assemblage', 'burial_code')
 	skeletal_code_possible_name_elements = [skeletal_code, skeletal_code_renamed, accession_number, burial_code]
 	skeletal_code_name_elements = []
 	for skeletal_code_possible_name_element in skeletal_code_possible_name_elements:
