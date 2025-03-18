@@ -5,7 +5,7 @@ from django.forms.widgets import TextInput, NumberInput
 from django.utils.translation import gettext_lazy as _
 from django.db.models import Q
 
-from samples.models import PowderBatch, PowderSample, Sample, SamplePrepProtocol, ControlType, ControlSet, ControlLayout, LysateBatch, ExtractionProtocol, ExpectedComplexity, SamplePrepQueue, Lysate, LysateBatchLayout, ExtractionBatch, ExtractionBatchLayout, LibraryProtocol, LibraryBatch, Extract, Storage, Library, LibraryBatchLayout, P5_Index, P7_Index, Barcode, CaptureProtocol, CaptureOrShotgunPlate, CaptureLayout, SequencingPlatform, SequencingRun, SkeletalElementCategory, get_value, LIBRARY_POSITIVE, Location, SitePhase, ArchaeologicalAssemblage, ArchaeologicalAssemblageType, Country, Period, Culture
+from samples.models import PowderBatch, PowderSample, Sample, SamplePrepProtocol, ControlType, ControlSet, ControlLayout, LysateBatch, ExtractionProtocol, ExpectedComplexity, SamplePrepQueue, Lysate, LysateBatchLayout, ExtractionBatch, ExtractionBatchLayout, LibraryProtocol, LibraryBatch, Extract, Storage, Library, LibraryBatchLayout, P5_Index, P7_Index, Barcode, CaptureProtocol, CaptureOrShotgunPlate, CaptureLayout, SequencingPlatform, SequencingRun, SkeletalElementCategory, get_value, LIBRARY_POSITIVE, Location, ArchaeologicalAssemblage, ArchaeologicalAssemblageType, Country, Period, Culture
 
 import datetime
 

@@ -343,20 +343,12 @@ class SkeletalElementCategory(models.Model):
 	category = models.CharField(max_length=50, blank=True)
 	sort_order = models.PositiveSmallIntegerField(default=1, help_text='For changing display order of categories in web interface')
 
-class SitePhase(Timestamped):
-	site = models.ForeignKey(Location, on_delete=models.PROTECT)
-	category = models.CharField(max_length=50, blank=True)
-	date_start = models.IntegerField(null=True, help_text=CE_DATE_HELP)
-	date_end = models.IntegerField(null=True, help_text=CE_DATE_HELP)
-	date_accuracy = models.FloatField(null=True)
-
 class ArchaeologicalAssemblageType(models.Model):
 	name = models.CharField(max_length=50, blank=False, unique=True, help_text='Category for archaeological assemblage')
 
 class ArchaeologicalAssemblage(Timestamped):
 	burial_code = models.TextField(blank=False)
 	category = models.ForeignKey(ArchaeologicalAssemblageType, on_delete=models.PROTECT, null=True) # TODO should be non-null, but needs to support null as types are not initially known
-	site_phase = models.ForeignKey(SitePhase, on_delete=models.PROTECT, null=True)
 	site = models.ForeignKey(Location, on_delete=models.PROTECT, null=True)
 	date_start = models.IntegerField(null=True, help_text='Date from Archaeologist. ' + CE_DATE_HELP)
 	date_end = models.IntegerField(null=True, help_text='Date from Archaeologist. ' + CE_DATE_HELP)
