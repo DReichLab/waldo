@@ -5,7 +5,7 @@ from django.forms.widgets import TextInput, NumberInput
 from django.utils.translation import gettext_lazy as _
 from django.db.models import Q
 
-from samples.models import PowderBatch, PowderSample, Sample, SamplePrepProtocol, ControlType, ControlSet, ControlLayout, LysateBatch, ExtractionProtocol, ExpectedComplexity, SamplePrepQueue, Lysate, LysateBatchLayout, ExtractionBatch, ExtractionBatchLayout, LibraryProtocol, LibraryBatch, Extract, Storage, Library, LibraryBatchLayout, P5_Index, P7_Index, Barcode, CaptureProtocol, CaptureOrShotgunPlate, CaptureLayout, SequencingPlatform, SequencingRun, SkeletalElementCategory, get_value, LIBRARY_POSITIVE, Location, SitePhase, ArchaeologicalAssemblage, ArchaeologicalAssemblageType, Country
+from samples.models import PowderBatch, PowderSample, Sample, SamplePrepProtocol, ControlType, ControlSet, ControlLayout, LysateBatch, ExtractionProtocol, ExpectedComplexity, SamplePrepQueue, Lysate, LysateBatchLayout, ExtractionBatch, ExtractionBatchLayout, LibraryProtocol, LibraryBatch, Extract, Storage, Library, LibraryBatchLayout, P5_Index, P7_Index, Barcode, CaptureProtocol, CaptureOrShotgunPlate, CaptureLayout, SequencingPlatform, SequencingRun, SkeletalElementCategory, get_value, LIBRARY_POSITIVE, Location, SitePhase, ArchaeologicalAssemblage, ArchaeologicalAssemblageType, Country, Period, Culture
 
 import datetime
 
@@ -769,4 +769,14 @@ class ArchaeologicalAssemblageForm(UserModelForm):
 	def __init__(self, *args, **kwargs):
 		super(ArchaeologicalAssemblageForm, self).__init__(*args, **kwargs)
 		if self.instance:
-			self.fields['site'].initial = self.instance.site_phase.site.site
+			self.fields['site'].initial = get_value(self.instance, 'site', 'site')
+
+class PeriodForm(UserModelForm):
+	class Meta:
+		model = Period
+		fields = ['abbreviation', 'text', 'description', 'date_range', 'date_start', 'date_end', 'date_accuracy']
+
+class CultureForm(UserModelForm):
+	class Meta:
+		model = Culture
+		fields = ['abbreviation', 'text', 'description', 'date_range', 'date_start', 'date_end', 'date_accuracy']

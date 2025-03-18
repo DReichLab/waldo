@@ -357,6 +357,7 @@ class ArchaeologicalAssemblage(Timestamped):
 	burial_code = models.TextField(blank=False)
 	category = models.ForeignKey(ArchaeologicalAssemblageType, on_delete=models.PROTECT, null=True) # TODO should be non-null, but needs to support null as types are not initially known
 	site_phase = models.ForeignKey(SitePhase, on_delete=models.PROTECT, null=True)
+	site = models.ForeignKey(Location, on_delete=models.PROTECT, null=True)
 	date_start = models.IntegerField(null=True, help_text='Date from Archaeologist. ' + CE_DATE_HELP)
 	date_end = models.IntegerField(null=True, help_text='Date from Archaeologist. ' + CE_DATE_HELP)
 	date_notes = models.TextField(blank=True)

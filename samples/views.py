@@ -1641,7 +1641,7 @@ def sample_archaeological_assemblage(request):
 	elif request.method == 'GET':
 		form = ArchaeologicalAssemblageForm(instance=archaeological_assemblage, user=request.user)
 	
-	title = f'Update {archaeological_assemblage.site_phase.site.site} {archaeological_assemblage.site_phase.category} {archaeological_assemblage.burial_code}'
+	title = f'Update {get_value(archaeological_assemblage, "site", "site")} {archaeological_assemblage.burial_code}'
 	return render(request, 'samples/generic_form.html', { 'title': title, 'form': form, } )
 	
 @login_required
