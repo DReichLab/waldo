@@ -168,22 +168,7 @@ def library_anno_line(instance_id_raw, sequencing_run_name, release_label, compo
 	else:
 		mod_append(fields, get_text(sample, 'group_label'))
 	#Locality
-	#mod_append(fields, get_text(sample, 'locality'))
-	# Build locality of form "site (level_1, level_2, level_3, level_4, level_5)"
-	site = get_text(sample.location_fk, 'site') if sample else ''
-	level_1 = get_text(sample.location_fk, 'level_1') if sample else ''
-	level_2 = get_text(sample.location_fk, 'level_2') if sample else ''
-	level_3 = get_text(sample.location_fk, 'level_3') if sample else ''
-	level_4 = get_text(sample.location_fk, 'level_4') if sample else ''
-	level_5 = get_text(sample.location_fk, 'level_5') if sample else ''
-	locality = site
-	if level_1 or level_2 or level_3 or level_4 or level_5: # at least one non-blank "level", build parenthetical
-		locality += ' ('
-		for level in [level_1, level_2, level_3, level_4, level_5]:
-			if not level: # blank level, pass
-				continue
-			locality += level + ', '
-		locality = locality[:-2] + ')' # replace trailing comma and space with closing parenthesis
+	locality = get_value(sample, 'location_fk', 'locality_str')
 	mod_append(fields, locality)
 	#Country
 	country = sample.get_country() if sample else None

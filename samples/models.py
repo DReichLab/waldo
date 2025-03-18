@@ -289,7 +289,7 @@ class Location(Timestamped):
 		for level in [self.level_1, self.level_2, self.level_3, self.level_4, self.level_5]:
 			if len(level) > 0:
 				levels += [level]
-		s = self.country.country_name
+		s = get_value(self, 'country', 'country_name')
 		if len(levels) > 0:
 			s += f'({", ".join(levels)})'
 		return s
@@ -394,7 +394,6 @@ class Sample(Timestamped):
 	period = models.CharField(max_length=50, blank=True, help_text='Archaeologic period component of group label of an Individual')
 	culture = models.CharField(max_length=50, blank=True, help_text='Archaeologic culture component of group label of an Individual')
 	outlier = models.CharField(max_length=50, blank=True, help_text='Outlier designation component of group label of an Individual')
-	locality = models.CharField(max_length=150, blank=True, help_text='Location where skeletal remains were found')
 	notes = models.TextField(blank=True, help_text='Any notes from the collaborator about the individual, sample, site, etc.')
 	notes_2 = models.TextField(blank=True, help_text='Any notes from the collaborator about the individual, sample, site, etc.')
 	collaborators = models.TextField(max_length=300, blank=True, help_text='List of additional collaborators asociated with the sample or reference if sample has been published') # convert to many-to-many field
@@ -404,7 +403,6 @@ class Sample(Timestamped):
 	loan_expiration_date = models.DateField(null=True, help_text='Date by which samples need to be returned to collaborator')
 	dating_status = models.TextField(blank=True, help_text="David Reich's radiocarbon dating status as noted in his anno file") # TODO enumerate?
 	
-	burial_code = models.TextField(blank=True)
 	accession_number = models.TextField(blank=True)
 	pathology = models.TextField(blank=True)
 	
