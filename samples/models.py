@@ -291,7 +291,7 @@ class Location(Timestamped):
 				levels += [level]
 		s = get_value(self, 'country', 'country_name')
 		if len(levels) > 0:
-			s += f'({", ".join(levels)})'
+			s += f' ({", ".join(levels)})'
 		return s
 	
 class Period(Timestamped):
@@ -411,6 +411,11 @@ class Sample(Timestamped):
 	approved_photo_sharing = models.BooleanField(null=True, help_text='Approved for sharing sample photographs. Null indicates unknown.')
 	special_restrictions = models.BooleanField(null=True, default=False, help_text='There are special restrictions on the use of this sample.')
 	
+	group_label_use_country = models.BooleanField(default=True)
+	group_label_use_site = models.BooleanField(default=True)
+	group_label_use_period = models.BooleanField(default=True)
+	group_label_use_culture = models.BooleanField(default=True)
+	
 	class Meta:
 		unique_together = ['reich_lab_id', 'control']
 		
@@ -466,6 +471,32 @@ class Sample(Timestamped):
 			return max_value
 		else:
 			return 0
+			
+	def get_group_label(self):
+		parts = []
+		if self.group_label_use_country:
+			country = self.get_country()
+			if country is not None:
+				parts += [country.country_name]
+		if self.group_label_use_site:
+			site = get_value(self.location_fk, 'site', default=None)
+			if site is not None:
+				parts += [site]
+		if self.group_label_use_period:
+			if len(self.periods.all()) > 0:
+				period_s = '-'.join([period.abbreviation for period in self.periods.all()])
+			else:
+				period_s = self.period
+			if len(period_s) > 0:
+				parts += [period_s]
+		if self.group_label_use_culture:
+			if len(self.cultures.all()) > 0:
+				culture_s = '-'.join([culture.abbreviation for culture in self.cultures.all()])
+			else:
+				culture_s = self.culture
+			if len(culture_s) > 0:
+				parts += [culture_s]
+		return '_'.join(parts)
 		
 class SamplePrepProtocol(Timestamped):
 	preparation_method = models.CharField(max_length=50, help_text='Method used to produce bone powder')

@@ -10,8 +10,15 @@ def reich_sample_number(s):
 		return sample_number
 	except ValueError:
 		return int(s)
+		
+# default behavior of Python bool
+def boolean_from_str(s):
+	s_lower = s.lower()
+	if s_lower == 'f' or s_lower == 'false':
+		return False
+	return bool(s)
 
-sample_headers = ['sample_id', 'skeletal_code', 'site_name', 'burial_code']
+sample_headers = ['sample_id', 'skeletal_code', 'site_name', 'burial_code', 'group_label_use_country', 'group_label_use_site', 'group_label_use_period', 'group_label_use_culture']
 def sample_site_update(sample_file, user):
 	messages = []
 	with transaction.atomic():
@@ -41,6 +48,10 @@ def sample_site_update(sample_file, user):
 					arch_assemblage.save(save_user=user)
 				sample.archaeological_assemblage = arch_assemblage
 			sample.skeletal_code_renamed = row.skeletal_code
+			sample.group_label_use_country = boolean_from_str(row.group_label_use_country)
+			sample.group_label_use_site = boolean_from_str(row.group_label_use_site)
+			sample.group_label_use_period = boolean_from_str(row.group_label_use_period)
+			sample.group_label_use_culture = boolean_from_str(row.group_label_use_culture)
 			sample.save(save_user=user)
 				
 	return '\n'.join(messages)

@@ -24,6 +24,7 @@
 	<th>Site</th>
 	<th>Individual ID</th>
 	<th>Locality</th>
+	<th>Group Label</th>
 </tr>
 <tr>
 	<td>{{ sample.collaborator.name }}</td>
@@ -33,6 +34,7 @@
 	<td><a href="sample_archaeology_site?site_pk={{sample.archaeological_assemblage.site.id}}">{{ sample.archaeological_assemblage.site.site }}</a></td>
 	<td>{{ sample.individual_id }}</td>
 	<td>{{ sample.archaeological_assemblage.site.locality_str }}</td>
+	<td>{{ sample.get_group_label }}</td>
 </tr>
 </table>
 
