@@ -5,7 +5,7 @@ from django.forms.widgets import TextInput, NumberInput
 from django.utils.translation import gettext_lazy as _
 from django.db.models import Q
 
-from samples.models import PowderBatch, PowderSample, Sample, SamplePrepProtocol, ControlType, ControlSet, ControlLayout, LysateBatch, ExtractionProtocol, ExpectedComplexity, SamplePrepQueue, Lysate, LysateBatchLayout, ExtractionBatch, ExtractionBatchLayout, LibraryProtocol, LibraryBatch, Extract, Storage, Library, LibraryBatchLayout, P5_Index, P7_Index, Barcode, CaptureProtocol, CaptureOrShotgunPlate, CaptureLayout, SequencingPlatform, SequencingRun, SkeletalElementCategory, get_value, LIBRARY_POSITIVE, Location, ArchaeologicalAssemblage, ArchaeologicalAssemblageType, Country, Period, Culture
+from samples.models import PowderBatch, PowderSample, Sample, SamplePrepProtocol, ControlType, ControlSet, ControlLayout, LysateBatch, ExtractionProtocol, ExpectedComplexity, SamplePrepQueue, Lysate, LysateBatchLayout, ExtractionBatch, ExtractionBatchLayout, LibraryProtocol, LibraryBatch, Extract, Storage, Library, LibraryBatchLayout, P5_Index, P7_Index, Barcode, CaptureProtocol, CaptureOrShotgunPlate, CaptureLayout, SequencingPlatform, SequencingRun, SkeletalElementCategory, get_value, LIBRARY_POSITIVE, Location, ArchaeologicalAssemblage,  ArchaeologicalAssemblageType, Country, Period, Culture, Collaborator
 
 import datetime
 
@@ -775,8 +775,37 @@ class PeriodForm(UserModelForm):
 	class Meta:
 		model = Period
 		fields = ['abbreviation', 'text', 'description', 'date_range', 'date_start', 'date_end', 'date_accuracy']
+		
+class PeriodProtocolSelect(ModelChoiceField):
+	def label_from_instance(self, obj):
+		return obj.abbreviation
 
 class CultureForm(UserModelForm):
 	class Meta:
 		model = Culture
 		fields = ['abbreviation', 'text', 'description', 'date_range', 'date_start', 'date_end', 'date_accuracy']
+		
+class CollaboratorSelect(ModelChoiceField):
+	def label_from_instance(self, obj):
+		return obj.name()
+		
+class SampleForm(UserModelForm):
+	skeletal_element_category = SkeletalElementCategorySelect(queryset=SkeletalElementCategory.objects.filter().order_by('sort_order'))
+	periods = forms.MultipleChoiceField(required=False, widget=forms.CheckboxSelectMultiple, choices=[(x, x.abbreviation) for x in Period.objects.all()])
+	cultures = forms.MultipleChoiceField(required=False, widget=forms.CheckboxSelectMultiple, choices=[(x, x.abbreviation) for x in Culture.objects.all()])
+	
+	collaborator = CollaboratorSelect(queryset=Collaborator.objects.all())
+	collection_keeper = CollaboratorSelect(queryset=Collaborator.objects.all())
+	excavator = CollaboratorSelect(queryset=Collaborator.objects.all())
+	
+	class Meta:
+		model = Sample
+		fields = ['reich_lab_id', 'special_restrictions', 'individual_id', 'collaborator', 'collection_keeper', 'excavator', 'skeletal_element', 'skeletal_element_category', 'skeletal_code', 'skeletal_code_renamed', 'sample_date', 'average_bp_date', 'date_fix_flag', 'dating_status', 'accession_number', 'morphological_sex', 'morphological_age', 'morphological_age_range', 'approved_negative_results', 'approved_photo_sharing', 'outlier', 'notes', 'notes_2', 'loan_expiration_date', 'periods', 'cultures']
+		
+	def __init__(self, *args, **kwargs):
+		super(SampleForm, self).__init__(*args, **kwargs)
+		for option in ['reich_lab_id', 'special_restrictions', 'skeletal_code', 'collaborator', 'collection_keeper', 'excavator']:
+			self.fields[option].disabled = True
+		# if self.instance:
+			# self.fields['periods'].queryset = Period.objects.all()
+		

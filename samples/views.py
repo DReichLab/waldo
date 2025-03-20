@@ -1655,3 +1655,17 @@ def sample_archaeology_cultures(request):
 	cultures = Culture.objects.all()
 	
 	return render(request, 'samples/sample_periods_or_cultures.html', {'entries' : cultures, 'title' : 'Cultures'})
+	
+@login_required
+def sample_edit(request):
+	sample_id = request.GET['reich_lab_id']
+	sample = Sample.objects.get(reich_lab_id=sample_id)
+	if request.method == 'POST':
+		form = SampleForm(request.POST, request.FILES, instance=sample, user=request.user)
+		if form.is_valid():
+			form.save()
+	elif request.method == 'GET':
+		form = SampleForm(instance=sample, user=request.user)
+	title = f'Sample S{sample_id}'
+		
+	return render(request, 'samples/generic_form.html', { 'title': title, 'form': form, } )

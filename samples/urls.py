@@ -100,6 +100,7 @@ urlpatterns = [
 	path('sample_archaeological_assemblage', views.sample_archaeological_assemblage, name='sample_archaeological_assemblage'),
 	path('sample_archaeology_periods', views.sample_archaeology_periods, name='sample_archaeology_periods'),
 	path('sample_archaeology_cultures', views.sample_archaeology_cultures, name='sample_archaeology_cultures'),
+	path('sample_edit', views.sample_edit, name='sample_edit'),
 	
 	path('storage_all', views.storage_all, name='storage_all'),
 	path('setup', views.setup, name='setup'),
