@@ -447,7 +447,7 @@ class Sample(Timestamped):
 			return None
 			
 	def location_str(self):
-		return f'{self.locality} {get_value(self.get_country(), "country_name")}'
+		return get_value(self, 'location_fk', 'locality_str')
 			
 	# 1. Used to generate extract object for an external sample received as an extract.
 	# 2. Used for library negative controls starting at the library batch step. 
