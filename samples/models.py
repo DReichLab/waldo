@@ -2917,6 +2917,28 @@ class SequencingRun(Timestamped):
 		for layout_element in layout_elements:
 			self.assign_capture_layout_element(layout_element, user)
 	
+	blob_headers = ['position', 'library', 'batch']
+	def add_capture_libraries(self, f, user):
+		with transaction.atomic():
+			for sample_row in spreadsheet_pass(f):
+				entry = sample_row.spreadsheet_row_to_obj()
+				candidates = CaptureLayout.objects.all()
+				if entry.library == PCR_NEGATIVE:
+					candidates = CaptureLayout.objects.filter(control_type__control_type=PCR_NEGATIVE)
+				elif len(entry.library) > 0:
+					candidates = CaptureLayout.objects.filter(library__reich_lab_library_id=entry.library)
+				position = entry.position
+				if position is not None and len(position) > 0:
+					row = position[0]
+					column = int(position[1:])
+					candidates = candidates.filter(row=row, column=column)
+				batch_str = entry.batch
+				if batch_str is not None and len(batch_str) > 0: 
+					candidates = candidates.filter(capture_batch=CaptureOrShotgunPlate.objects.get(name=batch_str)) 
+				element = candidates.get()
+				self.assign_capture_layout_element(element, user)
+		return ''
+	
 	# only one library type is allowed
 	def check_library_type(self):
 		for indexed_library in indexed_libraries:

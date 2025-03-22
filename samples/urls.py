@@ -81,6 +81,8 @@ urlpatterns = [
 	path('sequencing_runs', views.sequencing_runs, name='sequencing_runs'),
 	path('sequencing_run_assign_captures', views.sequencing_run_assign_captures, name='sequencing_run_assign_captures'),
 	path('sequencing_run_spreadsheet', views.sequencing_run_spreadsheet, name='sequencing_run_spreadsheet'),
+	path('sequencing_run_blob_headers', views.sequencing_run_blob_headers, name='sequencing_run_blob_headers'),
+	path('sequencing_run_capture_spreadsheet', views.sequencing_run_capture_spreadsheet, name='sequencing_run_capture_spreadsheet'),
 	path('sequencing_run_delete', views.sequencing_run_delete, name='sequencing_run_delete'),
 	
 	path('sequencing_platforms', views.sequencing_platforms, name='sequencing_platforms'),

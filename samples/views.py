@@ -1504,6 +1504,35 @@ def sequencing_run_spreadsheet(request):
 
 @login_required
 @user_passes_test(is_active_wetlab, login_url='/samples/denied', redirect_field_name=None)
+def sequencing_run_blob_headers(request):
+	response = HttpResponse(content_type='text/csv')
+	response['Content-Disposition'] = f'attachment; filename="blob_headers.txt"'
+
+	writer = csv.writer(response, delimiter='\t')
+	# header
+	writer.writerow(SequencingRun.blob_headers)
+	
+	return response
+
+# add capture/shotgun libraries from spreadsheet
+@login_required
+@user_passes_test(is_active_wetlab, login_url='/samples/denied', redirect_field_name=None)
+def sequencing_run_capture_spreadsheet(request):
+	sequencing_run_name = request.GET.get('name')
+	sequencing_run = SequencingRun.objects.get(name=sequencing_run_name)
+	if request.method == 'POST':
+		spreadsheet_form = SpreadsheetForm(request.POST, request.FILES)
+		if spreadsheet_form.is_valid():
+			spreadsheet = codecs.EncodedFile(request.FILES.get('spreadsheet'), 'utf-8', file_encoding='utf-8')
+			message = sequencing_run.add_capture_libraries(spreadsheet, request.user)
+			message = 'Values updated. ' + message
+	else:
+		spreadsheet_form = SpreadsheetForm()
+		message = ''
+	return render(request, 'samples/spreadsheet_upload.html', { 'title': f'Sequencing Run Add Libraries From Capture/Shotgun', 'form': spreadsheet_form, 'message': message} )
+
+@login_required
+@user_passes_test(is_active_wetlab, login_url='/samples/denied', redirect_field_name=None)
 def sequencing_run_delete(request):
 	sequencing_run_name = request.GET['batch_name']
 	try:
