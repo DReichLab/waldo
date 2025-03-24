@@ -2937,6 +2937,7 @@ class SequencingRun(Timestamped):
 					candidates = candidates.filter(capture_batch=CaptureOrShotgunPlate.objects.get(name=batch_str)) 
 				element = candidates.get()
 				self.assign_capture_layout_element(element, user)
+			self.check_index_barcode_combinations()
 		return ''
 	
 	# only one library type is allowed
@@ -2957,7 +2958,7 @@ class SequencingRun(Timestamped):
 				s = f'{p5_index}_{p7_index}_{p5_barcode}_{p7_barcode}'
 				this_id = get_value(sequenced_library, 'indexed_library', 'library', 'reich_lab_library_id')
 				if s in combinations:
-					raise ValueError(f'duplicate index-barcode_combination {s} {combinations[s]} {this_id}')
+					raise ValidationError(f'duplicate index-barcode_combination {s} {combinations[s]} {this_id}')
 				combinations[s] = f'{sequenced_library.id} {this_id}'
 			except Exception as e:
 				library = layout_element.library.reich_lab_library_id if  layout_element.library else ''
