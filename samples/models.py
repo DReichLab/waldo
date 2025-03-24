@@ -295,7 +295,7 @@ class Location(Timestamped):
 		return s
 	
 class Period(Timestamped):
-	abbreviation = models.CharField(max_length=50)
+	abbreviation = models.CharField(max_length=50, unique=True)
 	text = models.TextField(blank=True)
 	description = models.TextField(blank=True)
 	date_range = models.CharField(max_length=50, blank=True)
@@ -304,7 +304,7 @@ class Period(Timestamped):
 	date_accuracy = models.FloatField(null=True)
 	
 class Culture(Timestamped):
-	abbreviation = models.CharField(max_length=50)
+	abbreviation = models.CharField(max_length=50, unique=True)
 	text = models.TextField(blank=True)
 	description = models.TextField(blank=True)
 	date_range = models.CharField(max_length=50, blank=True)
