@@ -775,6 +775,11 @@ class PeriodForm(UserModelForm):
 	class Meta:
 		model = Period
 		fields = ['abbreviation', 'text', 'description', 'date_range', 'date_start', 'date_end', 'date_accuracy']
+	
+	def __init__(self, *args, **kwargs):
+		super(PeriodForm, self).__init__(*args, **kwargs)
+		for option in ['date_range', 'date_start', 'date_end', 'date_accuracy']:
+			self.fields[option].required = False
 		
 class PeriodProtocolSelect(ModelChoiceField):
 	def label_from_instance(self, obj):
@@ -784,6 +789,11 @@ class CultureForm(UserModelForm):
 	class Meta:
 		model = Culture
 		fields = ['abbreviation', 'text', 'description', 'date_range', 'date_start', 'date_end', 'date_accuracy']
+		
+	def __init__(self, *args, **kwargs):
+		super(CultureForm, self).__init__(*args, **kwargs)
+		for option in ['date_range', 'date_start', 'date_end', 'date_accuracy']:
+			self.fields[option].required = False
 		
 class CollaboratorSelect(ModelChoiceField):
 	def label_from_instance(self, obj):
@@ -800,7 +810,7 @@ class SampleForm(UserModelForm):
 	
 	class Meta:
 		model = Sample
-		fields = ['reich_lab_id', 'special_restrictions', 'individual_id', 'collaborator', 'collection_keeper', 'excavator', 'skeletal_element', 'skeletal_element_category', 'skeletal_code', 'skeletal_code_renamed', 'sample_date', 'average_bp_date', 'date_fix_flag', 'dating_status', 'accession_number', 'morphological_sex', 'morphological_age', 'morphological_age_range', 'approved_negative_results', 'approved_photo_sharing', 'outlier', 'notes', 'notes_2', 'loan_expiration_date', 'periods', 'cultures']
+		fields = ['reich_lab_id', 'special_restrictions', 'individual_id', 'collaborator', 'collection_keeper', 'excavator', 'skeletal_element', 'skeletal_element_category', 'skeletal_code', 'skeletal_code_renamed', 'sample_date', 'average_bp_date', 'date_fix_flag', 'dating_status', 'burial_subcode', 'accession_number', 'morphological_sex', 'morphological_age', 'morphological_age_range', 'approved_negative_results', 'approved_photo_sharing', 'outlier', 'notes', 'notes_2', 'loan_expiration_date', 'group_label_use_country', 'group_label_use_site', 'group_label_use_period', 'group_label_use_culture', 'periods', 'cultures']
 		
 	def __init__(self, *args, **kwargs):
 		super(SampleForm, self).__init__(*args, **kwargs)

@@ -637,7 +637,7 @@ def sample_summary(request):
 		extract_layouts = ExtractionBatchLayout.objects.filter(Q(extract__sample=sample) | Q(extract__lysate__powder_sample__sample=sample) | Q(extract__lysate__sample=sample) | Q(lysate__sample=sample)).distinct().select_related('extract').order_by('lysate__sample__reich_lab_id', 'lysate__reich_lab_lysate_number', 'extract__reich_lab_extract_number')
 		extracts = [layout.extract for layout in extract_layouts.all()]
 		# 
-		library_layouts = LibraryBatchLayout.objects.filter(Q(library__sample=sample) | Q(library__extract__in=extracts) | Q(extract__sample=sample) ).distinct().select_related('library').order_by('library__extract__sample__reich_lab_id', 'library__extract__lysate__reich_lab_lysate_number', 'library__extract__reich_lab_extract_number', 'library__reich_lab_library_number')
+		library_layouts = LibraryBatchLayout.objects.filter(Q(library__sample=sample) | Q(library__extract__in=extracts) | Q(extract__sample=sample) ).distinct().select_related('library').order_by('library__extract__lysate__sample__reich_lab_id',  'library__extract__lysate__reich_lab_lysate_number', 'library__extract__reich_lab_extract_number', 'library__reich_lab_library_number')
 		libraries = [layout.library for layout in library_layouts.all()]
 		captured_libraries = CaptureLayout.objects.filter(library__in=libraries).order_by('library__sample__reich_lab_id', 'library__extract__lysate__reich_lab_lysate_number',  'library__extract__reich_lab_extract_number', 'library__reich_lab_library_number', 'capture_batch__date')
 		
@@ -1652,13 +1652,13 @@ def sample_archaeology_site(request):
 	site = Location.objects.get(pk=primary_key)
 	
 	if request.method == 'POST':
-		site_form = SiteForm(request.POST, request.FILES, instance=site, user=request.user)
-		if site_form.is_valid():
-			site_form.save()
+		form = SiteForm(request.POST, request.FILES, instance=site, user=request.user)
+		if form.is_valid():
+			form.save()
 	elif request.method == 'GET':
-		site_form = SiteForm(instance=site, user=request.user)
+		form = SiteForm(instance=site, user=request.user)
 	
-	return render(request, 'samples/generic_form.html', { 'title': f'Update site {site.site}', 'form': site_form, } )
+	return render(request, 'samples/generic_form.html', { 'title': f'Update site {site.site}', 'form': form, } )
 
 @login_required
 def sample_archaeological_assemblage(request):
@@ -1675,15 +1675,44 @@ def sample_archaeological_assemblage(request):
 	
 @login_required
 def sample_archaeology_periods(request):
-	periods = Period.objects.all()
+	periods = Period.objects.all().order_by('abbreviation')
 	
-	return render(request, 'samples/sample_periods_or_cultures.html', {'entries' : periods, 'title' : 'Periods'})
+	return render(request, 'samples/sample_periods_or_cultures.html', {'entries' : periods, 'title' : 'Periods', 'edit_form_link': 'sample_archaeology_period'})
+	
+@login_required
+def sample_archaeology_period(request):
+	primary_key = request.GET['pk']
+	if primary_key is not None:
+		period = Period.objects.get(pk=primary_key)
+	
+	if request.method == 'POST':
+		form = PeriodForm(request.POST, request.FILES, instance=period, user=request.user)
+		if form.is_valid():
+			form.save()
+	elif request.method == 'GET':
+		form = PeriodForm(instance=period, user=request.user)
+	
+	return render(request, 'samples/generic_form.html', { 'title': f'Update period {period.abbreviation}', 'form': form, } )
 	
 @login_required
 def sample_archaeology_cultures(request):
-	cultures = Culture.objects.all()
+	cultures = Culture.objects.all().order_by('abbreviation')
 	
-	return render(request, 'samples/sample_periods_or_cultures.html', {'entries' : cultures, 'title' : 'Cultures'})
+	return render(request, 'samples/sample_periods_or_cultures.html', {'entries' : cultures, 'title' : 'Cultures', 'edit_form_link': 'sample_archaeology_culture'})
+	
+@login_required
+def sample_archaeology_culture(request):
+	primary_key = request.GET['pk']
+	culture = Culture.objects.get(pk=primary_key)
+	
+	if request.method == 'POST':
+		form = CultureForm(request.POST, request.FILES, instance=culture, user=request.user)
+		if form.is_valid():
+			form.save()
+	elif request.method == 'GET':
+		form = CultureForm(instance=culture, user=request.user)
+	
+	return render(request, 'samples/generic_form.html', { 'title': f'Update culture {culture.abbreviation}', 'form': form, } )
 	
 @login_required
 def sample_edit(request):
