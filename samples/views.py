@@ -1675,9 +1675,16 @@ def sample_archaeological_assemblage(request):
 	
 @login_required
 def sample_archaeology_periods(request):
+	if request.method == 'POST':
+		form = PeriodForm(request.POST, request.FILES, user=request.user)
+		if form.is_valid():
+			form.save()
+	elif request.method == 'GET':
+		form = PeriodForm(user=request.user)
+	
 	periods = Period.objects.all().order_by('abbreviation')
 	
-	return render(request, 'samples/sample_periods_or_cultures.html', {'entries' : periods, 'title' : 'Periods', 'edit_form_link': 'sample_archaeology_period'})
+	return render(request, 'samples/sample_periods_or_cultures.html', {'entries' : periods, 'title' : 'Periods', 'edit_form_link': 'sample_archaeology_period', 'form': form})
 	
 @login_required
 def sample_archaeology_period(request):
@@ -1696,9 +1703,16 @@ def sample_archaeology_period(request):
 	
 @login_required
 def sample_archaeology_cultures(request):
+	if request.method == 'POST':
+		form = CultureForm(request.POST, request.FILES, user=request.user)
+		if form.is_valid():
+			form.save()
+	elif request.method == 'GET':
+		form = CultureForm(user=request.user)
+	
 	cultures = Culture.objects.all().order_by('abbreviation')
 	
-	return render(request, 'samples/sample_periods_or_cultures.html', {'entries' : cultures, 'title' : 'Cultures', 'edit_form_link': 'sample_archaeology_culture'})
+	return render(request, 'samples/sample_periods_or_cultures.html', {'entries' : cultures, 'title' : 'Cultures', 'edit_form_link': 'sample_archaeology_culture', 'form': form})
 	
 @login_required
 def sample_archaeology_culture(request):
