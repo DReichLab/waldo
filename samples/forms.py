@@ -5,7 +5,7 @@ from django.forms.widgets import TextInput, NumberInput
 from django.utils.translation import gettext_lazy as _
 from django.db.models import Q
 
-from samples.models import PowderBatch, PowderSample, Sample, SamplePrepProtocol, ControlType, ControlSet, ControlLayout, LysateBatch, ExtractionProtocol, ExpectedComplexity, SamplePrepQueue, Lysate, LysateBatchLayout, ExtractionBatch, ExtractionBatchLayout, LibraryProtocol, LibraryBatch, Extract, Storage, Library, LibraryBatchLayout, P5_Index, P7_Index, Barcode, CaptureProtocol, CaptureOrShotgunPlate, CaptureLayout, SequencingPlatform, SequencingRun, SkeletalElementCategory, get_value, LIBRARY_POSITIVE, Location, ArchaeologicalAssemblage,  ArchaeologicalAssemblageType, Country, Period, Culture, Collaborator
+from samples.models import PowderBatch, PowderSample, Sample, SamplePrepProtocol, ControlType, ControlSet, ControlLayout, LysateBatch, ExtractionProtocol, ExpectedComplexity, SamplePrepQueue, Lysate, LysateBatchLayout, ExtractionBatch, ExtractionBatchLayout, LibraryProtocol, LibraryBatch, Extract, Storage, Library, LibraryBatchLayout, P5_Index, P7_Index, Barcode, CaptureProtocol, CaptureOrShotgunPlate, CaptureLayout, SequencingPlatform, SequencingRun, SkeletalElementCategory, get_value, LIBRARY_POSITIVE, Location, ArchaeologicalAssemblage,  ArchaeologicalAssemblageType, Country, Period, Culture, Collaborator, Publication, PublicationType
 
 import datetime
 
@@ -37,6 +37,9 @@ class UserModelForm(ModelForm):
 	
 	class Meta:
 		abstract = True
+		
+class SampleTextEntryForm(forms.Form):
+	text = forms.CharField(label='Sample IDs', max_length=1000000,  widget=forms.Textarea(attrs={'rows': 30}))
 
 class PowderBatchForm(UserModelForm):
 	notes = forms.CharField(required=False, widget=forms.Textarea(attrs={'rows': 2})) 
@@ -803,6 +806,7 @@ class SampleForm(UserModelForm):
 	skeletal_element_category = SkeletalElementCategorySelect(queryset=SkeletalElementCategory.objects.filter().order_by('sort_order'))
 	periods = forms.MultipleChoiceField(required=False, widget=forms.CheckboxSelectMultiple, choices=[(x, x.abbreviation) for x in Period.objects.all()])
 	cultures = forms.MultipleChoiceField(required=False, widget=forms.CheckboxSelectMultiple, choices=[(x, x.abbreviation) for x in Culture.objects.all()])
+	# publications = forms.MultipleChoiceField(required=False, widget=forms.CheckboxSelectMultiple, choices=[(x, x.title) for x in Publication.objects.all()])
 	
 	collaborator = CollaboratorSelect(queryset=Collaborator.objects.all())
 	collection_keeper = CollaboratorSelect(queryset=Collaborator.objects.all())
@@ -814,8 +818,21 @@ class SampleForm(UserModelForm):
 		
 	def __init__(self, *args, **kwargs):
 		super(SampleForm, self).__init__(*args, **kwargs)
-		for option in ['reich_lab_id', 'special_restrictions', 'skeletal_code', 'collaborator', 'collection_keeper', 'excavator']:
+		for option in ['reich_lab_id', 'special_restrictions', 'skeletal_code', 'collaborator', 'collection_keeper', 'excavator', 'loan_expiration_date']:
 			self.fields[option].disabled = True
-		# if self.instance:
-			# self.fields['periods'].queryset = Period.objects.all()
+			self.fields[option].required = False
+			
+class PublicationTypeSelect(ModelChoiceField):
+	def label_from_instance(self, obj):
+		return obj.category
+			
+class PublicationForm(UserModelForm):
+	publication_type = PublicationTypeSelect(queryset=PublicationType.objects.all().order_by('category'))
+	class Meta:
+		model = Publication
+		fields = ['title', 'first_author', 'year', 'journal', 'pages', 'author_list', 'url', 'publication_type']
 		
+class PublicationTypeForm(UserModelForm):
+	class Meta:
+		model = PublicationType
+		fields = ['category']

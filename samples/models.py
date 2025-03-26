@@ -360,7 +360,7 @@ class ArchaeologicalAssemblage(Timestamped):
 class PublicationLabels(Timestamped):
 	sample = models.ForeignKey('Sample', on_delete=models.PROTECT)
 	publication = models.ForeignKey(Publication, on_delete=models.PROTECT)
-	individual_id = models.CharField(max_length=50, blank=False, help_text='Individual ID in paper')
+	individual_id = models.CharField(max_length=50, blank=True, help_text='Individual ID in paper')
 	group_label = models.CharField(max_length=200, blank=True, help_text='Group label for sample in paper')
 
 class Sample(Timestamped):

@@ -1,0 +1,70 @@
+{% extends "samples/reich_lab_base.html" %}
+
+{% load static %}
+
+{% block title %}{{title}}{% endblock %}
+
+{% block content %}
+<script src="{% static "samples/list.js" %}"></script>
+
+<style>
+th {
+	position: sticky;
+	top: 0;
+	background: #eee;
+}
+
+#table_wrapper{
+	overflow-x: auto;
+	overflow-y: scroll;
+	height: 85vh;
+}
+
+table{
+	border-collapse: collapse;
+	border-spacing: 0;
+	width: 100%;
+}
+</style>
+
+<hr>
+
+<form action="" method='post'>
+	{% csrf_token %}
+	{{ form.as_p }}
+	<input type='submit' value='Create'>
+</form>
+
+<hr>
+
+<div id='category_rows'>
+
+<input class="search" placeholder="Search" />
+<div id='table_wrapper'>
+<table>
+	<thead>
+	<tr>
+		<th><button class="sort" data-sort="category" data-default-order='desc'>Category</button></th>
+	</tr>
+	</thead>
+	<tbody class="list">
+	{% for entry in entries %}
+	<tr>
+		<td class="category">{{entry.category}}</a></td>
+	{% endfor %}
+	</tbody>
+</table>
+</div>
+</div>
+
+<script>
+	var list_options = {
+		valueNames: ['category'
+		],
+		searchColumns: ['category'],
+		searchDelay: 500
+	};
+	var category_list = new List('category_rows', list_options);
+</script>
+
+{% endblock %}

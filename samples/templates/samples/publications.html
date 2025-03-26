@@ -1,0 +1,85 @@
+{% extends "samples/reich_lab_base.html" %}
+
+{% load static %}
+
+{% block title %}{{title}}{% endblock %}
+
+{% block content %}
+<script src="{% static "samples/list.js" %}"></script>
+
+<style>
+th {
+	position: sticky;
+	top: 0;
+	background: #eee;
+}
+
+#table_wrapper{
+	overflow-x: auto;
+	overflow-y: scroll;
+	height: 85vh;
+}
+
+table{
+	border-collapse: collapse;
+	border-spacing: 0;
+	width: 100%;
+}
+</style>
+
+<hr>
+
+<form action="" method='post'>
+	{% csrf_token %}
+	{{ form.as_p }}
+	<input type='submit' value='Create'>
+</form>
+
+<hr>
+
+<div id='publications_rows'>
+
+<input class="search" placeholder="Search" />
+<div id='table_wrapper'>
+<table>
+	<thead>
+	<tr>
+		<th><button class="sort" data-sort="title" data-default-order='asc'>Title</button></th>
+		<th><button class="sort" data-sort="first_author">First Author</button></th>
+		<th><button class="sort" data-sort="year">Year</button></th>
+		<th><button class="sort" data-sort="journal">Journal</button></th>
+		<th><button class="sort" data-sort="pages">Pages</button></th>
+		<th><button class="sort" data-sort="author_list">Author List</button></th>
+		<th><button class="sort" data-sort="url">url</button></th>
+		<th><button class="sort" data-sort="publication_type">Publication Type</button></th>
+	</tr>
+	</thead>
+	<tbody class="list">
+	{% for entry in publications %}
+	<tr>
+		<td class="title"><a href="{{edit_form_link}}?pk={{entry.id}}">{{entry.title}}</a></td>
+		<td class="first_author">{{entry.first_author}}</td>
+		<td class="year">{{entry.year}}</td>
+		<td class="journal">{{entry.journal}}</td>
+		<td class="pages">{{entry.pages}}</td>
+		<td class="author_list">{{entry.author_list}}</td>
+		<td class="url">{{entry.url}}</td>
+		<td class="publication_type">{{entry.publication_type.category}}</td>
+	</tr>
+	{% endfor %}
+	</tbody>
+</table>
+</div>
+</div>
+
+<script>
+	var list_options = {
+		valueNames: ['title', 'first_author', 'year', 'journal', 'pages', 'author_list', 'url', 'publication_type'
+		],
+		searchColumns: ['title', 'first_author', 'year', 'journal', 'pages', 'author_list', 'url', 'publication_type'],
+		searchDelay: 500
+	};
+	var publication_list = new List('publications_rows', list_options);
+</script>
+
+{% endblock %}

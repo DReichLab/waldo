@@ -71,6 +71,90 @@ def reformat_interval(interval_string):
 	finally:
 		return new_interval_string
 
+# subset of anno file fields relating to sample info, not analysis
+def sample_anno(sample):
+	fields = []
+	#Skeletal code
+	# Build a string like "skeletal_code_renamed (skeletal_code, accession_number, burial_code, burial_subcode)"
+	# But, with no blanks and no repeated information
+	skeletal_code = get_text(sample, 'skeletal_code')
+	skeletal_code_renamed = get_text(sample, 'skeletal_code_renamed')
+	accession_number = get_text(sample, 'accession_number')
+	burial_code = get_value(sample, 'archaeological_assemblage', 'burial_code')
+	burial_subcode = get_value(sample, 'burial_subcode')
+	skeletal_code_possible_name_elements = [skeletal_code_renamed, skeletal_code, accession_number, burial_code, burial_subcode]
+	skeletal_code_name_elements = []
+	for candidate in skeletal_code_possible_name_elements:
+		if candidate is not None and len(candidate) > 0: # not empty
+			add = True
+			for index, element in enumerate(skeletal_code_name_elements): # check for duplicate info
+				if candidate in element: # no new info
+					add = False
+					break
+				if element in candidate: # superset of existing info, replace
+					add = False
+					skeletal_code_name_elements[index] = candidate
+					break
+				if add:
+					skeletal_code_name_elements.append(element)
+	skeletal_code_final = ''
+	if len(skeletal_code_name_elements) >= 1:
+		skeletal_code_final = skeletal_code_name_elements[0]
+	if len(skeletal_code_name_elements) > 1:
+		skeletal_code_final += f' ({", ".join(skeletal_code_name_elements[1:])})'
+	mod_append(fields, skeletal_code_final)
+	
+	#Skeletal element
+	mod_append(fields, get_text(sample, 'skeletal_element'))
+	#Year this sample was first published [missing: GreenScience 2010 (Vi33.15, Vi33.26), Olalde2018 (I2657), RasmussenNature2010 (Australian)]
+	published_year = ''
+	mod_append(fields, str(published_year))
+	#Publication
+	if len(sample.publications.all()) > 0:
+		publication = ', '.join(p.title for p in sample.publications.all().order_by('-year'))
+	else:
+		publication = 'Unpublished'
+		
+	mod_append(fields, publication)
+	#Representative contact
+	if(sample is not None and sample.collaborator is not None):
+		first_name = get_text(sample.collaborator, 'first_name')
+		last_name = get_text(sample.collaborator, 'last_name')
+		mod_append(fields, '{}, {}'.format(last_name, first_name))
+	else:
+		mod_append(fields, '')
+	#Completeness of Date Information
+	mod_append(fields, get_text(sample, 'date_fix_flag'))
+	#Average of 95.4% date range in calBP (defined as 1950 CE)
+	mod_append(fields, get_number(sample, 'average_bp_date', 0))
+	#Date: One of two formats. (Format 1) 95.4% CI calibrated radiocarbon age (Conventional Radiocarbon Age BP, Lab number) e.g. 5983-5747 calBCE (6980±50 BP, Beta-226472). (Format 2) Archaeological context date, e.g. 2500-1700 BCE
+	mod_append(fields, get_text(sample, 'sample_date'))
+	# Age at death, Morphological sex from physical anthropology
+	morphological_sex = get_text(sample, 'morphological_sex') # three db fields to build anno file entry from
+	morphological_age = get_text(sample, 'morphological_age')
+	morphological_age_range = get_text(sample, 'morphological_age_range')
+	if morphological_age_range and not morphological_age_range.endswith('mos'):
+		morphological_age_range += ' yrs' # add " yrs" to end if not listed explicitly in months
+	morphological_column_elements = [morphological_age, morphological_age_range, morphological_sex]
+	mod_append(fields, '; '.join(filter(None, morphological_column_elements))) # concatenate non-empty fields
+	#Group_ID (format convention which we try to adhere to is "Country_<Geographic.Region_<Geographic.Subregion_>><Archaeological.Period.Or.DateBP_<Alternative.Archaeological.Period_>><Archaeological.Culture_<Alternative.Archaeological.Culture>><genetic.subgrouping.index.if.necessary_><"o_"sometimes.with.additional.detail.if.an.outlier><additional.suffix.especially.relative.status.if.we.recommend.removing.from.main.analysis.grouping><"contam_".if.contaminated><"lc_".if.<15000.SNPs.on.autosomal.targets><".SG".or.".DG".if.shotgun.data>; HG=hunter-gatherer, N=Neolithic, C=Chalcolithic/CopperAge, BA=BronzeAge, IA=IronAge, E=Early, M=Middle, L=Late, A=Antiquity)
+	if sample.is_control():
+		mod_append(fields, 'Control')
+	else:
+		mod_append(fields, get_text(sample, 'group_label'))
+	#Locality
+	locality = get_value(sample, 'location_fk', 'locality_str')
+	mod_append(fields, locality)
+	#Country
+	country = sample.get_country() if sample else None
+	mod_append(fields, get_text(country, 'country_name'))
+	#Lat.
+	mod_append(fields, get_text(sample.location_fk, 'latitude') if sample else '')
+	#Long
+	mod_append(fields, get_text(sample.location_fk, 'longitude') if sample else '')
+	
+	return fields
+
 # this library id may contain _d damage-restriction indicator
 def library_anno_line(instance_id_raw, sequencing_run_name, release_label, component_library_ids=[], ignore_missing_analyses = False):
 	#print(instance_id_raw, file=sys.stderr)
@@ -108,75 +192,8 @@ def library_anno_line(instance_id_raw, sequencing_run_name, release_label, compo
 	else:
 		mod_append(fields, master_id)
 	
-	#Skeletal code
-	#mod_append(fields, get_text(sample, 'skeletal_code_renamed'))
-	#mod_append(fields, get_text(sample, 'skeletal_code'))
-	# Build a string like "skeletal_code (skeleltal_code_renamed, accession_number, burial_code)"
-	# But, with no blanks and no repeated information
-	skeletal_code = get_text(sample, 'skeletal_code')
-	skeletal_code_renamed = get_text(sample, 'skeletal_code_renamed')
-	accession_number = get_text(sample, 'accession_number')
-	burial_code = get_value(sample, 'archaeological_assemblage', 'burial_code')
-	skeletal_code_possible_name_elements = [skeletal_code, skeletal_code_renamed, accession_number, burial_code]
-	skeletal_code_name_elements = []
-	for skeletal_code_possible_name_element in skeletal_code_possible_name_elements:
-		if not skeletal_code_possible_name_element: # is empty
-			continue
-		if skeletal_code_possible_name_element in skeletal_code_name_elements: # duplicate info
-			continue
-		else:
-			skeletal_code_name_elements.append(skeletal_code_possible_name_element)
-	skeletal_code_final = skeletal_code_name_elements[0]
-	if len(skeletal_code_name_elements) > 1:
-		skeletal_code_final += ' ('
-		for skeletal_code_name_element in skeletal_code_name_elements[1:]:
-			skeletal_code_final += skeletal_code_name_element + ', '
-		skeletal_code_final = skeletal_code_final[:-2] + ')' # remove trailing comma and space, replace with parenthesis 
-	mod_append(fields, skeletal_code_final)
-	#Skeletal element
-	mod_append(fields, get_text(sample, 'skeletal_element'))
-	#Year this sample was first published [missing: GreenScience 2010 (Vi33.15, Vi33.26), Olalde2018 (I2657), RasmussenNature2010 (Australian)]
-	published_year = ''
-	mod_append(fields, str(published_year))
-	#Publication
-	publication = 'Unpublished'
-	mod_append(fields, publication)
-	#Representative contact
-	if(sample is not None and sample.collaborator is not None):
-		first_name = get_text(sample.collaborator, 'first_name')
-		last_name = get_text(sample.collaborator, 'last_name')
-		mod_append(fields, '{}, {}'.format(last_name, first_name))
-	else:
-		mod_append(fields, '')
-	#Completeness of Date Information
-	mod_append(fields, get_text(sample, 'date_fix_flag'))
-	#Average of 95.4% date range in calBP (defined as 1950 CE)
-	mod_append(fields, get_number(sample, 'average_bp_date', 0))
-	#Date: One of two formats. (Format 1) 95.4% CI calibrated radiocarbon age (Conventional Radiocarbon Age BP, Lab number) e.g. 5983-5747 calBCE (6980±50 BP, Beta-226472). (Format 2) Archaeological context date, e.g. 2500-1700 BCE
-	mod_append(fields, get_text(sample, 'sample_date'))
-	# Age at death, Morphological sex from physical anthropology
-	morphological_sex = get_text(sample, 'morphological_sex') # three db fields to build anno file entry from
-	morphological_age = get_text(sample, 'morphological_age')
-	morphological_age_range = get_text(sample, 'morphological_age_range')
-	if morphological_age_range and not morphological_age_range.endswith('mos'):
-		morphological_age_range += ' yrs' # add " yrs" to end if not listed explicitly in months
-	morphological_column_elements = [morphological_age, morphological_age_range, morphological_sex]
-	mod_append(fields, '; '.join(filter(None, morphological_column_elements))) # concatenate non-empty fields
-	#Group_ID (format convention which we try to adhere to is "Country_<Geographic.Region_<Geographic.Subregion_>><Archaeological.Period.Or.DateBP_<Alternative.Archaeological.Period_>><Archaeological.Culture_<Alternative.Archaeological.Culture>><genetic.subgrouping.index.if.necessary_><"o_"sometimes.with.additional.detail.if.an.outlier><additional.suffix.especially.relative.status.if.we.recommend.removing.from.main.analysis.grouping><"contam_".if.contaminated><"lc_".if.<15000.SNPs.on.autosomal.targets><".SG".or.".DG".if.shotgun.data>; HG=hunter-gatherer, N=Neolithic, C=Chalcolithic/CopperAge, BA=BronzeAge, IA=IronAge, E=Early, M=Middle, L=Late, A=Antiquity)
-	if is_control:
-		mod_append(fields, 'Control')
-	else:
-		mod_append(fields, get_text(sample, 'group_label'))
-	#Locality
-	locality = get_value(sample, 'location_fk', 'locality_str')
-	mod_append(fields, locality)
-	#Country
-	country = sample.get_country() if sample else None
-	mod_append(fields, get_text(country, 'country_name'))
-	#Lat.
-	mod_append(fields, get_text(sample.location_fk, 'latitude') if sample else '')
-	#Long
-	mod_append(fields, get_text(sample.location_fk, 'longitude') if sample else '')
+	fields += sample_anno(sample)
+	
 	#Data type
 	mod_append(fields, 'Twist1.4M')
 	#No. Libraries

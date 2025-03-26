@@ -16,7 +16,8 @@ from datetime import datetime
 
 from samples.pipeline import udg_and_strandedness
 from samples.models import Results, Library, Sample, PowderBatch, WetLabStaff, PowderSample, ControlType, ControlSet, ControlLayout, ExtractionProtocol, LysateBatch, SamplePrepQueue, PowderPrepQueue, PLATE_ROWS, LysateBatchLayout, ExtractionBatch, ExtractionBatchLayout, Lysate, LibraryBatch, LibraryBatchLayout, Extract, CaptureOrShotgunPlate, CaptureLayout, Storage, is_active_wetlab, Location
-from samples.intake import sample_site_update, sample_headers
+from samples.intake import sample_site_update, sample_headers, publication_batch_update, publication_headers, publication_sample_assign, publication_sample_assign_headers
+from .anno import sample_anno
 from .forms import *
 from sequencing_run.models import MTAnalysis
 
@@ -1652,7 +1653,7 @@ def sample_archaeology_site(request):
 	site = Location.objects.get(pk=primary_key)
 	
 	if request.method == 'POST':
-		form = SiteForm(request.POST, request.FILES, instance=site, user=request.user)
+		form = SiteForm(request.POST, instance=site, user=request.user)
 		if form.is_valid():
 			form.save()
 	elif request.method == 'GET':
@@ -1666,7 +1667,7 @@ def sample_archaeological_assemblage(request):
 	archaeological_assemblage = ArchaeologicalAssemblage.objects.get(pk=primary_key)
 	
 	if request.method == 'POST':
-		form = ArchaeologicalAssemblageForm(request.POST, request.FILES, instance=archaeological_assemblage, user=request.user)
+		form = ArchaeologicalAssemblageForm(request.POST, instance=archaeological_assemblage, user=request.user)
 	elif request.method == 'GET':
 		form = ArchaeologicalAssemblageForm(instance=archaeological_assemblage, user=request.user)
 	
@@ -1676,7 +1677,7 @@ def sample_archaeological_assemblage(request):
 @login_required
 def sample_archaeology_periods(request):
 	if request.method == 'POST':
-		form = PeriodForm(request.POST, request.FILES, user=request.user)
+		form = PeriodForm(request.POST, user=request.user)
 		if form.is_valid():
 			form.save()
 	elif request.method == 'GET':
@@ -1693,7 +1694,7 @@ def sample_archaeology_period(request):
 		period = Period.objects.get(pk=primary_key)
 	
 	if request.method == 'POST':
-		form = PeriodForm(request.POST, request.FILES, instance=period, user=request.user)
+		form = PeriodForm(request.POST, instance=period, user=request.user)
 		if form.is_valid():
 			form.save()
 	elif request.method == 'GET':
@@ -1704,7 +1705,7 @@ def sample_archaeology_period(request):
 @login_required
 def sample_archaeology_cultures(request):
 	if request.method == 'POST':
-		form = CultureForm(request.POST, request.FILES, user=request.user)
+		form = CultureForm(request.POST, user=request.user)
 		if form.is_valid():
 			form.save()
 	elif request.method == 'GET':
@@ -1720,7 +1721,7 @@ def sample_archaeology_culture(request):
 	culture = Culture.objects.get(pk=primary_key)
 	
 	if request.method == 'POST':
-		form = CultureForm(request.POST, request.FILES, instance=culture, user=request.user)
+		form = CultureForm(request.POST, instance=culture, user=request.user)
 		if form.is_valid():
 			form.save()
 	elif request.method == 'GET':
@@ -1733,7 +1734,7 @@ def sample_edit(request):
 	sample_id = request.GET['reich_lab_id']
 	sample = Sample.objects.get(reich_lab_id=sample_id)
 	if request.method == 'POST':
-		form = SampleForm(request.POST, request.FILES, instance=sample, user=request.user)
+		form = SampleForm(request.POST, instance=sample, user=request.user)
 		if form.is_valid():
 			form.save()
 	elif request.method == 'GET':
@@ -1741,3 +1742,114 @@ def sample_edit(request):
 	title = f'Sample S{sample_id}'
 		
 	return render(request, 'samples/generic_form.html', { 'title': title, 'form': form, } )
+	
+@login_required
+def sample_archaeology_anno(request):
+	if request.method == 'POST':
+		form = SampleTextEntryForm(request.POST)
+		if form.is_valid():
+			response = HttpResponse(content_type='text/csv')
+			response['Content-Disposition'] = f'attachment; filename="anno.txt"'
+
+			writer = csv.writer(response, delimiter='\t')
+			for sample_str in form.cleaned_data['text'].split():
+				if sample_str.startswith('S'):
+					sample_str = sample_str[1:]
+				sample = Sample.objects.get(reich_lab_id=int(sample_str))
+				writer.writerow([f'S{sample.reich_lab_id}'] + sample_anno(sample))
+			
+			return response
+	elif request.method == 'GET':
+		form = SampleTextEntryForm()
+	
+	return render(request, 'samples/generic_form.html', { 'title': f'Anno info for Sample IDs', 'form': form, 'submit_button_text': 'Anno file'} )
+
+@login_required
+def publication(request):
+	primary_key = request.GET['pk']
+	if primary_key is not None:
+		pub = Publication.objects.get(pk=primary_key)
+		
+	if request.method == 'POST':
+		form = PublicationForm(request.POST, instance=pub, user=request.user)
+		if form.is_valid():
+			form.save()
+	elif request.method == 'GET':
+		form = PublicationForm(user=request.user, instance=pub)
+	
+	return render(request, 'samples/generic_form.html', {'title' : 'Ancient DNA Publications', 'form': form})
+	
+@login_required
+def publication_update_headers(request):
+	response = HttpResponse(content_type='text/csv')
+	response['Content-Disposition'] = f'attachment; filename="publications_update.txt"'
+
+	writer = csv.writer(response, delimiter='\t')
+	# header
+	writer.writerow(publication_headers)
+	
+	return response
+	
+@login_required
+def publication_update(request):
+	if request.method == 'POST':
+		spreadsheet_form = SpreadsheetForm(request.POST, request.FILES)
+		if spreadsheet_form.is_valid():
+			spreadsheet = codecs.EncodedFile(request.FILES.get('spreadsheet'), 'utf-8', file_encoding='utf-8')
+			message = publication_batch_update(spreadsheet, request.user)
+			message = 'Values updated. ' + message
+	else:
+		spreadsheet_form = SpreadsheetForm()
+		message = ''
+	return render(request, 'samples/spreadsheet_upload.html', { 'title': f'Publications Update', 'form': spreadsheet_form, 'message': message} )
+	
+@login_required
+def publications(request):
+	if request.method == 'POST':
+		form = PublicationForm(request.POST, user=request.user)
+		if form.is_valid():
+			form.save()
+	elif request.method == 'GET':
+		form = PublicationForm(user=request.user)
+	
+	publications = Publication.objects.all().order_by('-year', 'first_author')
+	
+	return render(request, 'samples/publications.html', {'publications' : publications, 'title' : 'Ancient DNA Publications', 'form': form, 'edit_form_link': 'publication'})
+	
+@login_required
+def publication_types(request):
+	if request.method == 'POST':
+		form = PublicationTypeForm(request.POST, user=request.user)
+		if form.is_valid():
+			form.save()
+	elif request.method == 'GET':
+		form = PublicationTypeForm(user=request.user)
+	
+	publication_types = PublicationType.objects.all().order_by('category')
+	
+	return render(request, 'samples/generic_category.html', {'entries' : publication_types, 'title' : 'Publication Categories', 'form': form})
+	
+@login_required
+def publication_sample_update_headers(request):
+	response = HttpResponse(content_type='text/csv')
+	response['Content-Disposition'] = f'attachment; filename="publication_sample_update.txt"'
+
+	writer = csv.writer(response, delimiter='\t')
+	# header
+	writer.writerow(publication_sample_assign_headers)
+	
+	return response
+
+# assign samples to publications
+@login_required
+def publication_sample_update(request):
+	if request.method == 'POST':
+		spreadsheet_form = SpreadsheetForm(request.POST, request.FILES)
+		if spreadsheet_form.is_valid():
+			spreadsheet = codecs.EncodedFile(request.FILES.get('spreadsheet'), 'utf-8', file_encoding='utf-8')
+			message = publication_sample_assign(spreadsheet, request.user)
+			message = 'Values updated. ' + message
+	else:
+		spreadsheet_form = SpreadsheetForm()
+		message = ''
+	return render(request, 'samples/spreadsheet_upload.html', { 'title': f'Assign Samples to Publications', 'form': spreadsheet_form, 'message': message} )
