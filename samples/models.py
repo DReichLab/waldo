@@ -2389,14 +2389,14 @@ class Library(Timestamped):
 			if extract_layout.powder_used_mg is not None and extract_layout.powder_used_mg > 0:
 				extract_powder = extract_layout.powder_used_mg
 		except ExtractionBatchLayout.DoesNotExist:
-			pass
+			extract_layout = None
 		if extract_powder is None: # no direct powder used for extract, infer through lysate. New samples will be in this case. 
 			if extract_layout:
 				lysis_used = get_value(extract_layout, 'lysate_volume_used', default=None)
 			else:
 				lysis_used = get_value(self, 'extract', 'lysis_volume_extracted', default=None)
 			try:
-				lysate_layout = LysateBatchLayout.objects.exclude(lysate=None).get(lysate=self.extract.lysate)
+				lysate_layout = LysateBatchLayout.objects.exclude(lysate=None).get(lysate=get_value(self.extract, 'lysate', default=None))
 				powder_for_lysate = get_value(lysate_layout, 'powder_used_mg', default=None)
 			except LysateBatchLayout.DoesNotExist:
 				powder_for_lysate = get_value(self, 'extract', 'lysate', 'powder_used_mg', default=None)
