@@ -141,7 +141,7 @@ def sample_anno(sample):
 	if sample.is_control():
 		mod_append(fields, 'Control')
 	else:
-		mod_append(fields, get_text(sample, 'group_label'))
+		mod_append(fields, get_value(sample, 'get_group_label'))
 	#Locality
 	locality = get_value(sample, 'location_fk', 'locality_str')
 	mod_append(fields, locality)
