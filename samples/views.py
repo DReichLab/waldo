@@ -606,12 +606,16 @@ def sample_summary(request):
 		form = SampleSummaryLookupForm(request.POST)
 		if form.is_valid():
 			sample = form.cleaned_data['sample']
+			external_sample = form.cleaned_data['external_id']
 			lysate = form.cleaned_data['lysate']
 			library = form.cleaned_data['library']
 			collaborator_id = form.cleaned_data['collaborator_id']
 			
 			if sample:
 				print(f'sample lookup by Reich Lab sample number')
+			elif external_sample:
+				print(f'sample lookup by external id')
+				sample = external_sample
 			elif lysate:
 				sample = lysate.powder_sample.sample
 				print(f'sample lookup by lysate FluidX {lysate.lysate_id}')
@@ -620,11 +624,12 @@ def sample_summary(request):
 				print(f'sample lookup by library FluidX {library.reich_lab_library_id}')
 			elif collaborator_id:
 				sample = Sample.objects.get(skeletal_code=collaborator_id)
-				
-			if sample:
-				reich_lab_sample_number = sample.reich_lab_id
 	else:
 		form = SampleSummaryLookupForm()
+		
+		external_sample_str = request.GET.get('external_sample', None)
+		if external_sample_str:
+			sample = Sample.objects.get(external_id=external_sample_str)
 		
 		sample_str = request.GET.get('sample', None)
 		if sample_str:
@@ -642,7 +647,7 @@ def sample_summary(request):
 		libraries = [layout.library for layout in library_layouts.all()]
 		captured_libraries = CaptureLayout.objects.filter(library__in=libraries).order_by('library__sample__reich_lab_id', 'library__extract__lysate__reich_lab_lysate_number',  'library__extract__reich_lab_extract_number', 'library__reich_lab_library_number', 'capture_batch__date')
 		
-		return render(request, 'samples/sample_summary.html', { 'form': form, 'reich_lab_sample_number': reich_lab_sample_number, 'sample': sample, 'powder_samples': powder_samples, 'lysate_layouts': lysate_layouts, 'extract_layouts': extract_layouts, 'library_layouts': library_layouts, 'captured_libraries': captured_libraries, } )
+		return render(request, 'samples/sample_summary.html', { 'form': form, 'reich_lab_sample_number': sample.reich_lab_id, 'external_id': sample.external_id, 'sample': sample, 'powder_samples': powder_samples, 'lysate_layouts': lysate_layouts, 'extract_layouts': extract_layouts, 'library_layouts': library_layouts, 'captured_libraries': captured_libraries, } )
 	else:
 		return render(request, 'samples/sample_summary.html', { 'form': form, } )
 
@@ -1731,15 +1736,21 @@ def sample_archaeology_culture(request):
 	
 @login_required
 def sample_edit(request):
-	sample_id = request.GET['reich_lab_id']
-	sample = Sample.objects.get(reich_lab_id=sample_id)
+	sample_id = request.GET.get('reich_lab_id', None)
+	if sample_id:
+		sample = Sample.objects.get(reich_lab_id=sample_id)
+		title = f'Sample S{sample_id}'
+	else:
+		external_id = request.GET.get('external_id')
+		sample = Sample.objects.get(external_id=external_id)
+		title = f'Sample {external_id}'
+		
 	if request.method == 'POST':
 		form = SampleForm(request.POST, instance=sample, user=request.user)
 		if form.is_valid():
 			form.save()
 	elif request.method == 'GET':
 		form = SampleForm(instance=sample, user=request.user)
-	title = f'Sample S{sample_id}'
 		
 	return render(request, 'samples/generic_form.html', { 'title': title, 'form': form, } )
 	
@@ -1753,10 +1764,15 @@ def sample_archaeology_anno(request):
 
 			writer = csv.writer(response, delimiter='\t')
 			for sample_str in form.cleaned_data['text'].split():
-				if sample_str.startswith('S'):
-					sample_str = sample_str[1:]
-				sample = Sample.objects.get(reich_lab_id=int(sample_str))
-				writer.writerow([f'S{sample.reich_lab_id}'] + sample_anno(sample))
+				try:
+					if sample_str.startswith('S'):
+						sample_str = sample_str[1:]
+					sample = Sample.objects.get(reich_lab_id=int(sample_str))
+					output_id = f'S{sample.reich_lab_id}'
+				except Sample.DoesNotExist:
+					sample = Sample.objects.get(external_id=sample_str)
+					output_id = sample_str
+				writer.writerow([output_id] + sample_anno(sample))
 			
 			return response
 	elif request.method == 'GET':

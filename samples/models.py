@@ -365,6 +365,7 @@ class PublicationLabels(Timestamped):
 
 class Sample(Timestamped):
 	reich_lab_id = models.PositiveIntegerField(db_index=True, null=True, help_text=' assigned when a sample is selected from the queue by the wetlab')
+	external_id = models.CharField(max_length=30, null=True, blank=True, unique=True, help_text='identifier assigned externally')
 	control = models.CharField(max_length=2, blank=True, help_text='Non-empty value indicates this is a control')
 	queue_id = models.PositiveIntegerField(db_index=True, unique=True, null=True)
 	

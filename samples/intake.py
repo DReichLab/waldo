@@ -19,13 +19,20 @@ def boolean_from_str(s):
 		return False
 	return bool(s)
 
-sample_headers = ['sample_id', 'skeletal_code', 'site_name', 'burial_code', 'periods', 'cultures', 'group_label_use_country', 'group_label_use_site', 'group_label_use_period', 'group_label_use_culture']
+sample_headers = ['sample_id', 'external_id', 'skeletal_code', 'site_name', 'burial_code', 'periods', 'cultures', 'group_label_use_country', 'group_label_use_site', 'group_label_use_period', 'group_label_use_culture']
 def sample_site_update(sample_file, user):
 	messages = []
 	with transaction.atomic():
 		for sample_row in spreadsheet_pass(sample_file):
 			row = sample_row.spreadsheet_row_to_obj()
-			sample = Sample.objects.get(reich_lab_id=reich_sample_number(row.sample_id))
+			# Reich lab IDs will already exist
+			if row.sample_id is not None and len(row.sample_id) > 0:
+				sample = Sample.objects.get(reich_lab_id=reich_sample_number(row.sample_id))
+				sample.external_id = row.external_id
+			else: # external IDs can be added
+				sample, created = Sample.objects.get_or_create(external_id=row.external_id)
+				if created:
+					messages.append(f'created sample external id: {row.external_id}')
 			
 			try:
 				site = Location.objects.get(site=row.site_name)
