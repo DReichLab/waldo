@@ -57,15 +57,13 @@ def sample_site_update(sample_file, user):
 				sample.archaeological_assemblage = arch_assemblage
 			sample.skeletal_code_renamed = row.skeletal_code
 			
-			'''
 			# TODO revisit to allow multiple
-			sample.publications.add(find_publication(row.publications.split()))
+			#sample.publications.add(find_publication(row.publications.split()))
 			# abbreviations
 			for period in row.periods.split():
 				sample.periods.add(Period.objects.get(abbreviation=period))
 			for culture in row.cultures.split():
 				sample.cultures.add(Culture.objects.get(abbreviation=culture))
-			'''
 			
 			sample.group_label_use_country = boolean_from_str(row.group_label_use_country)
 			sample.group_label_use_site = boolean_from_str(row.group_label_use_site)
