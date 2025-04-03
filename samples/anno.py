@@ -1,6 +1,7 @@
 import re
 import sys
-from samples.models import Library, Sample, Results, Collaborator, get_value
+from django.db.models import Min
+from samples.models import Library, Sample, Results, Collaborator, get_value, RadiocarbonDatedSample
 from sequencing_run.models import AnalysisFiles, MTAnalysis, ShotgunAnalysis, NuclearAnalysis
 from sequencing_run.library_id import LibraryID
 
@@ -107,14 +108,15 @@ def sample_anno(sample):
 	#Skeletal element
 	mod_append(fields, get_text(sample, 'skeletal_element'))
 	#Year this sample was first published [missing: GreenScience 2010 (Vi33.15, Vi33.26), Olalde2018 (I2657), RasmussenNature2010 (Australian)]
-	published_year = ''
-	mod_append(fields, str(published_year))
 	#Publication
 	if len(sample.publications.all()) > 0:
 		publication = ', '.join(p.title for p in sample.publications.all().order_by('-year'))
+		published_year = sample.publications.all().aggregate(Min('year', default=''))['year__min']
 	else:
 		publication = 'Unpublished'
-		
+		published_year = ''
+	
+	mod_append(fields, str(published_year))
 	mod_append(fields, publication)
 	#Representative contact
 	if(sample is not None and sample.collaborator is not None):
