@@ -30,10 +30,12 @@ def sample_site_update(sample_file, user):
 				sample = Sample.objects.get(reich_lab_id=reich_sample_number(row.sample_id))
 				sample.external_id = row.external_id
 			else: # external IDs can be added
-				sample, created = Sample.objects.get_or_create(external_id=row.external_id)
-				if created:
+				sample, sample_created = Sample.objects.get_or_create(external_id=row.external_id)
+				if sample_created:
 					messages.append(f'created sample external id: {row.external_id}')
 			
+			if len(row.site_name) == 0:
+				raise ValueError(f'Sample {row.sample_id} {row.external_id} needs a site name')
 			try:
 				site = Location.objects.get(site=row.site_name)
 			except Location.DoesNotExist:
@@ -42,6 +44,8 @@ def sample_site_update(sample_file, user):
 				site.save(save_user=user)
 				messages.append(f'created location {row.site_name}')
 			
+			if len(row.burial_code) == 0:
+				raise ValueError(f'Sample {row.sample_id} {row.external_id} needs a burial_code')
 			if sample.archaeological_assemblage:
 				if sample.archaeological_assemblage.burial_code != row.burial_code:
 					raise ValueError(f'{row.sample_id} already has burial code {sample.archaeological_assemblage.burial_code}. Did not replace with {row.burial_code}')
@@ -55,6 +59,8 @@ def sample_site_update(sample_file, user):
 					messages.append(f'created archeological assemblage {site.site}: {arch_assemblage.burial_code}')
 					arch_assemblage.save(save_user=user)
 				sample.archaeological_assemblage = arch_assemblage
+			if sample_created:
+				sample.skeletal_code = row.skeletal_code
 			sample.skeletal_code_renamed = row.skeletal_code
 			
 			# TODO revisit to allow multiple
