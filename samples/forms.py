@@ -837,7 +837,7 @@ class PublicationForm(UserModelForm):
 	publication_type = PublicationTypeSelect(queryset=PublicationType.objects.all().order_by('category'))
 	class Meta:
 		model = Publication
-		fields = ['title', 'first_author', 'year', 'journal', 'pages', 'author_list', 'url', 'publication_type']
+		fields = ['abbreviation', 'title', 'first_author', 'year', 'journal', 'pages', 'author_list', 'url', 'publication_type']
 		
 class PublicationTypeForm(UserModelForm):
 	class Meta:

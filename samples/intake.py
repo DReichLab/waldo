@@ -79,35 +79,29 @@ def sample_site_update(sample_file, user):
 				
 	return '\n'.join(messages)
 
-publication_headers = ['title', 'first_author', 'year', 'journal', 'pages', 'author_list', 'url', 'publication_type']
+publication_headers = ['abbreviation', 'title', 'first_author', 'year', 'journal', 'pages', 'author_list', 'url', 'publication_type']
 def publication_batch_update(batch_file, user):
 	messages = []
 	with transaction.atomic():
 		for row in spreadsheet_pass(batch_file):
 			pub_row = row.spreadsheet_row_to_obj()
-			publication, created = Publication.objects.get_or_create(title=pub_row.title)
+			publication, created = Publication.objects.get_or_create(abbreviation=pub_row.abbreviation)
 			for field in publication_headers[1:-1]:
 				setattr(publication, field, getattr(pub_row, field))
 			if len(pub_row.publication_type) > 0:
 				publication.publication_type = PublicationType.objects.get(category=pub_row.publication_type)
 			publication.save(save_user=user)
-			messages += [f'{publication.title} {" created" if created else " updated. "}']
+			messages += [f'{publication.abbreviation} {" created" if created else " updated. "}']
 	return '\n'.join(messages)
-	
-def find_publication(fields):
-	candidate_publications = Publication.objects.all()
-	for word in fields:
-		candidate_publications = candidate_publications.filter(Q(title__contains=word) | Q(first_author__contains=word) | Q(year__contains=word) | Q(journal__contains=word))
-	return candidate_publications.get()
 
-publication_sample_assign_headers = ['sample_id', 'publication', 'paper_individual_id', 'paper_group_label']
+publication_sample_assign_headers = ['sample_id', 'publication_abbreviation', 'paper_individual_id', 'paper_group_label']
 def publication_sample_assign(batch_file, user):
 	messages = []
 	with transaction.atomic():
 		for row in spreadsheet_pass(batch_file):
 			row_obj = row.spreadsheet_row_to_obj()
 			sample = Sample.objects.get(reich_lab_id=reich_sample_number(row_obj.sample_id))
-			publication = find_publication(row_obj.publication.split())
+			publication = Publication.objects.get(abbreviation=row_obj.publication_abbreviation)
 			pairing, created = PublicationLabels.objects.get_or_create(sample=sample, publication=publication)
 			if len(row_obj.paper_individual_id) > 0:
 				pairing.individual_id = row_obj.paper_individual_id

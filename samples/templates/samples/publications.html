@@ -44,6 +44,7 @@ table{
 <table>
 	<thead>
 	<tr>
+		<th><button class="sort" data-sort="abbreviation">Abbreviation</button></th>
 		<th><button class="sort" data-sort="title" data-default-order='asc'>Title</button></th>
 		<th><button class="sort" data-sort="first_author">First Author</button></th>
 		<th><button class="sort" data-sort="year">Year</button></th>
@@ -57,6 +58,7 @@ table{
 	<tbody class="list">
 	{% for entry in publications %}
 	<tr>
+		<td class="abbreviation"><a href="{{edit_form_link}}?pk={{entry.id}}">{{entry.abbreviation}}</a></td>
 		<td class="title"><a href="{{edit_form_link}}?pk={{entry.id}}">{{entry.title}}</a></td>
 		<td class="first_author">{{entry.first_author}}</td>
 		<td class="year">{{entry.year}}</td>
@@ -74,9 +76,9 @@ table{
 
 <script>
 	var list_options = {
-		valueNames: ['title', 'first_author', 'year', 'journal', 'pages', 'author_list', 'url', 'publication_type'
+		valueNames: ['abbreviation', 'title', 'first_author', 'year', 'journal', 'pages', 'author_list', 'url', 'publication_type'
 		],
-		searchColumns: ['title', 'first_author', 'year', 'journal', 'pages', 'author_list', 'url', 'publication_type'],
+		searchColumns: ['abbreviation', 'title', 'first_author', 'year', 'journal', 'pages', 'author_list', 'url', 'publication_type'],
 		searchDelay: 500
 	};
 	var publication_list = new List('publications_rows', list_options);
