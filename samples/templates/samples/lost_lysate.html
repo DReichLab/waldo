@@ -1,0 +1,69 @@
+{% extends "samples/reich_lab_base.html" %}
+
+{% load static %}
+
+{% block title %}{{title}}{% endblock %}
+
+{% block content %}
+<script src="{% static "samples/list.js" %}"></script>
+
+<style>
+th {
+	position: sticky;
+	top: 0;
+	background: #eee;
+}
+
+#table_wrapper{
+	overflow-x: auto;
+	overflow-y: scroll;
+	height: 85vh;
+}
+
+table{
+	border-collapse: collapse;
+	border-spacing: 0;
+	width: 100%;
+}
+</style>
+
+<hr>
+<a href="lost_lysate_update_headers">Lost lysate headers</a>
+<hr>
+<a href="lost_lysate_update">Upload lost lysate list</a>
+<hr>
+
+<div id='lost_lysate_rows'>
+
+<input class="search" placeholder="Search" />
+<div id='table_wrapper'>
+<table>
+	<thead>
+	<tr>
+		<th><button class="sort" data-sort="lysate">Lysate ID</button></th>
+		<th><button class="sort" data-sort="notes">Notes</button></th>
+	</tr>
+	</thead>
+	<tbody class="list">
+	{% for entry in layout_elements %}
+	<tr>
+		<td class="lysate">{{entry.lysate.lysate_id}}</td>
+		<td class="Notes">{{entry.notes}}</td>
+	</tr>
+	{% endfor %}
+	</tbody>
+</table>
+</div>
+</div>
+
+<script>
+	var list_options = {
+		valueNames: ['lysate', 'notes'
+		],
+		searchColumns: ['lysate', 'notes'],
+		searchDelay: 500
+	};
+	var lost_lysate_list = new List('lost_lysate_rows', list_options);
+</script>
+
+{% endblock %}

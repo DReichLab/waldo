@@ -16,7 +16,7 @@ from datetime import datetime
 
 from samples.pipeline import udg_and_strandedness
 from samples.models import Results, Library, Sample, PowderBatch, WetLabStaff, PowderSample, ControlType, ControlSet, ControlLayout, ExtractionProtocol, LysateBatch, SamplePrepQueue, PowderPrepQueue, PLATE_ROWS, LysateBatchLayout, ExtractionBatch, ExtractionBatchLayout, Lysate, LibraryBatch, LibraryBatchLayout, Extract, CaptureOrShotgunPlate, CaptureLayout, Storage, is_active_wetlab, Location
-from samples.intake import sample_site_update, sample_headers, publication_batch_update, publication_headers, publication_sample_assign, publication_sample_assign_headers
+from samples.intake import sample_site_update, sample_headers, publication_batch_update, publication_headers, publication_sample_assign, publication_sample_assign_headers, lost_lysate_headers, lost_lysate_batch_update
 from .anno import sample_anno
 from .forms import *
 from sequencing_run.models import MTAnalysis
@@ -958,23 +958,36 @@ def extract_batch_to_library_batch(request):
 
 @login_required
 @user_passes_test(is_active_wetlab, login_url='/samples/denied', redirect_field_name=None)
-def lost_lysate(request):
-	page_number = request.GET.get('page', 1)
-	page_size = request.GET.get('page_size', 25)
-	whole_queue = ExtractionBatchLayout.objects.filter(extract_batch=None).order_by('-modification_timestamp')
-	paginator = Paginator(whole_queue, page_size)
-	page_obj = paginator.get_page(page_number)
-	page_obj.ordered = True
-		
+def lost_lysate_update_headers(request):
+	response = HttpResponse(content_type='text/csv')
+	response['Content-Disposition'] = f'attachment; filename="lost_lysates.txt"'
+
+	writer = csv.writer(response, delimiter='\t')
+	# header
+	writer.writerow(lost_lysate_headers)
+	
+	return response
+
+@login_required
+@user_passes_test(is_active_wetlab, login_url='/samples/denied', redirect_field_name=None)
+def lost_lysate_update(request):
 	if request.method == 'POST':
-		formset = LostLysateFormset(request.POST, form_kwargs={'user': request.user})
-		
-		if formset.is_valid():
-			formset.save()
-		
-	elif request.method == 'GET':
-		formset = LostLysateFormset(queryset=page_obj, form_kwargs={'user': request.user})
-	return render(request, 'samples/generic_formset.html', { 'title': 'Lost Lysate', 'page_obj': page_obj, 'formset': formset, 'submit_button_text': 'Update lost lysate' } )
+		spreadsheet_form = SpreadsheetForm(request.POST, request.FILES)
+		if spreadsheet_form.is_valid():
+			spreadsheet = codecs.EncodedFile(request.FILES.get('spreadsheet'), 'utf-8', file_encoding='utf-8')
+			message = lost_lysate_batch_update(spreadsheet, request.user)
+			message = 'Values updated. ' + message
+	else:
+		spreadsheet_form = SpreadsheetForm()
+		message = ''
+	return render(request, 'samples/spreadsheet_upload.html', { 'title': f'Lost Lysates', 'form': spreadsheet_form, 'message': message} )
+
+@login_required
+@user_passes_test(is_active_wetlab, login_url='/samples/denied', redirect_field_name=None)
+def lost_lysate(request):
+	lost_lysates = ExtractionBatchLayout.objects.filter(extract_batch=None).order_by('-modification_timestamp')
+	
+	return render(request, 'samples/lost_lysate.html', { 'title': 'Lost Lysate', 'layout_elements': lost_lysates } )
 	
 @login_required
 @user_passes_test(is_active_wetlab, login_url='/samples/denied', redirect_field_name=None)

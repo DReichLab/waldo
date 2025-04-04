@@ -89,6 +89,8 @@ urlpatterns = [
 	path('sequencing_platform', views.sequencing_platform, name='sequencing_platform'),
 	
 	path('lost_powder', views.lost_powder, name='lost_powder'),
+	path('lost_lysate_update_headers', views.lost_lysate_update_headers, name='lost_lysate_update_headers'),
+	path('lost_lysate_update', views.lost_lysate_update, name='lost_lysate_update'),
 	path('lost_lysate', views.lost_lysate, name='lost_lysate'),
 	path('sample', views.sample, name='sample'),
 	path('delete_sample_photo', views.delete_sample_photo, name='delete_sample_photo'),

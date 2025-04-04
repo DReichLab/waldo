@@ -2,7 +2,7 @@ from django.db import transaction
 from django.db.models import Q
 import re
 import sys
-from samples.models import Sample, ArchaeologicalAssemblage, Location, parse_sample_string, Publication, PublicationType, PublicationLabels
+from samples.models import get_value, Sample, ArchaeologicalAssemblage, Location, parse_sample_string, Publication, PublicationType, PublicationLabels, ExtractionBatchLayout, Lysate
 from samples.spreadsheet import spreadsheet_pass
 
 def reich_sample_number(s):
@@ -110,4 +110,21 @@ def publication_sample_assign(batch_file, user):
 			pairing.save(save_user=user)
 			messages += [f'{sample.reich_lab_id} was published in {publication.title}']
 	return '\n'.join(messages)
-	
+
+lost_lysate_headers = ['lysate_id', 'notes']
+def lost_lysate_batch_update(batch_file, user):
+	messages = []
+	with transaction.atomic():
+		for row in spreadsheet_pass(batch_file):
+			row_obj = row.spreadsheet_row_to_obj()
+			lysate = Lysate.objects.get(lysate_id=row_obj.lysate_id)
+			lysate_remaining = lysate.remaining()
+			lost_lysate, created = ExtractionBatchLayout.objects.get_or_create(lysate=lysate, extract_batch=None)
+			lost_lysate.notes = row_obj.notes
+			if created:
+				lost_lysate.lysate_volume_used = lysate_remaining
+			else:
+				lost_lysate.lysate_volume_used += lysate_remaining
+			lost_lysate.save(save_user=user)
+			messages += [f'{lost_lysate.lysate.lysate_id} remaining lysate lost {lost_lysate.lysate_volume_used}. ']
+	return '\n'.join(messages)
