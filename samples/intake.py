@@ -107,6 +107,7 @@ def publication_sample_assign(batch_file, user):
 				pairing.individual_id = row_obj.paper_individual_id
 			if len(row_obj.paper_group_label) > 0:
 				pairing.group_label = row_obj.paper_group_label
+			pairing.save(save_user=user)
 			messages += [f'{sample.reich_lab_id} was published in {publication.title}']
 	return '\n'.join(messages)
 	
