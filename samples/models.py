@@ -415,6 +415,7 @@ class Sample(Timestamped):
 	special_restrictions = models.BooleanField(null=True, default=False, help_text='There are special restrictions on the use of this sample.')
 	
 	group_label_use_country = models.BooleanField(default=True)
+	group_label_use_level_1 = models.BooleanField(default=True)
 	group_label_use_site = models.BooleanField(default=True)
 	group_label_use_period = models.BooleanField(default=True)
 	group_label_use_culture = models.BooleanField(default=True)
@@ -481,6 +482,10 @@ class Sample(Timestamped):
 			country = self.get_country()
 			if country is not None:
 				parts += [country.country_name]
+		if self.group_label_use_level_1:
+			level_1 = get_value(self, 'location_fk', 'level_1', default=None)
+			if level_1 is not None:
+				parts += [level_1]
 		if self.group_label_use_site:
 			site = get_value(self.location_fk, 'site', default=None)
 			if site is not None:
