@@ -811,8 +811,8 @@ class CollaboratorSelect(ModelChoiceField):
 		
 class SampleForm(UserModelForm):
 	skeletal_element_category = SkeletalElementCategorySelect(queryset=SkeletalElementCategory.objects.filter().order_by('sort_order'))
-	periods = forms.MultipleChoiceField(required=False, widget=forms.CheckboxSelectMultiple, choices=[(x, x.abbreviation) for x in Period.objects.all()])
-	cultures = forms.MultipleChoiceField(required=False, widget=forms.CheckboxSelectMultiple, choices=[(x, x.abbreviation) for x in Culture.objects.all()])
+	# periods = forms.MultipleChoiceField(required=False, widget=forms.CheckboxSelectMultiple, choices=[(x, x.abbreviation) for x in Period.objects.all()])
+	# cultures = forms.MultipleChoiceField(required=False, widget=forms.CheckboxSelectMultiple, choices=[(x, x.abbreviation) for x in Culture.objects.all()])
 	# publications = forms.MultipleChoiceField(required=False, widget=forms.CheckboxSelectMultiple, choices=[(x, x.title) for x in Publication.objects.all()])
 	
 	collaborator = CollaboratorSelect(queryset=Collaborator.objects.all())
@@ -821,12 +821,14 @@ class SampleForm(UserModelForm):
 	
 	class Meta:
 		model = Sample
-		fields = ['reich_lab_id', 'external_id', 'special_restrictions', 'individual_id', 'collaborator', 'collection_keeper', 'excavator', 'skeletal_element', 'skeletal_element_category', 'skeletal_code', 'skeletal_code_renamed', 'sample_date', 'average_bp_date', 'date_fix_flag', 'dating_status', 'burial_subcode', 'accession_number', 'morphological_sex', 'morphological_age', 'morphological_age_range', 'approved_negative_results', 'approved_photo_sharing', 'outlier', 'notes', 'notes_2', 'loan_expiration_date', 'group_label_use_country', 'group_label_use_level_1', 'group_label_use_site', 'group_label_use_period', 'group_label_use_culture', 'periods', 'cultures']
+		fields = ['reich_lab_id', 'external_id', 'special_restrictions', 'individual_id', 'collaborator', 'collection_keeper', 'excavator', 'skeletal_element', 'skeletal_element_category', 'skeletal_code', 'skeletal_code_renamed', 'sample_date', 'average_bp_date', 'date_fix_flag', 'dating_status', 'burial_subcode', 'accession_number', 'morphological_sex', 'morphological_age', 'morphological_age_range', 'approved_negative_results', 'approved_photo_sharing', 'outlier', 'notes', 'notes_2', 'loan_expiration_date', 'group_label_use_country', 'group_label_use_level_1', 'group_label_use_site', 'group_label_use_period', 'group_label_use_culture'] #, 'periods', 'cultures']
 		
 	def __init__(self, *args, **kwargs):
 		super(SampleForm, self).__init__(*args, **kwargs)
 		for option in ['reich_lab_id', 'special_restrictions', 'skeletal_code', 'collaborator', 'collection_keeper', 'excavator', 'loan_expiration_date']:
 			self.fields[option].disabled = True
+			self.fields[option].required = False
+		for option in ['average_bp_date']:
 			self.fields[option].required = False
 			
 class PublicationTypeSelect(ModelChoiceField):
