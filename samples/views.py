@@ -647,7 +647,7 @@ def sample_summary(request):
 		libraries = [layout.library for layout in library_layouts.all()]
 		captured_libraries = CaptureLayout.objects.filter(library__in=libraries).order_by('library__sample__reich_lab_id', 'library__extract__lysate__reich_lab_lysate_number',  'library__extract__reich_lab_extract_number', 'library__reich_lab_library_number', 'capture_batch__date')
 		
-		return render(request, 'samples/sample_summary.html', { 'form': form, 'reich_lab_sample_number': sample.reich_lab_id, 'external_id': sample.external_id, 'sample': sample, 'powder_samples': powder_samples, 'lysate_layouts': lysate_layouts, 'extract_layouts': extract_layouts, 'library_layouts': library_layouts, 'captured_libraries': captured_libraries, } )
+		return render(request, 'samples/sample_summary.html', { 'form': form, 'reich_lab_sample_number': sample.reich_lab_id, 'external_id': sample.external_id, 'sample': sample, 'date_entries': sample.dates(), 'powder_samples': powder_samples, 'lysate_layouts': lysate_layouts, 'extract_layouts': extract_layouts, 'library_layouts': library_layouts, 'captured_libraries': captured_libraries, } )
 	else:
 		return render(request, 'samples/sample_summary.html', { 'form': form, } )
 

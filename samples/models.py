@@ -295,6 +295,30 @@ class Location(Timestamped):
 			s += f' ({", ".join(levels)})'
 		return s
 	
+# for periods and cultures
+# return date BP (1950) and date interval in CE
+def date_range_elements(d):
+	def date_plus_era_label(x):
+		return f'{abs(x)} {"CE" if x >= 0 else "BCE"}'
+	
+	if d.date_start and d.date_end:
+		date_center = int((d.date_start + d.date_end) / 2)
+		date_bp = 1950 - date_center
+		label_start = ''
+		if d.date_end > 0:
+			label_end = 'CE'
+			if d.date_start <= 0:
+				label_start = 'BCE '
+		else:
+			label_end = 'BCE'
+			
+		date_range_string = f'{abs(d.date_start)} {label_start}- {abs(d.date_end)} {label_end}'
+	else:
+		date_bp = ''
+		date_range_string = ''
+	
+	return date_bp, date_range_string
+	
 class Period(Timestamped):
 	abbreviation = models.CharField(max_length=50, unique=True)
 	text = models.TextField(blank=True)
@@ -363,6 +387,13 @@ class PublicationLabels(Timestamped):
 	publication = models.ForeignKey(Publication, on_delete=models.PROTECT)
 	individual_id = models.CharField(max_length=50, blank=True, help_text='Individual ID in paper')
 	group_label = models.CharField(max_length=200, blank=True, help_text='Group label for sample in paper')
+	
+class SampleDate():
+	def __init__(self, source, date_bp, date_stdev=None, date_range=None):
+		self.source = source
+		self.date_bp = date_bp
+		self.date_stdev = date_stdev
+		self.date_range = date_range
 
 class Sample(Timestamped):
 	reich_lab_id = models.PositiveIntegerField(db_index=True, null=True, help_text=' assigned when a sample is selected from the queue by the wetlab')
@@ -505,6 +536,28 @@ class Sample(Timestamped):
 			if len(culture_s) > 0:
 				parts += [culture_s]
 		return '_'.join(parts)
+	
+	# priority for dates, in descending order
+	# radiocarbon dating of sample
+	# radiocarbon dating of archaeological_assemblage
+	# culture
+	# period
+	# return a list of SampleDates
+	def dates(self):
+		date_list = []
+		direct_radiocarbon_dates = RadiocarbonDatedSample.objects.filter(sample=self)
+		for d in direct_radiocarbon_dates:
+			date_list += [SampleDate('direct radiocarbon', d.age_14c_bp, d.age_14c_bp_plus_minus)]
+		indirect_radiocarbon_dates = RadiocarbonDatedSample.objects.exclude(archaeological_assemblage=None).filter(archaeological_assemblage=self.archaeological_assemblage)
+		for d in indirect_radiocarbon_dates:
+			date_list += [SampleDate('indirect radiocarbon', d.age_14c_bp, d.age_14c_bp_plus_minus)]
+		for d in self.periods.all():
+			date_bp, date_range = date_range_elements(d)
+			date_list += [SampleDate(d.abbreviation, date_bp, '', date_range)]
+		for d in self.cultures.all():
+			date_bp, date_range = date_range_elements(d)
+			date_list += [SampleDate(d.abbreviation, date_bp, '', date_range)]
+		return date_list
 		
 class SamplePrepProtocol(Timestamped):
 	preparation_method = models.CharField(max_length=50, help_text='Method used to produce bone powder')

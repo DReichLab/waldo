@@ -128,7 +128,12 @@ def sample_anno(sample):
 	#Completeness of Date Information
 	mod_append(fields, get_text(sample, 'date_fix_flag'))
 	#Average of 95.4% date range in calBP (defined as 1950 CE)
-	mod_append(fields, get_number(sample, 'average_bp_date', 0))
+	bp_date = get_number(sample, 'average_bp_date', 0)
+	if bp_date == '':
+		dates = sample.dates()
+		if len(dates) > 0:
+			bp_date = dates[0].bp_date
+	mod_append(fields, bp_date)
 	#Date: One of two formats. (Format 1) 95.4% CI calibrated radiocarbon age (Conventional Radiocarbon Age BP, Lab number) e.g. 5983-5747 calBCE (6980±50 BP, Beta-226472). (Format 2) Archaeological context date, e.g. 2500-1700 BCE
 	mod_append(fields, get_text(sample, 'sample_date'))
 	# Age at death, Morphological sex from physical anthropology
