@@ -421,6 +421,8 @@ class Sample(Timestamped):
 	skeletal_code_renamed = models.TextField(blank=True, help_text='Sample identification code assigned by the collaborator')
 	archaeological_assemblage = models.ForeignKey(ArchaeologicalAssemblage, on_delete=models.PROTECT, null=True)
 	burial_subcode = models.CharField(max_length=50, blank=True, help_text='For differentiating separate individuals in the same burial/archaeological assemblage')
+	excavation_year = models.PositiveSmallIntegerField(null=True, help_text='The year this sample was excavated.')
+	excavation_grid = models.TextField(blank=True, help_text='Sector unit and depth describing the particular part of the excavation area where this sample was found.')
 	sample_date = models.TextField(blank=True, help_text='Age of sample; either a radiocarbon date or a date interval.')
 	average_bp_date = models.FloatField(null=True, help_text='Average Before Present date, calculated from average of calibrated date range after conversion to BP dates')
 	date_fix_flag = models.TextField(help_text='Flag for any issues with the date information submitted by the collaborator', blank=True)
