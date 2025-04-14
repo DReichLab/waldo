@@ -60,7 +60,7 @@ def sample_site_update(sample_file, user):
 					arch_assemblage.save(save_user=user)
 				sample.archaeological_assemblage = arch_assemblage
 			if sample_created:
-				sample.skeletal_code_renamed = row.skeletal_code
+				sample.collaborator_code = row.skeletal_code
 			sample.skeletal_code = row.skeletal_code
 			
 			# TODO revisit to allow multiple

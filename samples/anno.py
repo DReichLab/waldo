@@ -76,14 +76,14 @@ def reformat_interval(interval_string):
 def sample_anno(sample):
 	fields = []
 	#Skeletal code
-	# Build a string like "skeletal_code_renamed (skeletal_code, accession_number, burial_code, burial_subcode)"
+	# Build a string like "collaborator_code (skeletal_code, accession_number, burial_code, burial_subcode)"
 	# But, with no blanks and no repeated information
 	skeletal_code = get_text(sample, 'skeletal_code')
-	skeletal_code_renamed = get_text(sample, 'skeletal_code_renamed')
+	collaborator_code = get_text(sample, 'collaborator_code')
 	accession_number = get_text(sample, 'accession_number')
 	burial_code = get_value(sample, 'archaeological_assemblage', 'burial_code')
 	burial_subcode = get_value(sample, 'burial_subcode')
-	skeletal_code_possible_name_elements = [skeletal_code_renamed, skeletal_code, accession_number, burial_code, burial_subcode]
+	skeletal_code_possible_name_elements = [collaborator_code, skeletal_code, accession_number, burial_code, burial_subcode]
 	skeletal_code_name_elements = []
 	for candidate in skeletal_code_possible_name_elements:
 		if candidate is not None and len(candidate) > 0: # not empty

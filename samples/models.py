@@ -418,7 +418,7 @@ class Sample(Timestamped):
 	skeletal_element = models.CharField(max_length=50, blank=True, help_text='Type of bone sample submitted for aDNA analysis')
 	skeletal_element_category = models.ForeignKey(SkeletalElementCategory, null=True, on_delete=models.PROTECT)
 	skeletal_code = models.CharField(max_length=150, blank=True, help_text='Sample identification code assigned by the Reich Lab')
-	skeletal_code_renamed = models.TextField(blank=True, help_text='Sample identification code assigned by the collaborator')
+	collaborator_code = models.TextField(blank=True, help_text='Sample identification code assigned by the collaborator')
 	archaeological_assemblage = models.ForeignKey(ArchaeologicalAssemblage, on_delete=models.PROTECT, null=True)
 	burial_subcode = models.CharField(max_length=50, blank=True, help_text='For differentiating separate individuals in the same burial/archaeological assemblage')
 	excavation_year = models.PositiveSmallIntegerField(null=True, help_text='The year this sample was excavated.')
