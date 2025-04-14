@@ -825,7 +825,7 @@ class SampleForm(UserModelForm):
 		
 	def __init__(self, *args, **kwargs):
 		super(SampleForm, self).__init__(*args, **kwargs)
-		for option in ['reich_lab_id', 'special_restrictions', 'skeletal_code', 'collaborator', 'collection_keeper', 'excavator', 'loan_expiration_date']:
+		for option in ['reich_lab_id', 'special_restrictions', 'skeletal_code_renamed', 'collaborator', 'collection_keeper', 'excavator', 'loan_expiration_date']:
 			self.fields[option].disabled = True
 			self.fields[option].required = False
 		for option in ['average_bp_date']:
