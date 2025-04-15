@@ -2,7 +2,7 @@ from django.db import transaction
 from django.db.models import Q
 import re
 import sys
-from samples.models import get_value, Sample, ArchaeologicalAssemblage, Location, parse_sample_string, Publication, PublicationType, PublicationLabels, ExtractionBatchLayout, Lysate
+from samples.models import get_value, Sample, ArchaeologicalAssemblage, Location, parse_sample_string, Publication, PublicationType, PublicationLabels, ExtractionBatchLayout, Lysate, Period, Culture
 from samples.spreadsheet import spreadsheet_pass
 
 def reich_sample_number(s):
