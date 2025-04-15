@@ -1783,7 +1783,7 @@ def sample_archaeology_anno(request):
 						sample_str = sample_str[1:]
 					sample = Sample.objects.get(reich_lab_id=int(sample_str))
 					output_id = f'S{sample.reich_lab_id}'
-				except Sample.DoesNotExist:
+				except (Sample.DoesNotExist, ValueError):
 					sample = Sample.objects.get(external_id=sample_str)
 					output_id = sample_str
 				writer.writerow([output_id] + sample_anno(sample))

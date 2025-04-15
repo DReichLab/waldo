@@ -33,6 +33,7 @@ def sample_site_update(sample_file, user):
 				sample, sample_created = Sample.objects.get_or_create(external_id=row.external_id)
 				if sample_created:
 					messages.append(f'created sample external id: {row.external_id}')
+				sample.master_id = row.external_id
 			
 			if len(row.site_name) == 0:
 				raise ValueError(f'Sample {row.sample_id} {row.external_id} needs a site name')
