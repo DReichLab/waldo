@@ -24,6 +24,7 @@ from .validation import *
 
 import decimal
 import re, string
+from unidecode import unidecode
 
 REICH_LAB = 'Reich Lab'
 
@@ -509,6 +510,8 @@ class Sample(Timestamped):
 		else:
 			return 0
 			
+	# retain only - and _
+	group_label_char_to_remove = string.punctuation.translate(str.maketrans('', '', '-_')) + string.whitespace
 	def get_group_label(self):
 		parts = []
 		if self.group_label_use_country:
@@ -525,19 +528,19 @@ class Sample(Timestamped):
 				parts += [site]
 		if self.group_label_use_period:
 			if len(self.periods.all()) > 0:
-				period_s = '-'.join([period.abbreviation for period in self.periods.all()])
+				period_s = '_'.join([period.abbreviation for period in self.periods.all()])
 			else:
 				period_s = self.period
 			if len(period_s) > 0:
 				parts += [period_s]
 		if self.group_label_use_culture:
 			if len(self.cultures.all()) > 0:
-				culture_s = '-'.join([culture.abbreviation for culture in self.cultures.all()])
+				culture_s = '_'.join([culture.abbreviation for culture in self.cultures.all()])
 			else:
 				culture_s = self.culture
 			if len(culture_s) > 0:
 				parts += [culture_s]
-		return '_'.join(parts)
+		return unidecode('_'.join(parts).translate(str.maketrans('', '', Sample.group_label_char_to_remove)))
 	
 	# priority for dates, in descending order
 	# radiocarbon dating of sample
