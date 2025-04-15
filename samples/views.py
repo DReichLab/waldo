@@ -555,12 +555,13 @@ def reich_lab_sample_number_from_string(s):
 		return int(s)
 
 @login_required
-@user_passes_test(is_active_wetlab, login_url='/samples/denied', redirect_field_name=None)
 def sample(request):
 	form = SampleImageForm()
+	photo_access = is_active_wetlab(request.user)
+	
 	if request.method == 'POST':
 		form = SampleImageForm(request.POST, request.FILES)
-		if form.is_valid():
+		if form.is_valid() and photo_access:
 			reich_lab_sample_number = reich_lab_sample_number_from_string(request.GET['sample'])
 			sample_control_letter = request.GET.get('sample_control', '')
 			print(reich_lab_sample_number)
@@ -579,7 +580,7 @@ def sample(request):
 	collaborator_id = sample.skeletal_code
 	
 	images = photo_list(reich_lab_sample_number)
-	return render(request, 'samples/sample.html', { 'reich_lab_sample_number': reich_lab_sample_number, 'collaborator_id': collaborator_id, 'images': images, 'form': form} )
+	return render(request, 'samples/sample.html', { 'reich_lab_sample_number': reich_lab_sample_number, 'collaborator_id': collaborator_id, 'images': images, 'form': form, 'photo_access': photo_access} )
 	
 @login_required
 @user_passes_test(is_active_wetlab, login_url='/samples/denied', redirect_field_name=None)
