@@ -290,7 +290,7 @@ class Location(Timestamped):
 		for level in [self.level_1, self.level_2, self.level_3, self.level_4, self.level_5]:
 			if len(level) > 0:
 				levels += [level]
-		s = get_value(self, 'country', 'country_name')
+		s = self.site
 		if len(levels) > 0:
 			s += f' ({", ".join(levels)})'
 		return s
