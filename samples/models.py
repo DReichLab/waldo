@@ -323,6 +323,7 @@ def date_range_elements(d):
 class Period(Timestamped):
 	abbreviation = models.CharField(max_length=50, unique=True)
 	text = models.TextField(blank=True)
+	region = models.CharField(max_length=50, blank=True)
 	description = models.TextField(blank=True)
 	date_range = models.CharField(max_length=50, blank=True)
 	date_start = models.IntegerField(null=True, help_text=CE_DATE_HELP)
@@ -332,6 +333,7 @@ class Period(Timestamped):
 class Culture(Timestamped):
 	abbreviation = models.CharField(max_length=50, unique=True)
 	text = models.TextField(blank=True)
+	region = models.CharField(max_length=50, blank=True)
 	description = models.TextField(blank=True)
 	date_range = models.CharField(max_length=50, blank=True)
 	date_start = models.IntegerField(null=True, help_text=CE_DATE_HELP)
@@ -431,7 +433,7 @@ class Sample(Timestamped):
 	period = models.CharField(max_length=50, blank=True, help_text='Archaeologic period component of group label of an Individual')
 	culture = models.CharField(max_length=50, blank=True, help_text='Archaeologic culture component of group label of an Individual')
 	outlier = models.CharField(max_length=50, blank=True, help_text='Outlier designation component of group label of an Individual')
-	notes = models.TextField(blank=True, help_text='Any notes from the collaborator about the individual, sample, site, etc.')
+	notes = models.TextField(blank=True, help_text='technician notes')
 	notes_2 = models.TextField(blank=True, help_text='Any notes from the collaborator about the individual, sample, site, etc.')
 	collaborators = models.TextField(max_length=300, blank=True, help_text='List of additional collaborators asociated with the sample or reference if sample has been published') # convert to many-to-many field
 	morphological_sex = models.CharField(max_length=20, blank=True, help_text='Sex as determined by skeletal remains') # TODO enumerated? 

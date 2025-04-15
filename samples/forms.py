@@ -784,7 +784,7 @@ class ArchaeologicalAssemblageForm(UserModelForm):
 class PeriodForm(UserModelForm):
 	class Meta:
 		model = Period
-		fields = ['abbreviation', 'text', 'description', 'date_range', 'date_start', 'date_end', 'date_accuracy']
+		fields = ['abbreviation', 'text', 'region', 'description', 'date_range', 'date_start', 'date_end', 'date_accuracy']
 	
 	def __init__(self, *args, **kwargs):
 		super(PeriodForm, self).__init__(*args, **kwargs)
@@ -798,7 +798,7 @@ class PeriodProtocolSelect(ModelChoiceField):
 class CultureForm(UserModelForm):
 	class Meta:
 		model = Culture
-		fields = ['abbreviation', 'text', 'description', 'date_range', 'date_start', 'date_end', 'date_accuracy']
+		fields = ['abbreviation', 'text', 'region', 'description', 'date_range', 'date_start', 'date_end', 'date_accuracy']
 		
 	def __init__(self, *args, **kwargs):
 		super(CultureForm, self).__init__(*args, **kwargs)
