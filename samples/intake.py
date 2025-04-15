@@ -97,13 +97,18 @@ def publication_batch_update(batch_file, user):
 			messages += [f'{publication.abbreviation} {" created" if created else " updated. "}']
 	return '\n'.join(messages)
 
-publication_sample_assign_headers = ['sample_id', 'publication_abbreviation', 'paper_individual_id', 'paper_group_label']
+publication_sample_assign_headers = ['sample_id', 'external_id', 'publication_abbreviation', 'paper_individual_id', 'paper_group_label']
 def publication_sample_assign(batch_file, user):
 	messages = []
 	with transaction.atomic():
 		for row in spreadsheet_pass(batch_file):
 			row_obj = row.spreadsheet_row_to_obj()
-			sample = Sample.objects.get(reich_lab_id=reich_sample_number(row_obj.sample_id))
+			if len(row_obj.sample_id) > 0:
+				sample = Sample.objects.get(reich_lab_id=reich_sample_number(row_obj.sample_id))
+				sample_label = sample.reich_lab_id
+			else:
+				sample = Sample.objects.get(external_id=row_obj.external_id)
+				sample_label = sample.external_id
 			publication = Publication.objects.get(abbreviation=row_obj.publication_abbreviation)
 			pairing, created = PublicationLabels.objects.get_or_create(sample=sample, publication=publication)
 			if len(row_obj.paper_individual_id) > 0:
@@ -111,7 +116,7 @@ def publication_sample_assign(batch_file, user):
 			if len(row_obj.paper_group_label) > 0:
 				pairing.group_label = row_obj.paper_group_label
 			pairing.save(save_user=user)
-			messages += [f'{sample.reich_lab_id} was published in {publication.title}']
+			messages += [f'{sample_label} was published in {publication.title}']
 	return '\n'.join(messages)
 
 lost_lysate_headers = ['lysate_id', 'notes']
