@@ -96,8 +96,8 @@ def sample_anno(sample):
 					add = False
 					skeletal_code_name_elements[index] = candidate
 					break
-				if add:
-					skeletal_code_name_elements.append(element)
+			if add:
+				skeletal_code_name_elements.append(candidate)
 	skeletal_code_final = ''
 	if len(skeletal_code_name_elements) >= 1:
 		skeletal_code_final = skeletal_code_name_elements[0]
