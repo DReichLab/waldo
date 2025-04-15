@@ -66,8 +66,11 @@ def sample_site_update(sample_file, user):
 			# TODO revisit to allow multiple
 			#sample.publications.add(find_publication(row.publications.split()))
 			# abbreviations
+			# clear periods and cultures and replace with those listed
+			sample.periods.clear()
 			for period in row.periods.split():
 				sample.periods.add(Period.objects.get(abbreviation=period))
+			sample.cultures.clear()
 			for culture in row.cultures.split():
 				sample.cultures.add(Culture.objects.get(abbreviation=culture))
 			
