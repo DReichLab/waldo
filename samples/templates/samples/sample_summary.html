@@ -51,6 +51,7 @@
 <table>
 <tr>
 	<th>Source</th>
+	<th>Label</th>
 	<th>Date (BP)</th>
 	<th>Date stdev</th>
 	<th>Date range</th>
@@ -58,6 +59,7 @@
 {% for date_entry in date_entries %}
 <tr>
 	<td>{{date_entry.source}}</td>
+	<td>{{date_entry.label}}</td>
 	<td>{{date_entry.date_bp}}</td>
 	<td>{{date_entry.date_stdev}}</td>
 	<td>{{date_entry.date_range}}</td>

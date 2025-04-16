@@ -392,8 +392,9 @@ class PublicationLabels(Timestamped):
 	group_label = models.CharField(max_length=200, blank=True, help_text='Group label for sample in paper')
 	
 class SampleDate():
-	def __init__(self, source, date_bp, date_stdev=None, date_range=None):
+	def __init__(self, source, label, date_bp, date_stdev=None, date_range=None):
 		self.source = source
+		self.label = label
 		self.date_bp = date_bp
 		self.date_stdev = date_stdev
 		self.date_range = date_range
@@ -554,16 +555,16 @@ class Sample(Timestamped):
 		date_list = []
 		direct_radiocarbon_dates = RadiocarbonDatedSample.objects.filter(sample=self)
 		for d in direct_radiocarbon_dates:
-			date_list += [SampleDate('direct radiocarbon', d.age_14c_bp, d.age_14c_bp_plus_minus)]
+			date_list += [SampleDate('direct radiocarbon', '', d.age_14c_bp, d.age_14c_bp_plus_minus)]
 		indirect_radiocarbon_dates = RadiocarbonDatedSample.objects.exclude(archaeological_assemblage=None).filter(archaeological_assemblage=self.archaeological_assemblage)
 		for d in indirect_radiocarbon_dates:
-			date_list += [SampleDate('indirect radiocarbon', d.age_14c_bp, d.age_14c_bp_plus_minus)]
+			date_list += [SampleDate('indirect radiocarbon', '', d.age_14c_bp, d.age_14c_bp_plus_minus)]
 		for d in self.periods.all():
 			date_bp, date_range = date_range_elements(d)
-			date_list += [SampleDate(d.abbreviation, date_bp, '', date_range)]
+			date_list += [SampleDate('Period', d.abbreviation, date_bp, '', date_range)]
 		for d in self.cultures.all():
 			date_bp, date_range = date_range_elements(d)
-			date_list += [SampleDate(d.abbreviation, date_bp, '', date_range)]
+			date_list += [SampleDate('Culture', d.abbreviation, date_bp, '', date_range)]
 		return date_list
 		
 class SamplePrepProtocol(Timestamped):
