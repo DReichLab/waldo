@@ -29,6 +29,7 @@ def sample_site_update(sample_file, user):
 			if row.sample_id is not None and len(row.sample_id) > 0:
 				sample = Sample.objects.get(reich_lab_id=reich_sample_number(row.sample_id))
 				sample.external_id = row.external_id
+				sample_created = False
 			else: # external IDs can be added
 				sample, sample_created = Sample.objects.get_or_create(external_id=row.external_id)
 				if sample_created:
