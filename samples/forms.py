@@ -811,6 +811,7 @@ class CollaboratorSelect(ModelChoiceField):
 		
 class SampleForm(UserModelForm):
 	skeletal_element_category = SkeletalElementCategorySelect(queryset=SkeletalElementCategory.objects.filter().order_by('sort_order'))
+	collaborator_code = forms.CharField(required=False, widget=forms.Textarea(attrs={'rows': 1})) 
 	# periods = forms.MultipleChoiceField(required=False, widget=forms.CheckboxSelectMultiple, choices=[(x, x.abbreviation) for x in Period.objects.all()])
 	# cultures = forms.MultipleChoiceField(required=False, widget=forms.CheckboxSelectMultiple, choices=[(x, x.abbreviation) for x in Culture.objects.all()])
 	# publications = forms.MultipleChoiceField(required=False, widget=forms.CheckboxSelectMultiple, choices=[(x, x.title) for x in Publication.objects.all()])
@@ -825,7 +826,7 @@ class SampleForm(UserModelForm):
 		
 	def __init__(self, *args, **kwargs):
 		super(SampleForm, self).__init__(*args, **kwargs)
-		for option in ['reich_lab_id', 'special_restrictions', 'collaborator_code', 'collaborator', 'collection_keeper', 'excavator', 'loan_expiration_date']:
+		for option in ['reich_lab_id', 'special_restrictions', 'collaborator', 'collection_keeper', 'excavator', 'loan_expiration_date']:
 			self.fields[option].disabled = True
 			self.fields[option].required = False
 		for option in ['average_bp_date']:
