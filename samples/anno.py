@@ -110,7 +110,7 @@ def sample_anno(sample):
 	#Year this sample was first published [missing: GreenScience 2010 (Vi33.15, Vi33.26), Olalde2018 (I2657), RasmussenNature2010 (Australian)]
 	#Publication
 	if len(sample.publications.all()) > 0:
-		publication = ', '.join(p.title for p in sample.publications.all().order_by('-year'))
+		publication = ', '.join(p.abbreviation for p in sample.publications.all().order_by('-year'))
 		published_year = sample.publications.all().aggregate(Min('year', default=''))['year__min']
 	else:
 		publication = 'Unpublished'
