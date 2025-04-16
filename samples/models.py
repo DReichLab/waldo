@@ -555,10 +555,10 @@ class Sample(Timestamped):
 		date_list = []
 		direct_radiocarbon_dates = RadiocarbonDatedSample.objects.filter(sample=self)
 		for d in direct_radiocarbon_dates:
-			date_list += [SampleDate('direct radiocarbon', '', d.age_14c_bp, d.age_14c_bp_plus_minus)]
+			date_list += [SampleDate('direct radiocarbon', d.radiocarbon_shipment.analysis_lab, d.age_14c_bp, d.age_14c_bp_plus_minus)]
 		indirect_radiocarbon_dates = RadiocarbonDatedSample.objects.exclude(archaeological_assemblage=None).filter(archaeological_assemblage=self.archaeological_assemblage)
 		for d in indirect_radiocarbon_dates:
-			date_list += [SampleDate('indirect radiocarbon', '', d.age_14c_bp, d.age_14c_bp_plus_minus)]
+			date_list += [SampleDate('indirect radiocarbon', d.radiocarbon_shipment.analysis_lab, d.age_14c_bp, d.age_14c_bp_plus_minus)]
 		for d in self.periods.all():
 			date_bp, date_range = date_range_elements(d)
 			date_list += [SampleDate('Period', d.abbreviation, date_bp, '', date_range)]
