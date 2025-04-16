@@ -519,26 +519,26 @@ class Sample(Timestamped):
 		parts = []
 		if self.group_label_use_country:
 			country = self.get_country()
-			if country is not None:
+			if country is not None and len(country.country_name) > 0:
 				parts += [country.country_name]
 		if self.group_label_use_level_1:
 			level_1 = get_value(self, 'location_fk', 'level_1', default=None)
-			if level_1 is not None:
+			if level_1 is not None and len(level_1) > 0:
 				parts += [level_1]
 		if self.group_label_use_site:
 			site = get_value(self.location_fk, 'site', default=None)
-			if site is not None:
+			if site is not None and len(site) > 0:
 				parts += [site]
 		if self.group_label_use_period:
 			if len(self.periods.all()) > 0:
-				period_s = '_'.join([period.abbreviation for period in self.periods.all()])
+				period_s = '_'.join([period.abbreviation for period in self.periods.filter(abbreviation__length__gt=0)])
 			else:
 				period_s = self.period
 			if len(period_s) > 0:
 				parts += [period_s]
 		if self.group_label_use_culture:
 			if len(self.cultures.all()) > 0:
-				culture_s = '_'.join([culture.abbreviation for culture in self.cultures.all()])
+				culture_s = '_'.join([culture.abbreviation for culture in self.cultures.filter(abbreviation__length__gt=0)])
 			else:
 				culture_s = self.culture
 			if len(culture_s) > 0:
