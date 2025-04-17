@@ -38,7 +38,13 @@
 	<td>{{ sample.collaborator.name }}</td>
 	<td>{{ sample.collaborator_code }}</td>
 	<td>{{ sample.skeletal_code }}</td>
-	<td><a href="sample_archaeological_assemblage?archaeological_assemblage_pk={{sample.archaeological_assemblage.id}}">{{ sample.archaeological_assemblage.burial_code }}</a></td>
+	<td><a href="sample_archaeological_assemblage?archaeological_assemblage_pk={{sample.archaeological_assemblage.id}}">
+	{% if sample.archaeological_assemblage.burial_code == '' %}
+	[BLANK]
+	{% else %}
+	{{ sample.archaeological_assemblage.burial_code }}
+	{% endif %}
+	</a></td>
 	<td><a href="sample_archaeology_site?site_pk={{sample.archaeological_assemblage.site.id}}">{{ sample.archaeological_assemblage.site.site }}</a></td>
 	<td>{{ sample.individual_id }}</td>
 	<td>{{ sample.location_str }}</td>
