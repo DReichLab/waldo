@@ -150,15 +150,15 @@ def sample_anno(sample):
 	else:
 		mod_append(fields, get_value(sample, 'get_group_label'))
 	#Locality
-	locality = get_value(sample, 'location_fk', 'locality_str')
+	locality = get_value(sample, 'location_str')
 	mod_append(fields, locality)
 	#Country
 	country = sample.get_country() if sample else None
 	mod_append(fields, get_text(country, 'country_name'))
 	#Lat.
-	mod_append(fields, get_text(sample.location_fk, 'latitude') if sample else '')
+	mod_append(fields, get_text(sample, 'get_site', 'latitude') if sample else '')
 	#Long
-	mod_append(fields, get_text(sample.location_fk, 'longitude') if sample else '')
+	mod_append(fields, get_text(sample, 'get_site', 'longitude') if sample else '')
 	
 	return fields
 

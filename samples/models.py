@@ -481,14 +481,21 @@ class Sample(Timestamped):
 		else:
 			return 0
 			
+	def get_site(self):
+		site = get_value(self.archaeological_assemblage, 'site', default=None)
+		if site:
+			return site
+		return self.location_fk
+			
 	def get_country(self):
-		try:
-			return self.location_fk.country
-		except:
-			return None
+		country = get_value(self.archaeological_assemblage, 'site', 'country', default=None)
+		if country:
+			return country
+		country = get_value(self.location_fk, 'country')
+		return country
 			
 	def location_str(self):
-		return get_value(self, 'location_fk', 'locality_str')
+		return get_value(self, 'get_site', 'locality_str')
 			
 	# 1. Used to generate extract object for an external sample received as an extract.
 	# 2. Used for library negative controls starting at the library batch step. 
@@ -522,11 +529,11 @@ class Sample(Timestamped):
 			if country is not None and len(country.country_name) > 0:
 				parts += [country.country_name]
 		if self.group_label_use_level_1:
-			level_1 = get_value(self, 'location_fk', 'level_1', default=None)
+			level_1 = get_value(self, 'get_site', 'level_1', default=None)
 			if level_1 is not None and len(level_1) > 0:
 				parts += [level_1]
 		if self.group_label_use_site:
-			site = get_value(self.location_fk, 'site', default=None)
+			site = get_value(self, 'get_site', 'site', default=None)
 			if site is not None and len(site) > 0:
 				parts += [site]
 		if self.group_label_use_period:
