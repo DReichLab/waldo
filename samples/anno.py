@@ -110,14 +110,22 @@ def sample_anno(sample):
 	#Year this sample was first published [missing: GreenScience 2010 (Vi33.15, Vi33.26), Olalde2018 (I2657), RasmussenNature2010 (Australian)]
 	#Publication
 	if len(sample.publications.all()) > 0:
-		publication = ', '.join(p.abbreviation for p in sample.publications.all().order_by('-year'))
-		published_year = sample.publications.all().aggregate(Min('year', default=''))['year__min']
+		publications_ordered = sample.publications.all().order_by('-year')
+		publication = ', '.join(p.abbreviation for p in publications_ordered)
+		first_publication = publications_ordered.last()
+		published_year = first_publication.year
+		published_boolean = 1
+		doi = first_publication.url
 	else:
 		publication = 'Unpublished'
 		published_year = ''
+		published_boolean = 0
+		doi = ''
 	
+	mod_append(fields, str(published_boolean))
 	mod_append(fields, str(published_year))
 	mod_append(fields, publication)
+	mod_append(fields, doi)
 	#Representative contact
 	if(sample is not None and sample.collaborator is not None):
 		first_name = get_text(sample.collaborator, 'first_name')
@@ -156,9 +164,9 @@ def sample_anno(sample):
 	country = sample.get_country() if sample else None
 	mod_append(fields, get_text(country, 'country_name'))
 	#Lat.
-	mod_append(fields, get_text(sample, 'get_site', 'latitude') if sample else '')
+	mod_append(fields, get_value(sample, 'get_site', 'latitude') if sample else '')
 	#Long
-	mod_append(fields, get_text(sample, 'get_site', 'longitude') if sample else '')
+	mod_append(fields, get_value(sample, 'get_site', 'longitude') if sample else '')
 	
 	return fields
 
