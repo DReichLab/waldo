@@ -1687,6 +1687,8 @@ def sample_archaeological_assemblage(request):
 	
 	if request.method == 'POST':
 		form = ArchaeologicalAssemblageForm(request.POST, instance=archaeological_assemblage, user=request.user)
+		if form.is_valid():
+			form.save()
 	elif request.method == 'GET':
 		form = ArchaeologicalAssemblageForm(instance=archaeological_assemblage, user=request.user)
 	
