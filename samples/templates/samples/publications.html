@@ -64,7 +64,14 @@ table{
 		<td class="year">{{entry.year}}</td>
 		<td class="journal">{{entry.journal}}</td>
 		<td class="pages">{{entry.pages}}</td>
-		<td class="author_list">{{entry.author_list}}</td>
+		<td class="author_list">
+			<details>
+				<summary>
+				{{entry.first_author}} et al.
+				</summary>
+				{{entry.author_list}}
+			</details>
+		</td>
 		<td class="url">{{entry.url}}</td>
 		<td class="publication_type">{{entry.publication_type.category}}</td>
 	</tr>
