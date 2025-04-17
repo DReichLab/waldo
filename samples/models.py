@@ -473,7 +473,12 @@ class Sample(Timestamped):
 		return len(self.control) > 0
 	
 	def __str__(self):
-		return f'S{self.reich_lab_id:04d}{self.control}'
+		if self.reich_lab_id:
+			return f'S{self.reich_lab_id:04d}{self.control}'
+		elif self.external_id:
+			return self.external_id
+		else:
+			return str(self.id)
 		
 	def num_existing_photos(self):
 		if self.reich_lab_id:
