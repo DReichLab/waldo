@@ -115,6 +115,8 @@ urlpatterns = [
 	path('publication_types', views.publication_types, name='publication_types'),
 	path('publication_sample_update_headers', views.publication_sample_update_headers, name='publication_sample_update_headers'),
 	path('publication_sample_update', views.publication_sample_update, name='publication_sample_update'),
+	path('collaborator_update', views.collaborator_update, name='collaborator_update'),
+	path('collaborators', views.collaborators, name='collaborators'),
 	
 	path('storage_all', views.storage_all, name='storage_all'),
 	path('setup', views.setup, name='setup'),

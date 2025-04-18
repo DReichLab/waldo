@@ -1,0 +1,90 @@
+{% extends "samples/reich_lab_base.html" %}
+
+{% comment "Optional note" %}
+	list.js implementation of table with requested headers
+		with links to editing entries
+	form at top for creating new entries
+	link_header: field will have link
+	link: url for editing entry
+{% endcomment %}
+
+{% load static %}
+
+{% block title %}{{title}}{% endblock %}
+
+{% block content %}
+<script src="{% static "samples/list.js" %}"></script>
+
+<style>
+th {
+	position: sticky;
+	top: 0;
+	background: #eee;
+}
+
+#table_wrapper{
+	overflow-x: auto;
+	overflow-y: scroll;
+	height: 85vh;
+}
+
+table{
+	border-collapse: collapse;
+	border-spacing: 0;
+	width: 100%;
+}
+</style>
+
+<form action="" method='post'>
+{% csrf_token %}
+{{ form.as_p }}
+<input type='submit' value='Create'>
+</form>
+
+<hr>
+
+<div id='list_rows'>
+
+<input class="search" placeholder="Search" />
+<div id='table_wrapper'>
+<table>
+	<thead>
+	<tr>
+		{% for header in headers %}
+		<th><button class="sort" data-sort="{{header}}">{{header}}</button></th>
+		{% endfor %}
+	</tr>
+	</thead>
+	<tbody class="list">
+	
+	{% for element_dict in generic_list %}
+	<tr>
+		{% for header, value in element_dict.items %}
+			{% if header == link_header %}
+				<td class="{{header}}"><a href={{link}}={{value}}>{{value}}</a></td>
+			{% else %}
+				<td class="{{header}}">{{value}}</td>
+			{% endif %}
+		{% endfor %}
+	</tr>
+	{% endfor %}
+	</tbody>
+</table>
+</div>
+</div>
+
+<script>
+	var header_list = [
+		{% for header in headers %}
+			"{{header}}",
+		{% endfor %}
+	]
+	var list_options = {
+		valueNames: header_list,
+		searchColumns: header_list,
+		searchDelay: 500
+	};
+	var generic_list = new List('list_rows', list_options);
+</script>
+
+{% endblock %}

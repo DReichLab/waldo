@@ -12,7 +12,9 @@ from django.db.models import Q, Count
 import codecs
 import csv
 import json
+import types
 from datetime import datetime
+from collections import OrderedDict
 
 from samples.pipeline import udg_and_strandedness
 from samples.models import Results, Library, Sample, PowderBatch, WetLabStaff, PowderSample, ControlType, ControlSet, ControlLayout, ExtractionProtocol, LysateBatch, SamplePrepQueue, PowderPrepQueue, PLATE_ROWS, LysateBatchLayout, ExtractionBatch, ExtractionBatchLayout, Lysate, LibraryBatch, LibraryBatchLayout, Extract, CaptureOrShotgunPlate, CaptureLayout, Storage, is_active_wetlab, Location
@@ -28,6 +30,15 @@ from samples.sample_photos import photo_list, save_sample_photo, delete_photo
 UPDATED = 'Values updated'
 
 # Create your views here.
+
+# Would like to be able to generate <header> <obj[header]> in template, but cannot figure out how
+# instead, we construct the corresponding { header: obj[header] } dictionary to achieve this in the view
+# then display in template using dict.items
+def template_headered_obj(x, headers):
+	y = OrderedDict()
+	for header in headers:
+		y[header] = getattr(x, header)
+	return y
 
 def query(request):
 	if request.method == 'POST':
@@ -1905,3 +1916,34 @@ def publication_sample_update(request):
 		spreadsheet_form = SpreadsheetForm()
 		message = ''
 	return render(request, 'samples/spreadsheet_upload.html', { 'title': f'Assign Samples to Publications', 'form': spreadsheet_form, 'message': message} )
+
+@login_required
+def collaborator_update(request):
+	primary_key = request.GET['id']
+	site = Collaborator.objects.get(pk=primary_key)
+	
+	message = ''
+	if request.method == 'POST':
+		form = CollaboratorForm(request.POST, instance=site, user=request.user)
+		if form.is_valid():
+			form.save()
+			message = UPDATED
+	elif request.method == 'GET':
+		form = CollaboratorForm(instance=site, user=request.user)
+	
+	return render(request, 'samples/generic_form.html', { 'title': f'Update Collaborator', 'form': form, 'message': message } )
+
+@login_required
+def collaborators(request):
+	if request.method == 'POST':
+		form = CollaboratorForm(request.POST, user=request.user)
+		if form.is_valid():
+			form.save()
+	elif request.method == 'GET':
+		form = CollaboratorForm(user=request.user)
+	headers = ['id'] + CollaboratorForm.Meta.fields
+	collaborators = [template_headered_obj(x, headers) for x in Collaborator.objects.all().order_by('last_name')]
+	link_header = 'id'
+	link = 'collaborator_update?id'
+	
+	return render(request, 'samples/generic_listjs.html', {'generic_list' : collaborators, 'title': 'Collaborators', 'headers': headers, 'link_header': link_header, 'link': link, 'form': form})

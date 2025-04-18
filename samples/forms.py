@@ -854,3 +854,8 @@ class PublicationTypeForm(UserModelForm):
 	class Meta:
 		model = PublicationType
 		fields = ['category']
+
+class CollaboratorForm(UserModelForm):
+	class Meta:
+		model = Collaborator
+		fields = ['first_name', 'last_name', 'title', 'institution', 'department', 'address_1', 'address_2', 'address_3', 'city', 'county_region', 'state', 'country', 'postal_code', 'phone_number_office', 'phone_number_mobile', 'email_1', 'email_2', 'skype_user_name', 'facetime_user_name', 'whatsapp_user_name', 'twitter', 'facebook', 'website', 'research_gate_academia', 'notes',  'primary_collaborator', 'ora_approval']
