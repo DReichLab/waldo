@@ -755,6 +755,10 @@ StorageFormset = modelformset_factory(Storage, form=StorageForm)
 class CountrySelect(ModelChoiceField):
 	def label_from_instance(self, obj):
 		return obj.country_name
+		
+class SiteSelect(ModelChoiceField):
+	def label_from_instance(self, obj):
+		return obj.site
 
 class SiteForm(UserModelForm):
 	site = forms.CharField()
@@ -769,17 +773,19 @@ class ArchaeologicalAssemblageTypeSelect(ModelChoiceField):
 		return obj.name
 		
 class ArchaeologicalAssemblageForm(UserModelForm):
-	site_name = CharField(disabled=True)
+	site = SiteSelect(
+		queryset=Location.objects.all().order_by('site'),
+		help_text="Site name",
+		required=False
+	)
 	category = ArchaeologicalAssemblageTypeSelect(queryset=ArchaeologicalAssemblageType.objects.all().order_by('name'))
 	
 	class Meta:
 		model = ArchaeologicalAssemblage
-		fields = ['site_name', 'burial_code', 'category', 'date_start', 'date_end', 'date_notes', 'resolved_date_start', 'resolved_date_end', 'date_accuracy']
+		fields = ['site', 'burial_code', 'category', 'date_start', 'date_end', 'date_notes', 'resolved_date_start', 'resolved_date_end', 'date_accuracy']
 		
 	def __init__(self, *args, **kwargs):
 		super(ArchaeologicalAssemblageForm, self).__init__(*args, **kwargs)
-		if self.instance:
-			self.fields['site_name'].initial = get_value(self.instance, 'site', 'site')
 		for option in ['category', 'date_start', 'date_end', 'resolved_date_start', 'resolved_date_end', 'date_accuracy']:
 			self.fields[option].required = False
 
