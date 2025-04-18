@@ -2,7 +2,7 @@
 
 {% load static %}
 
-{% block title %}Reich Lab Sample Sites{% endblock %}
+{% block title %}Sample Sites{% endblock %}
 
 {% block content %}
 <script src="{% static "samples/list.js" %}"></script>
@@ -26,6 +26,12 @@ table{
 	width: 100%;
 }
 </style>
+
+<form action="" method='post'>
+{% csrf_token %}
+{{ form.as_p }}
+<input type='submit' value='Create Site'>
+</form>
 
 <hr>
 

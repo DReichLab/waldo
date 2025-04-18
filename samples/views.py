@@ -1662,9 +1662,15 @@ def sample_archaeology_update(request):
 
 @login_required
 def sample_archaeology_sites(request):
+	if request.method == 'POST':
+		form = SiteForm(request.POST, user=request.user)
+		if form.is_valid():
+			form.save()
+	elif request.method == 'GET':
+		form = SiteForm(user=request.user)
 	sites = Location.objects.all()
 	
-	return render(request, 'samples/sample_sites.html', {'sites' : sites,})
+	return render(request, 'samples/sample_sites.html', {'sites' : sites, 'form': form})
 	
 @login_required
 def sample_archaeology_site(request):
