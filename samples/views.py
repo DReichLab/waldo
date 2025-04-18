@@ -25,6 +25,8 @@ from .layout import duplicate_positions_check, update_db_layout,  layout_objects
 
 from samples.sample_photos import photo_list, save_sample_photo, delete_photo
 
+UPDATED = 'Values updated'
+
 # Create your views here.
 
 def query(request):
@@ -905,7 +907,7 @@ def extracts_spreadsheet_upload(request):
 			spreadsheet = request.FILES.get('spreadsheet')
 			extract_batch = ExtractionBatch.objects.get(batch_name=extract_batch_name)
 			extract_batch.extracts_from_spreadsheet(spreadsheet, request.user)
-			message = 'Values updated'
+			message = UPDATED
 	else:
 		spreadsheet_form = SpreadsheetForm()
 		message = ''
@@ -1194,7 +1196,7 @@ def libraries_spreadsheet_upload(request):
 			spreadsheet = request.FILES.get('spreadsheet')
 			library_batch = LibraryBatch.objects.get(name=library_batch_name)
 			library_batch.libraries_from_spreadsheet(spreadsheet, request.user)
-			message = 'Values updated'
+			message = UPDATED
 	else:
 		spreadsheet_form = SpreadsheetForm()
 		message = ''
@@ -1397,7 +1399,7 @@ def capture_spreadsheet_upload(request):
 			spreadsheet = request.FILES.get('spreadsheet')
 			capture_batch = CaptureOrShotgunPlate.objects.get(name=capture_batch_name)
 			capture_batch.from_spreadsheet(spreadsheet, request.user)
-			message = 'Values updated'
+			message = UPDATED
 	else:
 		spreadsheet_form = SpreadsheetForm()
 		message = ''
@@ -1415,7 +1417,7 @@ def capture_blob_spreadsheet_upload(request):
 			spreadsheet = request.FILES.get('spreadsheet')
 			capture_batch = CaptureOrShotgunPlate.objects.get(name=capture_batch_name)
 			capture_batch.blob_spreadsheet(spreadsheet, request.user)
-			message = 'Values updated'
+			message = UPDATED
 	else:
 		spreadsheet_form = BatchUploadForm()
 		message = 'Provide Library and Position columns'
@@ -1677,29 +1679,33 @@ def sample_archaeology_site(request):
 	primary_key = request.GET['site_pk']
 	site = Location.objects.get(pk=primary_key)
 	
+	message = ''
 	if request.method == 'POST':
 		form = SiteForm(request.POST, instance=site, user=request.user)
 		if form.is_valid():
 			form.save()
+			message = UPDATED
 	elif request.method == 'GET':
 		form = SiteForm(instance=site, user=request.user)
 	
-	return render(request, 'samples/generic_form.html', { 'title': f'Update site {site.site}', 'form': form, } )
+	return render(request, 'samples/generic_form.html', { 'title': f'Update site {site.site}', 'form': form, 'message': message } )
 
 @login_required
 def sample_archaeological_assemblage(request):
 	primary_key = request.GET['archaeological_assemblage_pk']
 	archaeological_assemblage = ArchaeologicalAssemblage.objects.get(pk=primary_key)
 	
+	message = ''
 	if request.method == 'POST':
 		form = ArchaeologicalAssemblageForm(request.POST, instance=archaeological_assemblage, user=request.user)
 		if form.is_valid():
 			form.save()
+			message = UPDATED
 	elif request.method == 'GET':
 		form = ArchaeologicalAssemblageForm(instance=archaeological_assemblage, user=request.user)
 	
 	title = f'Update {get_value(archaeological_assemblage, "site", "site")} {archaeological_assemblage.burial_code}'
-	return render(request, 'samples/generic_form.html', { 'title': title, 'form': form, } )
+	return render(request, 'samples/generic_form.html', { 'title': title, 'form': form, 'message': message } )
 	
 @login_required
 def sample_archaeology_periods(request):
@@ -1720,14 +1726,16 @@ def sample_archaeology_period(request):
 	if primary_key is not None:
 		period = Period.objects.get(pk=primary_key)
 	
+	message = ''
 	if request.method == 'POST':
 		form = PeriodForm(request.POST, instance=period, user=request.user)
 		if form.is_valid():
 			form.save()
+			message = UPDATED
 	elif request.method == 'GET':
 		form = PeriodForm(instance=period, user=request.user)
 	
-	return render(request, 'samples/generic_form.html', { 'title': f'Update period {period.abbreviation}', 'form': form, } )
+	return render(request, 'samples/generic_form.html', { 'title': f'Update period {period.abbreviation}', 'form': form, 'message': message } )
 	
 @login_required
 def sample_archaeology_cultures(request):
@@ -1747,14 +1755,16 @@ def sample_archaeology_culture(request):
 	primary_key = request.GET['pk']
 	culture = Culture.objects.get(pk=primary_key)
 	
+	message = ''
 	if request.method == 'POST':
 		form = CultureForm(request.POST, instance=culture, user=request.user)
 		if form.is_valid():
 			form.save()
+			message = UPDATED
 	elif request.method == 'GET':
 		form = CultureForm(instance=culture, user=request.user)
 	
-	return render(request, 'samples/generic_form.html', { 'title': f'Update culture {culture.abbreviation}', 'form': form, } )
+	return render(request, 'samples/generic_form.html', { 'title': f'Update culture {culture.abbreviation}', 'form': form, 'message': message } )
 	
 @login_required
 def sample_edit(request):
@@ -1767,14 +1777,16 @@ def sample_edit(request):
 		sample = Sample.objects.get(external_id=external_id)
 		title = f'Sample {external_id}'
 		
+	message = ''
 	if request.method == 'POST':
 		form = SampleForm(request.POST, instance=sample, user=request.user)
 		if form.is_valid():
 			form.save()
+			message = UPDATED
 	elif request.method == 'GET':
 		form = SampleForm(instance=sample, user=request.user)
 		
-	return render(request, 'samples/generic_form.html', { 'title': title, 'form': form, } )
+	return render(request, 'samples/generic_form.html', { 'title': title, 'form': form, 'message': message} )
 	
 @login_required
 def sample_archaeology_anno(request):
@@ -1808,14 +1820,16 @@ def publication(request):
 	if primary_key is not None:
 		pub = Publication.objects.get(pk=primary_key)
 		
+	message = ''
 	if request.method == 'POST':
 		form = PublicationForm(request.POST, instance=pub, user=request.user)
 		if form.is_valid():
 			form.save()
+			message = UPDATED
 	elif request.method == 'GET':
 		form = PublicationForm(user=request.user, instance=pub)
 	
-	return render(request, 'samples/generic_form.html', {'title' : 'Ancient DNA Publications', 'form': form})
+	return render(request, 'samples/generic_form.html', {'title' : 'Ancient DNA Publications', 'form': form, 'message': message })
 	
 @login_required
 def publication_update_headers(request):
