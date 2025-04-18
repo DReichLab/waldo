@@ -1746,7 +1746,24 @@ def sample_archaeology_period(request):
 	elif request.method == 'GET':
 		form = PeriodForm(instance=period, user=request.user)
 	
-	return render(request, 'samples/generic_form.html', { 'title': f'Update period {period.abbreviation}', 'form': form, 'message': message } )
+	delete_link = reverse('sample_archaeology_period_delete') + f'?abbreviation={period.abbreviation}'
+	return render(request, 'samples/generic_form.html', { 'title': f'Update period {period.abbreviation}', 'form': form, 'message': message, 'delete_link': delete_link} )
+	
+@login_required
+def sample_archaeology_period_delete(request):
+	abbreviation = request.GET['abbreviation']
+	try:
+		period = Period.objects.get(abbreviation=abbreviation)
+		form = PeriodForm(instance=period, user=request.user)
+		form.disable_fields()
+	except Period.DoesNotExist:
+		return HttpResponse(f'{abbreviation} no longer exists.')
+	
+	if request.method == 'POST':
+		period.delete()
+		return redirect(f'{reverse("sample_archaeology_periods")}')
+		
+	return render(request, 'samples/delete_batch.html', {'form': form, 'batch_type': 'Period', 'batch_name': abbreviation, 'cancel_link': 'sample_archaeology_periods'})
 	
 @login_required
 def sample_archaeology_cultures(request):
@@ -1775,7 +1792,24 @@ def sample_archaeology_culture(request):
 	elif request.method == 'GET':
 		form = CultureForm(instance=culture, user=request.user)
 	
-	return render(request, 'samples/generic_form.html', { 'title': f'Update culture {culture.abbreviation}', 'form': form, 'message': message } )
+	delete_link = reverse('sample_archaeology_culture_delete') + f'?abbreviation={culture.abbreviation}'
+	return render(request, 'samples/generic_form.html', { 'title': f'Update culture {culture.abbreviation}', 'form': form, 'message': message, 'delete_link': delete_link } )
+
+@login_required
+def sample_archaeology_culture_delete(request):
+	abbreviation = request.GET['abbreviation']
+	try:
+		culture = Culture.objects.get(abbreviation=abbreviation)
+		form = CultureForm(instance=culture, user=request.user)
+		form.disable_fields()
+	except CultureForm.DoesNotExist:
+		return HttpResponse(f'{abbreviation} no longer exists.')
+	
+	if request.method == 'POST':
+		culture.delete()
+		return redirect(f'{reverse("sample_archaeology_cultures")}')
+		
+	return render(request, 'samples/delete_batch.html', {'form': form, 'batch_type': 'Culture', 'batch_name': abbreviation, 'cancel_link': reverse('sample_archaeology_cultures')})
 	
 @login_required
 def sample_edit(request):

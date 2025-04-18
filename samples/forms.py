@@ -798,6 +798,10 @@ class PeriodForm(UserModelForm):
 		super(PeriodForm, self).__init__(*args, **kwargs)
 		for option in ['date_range', 'date_start', 'date_end', 'date_accuracy']:
 			self.fields[option].required = False
+	
+	def disable_fields(self):
+		for field in PeriodForm.Meta.fields:
+			self.fields[field].disabled = True
 		
 class PeriodProtocolSelect(ModelChoiceField):
 	def label_from_instance(self, obj):
@@ -812,6 +816,10 @@ class CultureForm(UserModelForm):
 		super(CultureForm, self).__init__(*args, **kwargs)
 		for option in ['date_range', 'date_start', 'date_end', 'date_accuracy']:
 			self.fields[option].required = False
+			
+	def disable_fields(self):
+		for field in CultureForm.Meta.fields:
+			self.fields[field].disabled = True
 		
 class CollaboratorSelect(ModelChoiceField):
 	def label_from_instance(self, obj):
