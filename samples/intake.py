@@ -38,13 +38,7 @@ def sample_site_update(sample_file, user):
 			
 			if len(row.site_name) == 0:
 				raise ValueError(f'Sample {row.sample_id} {row.external_id} needs a site name')
-			try:
-				site = Location.objects.get(site=row.site_name)
-			except Location.DoesNotExist:
-				site = Location()
-				site.site = row.site_name
-				site.save(save_user=user)
-				messages.append(f'created location {row.site_name}')
+			site = Location.objects.get(site=row.site_name)
 			
 			if len(row.burial_code) == 0:
 				raise ValueError(f'Sample {row.sample_id} {row.external_id} needs a burial_code')
