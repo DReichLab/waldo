@@ -39,8 +39,6 @@ class SpreadsheetRow():
 	def spreadsheet_row_to_obj(self):
 		x = types.SimpleNamespace()
 		for field, value in zip(self.headers, self.data_row_fields):
-			print(field)
-			print(value)
 			setattr(x, field, value)
 		return x
 
