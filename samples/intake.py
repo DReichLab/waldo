@@ -28,7 +28,7 @@ def sample_site_update(sample_file, user):
 			# Reich lab IDs will already exist
 			if row.sample_id is not None and len(row.sample_id) > 0:
 				sample = Sample.objects.get(reich_lab_id=reich_sample_number(row.sample_id))
-				sample.external_id = row.external_id
+				sample.external_id = None
 				sample_created = False
 			else: # external IDs can be added
 				sample, sample_created = Sample.objects.get_or_create(external_id=row.external_id)
@@ -42,19 +42,29 @@ def sample_site_update(sample_file, user):
 			
 			if len(row.burial_code) == 0:
 				raise ValueError(f'Sample {row.sample_id} {row.external_id} needs a burial_code')
+			create_archaeological_assemblage = False
 			if sample.archaeological_assemblage:
-				if sample.archaeological_assemblage.burial_code != row.burial_code:
-					raise ValueError(f'{row.sample_id} already has burial code {sample.archaeological_assemblage.burial_code}. Did not replace with {row.burial_code}')
+				arch_assemblage = sample.archaeological_assemblage
+				if arch_assemblage.burial_code != row.burial_code:
+					if Sample.objects.filter(archaeological_assemblage=arch_assemblage).count() > 1:
+						# create a new archaeological_assemblage to preserve burial code for other samples
+						create_archaeological_assemblage = True
+					else: # change burial code, only for this sample
+						arch_assemblage.burial_code = row.burial_code
+						arch_assemblage.save(save_user=user)
 			else:
 				try:
 					arch_assemblage = ArchaeologicalAssemblage.objects.get(site=site, burial_code=row.burial_code)
 				except ArchaeologicalAssemblage.DoesNotExist:
-					arch_assemblage = ArchaeologicalAssemblage()
-					arch_assemblage.burial_code = row.burial_code
-					arch_assemblage.site = site
-					messages.append(f'created archeological assemblage {site.site}: {arch_assemblage.burial_code}')
-					arch_assemblage.save(save_user=user)
-				sample.archaeological_assemblage = arch_assemblage
+					create_archaeological_assemblage = True
+			if create_archaeological_assemblage:
+				arch_assemblage = ArchaeologicalAssemblage()
+				arch_assemblage.burial_code = row.burial_code
+				arch_assemblage.site = site
+				messages.append(f'created archeological assemblage {site.site}: {arch_assemblage.burial_code}')
+				arch_assemblage.save(save_user=user)
+			sample.archaeological_assemblage = arch_assemblage
+			
 			if sample_created:
 				sample.collaborator_code = row.skeletal_code
 			sample.skeletal_code = row.skeletal_code
