@@ -6,6 +6,8 @@ from samples.models import get_value, Sample, ArchaeologicalAssemblage, Location
 from samples.spreadsheet import spreadsheet_pass
 
 def reich_sample_number(s):
+	if s.startswith('I'):
+		return int(s[1:])
 	try:
 		sample_number, control = parse_sample_string(s)
 		return sample_number
