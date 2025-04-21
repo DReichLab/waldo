@@ -42,8 +42,8 @@ def sample_site_update(sample_file, user):
 				raise ValueError(f'Sample {row.sample_id} {row.external_id} needs a site name')
 			site = Location.objects.get(site=row.site_name)
 			
-			if len(row.burial_code) == 0:
-				raise ValueError(f'Sample {row.sample_id} {row.external_id} needs a burial_code')
+			#if len(row.burial_code) == 0:
+				#raise ValueError(f'Sample {row.sample_id} {row.external_id} needs a burial_code')
 			create_archaeological_assemblage = False
 			if sample.archaeological_assemblage:
 				arch_assemblage = sample.archaeological_assemblage
