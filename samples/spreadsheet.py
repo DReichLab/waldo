@@ -4,6 +4,7 @@ import types
 DELIMITER = '\t'
 HEADER_READ_ONLY_INDICATOR = '-'
 
+utf8_pattern_filter = re.compile('^[\W]+', re.UNICODE)
 def spreadsheet_pass(spreadsheet_file, **kwargs):
 	if 'delimiter' in kwargs:
 		delimiter = kwargs['delimiter']
@@ -11,9 +12,13 @@ def spreadsheet_pass(spreadsheet_file, **kwargs):
 		delimiter = DELIMITER
 		
 	header = spreadsheet_file.readline()
+	# the header should contain python variable names, remove leading non alphanumberic + _ characters
+	# Mac Excel has added these when exporting UTF8
+	header = re.sub(utf8_pattern_filter, '', header.decode('utf-8'), count=1).encode('utf-8')
 	for line in spreadsheet_file:
-		row = SpreadsheetRow(header, line, delimiter=delimiter)
-		yield row
+		if not line.startswith(b'#'):
+			row = SpreadsheetRow(header, line, delimiter=delimiter)
+			yield row
 
 class SpreadsheetRow():
 	def __init__(self, header, data, **kwargs):
