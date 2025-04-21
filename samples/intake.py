@@ -21,7 +21,7 @@ def boolean_from_str(s):
 		return False
 	return bool(s)
 
-sample_headers = ['sample_id', 'external_id', 'skeletal_code', 'site_name', 'burial_code', 'periods', 'cultures', 'group_label_use_country', 'group_label_use_site', 'group_label_use_period', 'group_label_use_culture']
+sample_headers = ['sample_id', 'external_id', 'site_name', 'burial_code', 'skeletal_code', 'skeletal_element', 'sample_date', 'average_bp_date', 'date_fix_flag', 'morphological_sex', 'morphological_age', 'morphological_age_range', 'periods', 'cultures', 'group_label_use_country', 'group_label_use_site', 'group_label_use_period', 'group_label_use_culture']
 def sample_site_update(sample_file, user):
 	messages = []
 	with transaction.atomic():
@@ -70,6 +70,13 @@ def sample_site_update(sample_file, user):
 			if sample_created:
 				sample.collaborator_code = row.skeletal_code
 			sample.skeletal_code = row.skeletal_code
+			sample.skeletal_element = row.skeletal_element
+			sample.sample_date = row.sample_date
+			sample.average_bp_date = row.average_bp_date
+			sample.date_fix_flag = row.date_fix_flag
+			sample.morphological_sex = row.morphological_sex
+			sample.morphological_age = row.morphological_age
+			sample.morphological_age_range = row.morphological_age_range
 			
 			# TODO revisit to allow multiple
 			#sample.publications.add(find_publication(row.publications.split()))
