@@ -21,7 +21,7 @@ def boolean_from_str(s):
 		return False
 	return bool(s)
 
-sample_headers = ['sample_id', 'external_id', 'site_name', 'burial_code', 'skeletal_code', 'skeletal_element', 'sample_date', 'average_bp_date', 'date_fix_flag', 'morphological_sex', 'morphological_age', 'morphological_age_range', 'periods', 'cultures', 'group_label_use_country', 'group_label_use_site', 'group_label_use_period', 'group_label_use_culture']
+sample_headers = ['sample_id', 'external_id', 'site_name', 'burial_code', 'burial_subcode', 'skeletal_code', 'skeletal_element', 'sample_date', 'average_bp_date', 'date_fix_flag', 'morphological_sex', 'morphological_age', 'morphological_age_range', 'periods', 'cultures', 'group_label_use_country', 'group_label_use_site', 'group_label_use_period', 'group_label_use_culture']
 def sample_site_update(sample_file, user):
 	messages = []
 	with transaction.atomic():
@@ -67,6 +67,7 @@ def sample_site_update(sample_file, user):
 				arch_assemblage.save(save_user=user)
 			sample.archaeological_assemblage = arch_assemblage
 			
+			sample.burial_subcode = row.burial_subcode
 			if sample_created:
 				sample.collaborator_code = row.skeletal_code
 			sample.skeletal_code = row.skeletal_code
@@ -78,8 +79,6 @@ def sample_site_update(sample_file, user):
 			sample.morphological_age = row.morphological_age
 			sample.morphological_age_range = row.morphological_age_range
 			
-			# TODO revisit to allow multiple
-			#sample.publications.add(find_publication(row.publications.split()))
 			# abbreviations
 			# clear periods and cultures and replace with those listed
 			sample.periods.clear()
@@ -96,6 +95,40 @@ def sample_site_update(sample_file, user):
 			sample.save(save_user=user)
 				
 	return '\n'.join(messages)
+	
+# inverse of sample_site_update
+# provide the current values of sample fields for an update
+def sample_site_values(sample):
+	values = {}
+	if sample.reich_lab_id:
+		values['sample_id'] = str(sample)
+		values['external_id'] = ''
+	else: # external
+		values['sample_id'] = ''
+		values['external_id'] = str(sample)
+	values['site_name'] = sample.archaeological_assemblage.site.site
+	values['burial_code'] = sample.archaeological_assemblage.burial_code
+	
+	for key in ['burial_subcode', 
+	'skeletal_code',
+	'skeletal_element',
+	'sample_date', 
+	'average_bp_date', 
+	'date_fix_flag',
+	'morphological_sex',
+	'morphological_age',
+	'morphological_age_range',
+	'group_label_use_country',
+	'group_label_use_site',
+	'group_label_use_period',
+	'group_label_use_culture']:
+		values[key] = getattr(sample, key)
+	
+	values['periods'] = ' '.join([p.abbreviation for p in sample.periods.all().order_by('date_start', 'abbreviation')])
+	values['cultures'] = ' '.join([p.abbreviation for p in sample.cultures.all().order_by('date_start', 'abbreviation')])
+	
+	ordered_values = [values[key] for key in sample_headers]
+	return ordered_values
 
 publication_headers = ['abbreviation', 'title', 'first_author', 'year', 'journal', 'pages', 'author_list', 'url', 'publication_type']
 def publication_batch_update(batch_file, user):

@@ -18,7 +18,7 @@ from collections import OrderedDict
 
 from samples.pipeline import udg_and_strandedness
 from samples.models import Results, Library, Sample, PowderBatch, WetLabStaff, PowderSample, ControlType, ControlSet, ControlLayout, ExtractionProtocol, LysateBatch, SamplePrepQueue, PowderPrepQueue, PLATE_ROWS, LysateBatchLayout, ExtractionBatch, ExtractionBatchLayout, Lysate, LibraryBatch, LibraryBatchLayout, Extract, CaptureOrShotgunPlate, CaptureLayout, Storage, is_active_wetlab, Location
-from samples.intake import sample_site_update, sample_headers, publication_batch_update, publication_headers, publication_sample_assign, publication_sample_assign_headers, lost_lysate_headers, lost_lysate_batch_update
+from samples.intake import sample_site_update, sample_site_values, sample_headers, publication_batch_update, publication_headers, publication_sample_assign, publication_sample_assign_headers, lost_lysate_headers, lost_lysate_batch_update
 from .anno import sample_anno
 from .forms import *
 from sequencing_run.models import MTAnalysis
@@ -1651,14 +1651,30 @@ def sample_archaeology(request):
 
 @login_required
 def sample_archaeology_update_headers(request):
-	response = HttpResponse(content_type='text/csv')
-	response['Content-Disposition'] = f'attachment; filename="sample_archaeology_update.txt"'
+	if request.method == 'POST':
+		form = SampleTextEntryForm(request.POST)
+		if form.is_valid():
+			response = HttpResponse(content_type='text/csv')
+			response['Content-Disposition'] = f'attachment; filename="sample_archaeology_update.txt"'
 
-	writer = csv.writer(response, delimiter='\t')
-	# header
-	writer.writerow(sample_headers)
+			writer = csv.writer(response, delimiter='\t')
+			# header
+			writer.writerow(sample_headers)
+			for sample_str in form.cleaned_data['text'].split():
+				try:
+					if sample_str.startswith('S') or sample_str.startswith('I'):
+						sample_str = sample_str[1:]
+					sample = Sample.objects.get(reich_lab_id=int(sample_str))
+					output_id = f'S{sample.reich_lab_id}'
+				except (Sample.DoesNotExist, ValueError):
+					sample = Sample.objects.get(external_id=sample_str)
+					output_id = sample_str
+				writer.writerow(sample_site_values(sample))
+			return response
+	elif request.method == 'GET':
+		form = SampleTextEntryForm()
 	
-	return response
+	return render(request, 'samples/generic_form.html', { 'title': f'Update for Sample IDs', 'form': form, 'submit_button_text': 'Get current sample info'} )
 
 @login_required
 def sample_archaeology_update(request):
@@ -1844,7 +1860,7 @@ def sample_archaeology_anno(request):
 			writer = csv.writer(response, delimiter='\t')
 			for sample_str in form.cleaned_data['text'].split():
 				try:
-					if sample_str.startswith('S'):
+					if sample_str.startswith('S') or sample_str.startswith('I'):
 						sample_str = sample_str[1:]
 					sample = Sample.objects.get(reich_lab_id=int(sample_str))
 					output_id = f'S{sample.reich_lab_id}'
