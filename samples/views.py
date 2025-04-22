@@ -1697,9 +1697,13 @@ def sample_archaeology_sites(request):
 			form.save()
 	elif request.method == 'GET':
 		form = SiteForm(user=request.user)
-	sites = Location.objects.all()
 	
-	return render(request, 'samples/sample_sites.html', {'sites' : sites, 'form': form})
+	headers = ['id'] + SiteForm.Meta.fields
+	sites = [template_headered_obj(x, headers) for x in Location.objects.all().order_by('site')]
+	link_header = 'id'
+	link = 'sample_archaeology_site?site_pk'
+	
+	return render(request, 'samples/generic_listjs.html', {'generic_list' : sites, 'title': 'Sites', 'headers': headers, 'link_header': link_header, 'link': link, 'form': form})
 	
 @login_required
 def sample_archaeology_site(request):

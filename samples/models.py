@@ -269,6 +269,9 @@ class Country(Timestamped):
 	m49_code = models.PositiveSmallIntegerField(null=True)
 	iso_alpha2_code = models.CharField(max_length=2, blank=True)
 	iso_alpha3_code = models.CharField(max_length=3, blank=True)
+	
+	def __str__(self):
+		return self.country_name
 
 CE_DATE_HELP = 'Positive is year in CE. Negative is year BCE.'
 
