@@ -106,8 +106,8 @@ def sample_site_values(sample):
 	else: # external
 		values['sample_id'] = ''
 		values['external_id'] = str(sample)
-	values['site_name'] = sample.archaeological_assemblage.site.site
-	values['burial_code'] = sample.archaeological_assemblage.burial_code
+	values['site_name'] = get_value(sample.archaeological_assemblage, 'site', 'site')
+	values['burial_code'] = get_value(sample.archaeological_assemblage, 'burial_code')
 	
 	for key in ['burial_subcode', 
 	'skeletal_code',
