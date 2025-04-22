@@ -21,7 +21,7 @@ def boolean_from_str(s):
 		return False
 	return bool(s)
 
-sample_headers = ['sample_id', 'external_id', 'site_name', 'burial_code', 'burial_subcode', 'skeletal_code', 'skeletal_element', 'sample_date', 'average_bp_date', 'date_fix_flag', 'morphological_sex', 'morphological_age', 'morphological_age_range', 'periods', 'cultures', 'group_label_use_country', 'group_label_use_site', 'group_label_use_period', 'group_label_use_culture']
+sample_headers = ['sample_id', 'external_id', 'site_name', 'burial_code', 'burial_subcode', 'excavation_year', 'excavation_grid', 'skeletal_code', 'skeletal_element', 'sample_date', 'average_bp_date', 'date_fix_flag', 'morphological_sex', 'morphological_age', 'morphological_age_range', 'periods', 'cultures', 'group_label_use_country', 'group_label_use_site', 'group_label_use_period', 'group_label_use_culture']
 def sample_site_update(sample_file, user):
 	messages = []
 	with transaction.atomic():
@@ -112,6 +112,8 @@ def sample_site_values(sample):
 	values['burial_code'] = get_value(sample.archaeological_assemblage, 'burial_code')
 	
 	for key in ['burial_subcode', 
+	'excavation_year',
+	'excavation_grid',
 	'skeletal_code',
 	'skeletal_element',
 	'sample_date', 
