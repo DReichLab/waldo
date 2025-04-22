@@ -786,7 +786,7 @@ class ArchaeologicalAssemblageForm(UserModelForm):
 		
 	def __init__(self, *args, **kwargs):
 		super(ArchaeologicalAssemblageForm, self).__init__(*args, **kwargs)
-		for option in ['category', 'date_start', 'date_end', 'resolved_date_start', 'resolved_date_end', 'date_accuracy']:
+		for option in ['burial_code', 'category', 'date_start', 'date_end', 'resolved_date_start', 'resolved_date_end', 'date_accuracy']:
 			self.fields[option].required = False
 
 class PeriodForm(UserModelForm):
