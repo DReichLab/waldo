@@ -766,7 +766,7 @@ class SiteForm(UserModelForm):
 	
 	class Meta:
 		model = Location
-		fields = ['site', 'country', 'level_1', 'level_2', 'level_3', 'level_4', 'level_5', 'latitude', 'longitude', 'ecological_zone', 'river_basin', 'mountain']
+		fields = ['site', 'country', 'level_1', 'level_2', 'level_3', 'level_4', 'level_5', 'latitude', 'longitude', 'description', 'ecological_zone', 'river_basin', 'mountain']
 
 class ArchaeologicalAssemblageTypeSelect(ModelChoiceField):
 	def label_from_instance(self, obj):

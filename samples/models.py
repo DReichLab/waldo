@@ -283,6 +283,7 @@ class Location(Timestamped):
 	level_4 = models.CharField(max_length=100, blank=True)
 	level_5 = models.CharField(max_length=100, blank=True) # finest
 	site = models.TextField(blank=True)
+	description = models.TextField(blank=True)
 	latitude = models.CharField(max_length=20, blank=True) # TODO convert to spatial
 	longitude = models.CharField(max_length=20, blank=True) # TODO
 	ecological_zone = models.CharField(max_length=50, blank=True)
