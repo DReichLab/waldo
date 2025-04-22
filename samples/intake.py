@@ -30,7 +30,7 @@ def sample_site_update(sample_file, user):
 			# Reich lab IDs will already exist
 			if row.sample_id is not None and len(row.sample_id) > 0:
 				sample = Sample.objects.get(reich_lab_id=reich_sample_number(row.sample_id))
-				sample.external_id = None
+				sample.external_id = row.external_id
 				sample_created = False
 			else: # external IDs can be added
 				sample, sample_created = Sample.objects.get_or_create(external_id=row.external_id)
@@ -104,7 +104,7 @@ def sample_site_values(sample):
 	values = {}
 	if sample.reich_lab_id:
 		values['sample_id'] = str(sample)
-		values['external_id'] = ''
+		values['external_id'] = sample.external_id
 	else: # external
 		values['sample_id'] = ''
 		values['external_id'] = str(sample)
