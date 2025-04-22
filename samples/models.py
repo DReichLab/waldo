@@ -415,7 +415,6 @@ class Sample(Timestamped):
 	shipment = models.ForeignKey(Shipment, on_delete=models.PROTECT, null=True)
 	return_id = models.ForeignKey(Return, on_delete=models.PROTECT, null=True)
 	
-	location_fk = models.ForeignKey(Location, on_delete=models.SET_NULL, null=True)
 	periods = models.ManyToManyField(Period)
 	cultures = models.ManyToManyField(Culture)
 	publications = models.ManyToManyField(Publication, through='PublicationLabels', related_name='published_id_and_group_label')
@@ -490,17 +489,10 @@ class Sample(Timestamped):
 			return 0
 			
 	def get_site(self):
-		site = get_value(self.archaeological_assemblage, 'site', default=None)
-		if site:
-			return site
-		return self.location_fk
+		return get_value(self.archaeological_assemblage, 'site', default=None)
 			
 	def get_country(self):
-		country = get_value(self.archaeological_assemblage, 'site', 'country', default=None)
-		if country:
-			return country
-		country = get_value(self.location_fk, 'country')
-		return country
+		return get_value(self.archaeological_assemblage, 'site', 'country', default=None)
 			
 	def location_str(self):
 		return get_value(self, 'get_site', 'locality_str')
