@@ -82,8 +82,10 @@ def sample_site_update(sample_file, user):
 			# abbreviations
 			# clear periods and cultures and replace with those listed
 			sample.periods.clear()
+			sample.period = ''
 			for period in row.periods.split():
 				sample.periods.add(Period.objects.get(abbreviation=period))
+			sample.culture = ''
 			sample.cultures.clear()
 			for culture in row.cultures.split():
 				sample.cultures.add(Culture.objects.get(abbreviation=culture))
@@ -145,7 +147,7 @@ def publication_batch_update(batch_file, user):
 			messages += [f'{publication.abbreviation} {" created" if created else " updated. "}']
 	return '\n'.join(messages)
 
-publication_sample_assign_headers = ['sample_id', 'external_id', 'publication_abbreviation', 'paper_individual_id', 'paper_group_label']
+publication_sample_assign_headers = ['sample_id', 'external_id', 'publication_abbreviation', 'paper_individual_id', 'paper_group_label', 'digital_accession_number']
 def publication_sample_assign(batch_file, user):
 	messages = []
 	with transaction.atomic():
@@ -163,6 +165,8 @@ def publication_sample_assign(batch_file, user):
 				pairing.individual_id = row_obj.paper_individual_id
 			if len(row_obj.paper_group_label) > 0:
 				pairing.group_label = row_obj.paper_group_label
+			if len(row_obj.digital_accession_number) > 0:
+				pairing.digital_accession_number = row.digital_accession_number
 			pairing.save(save_user=user)
 			messages += [f'{sample_label} was published in {publication.title}']
 	return '\n'.join(messages)
