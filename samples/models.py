@@ -186,9 +186,15 @@ class Collaborator(Timestamped):
 	
 	def name(self):
 		return f'{self.first_name} {self.last_name}'
+		
+	def __str__(self):
+		return self.name()
 
 class PublicationType(models.Model):
 	category = models.CharField(max_length=50, blank=False, help_text='For example, genetic or archaeological')
+	
+	def __str__(self):
+		return self.category
 	
 class Publication(Timestamped):
 	abbreviation = models.TextField(unique=True, help_text='Unique identifier for paper')
@@ -291,6 +297,9 @@ class Location(Timestamped):
 	river_basin = models.CharField(max_length=50, blank=True)
 	mountain = models.CharField(max_length=50, blank=True)
 	
+	def __str__(self):
+		return self.site
+	
 	def locality_str(self):
 		levels = []
 		for level in [self.level_1, self.level_2, self.level_3, self.level_4, self.level_5]:
@@ -335,6 +344,9 @@ class Period(Timestamped):
 	date_end = models.IntegerField(null=True, help_text=CE_DATE_HELP)
 	date_accuracy = models.FloatField(null=True)
 	
+	def __str__(self):
+		return self.abbreviation
+	
 class Culture(Timestamped):
 	abbreviation = models.CharField(max_length=50, unique=True)
 	text = models.TextField(blank=True)
@@ -345,6 +357,9 @@ class Culture(Timestamped):
 	date_end = models.IntegerField(null=True, help_text=CE_DATE_HELP)
 	date_accuracy = models.FloatField(null=True)
 	super_culture = models.ForeignKey('self', on_delete=models.PROTECT, null=True, help_text='')
+	
+	def __str__(self):
+		return self.abbreviation
 	
 class Storage(Timestamped):
 	equipment_type = models.CharField(max_length=50, blank=True)

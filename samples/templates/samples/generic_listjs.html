@@ -9,10 +9,16 @@
 {% endcomment %}
 
 {% load static %}
+<link rel="stylesheet" type="text/css" href="{% static 'samples/select2.min.css' %}" >
 
 {% block title %}{{title}}{% endblock %}
 
 {% block content %}
+{{ form.media.css }}
+<script type="text/javascript" src="{% static 'admin/js/vendor/jquery/jquery.js' %}"></script>
+<script type="text/javascript" src="{% static 'admin/js/jquery.init.js' %}"></script>
+<script type="text/javascript" src="{% static "samples/select2.min.js" %}"></script>
+{{ form.media.js }}
 <script src="{% static "samples/list.js" %}"></script>
 
 <style>

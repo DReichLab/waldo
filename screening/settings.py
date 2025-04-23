@@ -39,6 +39,7 @@ INSTALLED_APPS = (
     'samples',
     'sequencing_run',
     'broad_download',
+    'easy_select2',
 )
 
 MIDDLEWARE = (

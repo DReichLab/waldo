@@ -1,9 +1,11 @@
 from django import forms
-from django.forms import ModelChoiceField, ChoiceField, FileField, ModelForm, Textarea, IntegerField, CharField, BoundField, ValidationError, FloatField
+from django.forms import ModelChoiceField, ModelMultipleChoiceField, ChoiceField, FileField, ModelForm, Textarea, IntegerField, CharField, BoundField, ValidationError, FloatField
 from django.forms import modelformset_factory
 from django.forms.widgets import TextInput, NumberInput
 from django.utils.translation import gettext_lazy as _
 from django.db.models import Q
+
+from easy_select2 import Select2, Select2Multiple
 
 from samples.models import PowderBatch, PowderSample, Sample, SamplePrepProtocol, ControlType, ControlSet, ControlLayout, LysateBatch, ExtractionProtocol, ExpectedComplexity, SamplePrepQueue, Lysate, LysateBatchLayout, ExtractionBatch, ExtractionBatchLayout, LibraryProtocol, LibraryBatch, Extract, Storage, Library, LibraryBatchLayout, P5_Index, P7_Index, Barcode, CaptureProtocol, CaptureOrShotgunPlate, CaptureLayout, SequencingPlatform, SequencingRun, SkeletalElementCategory, get_value, LIBRARY_POSITIVE, Location, ArchaeologicalAssemblage,  ArchaeologicalAssemblageType, Country, Period, Culture, Collaborator, Publication, PublicationType
 
@@ -750,18 +752,9 @@ class StorageForm(UserModelForm):
 
 StorageFormset = modelformset_factory(Storage, form=StorageForm)
 
-# to display country name
-class CountrySelect(ModelChoiceField):
-	def label_from_instance(self, obj):
-		return obj.country_name
-		
-class SiteSelect(ModelChoiceField):
-	def label_from_instance(self, obj):
-		return obj.site
-
 class SiteForm(UserModelForm):
 	site = forms.CharField()
-	country = CountrySelect(queryset=Country.objects.all().order_by('country_name'))
+	country = ModelChoiceField(queryset=Country.objects.all().order_by('country_name'), widget=Select2())
 	
 	class Meta:
 		model = Location
@@ -772,11 +765,7 @@ class ArchaeologicalAssemblageTypeSelect(ModelChoiceField):
 		return obj.name
 		
 class ArchaeologicalAssemblageForm(UserModelForm):
-	site = SiteSelect(
-		queryset=Location.objects.all().order_by('site'),
-		help_text="Site name",
-		required=False
-	)
+	site = ModelChoiceField(queryset=Location.objects.all().order_by('site'), widget=Select2() )
 	category = ArchaeologicalAssemblageTypeSelect(queryset=ArchaeologicalAssemblageType.objects.all().order_by('name'))
 	
 	class Meta:
@@ -785,7 +774,7 @@ class ArchaeologicalAssemblageForm(UserModelForm):
 		
 	def __init__(self, *args, **kwargs):
 		super(ArchaeologicalAssemblageForm, self).__init__(*args, **kwargs)
-		for option in ['burial_code', 'category', 'date_start', 'date_end', 'resolved_date_start', 'resolved_date_end', 'date_accuracy']:
+		for option in self.Meta.fields:
 			self.fields[option].required = False
 
 class PeriodForm(UserModelForm):
@@ -801,10 +790,6 @@ class PeriodForm(UserModelForm):
 	def disable_fields(self):
 		for field in PeriodForm.Meta.fields:
 			self.fields[field].disabled = True
-		
-class PeriodProtocolSelect(ModelChoiceField):
-	def label_from_instance(self, obj):
-		return obj.abbreviation
 
 class CultureForm(UserModelForm):
 	class Meta:
@@ -819,21 +804,17 @@ class CultureForm(UserModelForm):
 	def disable_fields(self):
 		for field in CultureForm.Meta.fields:
 			self.fields[field].disabled = True
-		
-class CollaboratorSelect(ModelChoiceField):
-	def label_from_instance(self, obj):
-		return obj.name()
-		
+
 class SampleForm(UserModelForm):
 	skeletal_element_category = SkeletalElementCategorySelect(queryset=SkeletalElementCategory.objects.filter().order_by('sort_order'))
 	collaborator_code = forms.CharField(required=False, widget=forms.Textarea(attrs={'rows': 1})) 
-	# periods = forms.MultipleChoiceField(required=False, widget=forms.CheckboxSelectMultiple, choices=[(x, x.abbreviation) for x in Period.objects.all()])
-	# cultures = forms.MultipleChoiceField(required=False, widget=forms.CheckboxSelectMultiple, choices=[(x, x.abbreviation) for x in Culture.objects.all()])
+	# periods = ModelMultipleChoiceField(queryset = Period.objects.all().order_by('abbreviation'), required=False, widget=Select2Multiple() )
+	# cultures = ModelMultipleChoiceField(queryset = Culture.objects.all().order_by('abbreviation'), required=False, widget=Select2Multiple() )
 	# publications = forms.MultipleChoiceField(required=False, widget=forms.CheckboxSelectMultiple, choices=[(x, x.title) for x in Publication.objects.all()])
 	
-	collaborator = CollaboratorSelect(queryset=Collaborator.objects.all())
-	collection_keeper = CollaboratorSelect(queryset=Collaborator.objects.all())
-	excavator = CollaboratorSelect(queryset=Collaborator.objects.all())
+	collaborator = ModelChoiceField(queryset=Collaborator.objects.all())
+	collection_keeper = ModelChoiceField(queryset=Collaborator.objects.all())
+	excavator = ModelChoiceField(queryset=Collaborator.objects.all())
 	
 	class Meta:
 		model = Sample
@@ -846,13 +827,9 @@ class SampleForm(UserModelForm):
 			self.fields[option].required = False
 		for option in ['date_start', 'date_end', 'average_bp_date', 'date_stdev', 'excavation_year']:
 			self.fields[option].required = False
-			
-class PublicationTypeSelect(ModelChoiceField):
-	def label_from_instance(self, obj):
-		return obj.category
-			
+
 class PublicationForm(UserModelForm):
-	publication_type = PublicationTypeSelect(queryset=PublicationType.objects.all().order_by('category'))
+	publication_type = ModelChoiceField(queryset=PublicationType.objects.all().order_by('category'))
 	class Meta:
 		model = Publication
 		fields = ['abbreviation', 'title', 'first_author', 'year', 'journal', 'pages', 'author_list', 'url', 'publication_type']
