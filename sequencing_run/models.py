@@ -219,7 +219,7 @@ class NuclearAnalysis(Timestamped):
 class SNPSet(models.Model):
 	name = models.CharField(max_length=30, unique=True, null=False, blank=False)
 	description = models.TextField(blank=True)
-	count = models.PositiveIntegerField()
+	count = models.PositiveIntegerField(help_text='Simple count of SNPs comprising this set.')
 
 deamination_help = "{} prime {} transitions as measured by Nick's mkdeamin program on forward strand at {}"
 # shared for both nuclear and MT analysis
@@ -250,8 +250,9 @@ class SNPCount(Timestamped):
 	analysis = models.ForeignKey(NuclearAnalysis2, on_delete=models.CASCADE)
 	snps = models.ForeignKey(SNPSet, on_delete=models.PROTECT)
 	unique_hits = models.IntegerField()
-	coverage = models.FloatField() # TODO why isn't this an integer
+	total_hits = models.IntegerField(help_text='Hits on SNP targets including multiple. Divide by number of targets to get coverage.')
 	deduplicated = models.BooleanField(default=True)
+	method = models.TextField()
 	
 class MTAnalysis2(Analysis2):
 	consensus_match = models.FloatField(null=True)
@@ -263,6 +264,14 @@ class HaplogroupCaller(Timestamped):
 	name = models.CharField(max_length=100, blank=False, unique=True)
 	description = models.TextField(blank=True)
 	
-class HaplogroupCall(Timestamped):
+class MTHaplogroupCall(Timestamped):
 	caller = models.ForeignKey(HaplogroupCaller, on_delete=models.PROTECT)
+	analysis = models.ForeignKey(MTAnalysis2, on_delete=models.PROTECT)
+	haplogroup = models.CharField(max_length=30, null=False, blank=False)
+	rank = models.FloatField(null=True, help_text='[0.5, 1] where 1 is perfect')
+	polys_found = models.TextField(blank=True)
+	polys_notfound = models.TextField(blank=True)
+	polys_remaining = models.TextField(blank=True)
 	
+class YHaplogroupCall(Timestamped):
+	pass # TODO

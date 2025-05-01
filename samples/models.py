@@ -24,6 +24,7 @@ from .validation import *
 
 import decimal
 import re, string
+import uuid
 from unidecode import unidecode
 
 REICH_LAB = 'Reich Lab'
@@ -3256,10 +3257,16 @@ class AssessmentCategory(models.Model):
 
 # David Reich's anno file is a series of instances
 class Instance(Timestamped):
+	id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
 	instance_id = models.CharField(max_length=40, db_index=True)
 	master_id = models.CharField(max_length=40, db_index=True)
 	reich_lab_id = models.PositiveIntegerField(db_index=True, null=True, help_text='Lowest Reich Lab sample ID for this individual')
+	alignment_sequencing = models.CharField(max_length=255, blank=True)
+	genotype_file = models.CharField(max_length=255, blank=True)
 	
+	excluded = models.BooleanField(default=False)
+	
+	# Remove Instance below here
 	library_ids = models.ManyToManyField(Library) # this is implicitly a list of samples as well
 	published_year = models.PositiveSmallIntegerField(null=True)
 	publication = models.CharField(max_length=50, blank=True)
