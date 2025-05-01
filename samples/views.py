@@ -619,23 +619,25 @@ def sample_summary(request):
 	if request.method == 'POST':
 		form = SampleSummaryLookupForm(request.POST)
 		if form.is_valid():
-			sample = form.cleaned_data['sample']
+			sample_number = form.cleaned_data['sample_number']
+			sample_control = form.cleaned_data['sample_control']
 			external_sample = form.cleaned_data['external_id']
 			lysate = form.cleaned_data['lysate']
 			library = form.cleaned_data['library']
 			collaborator_id = form.cleaned_data['collaborator_id']
 			
-			if sample:
-				print(f'sample lookup by Reich Lab sample number')
+			if sample_number:
+				# print(f'sample lookup by Reich Lab sample number')
+				sample = Sample.objects.get(reich_lab_id=sample_number, control=sample_control)
 			elif external_sample:
-				print(f'sample lookup by external id')
+				# print(f'sample lookup by external id')
 				sample = external_sample
 			elif lysate:
 				sample = lysate.powder_sample.sample
-				print(f'sample lookup by lysate FluidX {lysate.lysate_id}')
+				# print(f'sample lookup by lysate FluidX {lysate.lysate_id}')
 			elif library:
 				sample = library.get_sample()
-				print(f'sample lookup by library FluidX {library.reich_lab_library_id}')
+				# print(f'sample lookup by library FluidX {library.reich_lab_library_id}')
 			elif collaborator_id:
 				sample = Sample.objects.get(skeletal_code=collaborator_id)
 	else:
@@ -1866,7 +1868,7 @@ def sample_archaeology_anno(request):
 				try:
 					if sample_str.startswith('S') or sample_str.startswith('I'):
 						sample_str = sample_str[1:]
-					sample = Sample.objects.get(reich_lab_id=int(sample_str))
+					sample = Sample.objects.filter(control__length=0).get(reich_lab_id=int(sample_str))
 					output_id = f'S{sample.reich_lab_id}'
 				except (Sample.DoesNotExist, ValueError):
 					sample = Sample.objects.get(external_id=sample_str)

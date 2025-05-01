@@ -123,11 +123,9 @@ class SampleSelectByReichLabID(forms.Form):
 	)
 	
 class SampleSummaryLookupForm(forms.Form):
-	sample = ModelChoiceField(
-		queryset=Sample.objects.all(),
+	sample_number = IntegerField(
 		widget=NumberInput,
 		help_text="Reich Lab Sample Number",
-		to_field_name='reich_lab_id',
 		required=False
 	)
 	sample_control = CharField(
