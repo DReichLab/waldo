@@ -73,7 +73,8 @@ def sample_site_update(sample_file, user):
 			sample.skeletal_code = row.skeletal_code
 			sample.skeletal_element = row.skeletal_element
 			sample.sample_date = row.sample_date
-			sample.average_bp_date = row.average_bp_date
+			if len(row.average_bp_date) > 0:
+				sample.average_bp_date = float(row.average_bp_date)
 			sample.date_fix_flag = row.date_fix_flag
 			sample.morphological_sex = row.morphological_sex
 			sample.morphological_age = row.morphological_age
