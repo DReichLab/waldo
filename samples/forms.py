@@ -39,7 +39,7 @@ class UserModelForm(ModelForm):
 		abstract = True
 		
 class SampleTextEntryForm(forms.Form):
-	text = forms.CharField(label='Sample IDs', max_length=1000000,  widget=forms.Textarea(attrs={'rows': 30}))
+	text = forms.CharField(label='Sample IDs', max_length=1000000, required=False, widget=forms.Textarea(attrs={'rows': 30}))
 
 class PowderBatchForm(UserModelForm):
 	notes = forms.CharField(required=False, widget=forms.Textarea(attrs={'rows': 2})) 
