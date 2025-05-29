@@ -168,7 +168,7 @@ def publication_sample_assign(batch_file, user):
 			if len(row_obj.paper_group_label) > 0:
 				pairing.group_label = row_obj.paper_group_label
 			if len(row_obj.digital_accession_number) > 0:
-				pairing.digital_accession_number = row.digital_accession_number
+				pairing.digital_accession_number = row_obj.digital_accession_number
 			pairing.save(save_user=user)
 			messages += [f'{sample_label} was published in {publication.title}']
 	return '\n'.join(messages)
