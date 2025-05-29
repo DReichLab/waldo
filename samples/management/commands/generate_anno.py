@@ -1,45 +1,32 @@
 from django.core.management.base import BaseCommand, CommandError
-from samples.anno import library_anno_line
-
+from samples.anno import sample_anno
+from samples.models import Sample
+import pathlib
+import re
 import sys
 
+SID_IID_REGEX = re.compile(r'[SI]\d+')
+
 class Command(BaseCommand):
-	help = "Generate David's anno file for a sequencing run"
+	help = "Generate David's anno file for a list of IDs"
 	
 	def add_arguments(self, parser):
-		parser.add_argument('-l', '--release_version_label', required=True)
-		parser.add_argument('-n', '--sequencing_run_name', required=True)
-		parser.add_argument('--ind', required=True)
+		parser.add_argument('ids', help="Newline-delimited text file containing sample/external IDs.", type=pathlib.Path)
 		
 	def handle(self, *args, **options):
-		release_version_label = options['release_version_label']
-		sequencing_run_name = options['sequencing_run_name']
-		ind_filename = options['ind']
-		
-		with open(ind_filename) as f:
-			for line in f:
-				fields = line.split()
-				library_id_raw = fields[0]
-				sex = fields[1]
-				
-				try:
-					if 'Contl' in library_id_raw: # TODO also handle control entries
-						print('ignoring {}'.format(library_id_raw), file=sys.stderr)
-					else:
-						fields = library_anno_line(library_id_raw, sequencing_run_name, release_version_label)
-						self.stdout.write('\t'.join(fields))
-				except Exception as e:
-					print('Failure for {}'.format(library_id_raw), file=sys.stderr)
-					raise e
-				'''
-				try:
-					#self.stdout.write('\t'.join(fields))
-					'\t'.join(fields)
-				except:
-					for i in range(len(fields)):
-						if(isinstance(fields[i], float)):
-							print(fields[i])
-							print(i)
-						#print(field)
-				break
-				'''
+		sample_ids_file = options['ids']
+		sample_ids = [line.rstrip('\n') for line in open(sample_ids_file, 'r')]
+
+		for sample_id in sample_ids:
+			try:
+				if re.fullmatch(SID_IID_REGEX, sample_id):
+					sample_id = sample_id[1:]
+				sample = Sample.objects.filter(control__length=0).get(reich_lab_id=int(sample_id))
+				output_id = f'S{sample.reich_lab_id}'
+			except (Sample.DoesNotExist, ValueError):
+				sample = Sample.objects.get(external_id=sample_id)
+				output_id = sample_id
+			#except Exception as e:
+			#	print('Failure for {}'.format(sample_id, file=sys.stderr)
+			#	raise e
+			self.stdout.write('\t'.join([output_id] + sample_anno(sample)))
