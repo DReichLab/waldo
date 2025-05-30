@@ -264,6 +264,7 @@ class LysateBatchLayoutForm(PowderSampleSharedForm):
 	def save(self, commit=True):
 		powder_sample = self.instance.powder_sample
 		powder_sample.total_powder_produced_mg = self.cleaned_data['total_powder_produced_mg']
+		powder_sample.sample_prep_protocol = self.cleaned_data['sample_prep_protocol']
 		powder_sample.save(save_user=self.user)
 		return super().save(commit=commit)
 		
