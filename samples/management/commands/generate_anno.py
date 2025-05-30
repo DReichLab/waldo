@@ -1,11 +1,9 @@
 from django.core.management.base import BaseCommand, CommandError
 from samples.anno import sample_anno
-from samples.models import Sample
+from samples.models import Sample, SID_IID_REGEX
 import pathlib
 import re
 import sys
-
-SID_IID_REGEX = re.compile(r'[SI]\d+')
 
 class Command(BaseCommand):
 	help = "Generate David's anno file for a list of IDs"

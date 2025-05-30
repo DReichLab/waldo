@@ -37,6 +37,7 @@ lysate_re = r'(?:\.Y(?P<lysate>[\d]+))?'
 extract_re = r'(?:\.E(?P<extract>[\d]+))?'
 library_re = r'(?:\.L(?P<library>[\d]+))'
 compiled_library_re = re.compile(sample_re + lysate_re + extract_re + library_re)
+SID_IID_REGEX = re.compile(r'[SI]?(?P<sample>\d+)')
 
 def parse_sample_string(s, full=True):
 	if full:
