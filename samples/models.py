@@ -396,6 +396,7 @@ class PublicationLabels(Timestamped):
 	individual_id = models.CharField(max_length=50, blank=True, help_text='Individual ID in paper')
 	group_label = models.CharField(max_length=200, blank=True, help_text='Group label for sample in paper')
 	digital_accession_number = models.CharField(max_length=100, blank=True, help_text='Reference to access published data')
+	genetic_id = models.CharField(max_length=50, blank=True, help_text='Genetic ID identifying published analysis. Needed if there is more than one anno file line for this individual.')
 	
 class SampleDate():
 	def __init__(self, source, label, date_bp, date_stdev=None, date_range=None):

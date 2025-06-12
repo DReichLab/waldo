@@ -149,7 +149,7 @@ def publication_batch_update(batch_file, user):
 			messages += [f'{publication.abbreviation} {" created" if created else " updated. "}']
 	return '\n'.join(messages)
 
-publication_sample_assign_headers = ['sample_id', 'external_id', 'publication_abbreviation', 'paper_individual_id', 'paper_group_label', 'digital_accession_number']
+publication_sample_assign_headers = ['sample_id', 'external_id', 'publication_abbreviation', 'paper_individual_id', 'paper_group_label', 'digital_accession_number', 'genetic_id']
 def publication_sample_assign(batch_file, user):
 	messages = []
 	with transaction.atomic():
@@ -169,6 +169,8 @@ def publication_sample_assign(batch_file, user):
 				pairing.group_label = row_obj.paper_group_label
 			if len(row_obj.digital_accession_number) > 0:
 				pairing.digital_accession_number = row_obj.digital_accession_number
+			if len(row_obj.genetic_id) > 0:
+				pairing.genetic_id = row_obj.genetic_id
 			pairing.save(save_user=user)
 			messages += [f'{sample_label} was published in {publication.title}']
 	return '\n'.join(messages)
