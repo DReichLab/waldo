@@ -1850,6 +1850,7 @@ def sample_edit(request):
 		form = SampleForm(request.POST, instance=sample, user=request.user)
 		if form.is_valid():
 			form.save()
+			form.save_m2m()
 			message = UPDATED
 	elif request.method == 'GET':
 		form = SampleForm(instance=sample, user=request.user)
