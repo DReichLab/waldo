@@ -1,6 +1,7 @@
 from django.db import models
 
-from samples.models import Timestamped, Results, AssessmentCategory
+from samples.models import Timestamped, Results, AssessmentCategory, DataInstance
+import samples.models
 
 # Create your models here.
 
@@ -79,12 +80,6 @@ class OrderedSequencingRunID(models.Model):
 		ordering = ["interface_order"]
 		unique_together = (("sequencing_analysis_run", "interface_order"),)
 
-class Capture(models.Model):
-	name = models.CharField(max_length=50, unique=True)
-	
-class Batch(models.Model):
-	name = models.CharField(max_length=50, unique=True)
-
 class Library(models.Model):
 	experiment = models.CharField(max_length=20)
 	udg = models.CharField(max_length=10)
@@ -93,8 +88,6 @@ class Library(models.Model):
 	path = models.CharField(max_length=300)
 	release_time = models.DateTimeField("release time", auto_now_add=True)
 	version = models.IntegerField()
-	capture = models.ForeignKey(Capture, on_delete=models.PROTECT)
-	batch = models.ForeignKey(Batch, on_delete=models.PROTECT)
 	
 	class Meta:
 		abstract = True
@@ -109,6 +102,10 @@ class ReleasedLibrary(Library):
 	
 	class Meta:
 		unique_together = (("sample", "sample_suffix", "lysis", "extract", "library", "experiment", "udg", "reference", "version"),)
+		
+class ReleasedLibrary2(models.Model):
+	library = models.ForeignKey(samples.models.Library, on_delete=models.PROTECT)
+	version = models.PositiveSmallIntegerField(default=1)
 		
 # Each positive control library in each capture is marked with Contl.Capture
 class PositiveControlLibrary(Library):
@@ -222,8 +219,8 @@ class SNPSet(models.Model):
 	count = models.PositiveIntegerField(help_text='Simple count of SNPs comprising this set.')
 
 deamination_help = "{} prime {} transitions as measured by Nick's mkdeamin program on forward strand at {}"
-# shared for both nuclear and MT analysis
-class Analysis2(Timestamped):
+# shared base class for both nuclear and MT analysis
+class AnalysisBase(Timestamped):
 	damage_restricted = models.BooleanField(default=False)
 	damage_5ct1 = models.FloatField(null=True, help_text=deamination_help.format(5, 'C->T', 'last base'))
 	damage_5ct2 = models.FloatField(null=True, help_text=deamination_help.format(5, 'C->T', 'second to last base'))
@@ -231,20 +228,97 @@ class Analysis2(Timestamped):
 	damage_3ga2 = models.FloatField(null=True, help_text=deamination_help.format(3, 'G->A', 'second to last base'))
 	damage_3ct1 = models.FloatField(null=True, help_text=deamination_help.format(3, 'C->T', 'last base'))
 	damage_3ct2 = models.FloatField(null=True, help_text=deamination_help.format(3, 'C->T', 'second to last base'))
-	median_length = models.DecimalField(null=True, max_digits=10, decimal_places=1)
-	mean_length = models.DecimalField(null=True, max_digits=10, decimal_places=1)
+	median_length = models.DecimalField(null=True, max_digits=4, decimal_places=1)
+	mean_length = models.DecimalField(null=True, max_digits=4, decimal_places=1)
+	indel_rate = models.FloatField(null=True)
 	
-class NuclearAnalysis2(Analysis2):
+class NuclearAnalysis2(AnalysisBase):
 	angsd_snps = models.IntegerField(null=True)
 	angsd_mean = models.FloatField(null=True)
 	angsd_z = models.FloatField(null=True)
+	angsd_ml_mean = models.FloatField(null=True)
+	angsd_ml_z = models.FloatField(null=True)
 	
-# This is supplemental for libraries but do not make sense for multiple libraries
+	autosome_post = models.BigIntegerField(null=True, help_text='reads aligning to chromosomes 1-22 post-deduplication')
+	autosome_post_coverage = models.FloatField(null=True, help_text='coverage of autosomes based on total bases in reads post-deduplication')
+	x_post = models.BigIntegerField(null=True, help_text='reads aligning to X chromosome post-deduplication')
+	x_post_coverage = models.FloatField(null=True, help_text='coverage of X chromosome based on total bases in reads post-deduplication')
+	y_post = models.BigIntegerField(null=True, help_text='reads aligning to Y chromosome post-deduplication')
+	y_post_coverage = models.FloatField(null=True, help_text='coverage of Y chromosome based on total bases in reads post-deduplication')
+	
+	x_autosome_ratio_lower = models.FloatField(null=True, help_text='ratio of reads covering 1240k targets X:autosome lower 95% confidence bound')
+	x_autosome_ratio_upper = models.FloatField(null=True, help_text='ratio of reads covering 1240k targets X:autosome upper 95% confidence bound')
+	y_autosome_ratio_lower = models.FloatField(null=True, help_text='ratio of reads covering 1240k targets Y:autosome upper 95% confidence bound')
+	y_autosome_ratio_upper = models.FloatField(null=True, help_text='ratio of reads covering 1240k targets Y:autosome upper 95% confidence bound')
+	yx_ratio_lower = models.FloatField(null=True, help_text='ratio of reads covering 1240k targets Y:X upper 95% confidence bound')
+	yx_ratio_upper = models.FloatField(null=True, help_text='ratio of reads covering 1240k targets Y:X upper 95% confidence bound')
+	c21_autosome_ratio_lower = models.FloatField(null=True, help_text='ratio of reads covering 1240k targets chromosome 21 : other autosome lower 95% confidence bound')
+	c21_autosome_ratio_upper = models.FloatField(null=True, help_text='ratio of reads covering 1240k targets chromosome 21 : other autosome upper 95% confidence bound')
+	
+	# hapROH
+	max_roh = models.FloatField(null=True)
+	roh_num_4cm = models.PositiveSmallIntegerField(null=True)
+	roh_sum_4cm = models.FloatField(null=True)
+	roh_num_8cm = models.PositiveSmallIntegerField(null=True)
+	roh_sum_8cm = models.FloatField(null=True)
+	roh_num_12cm = models.PositiveSmallIntegerField(null=True)
+	roh_sum_12cm = models.FloatField(null=True)
+	roh_num_20cm = models.PositiveSmallIntegerField(null=True)
+	roh_sum_20cm = models.FloatField(null=True)
+	
+	# hapcon autosome
+	hapconautosome_blocks = models.PositiveSmallIntegerField(null=True)
+	hapconautosome_length = models.FloatField(null=True, help_text='Total length of ROH after trimming')
+	hapconautosome_contamination = models.FloatField(help_text='MLE for contamination using BFGS')
+	hapconautosome_contamination_lower = models.FloatField(help_text='MLE for contamination using BFGS, confidence interval lower bound')
+	hapconautosome_contamination_upper = models.FloatField(help_text='MLE for contamination using BFGS, confidence interval upper bound')
+
+	
+class HapconXAnalysis(Timestamped):
+	nuclear = models.ForeignKey(NuclearAnalysis2, null=False, on_delete=models.CASCADE)
+	african = models.BooleanField(help_text='True if African haplotypes are included in the reference panel. False if African haplotypes are excluded, which is the hapConX default.')
+	major_reads_at_flanking_sites = models.IntegerField()
+	minor_reads_at_flanking_sites = models.IntegerField()
+	major_reads_at_focal_sites = models.IntegerField()
+	minor_reads_at_focal_sites = models.IntegerField()
+	err_rate_at_flanking_sites = models.FloatField()
+	err_rate_at_focal_sites = models.FloatField()
+	estimated_genotyping_error_by_flanking_sites = models.FloatField()
+	number_of_sites_covered_by_at_least_one_read = models.IntegerField()
+	fraction_covered = models.FloatField()
+	estimated_contamination_rate = models.FloatField()
+	
+# This is supplemental for libraries but does not make sense for multiple libraries
 class LibraryAnalysis(Timestamped):
 	nuclear = models.ForeignKey(NuclearAnalysis2, null=False, on_delete=models.CASCADE)
+	demultiplexed = models.BigIntegerField(help_text='Number of reads demultiplexing for this library')
+	merged = models.BigIntegerField(help_text='For paired-end reads, the number of reads successfully merging')
+	merge_overlap = models.PositiveSmallIntegerField(null=True, help_text='number of overlapping bases required for merging paired-end reads')
+	merge_minimum_length = models.PositiveSmallIntegerField(null=True, help_text='minimum insert size to keep')
+	mismatch_quality_threshold = models.PositiveSmallIntegerField(null=True, help_text='One mismatches at or above this threshold is allowed for a merge. Three mismatches are allowed below it.')
+	oligo = models.IntegerField(null=True)
+	
 	expected_coverage_10_marginal_uniqueness = models.FloatField()
 	expected_coverage_37_marginal_uniqueness = models.FloatField()
 	marginal_uniqueness = models.FloatField()
+	
+	#endogenous = models.FloatField(null=True, help_text='(reads aligning to autosome + X + Y + MT) / merged reads')
+	autosome_pre = models.BigIntegerField(null=True, help_text='reads aligning to chromosomes 1-22 pre-deduplication')
+	autosome_pre_coverage = models.FloatField(null=True, help_text='coverage of autosomes based on total bases in reads pre-deduplication')
+	x_pre = models.BigIntegerField(null=True, help_text='reads aligning to chromosome X pre-deduplication')
+	x_pre_coverage = models.FloatField(null=True, help_text='coverage of X chromosome based on total bases in reads pre-deduplication')
+	y_pre = models.BigIntegerField(null=True, help_text='reads aligning to chromosome Y pre-deduplication')
+	y_pre_coverage = models.FloatField(null=True, help_text='coverage of Y chromosome based on total bases in reads pre-deduplication')
+	mt_pre = models.BigIntegerField(null=True, help_text='reads aligning to MT pre-deduplication')
+	duplicates_nuclear = models.BigIntegerField(null=True, help_text='nuclear reads marked as duplicates')
+	duplicates_mt = models.BigIntegerField(null=True, help_text='MT reads marked as duplicates')
+	
+	def endogenous(self):
+		return (self.autosome_pre + self.x_pre + self.y_pre + self.mt_pre) / self.merged
+		
+	def endogenous_cost(self):
+		return (self.autosome_pre + self.x_pre + self.y_pre + self.mt_pre) / self.demultiplexed
+	
 
 class SNPCount(Timestamped):
 	analysis = models.ForeignKey(NuclearAnalysis2, on_delete=models.CASCADE)
@@ -254,10 +328,26 @@ class SNPCount(Timestamped):
 	deduplicated = models.BooleanField(default=True)
 	method = models.TextField()
 	
-class MTAnalysis2(Analysis2):
-	consensus_match = models.FloatField(null=True)
-	consensus_match_95ci_lower = models.FloatField(null=True, help_text='95% confidence interval lower bound')
-	consensus_match_95ci_upper = models.FloatField(null=True, help_text='95% confidence interval upper bound')
+class Pulldown(Timestamped):
+	analysis= models.ForeignKey(NuclearAnalysis2, on_delete=models.CASCADE)
+	snps = models.ForeignKey(SNPSet, on_delete=models.PROTECT)
+	parameter_file = models.TextField()
+	histmake_log = models.TextField()
+	histmake_version = models.TextField()
+	damage_score_log = models.TextField()
+	damage_score_version = models.TextField()
+	pullit_log = models.TextField()
+	pullit_version = models.TextField()
+	
+class MTAnalysis2(AnalysisBase):
+	consensus_match = models.FloatField(null=True, help_text='contammix match to consensus estimate for MT contamination')
+	consensus_match_95ci_lower = models.FloatField(null=True, help_text='95% confidence interval lower bound for contammix')
+	consensus_match_95ci_upper = models.FloatField(null=True, help_text='95% confidence interval upper bound for contammix')
+	contammix_gelman = models.FloatField(null=True)
+	contammix_inferred_error = models.FloatField(null=True)
+	
+	mt_post = models.IntegerField(null=True, help_text='reads aligning to MT post-deduplication')
+	mt_post_coverage = models.FloatField(null=True, help_text='coverage of MT based on total bases in reads post-deduplication')
 	
 class HaplogroupCaller(Timestamped):
 	haplogroup_type = models.CharField(max_length=10, blank=False, help_text='Y, MT, etc.')
@@ -268,10 +358,34 @@ class MTHaplogroupCall(Timestamped):
 	caller = models.ForeignKey(HaplogroupCaller, on_delete=models.PROTECT)
 	analysis = models.ForeignKey(MTAnalysis2, on_delete=models.PROTECT)
 	haplogroup = models.CharField(max_length=30, null=False, blank=False)
-	rank = models.FloatField(null=True, help_text='[0.5, 1] where 1 is perfect')
+	rank = models.PositiveSmallIntegerField(null=True)
+	quality = models.FloatField(null=True, help_text='[0.5, 1] where 1 is perfect')
 	polys_found = models.TextField(blank=True)
 	polys_notfound = models.TextField(blank=True)
 	polys_remaining = models.TextField(blank=True)
+
+# This is the master entry
+class GeneticAnalysis(Timestamped):
+	data_instance = models.ForeignKey(DataInstance, on_delete=models.PROTECT)
+	genetic_id = models.CharField(max_length=40, blank=False, unique=True, db_index=True)
+	nuclear_analysis = models.ForeignKey(NuclearAnalysis2, null=True, on_delete=models.CASCADE)
+	mt_analysis = models.ForeignKey(MTAnalysis2, null=True, on_delete=models.CASCADE)
+	assessment = models.ForeignKey(AssessmentCategory, null=True, on_delete=models.SET_NULL)
+	assessment_notes = models.TextField(blank=True)
+	first_release = models.PositiveSmallIntegerField(null=True, help_text='First major release where this analysis appears')
+	genotype_hash = models.CharField(null=True, blank=False, max_length=8)
+	missingness_hash = models.CharField(null=True, blank=False, max_length=9)
 	
-class YHaplogroupCall(Timestamped):
-	pass # TODO
+class FamilyRelationshipDegree(models.Model):
+	degree = models.CharField(max_length=10, unique=True)
+	
+class FamilyRelationshipType(models.Model):
+	relationship = models.CharField(max_length=30, unique=True)
+
+class FamilyRelationship(Timestamped):
+	person1 = models.ForeignKey(GeneticAnalysis, on_delete=models.PROTECT, related_name='first')
+	person2 = models.ForeignKey(GeneticAnalysis, on_delete=models.PROTECT, related_name='second')
+	degree = models.ForeignKey(FamilyRelationshipDegree, on_delete=models.PROTECT)
+	relationship = models.ForeignKey(FamilyRelationshipType, null=True, on_delete=models.PROTECT)
+	version = models.PositiveSmallIntegerField(null=True)
+	notes = models.TextField(blank=True)

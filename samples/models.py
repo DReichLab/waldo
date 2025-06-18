@@ -3254,27 +3254,37 @@ class AssessmentCategory(models.Model):
 	category = models.CharField(max_length=25, unique=True)
 	description = models.TextField(blank=True)
 	sort_order = models.SmallIntegerField()
+	
+# VCF, bam, cram, external genotype, etc.
+class DataFileType(models.Model):
+	name = models.CharField(max_length=20, db_index=True, blank=False, unique=True)
+	description = models.TextField(blank=True)
 
-# David Reich's anno file is a series of instances
-class Instance(Timestamped):
-	id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-	instance_id = models.CharField(max_length=40, db_index=True)
-	master_id = models.CharField(max_length=40, db_index=True)
-	reich_lab_id = models.PositiveIntegerField(db_index=True, null=True, help_text='Lowest Reich Lab sample ID for this individual')
-	alignment_sequencing = models.CharField(max_length=255, blank=True)
-	genotype_file = models.CharField(max_length=255, blank=True)
+# internally or externally generated data file
+class DataFile(Timestamped):
+	file_type = models.ForeignKey(DataFileType, on_delete=models.PROTECT)
+	path = models.CharField(max_length=255)
+	notes = models.TextField(blank=True)
+	# TODO file hash
+
+# For in-lab sequencing, we know the components for files
+# This enables construction of library lists, experiments, etc. 
+class SequencingComponents(models.Model):
+	data_file = models.ForeignKey(DataFile, on_delete=models.PROTECT)
+	sequenced_library = models.ForeignKey(SequencedLibrary, on_delete=models.PROTECT)
+
+# DataInstance is a collection of data. 
+# External data will start here. 
+# A DataInstance will be analyzed to generate a line in David Reich's annotation file
+class DataInstance(Timestamped):
+	primary_sample = models.ForeignKey(Sample, on_delete=models.PROTECT)
+	data_files = models.ManyToManyField(DataFile, through='DataFileAssignment')
 	
-	excluded = models.BooleanField(default=False)
-	
-	# Remove Instance below here
-	library_ids = models.ManyToManyField(Library) # this is implicitly a list of samples as well
-	published_year = models.PositiveSmallIntegerField(null=True)
-	publication = models.CharField(max_length=50, blank=True)
-	group_id = models.CharField(max_length=120)
-	
-	data_type = models.CharField(max_length=20) # TODO enumerate this 1240k, shotgun, BigYoruba, etc.
-	family = models.TextField(blank=True, help_text='family id and position within family')
-	assessment_notes = models.TextField(help_text='Xcontam listed if |Z|>2 standard errors from zero: 0.02-0.05="QUESTIONABLE", >0.05="QUESTIONABLE_CRITICAL" or "FAIL") (mtcontam 97.5th percentile estimates listed if coverage >2: <0.8 is "QUESTIONABLE_CRITICAL", 0.8-0.95 is "QUESTIONABLE", and 0.95-0.98 is recorded but "PASS", gets overriden by ANGSD')
+# associate DataFile with a DataInstance collection
+class DataFileAssignment(models.Model):
+	data_file = models.ForeignKey(DataFile, on_delete=models.CASCADE)
+	collection = models.ForeignKey(DataInstance, on_delete=models.CASCADE)
+	read_group = models.TextField(blank=True, help_text='Blank indicates all read groups. Non-blank indicates a single one.')
 
 class Project(models.Model):
 	name = models.CharField(max_length=100)
