@@ -413,6 +413,15 @@ class PublicationLabels(Timestamped):
 	group_label = models.CharField(max_length=200, blank=True, help_text='Group label for sample in paper')
 	digital_accession_number = models.CharField(max_length=100, blank=True, help_text='Reference to access published data')
 	genetic_id = models.CharField(max_length=50, blank=True, help_text='Genetic ID identifying published analysis. Needed if there is more than one anno file line for this individual.')
+	genetic_id_entry = models.ForeignKey('sequencing_run.GeneticAnalysis', null=True, on_delete=models.PROTECT, help_text='Analysis that was published. This should replace the sample and text genetic ID.')
+	
+	def clean(self):
+		super(PublicationLabels, self).clean()
+		# make sure sample is consistent
+		if self.sample and self.genetic_id_entry and self.sample != self.genetic_id_entry.data_instance.primary_sample:
+			raise ValidationError(_(f'sample is inconsistent: {str(self.sample)} {str(self.genetic_id_entry.data_instance.primary_sample)}'))
+		if len(self.genetic_id) > 0 and self.genetic_id_entry is not None and self.genetic_id != self.genetic_id_entry.genetic_id:
+			raise ValidationError(_(f'genetic_id is inconsistent: {self.genetic_id} {self.genetic_id_entry.genetic_id}'))
 	
 class SampleDate():
 	def __init__(self, source, label, date_bp, date_stdev=None, date_range=None):
@@ -421,6 +430,9 @@ class SampleDate():
 		self.date_bp = date_bp
 		self.date_stdev = date_stdev
 		self.date_range = date_range
+		
+class SpecialRestriction(models.Model):
+	description = models.TextField(blank=False, unique=True)
 
 class Sample(Timestamped):
 	reich_lab_id = models.PositiveIntegerField(db_index=True, null=True, help_text=' assigned when a sample is selected from the queue by the wetlab')
@@ -475,6 +487,7 @@ class Sample(Timestamped):
 	approved_negative_results = models.BooleanField(default=False, help_text='Approved for full reporting of negative results and photographs')
 	approved_photo_sharing = models.BooleanField(null=True, help_text='Approved for sharing sample photographs. Null indicates unknown.')
 	special_restrictions = models.BooleanField(null=True, default=False, help_text='There are special restrictions on the use of this sample.')
+	special_restriction = models.ForeignKey(SpecialRestriction, on_delete=models.PROTECT, null=True)
 	
 	group_label_use_country = models.BooleanField(default=True)
 	group_label_use_level_1 = models.BooleanField(default=False)
@@ -3255,15 +3268,15 @@ class AssessmentCategory(models.Model):
 	description = models.TextField(blank=True)
 	sort_order = models.SmallIntegerField()
 	
-# VCF, bam, cram, external genotype, etc.
+# VCF, bam [possibly restricted to 1240k targets], cram, external genotype, etc.
 class DataFileType(models.Model):
-	name = models.CharField(max_length=20, db_index=True, blank=False, unique=True)
+	name = models.TextField(db_index=True, blank=False, unique=True)
 	description = models.TextField(blank=True)
 
 # internally or externally generated data file
 class DataFile(Timestamped):
 	file_type = models.ForeignKey(DataFileType, on_delete=models.PROTECT)
-	path = models.CharField(max_length=255)
+	path = models.TextField(unique=True)
 	notes = models.TextField(blank=True)
 	# TODO file hash
 
@@ -3279,6 +3292,9 @@ class SequencingComponents(models.Model):
 class DataInstance(Timestamped):
 	primary_sample = models.ForeignKey(Sample, on_delete=models.PROTECT)
 	data_files = models.ManyToManyField(DataFile, through='DataFileAssignment')
+	
+	libraries = models.TextField(blank=True, help_text='Library list from anno file, experiments unknown. This should be superceded by SequencingComponents with experiment (1240k v. Twist) information.')
+	
 	
 # associate DataFile with a DataInstance collection
 class DataFileAssignment(models.Model):

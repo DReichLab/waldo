@@ -124,6 +124,9 @@ class DemultiplexedSequencing(models.Model):
 	reference = models.CharField(max_length=30)
 	path = models.CharField(max_length=300)
 	library = models.ManyToManyField(ReleasedLibrary) # this needs to be many-to-many to support versions
+	
+	merge_overlap = models.PositiveSmallIntegerField(null=True, help_text='number of overlapping bases required for merging paired-end reads')
+	merge_minimum_length = models.PositiveSmallIntegerField(null=True, help_text='minimum insert size to keep')
 
 class AnalysisFiles(Timestamped):
 	parent = models.ForeignKey(Results, on_delete=models.CASCADE)
@@ -292,15 +295,13 @@ class HapconXAnalysis(Timestamped):
 class LibraryAnalysis(Timestamped):
 	nuclear = models.ForeignKey(NuclearAnalysis2, null=False, on_delete=models.CASCADE)
 	demultiplexed = models.BigIntegerField(help_text='Number of reads demultiplexing for this library')
-	merged = models.BigIntegerField(help_text='For paired-end reads, the number of reads successfully merging')
-	merge_overlap = models.PositiveSmallIntegerField(null=True, help_text='number of overlapping bases required for merging paired-end reads')
-	merge_minimum_length = models.PositiveSmallIntegerField(null=True, help_text='minimum insert size to keep')
+	merged = models.BigIntegerField(null=True, help_text='For paired-end reads, the number of reads successfully merging')
 	mismatch_quality_threshold = models.PositiveSmallIntegerField(null=True, help_text='One mismatches at or above this threshold is allowed for a merge. Three mismatches are allowed below it.')
 	oligo = models.IntegerField(null=True)
 	
-	expected_coverage_10_marginal_uniqueness = models.FloatField()
-	expected_coverage_37_marginal_uniqueness = models.FloatField()
-	marginal_uniqueness = models.FloatField()
+	expected_coverage_10_marginal_uniqueness = models.FloatField(null=True)
+	expected_coverage_37_marginal_uniqueness = models.FloatField(null=True)
+	marginal_uniqueness = models.FloatField(null=True)
 	
 	#endogenous = models.FloatField(null=True, help_text='(reads aligning to autosome + X + Y + MT) / merged reads')
 	autosome_pre = models.BigIntegerField(null=True, help_text='reads aligning to chromosomes 1-22 pre-deduplication')
@@ -331,13 +332,13 @@ class SNPCount(Timestamped):
 class Pulldown(Timestamped):
 	analysis= models.ForeignKey(NuclearAnalysis2, on_delete=models.CASCADE)
 	snps = models.ForeignKey(SNPSet, on_delete=models.PROTECT)
-	parameter_file = models.TextField()
-	histmake_log = models.TextField()
-	histmake_version = models.TextField()
-	damage_score_log = models.TextField()
-	damage_score_version = models.TextField()
+	parameter_file = models.TextField(blank=True, help_text='Some older versions of pulldown did not have a single parameter file, but multiple')
+	histmake_log = models.TextField(blank=True)
+	histmake_version = models.TextField(blank=True)
+	damage_score_log = models.TextField(blank=True)
+	damage_score_version = models.TextField(blank=True)
 	pullit_log = models.TextField()
-	pullit_version = models.TextField()
+	pullit_version = models.TextField(blank=True)
 	
 class MTAnalysis2(AnalysisBase):
 	consensus_match = models.FloatField(null=True, help_text='contammix match to consensus estimate for MT contamination')
@@ -367,20 +368,24 @@ class MTHaplogroupCall(Timestamped):
 # This is the master entry
 class GeneticAnalysis(Timestamped):
 	data_instance = models.ForeignKey(DataInstance, on_delete=models.PROTECT)
-	genetic_id = models.CharField(max_length=40, blank=False, unique=True, db_index=True)
+	genetic_id = models.TextField(blank=False, unique=True, db_index=True)
+	pulldown_id = models.TextField(blank=True, help_text='ID in pulldown, which may differ from genetic ID')
+	
 	nuclear_analysis = models.ForeignKey(NuclearAnalysis2, null=True, on_delete=models.CASCADE)
 	mt_analysis = models.ForeignKey(MTAnalysis2, null=True, on_delete=models.CASCADE)
 	assessment = models.ForeignKey(AssessmentCategory, null=True, on_delete=models.SET_NULL)
 	assessment_notes = models.TextField(blank=True)
-	first_release = models.PositiveSmallIntegerField(null=True, help_text='First major release where this analysis appears')
+	first_release = models.CharField(max_length=20, blank=True, help_text='First release where this analysis appears')
 	genotype_hash = models.CharField(null=True, blank=False, max_length=8)
-	missingness_hash = models.CharField(null=True, blank=False, max_length=9)
+	missingness_hash = models.CharField(null=True, blank=False, max_length=8)
+	
+	permanent_repository = models.TextField(blank=True)
 	
 class FamilyRelationshipDegree(models.Model):
-	degree = models.CharField(max_length=10, unique=True)
+	degree = models.TextField(unique=True)
 	
 class FamilyRelationshipType(models.Model):
-	relationship = models.CharField(max_length=30, unique=True)
+	relationship = models.TextField(unique=True)
 
 class FamilyRelationship(Timestamped):
 	person1 = models.ForeignKey(GeneticAnalysis, on_delete=models.PROTECT, related_name='first')
