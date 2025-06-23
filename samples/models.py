@@ -3295,6 +3295,9 @@ class DataInstance(Timestamped):
 	
 	libraries = models.TextField(blank=True, help_text='Library list from anno file, experiments unknown. This should be superceded by SequencingComponents with experiment (1240k v. Twist) information.')
 	
+	def __str__(self):
+		file_str = ' '.join([data_file.path for data_file in self.data_files.all()])
+		return f'{str(self.primary_sample)} {file_str} {self.libraries}'
 	
 # associate DataFile with a DataInstance collection
 class DataFileAssignment(models.Model):
