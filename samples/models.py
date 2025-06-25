@@ -191,7 +191,7 @@ class PublicationType(models.Model):
 	category = models.CharField(max_length=50, blank=False, help_text='For example, genetic or archaeological')
 	
 class Publication(Timestamped):
-	abbreviation = models.CharField(max_length=50, unique=True, validators=[validate_no_whitespace], help_text='Unique identifier for paper, no spaces allowed')
+	abbreviation = models.TextField(unique=True, help_text='Unique identifier for paper')
 	title = models.CharField(max_length=200)
 	first_author = models.CharField(max_length=50, blank=True)
 	year = models.PositiveSmallIntegerField(null=True)
