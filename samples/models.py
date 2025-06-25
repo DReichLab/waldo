@@ -432,6 +432,7 @@ class SampleDate():
 		self.date_range = date_range
 		
 class SpecialRestriction(models.Model):
+	anno_file_key = models.CharField(blank=False, unique=True, db_index=True)
 	description = models.TextField(blank=False, unique=True)
 
 class Sample(Timestamped):
@@ -3276,9 +3277,11 @@ class DataFileType(models.Model):
 # internally or externally generated data file
 class DataFile(Timestamped):
 	file_type = models.ForeignKey(DataFileType, on_delete=models.PROTECT)
-	path = models.TextField(unique=True)
+	path = models.TextField()
 	notes = models.TextField(blank=True)
 	# TODO file hash
+	class Meta:
+		unique_together = [['file_type', 'path']]
 
 # For in-lab sequencing, we know the components for files
 # This enables construction of library lists, experiments, etc. 

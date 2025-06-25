@@ -6,7 +6,7 @@ from django.db.models import Count, Q
 from pathlib import Path
 import re
 
-from samples.models import Sample, DataFileType, DataFile, DataInstance, PublicationLabels, Publication, SID_IID_REGEX
+from samples.models import Sample, SpecialRestriction, DataFileType, DataFile, DataInstance, PublicationLabels, Publication, SID_IID_REGEX
 from sequencing_run.models import GeneticAnalysis
 
 class Command(BaseCommand):
@@ -17,11 +17,13 @@ class Command(BaseCommand):
 		
 	def handle(self, *args, **options):
 		annotation_filename = options['annotation_file']
+		failure = False
 		with transaction.atomic():
 			with open(annotation_filename) as f:
 				f.readline() # discard header
 				for line in f:
-					fields = [x.strip() for x in re.split('\t|\n', line)]
+					raw_fields = [x.strip() for x in re.split('\t|\n', line)]
+					fields = [x if x != '..' else '' for x in raw_fields] # remove this anno file representation for null
 					genetic_id = fields[1]
 					individual_id = fields[2] # check this against data entries
 					publication_abbreviation = fields[7]
@@ -40,29 +42,42 @@ class Command(BaseCommand):
 					
 					# create data files
 					mt_bam_type, created = DataFileType.objects.get_or_create(name='MT bam')
-					mt_data, created = DataFile.objects.get_or_create(file_type=mt_bam_type, path=mt_bam)
+					if len(mt_bam) > 0:
+						mt_data, created = DataFile.objects.get_or_create(file_type=mt_bam_type, path=mt_bam)
+					else:
+						mt_data = None
 					autosomal_bam_type, created = DataFileType.objects.get_or_create(name='autosomal bam')
-					autosomal_data, created = DataFile.objects.get_or_create(file_type=autosomal_bam_type, path=autosome_bam)
+					if len(autosome_bam) > 0:
+						autosomal_data, created = DataFile.objects.get_or_create(file_type=autosomal_bam_type, path=autosome_bam)
+					else
+						autosome_bam = None
 					
 					match = re.fullmatch(SID_IID_REGEX, individual_id)
 					if match:
 						try:
 							sample_id_number = int(match.groupdict()['sample'])
-							sample = Sample.objects.get(reich_lab_id=sample_id_number)
+							sample = Sample.objects.get(reich_lab_id=sample_id_number, control='')
 						except Sample.DoesNotExist as e:
 							print(sample_id_number)
 							print(line)
 							#raise e
 						except Sample.MultipleObjectsReturned as e:
 							self.stderr.write(f'{sample_id_number} has {str(e)}')
+							raise e
 
 					else:
 						try:
-								sample = Sample.objects.get(external_id=individual_id)
+							sample = Sample.objects.get(external_id=individual_id)
 						except Sample.DoesNotExist:
-								self.stderr.write(f'{individual_id} not found')
+							pass
 					if sample is None:
 						self.stderr.write(f'{individual_id} not found')
+						failure = True
+					else:
+						if len(special_restriction) > 0 and special_restriction != '0':
+							sample.special_restrictions = True
+							sample.special_restriction = SpecialRestriction.objects.get(anno_file_key=special_restriction)
+							sample.save()
 
 					try:
 						assigned_data = [mt_data, autosomal_data]
@@ -84,6 +99,9 @@ class Command(BaseCommand):
 					genetic_analysis.permanent_repository = permanent_repository
 					genetic_analysis.save()
 					
-					publication, created = Publication.objects.get_or_create(abbreviation=publication_abbreviation)
-					label, created = PublicationLabels.objects.get_or_create(sample=sample, publication=publication, genetic_id=genetic_id, genetic_id_entry=genetic_analysis)
+					if publication_abbreviation != 'Unpublished':
+						publication, created = Publication.objects.get_or_create(abbreviation=publication_abbreviation)
+						label, created = PublicationLabels.objects.get_or_create(sample=sample, publication=publication, genetic_id=genetic_id, genetic_id_entry=genetic_analysis)
 					
+			if failure:
+				transaction.rollback()

@@ -380,6 +380,7 @@ class GeneticAnalysis(Timestamped):
 	missingness_hash = models.CharField(null=True, blank=False, max_length=8)
 	
 	permanent_repository = models.TextField(blank=True)
+	notes = models.TextField(blank=True)
 	
 class FamilyRelationshipDegree(models.Model):
 	degree = models.TextField(unique=True)
