@@ -100,8 +100,15 @@ class Command(BaseCommand):
 					genetic_analysis.save()
 					
 					if publication_abbreviation != 'Unpublished':
-						publication, created = Publication.objects.get_or_create(abbreviation=publication_abbreviation)
-						label, created = PublicationLabels.objects.get_or_create(sample=sample, publication=publication, genetic_id=genetic_id, genetic_id_entry=genetic_analysis)
+						try:
+							publication = Publication.objects.get(abbreviation=publication_abbreviation)
+						
+							label, created = PublicationLabels.objects.get_or_create(sample=sample, publication=publication, genetic_id=genetic_id, genetic_id_entry=genetic_analysis)
+						except Publication.DoesNotExist as e:
+							if 'Unpublished' in publication_abbreviation:
+								self.stderr.write(f'Ignored publication {publication}')
+							else:
+								raise e
 					
 			if failure:
 				transaction.rollback()
