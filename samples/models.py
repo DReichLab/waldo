@@ -435,6 +435,7 @@ class Sample(Timestamped):
 	excavation_grid = models.TextField(blank=True, help_text='Sector unit and depth describing the particular part of the excavation area where this sample was found.')
 	sample_date = models.TextField(blank=True, help_text='Age of sample; either a radiocarbon date or a date interval.')
 	average_bp_date = models.FloatField(null=True, help_text='Average Before Present date, calculated from average of calibrated date range after conversion to BP dates')
+	date_stdev = models.DecimalField(max_digits=8, decimal_places=1, null=True)
 	date_fix_flag = models.TextField(help_text='Flag for any issues with the date information submitted by the collaborator', blank=True)
 	group_label = models.CharField(max_length=100, blank=True, help_text='Country_Culture_Period of Individual')
 	period = models.CharField(max_length=50, blank=True, help_text='Archaeologic period component of group label of an Individual')

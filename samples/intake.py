@@ -21,7 +21,7 @@ def boolean_from_str(s):
 		return False
 	return bool(s)
 
-sample_headers = ['sample_id', 'external_id', 'site_name', 'burial_code', 'burial_subcode', 'excavation_year', 'excavation_grid', 'skeletal_code', 'skeletal_element', 'sample_date', 'average_bp_date', 'date_fix_flag', 'morphological_sex', 'morphological_age', 'morphological_age_range', 'periods', 'cultures', 'group_label_use_country', 'group_label_use_site', 'group_label_use_period', 'group_label_use_culture']
+sample_headers = ['sample_id', 'external_id', 'site_name', 'burial_code', 'burial_subcode', 'excavation_year', 'excavation_grid', 'skeletal_code', 'skeletal_element', 'sample_date', 'average_bp_date', 'date_stdev', 'date_fix_flag', 'morphological_sex', 'morphological_age', 'morphological_age_range', 'periods', 'cultures', 'group_label_use_country', 'group_label_use_site', 'group_label_use_period', 'group_label_use_culture']
 def sample_site_update(sample_file, user):
 	messages = []
 	with transaction.atomic():
@@ -30,7 +30,10 @@ def sample_site_update(sample_file, user):
 			# Reich lab IDs will already exist
 			if row.sample_id is not None and len(row.sample_id) > 0:
 				sample = Sample.objects.get(reich_lab_id=reich_sample_number(row.sample_id))
-				sample.external_id = row.external_id
+				if len(row.external_id) > 0:
+					sample.external_id = row.external_id
+				else:
+					sample.external_id = None
 				sample_created = False
 			else: # external IDs can be added
 				sample, sample_created = Sample.objects.get_or_create(external_id=row.external_id)
@@ -74,6 +77,7 @@ def sample_site_update(sample_file, user):
 			sample.skeletal_element = row.skeletal_element
 			sample.sample_date = row.sample_date
 			sample.average_bp_date = float(row.average_bp_date) if len(row.average_bp_date) > 0 else None
+			sample.date_stdev = float(row.date_stdev) if len(row.date_stdev) > 0 else None
 			sample.date_fix_flag = row.date_fix_flag
 			sample.morphological_sex = row.morphological_sex
 			sample.morphological_age = row.morphological_age
@@ -118,6 +122,7 @@ def sample_site_values(sample):
 	'skeletal_element',
 	'sample_date', 
 	'average_bp_date', 
+	'date_stdev',
 	'date_fix_flag',
 	'morphological_sex',
 	'morphological_age',
