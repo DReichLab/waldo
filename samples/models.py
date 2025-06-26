@@ -432,7 +432,7 @@ class SampleDate():
 		self.date_range = date_range
 		
 class SpecialRestriction(models.Model):
-	anno_file_key = models.CharField(blank=False, unique=True, db_index=True)
+	anno_file_key = models.PositiveSmallIntegerField(unique=True, db_index=True)
 	description = models.TextField(blank=False, unique=True)
 
 class Sample(Timestamped):
