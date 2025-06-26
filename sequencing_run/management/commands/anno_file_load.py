@@ -101,14 +101,16 @@ class Command(BaseCommand):
 					
 					if publication_abbreviation != 'Unpublished':
 						try:
-							publication = Publication.objects.get(abbreviation=publication_abbreviation)
+							search = publication_abbreviation.split()[0] # notes may follow, ignore these
+							publication = Publication.objects.get(abbreviation=search)
 						
 							label, created = PublicationLabels.objects.get_or_create(sample=sample, publication=publication, genetic_id=genetic_id, genetic_id_entry=genetic_analysis)
 						except Publication.DoesNotExist as e:
 							if 'Unpublished' in publication_abbreviation:
-								self.stderr.write(f'Ignored publication {publication}')
+								self.stderr.write(f'Ignored publication {publication_abbreviation}')
 							else:
-								raise e
+								self.stderr.write(f'Publication {publication_abbreviation} not found')
+								# raise e
 					
 			if failure:
 				transaction.rollback()
