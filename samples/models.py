@@ -525,8 +525,8 @@ class Sample(Timestamped):
 		else:
 			return 0
 			
-	# retain only - and _
-	group_label_char_to_remove = string.punctuation.translate(str.maketrans('', '', '-_')) + string.whitespace
+	# retain only alphanumeric, -, and _ by replacing inverse
+	GROUP_LABEL_ANNO_REGEX_INVERSE = re.compile(r'[^\w-]+')
 	def get_group_label(self):
 		parts = []
 		if self.group_label_use_country:
@@ -555,7 +555,7 @@ class Sample(Timestamped):
 				culture_s = self.culture
 			if len(culture_s) > 0:
 				parts += [culture_s]
-		return unidecode('_'.join(parts).translate(str.maketrans('', '', Sample.group_label_char_to_remove)))
+		return re.sub(Sample.GROUP_LABEL_ANNO_REGEX_INVERSE, '', unidecode('_'.join(parts)))
 	
 	# priority for dates, in descending order
 	# radiocarbon dating of sample
