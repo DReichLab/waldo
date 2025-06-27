@@ -434,6 +434,8 @@ class Sample(Timestamped):
 	excavation_year = models.PositiveSmallIntegerField(null=True, help_text='The year this sample was excavated.')
 	excavation_grid = models.TextField(blank=True, help_text='Sector unit and depth describing the particular part of the excavation area where this sample was found.')
 	sample_date = models.TextField(blank=True, help_text='Age of sample; either a radiocarbon date or a date interval.')
+	date_start = models.IntegerField(null=True, help_text=CE_DATE_HELP)
+	date_end = models.IntegerField(null=True, help_text=CE_DATE_HELP)
 	average_bp_date = models.FloatField(null=True, help_text='Average Before Present date, calculated from average of calibrated date range after conversion to BP dates')
 	date_stdev = models.DecimalField(max_digits=8, decimal_places=1, null=True)
 	date_fix_flag = models.TextField(help_text='Flag for any issues with the date information submitted by the collaborator', blank=True)
