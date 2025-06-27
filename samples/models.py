@@ -543,14 +543,14 @@ class Sample(Timestamped):
 				parts += [site]
 		if self.group_label_use_period:
 			if len(self.periods.all()) > 0:
-				period_s = '_'.join([period.abbreviation for period in self.periods.filter(abbreviation__length__gt=0)])
+				period_s = '_'.join([period.abbreviation for period in self.periods.filter(abbreviation__length__gt=0).order_by('date_start')])
 			else:
 				period_s = self.period
 			if len(period_s) > 0:
 				parts += [period_s]
 		if self.group_label_use_culture:
 			if len(self.cultures.all()) > 0:
-				culture_s = '_'.join([culture.abbreviation for culture in self.cultures.filter(abbreviation__length__gt=0)])
+				culture_s = '_'.join([culture.abbreviation for culture in self.cultures.filter(abbreviation__length__gt=0).order_by('date_start')])
 			else:
 				culture_s = self.culture
 			if len(culture_s) > 0:
