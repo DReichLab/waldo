@@ -844,7 +844,7 @@ class SampleForm(UserModelForm):
 		for option in ['reich_lab_id', 'special_restrictions', 'collaborator', 'collection_keeper', 'excavator', 'loan_expiration_date']:
 			self.fields[option].disabled = True
 			self.fields[option].required = False
-		for option in ['average_bp_date', 'excavation_year']:
+		for option in ['date_start', 'date_end', 'average_bp_date', 'date_stdev', 'excavation_year']:
 			self.fields[option].required = False
 			
 class PublicationTypeSelect(ModelChoiceField):
