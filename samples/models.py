@@ -459,7 +459,7 @@ class Sample(Timestamped):
 	special_restrictions = models.BooleanField(null=True, default=False, help_text='There are special restrictions on the use of this sample.')
 	
 	group_label_use_country = models.BooleanField(default=True)
-	group_label_use_level_1 = models.BooleanField(default=True)
+	group_label_use_level_1 = models.BooleanField(default=False)
 	group_label_use_site = models.BooleanField(default=True)
 	group_label_use_period = models.BooleanField(default=True)
 	group_label_use_culture = models.BooleanField(default=True)
