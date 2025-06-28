@@ -542,8 +542,8 @@ class Sample(Timestamped):
 		else:
 			return 0
 			
-	# retain only alphanumeric, -, and _ by replacing inverse
-	GROUP_LABEL_ANNO_REGEX_INVERSE = re.compile(r'[^\w-]+')
+	# retain only alphanumeric and _ by replacing inverse
+	GROUP_LABEL_ANNO_REGEX_INVERSE = re.compile(r'[^\w]+')
 	def get_group_label(self):
 		parts = []
 		if self.group_label_use_country:
