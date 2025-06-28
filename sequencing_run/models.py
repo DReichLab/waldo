@@ -381,6 +381,7 @@ class GeneticAnalysis(Timestamped):
 	
 	permanent_repository = models.TextField(blank=True)
 	notes = models.TextField(blank=True)
+	outlier = models.BooleanField(null=True)
 	
 class FamilyRelationshipDegree(models.Model):
 	degree = models.TextField(unique=True)
