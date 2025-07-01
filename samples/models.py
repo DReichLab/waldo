@@ -38,7 +38,7 @@ lysate_re = r'(?:\.Y(?P<lysate>[\d]+))?'
 extract_re = r'(?:\.E(?P<extract>[\d]+))?'
 library_re = r'(?:\.L(?P<library>[\d]+))'
 compiled_library_re = re.compile(sample_re + lysate_re + extract_re + library_re)
-SID_IID_REGEX = re.compile(r'[SI]?(?P<sample>\d+)')
+SID_IID_REGEX = re.compile(r'[SI]?(?P<sample>\d{4,})')
 
 def parse_sample_string(s, full=True):
 	if full:
@@ -3307,6 +3307,9 @@ class DataFileAssignment(models.Model):
 	data_file = models.ForeignKey(DataFile, on_delete=models.CASCADE)
 	collection = models.ForeignKey(DataInstance, on_delete=models.CASCADE)
 	read_group = models.TextField(blank=True, help_text='Blank indicates all read groups. Non-blank indicates a single one.')
+	# TODO validate that read groups is in file
+	class Meta:
+		unique_together = [['data_file', 'collection', 'read_group']]
 
 class Project(models.Model):
 	name = models.CharField(max_length=100)
