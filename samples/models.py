@@ -3265,7 +3265,7 @@ class Results(Timestamped):
 
 # enumeration of assessment categories
 class AssessmentCategory(models.Model):
-	category = models.CharField(max_length=25, unique=True)
+	category = models.TextField(unique=True)
 	description = models.TextField(blank=True)
 	sort_order = models.SmallIntegerField()
 	

@@ -6,7 +6,7 @@ from django.db.models import Count, Q
 from pathlib import Path
 import re
 
-from samples.models import Sample, SpecialRestriction, DataFileType, DataFile, DataInstance, DataFileAssignment, PublicationLabels, Publication, SID_IID_REGEX
+from samples.models import Sample, SpecialRestriction, DataFileType, DataFile, DataInstance, DataFileAssignment, PublicationLabels, Publication, SID_IID_REGEX, AssessmentCategory
 from sequencing_run.models import GeneticAnalysis
 
 class Command(BaseCommand):
@@ -43,7 +43,6 @@ class Command(BaseCommand):
 						read_groups_or_hetfa_or_ranfa = fields[32]
 					except IndexError as e:
 						self.stderr.write(line)
-						self.stdout.write(line)
 						raise e
 					
 					# create data files
@@ -62,8 +61,9 @@ class Command(BaseCommand):
 						assigned_data.append(autosomal_data)
 					else:
 						autosomal_data = None
-					# hetfa or ranfa or read groups TODO
+					# hetfa or ranfa or read groups
 					read_groups = []
+					repeated_read_groups = False
 					hetfa_data = None
 					ranfa_data = None
 					fixme_data = None
@@ -80,7 +80,16 @@ class Command(BaseCommand):
 						fixme_data, created = DataFile.objects.get_or_create(file_type=fixme_type, path=read_groups_or_hetfa_or_ranfa)
 						assigned_data.append(fixme_data)
 					elif len(read_groups_or_hetfa_or_ranfa) > 0:
-						read_groups = read_groups_or_hetfa_or_ranfa.split(':')
+						read_groups_list = read_groups_or_hetfa_or_ranfa.split(':')
+						# remove duplicates from this list
+						for read_group in read_groups_list:
+							if read_group not in read_groups:
+								read_groups.append(read_group)
+							else:
+								repeated_read_groups = True
+								self.stderr.write(f'{genetic_id} read group repeated {read_group}')
+					if repeated_read_groups:
+						read_groups = []
 					
 					match = re.fullmatch(SID_IID_REGEX, individual_id)
 					sample = None
@@ -90,7 +99,7 @@ class Command(BaseCommand):
 							sample = Sample.objects.get(reich_lab_id=sample_id_number, control='')
 						except Sample.DoesNotExist as e:
 							print(f'{sample_id_number} does not exist')
-							print(line)
+							# print(line)
 							#raise e
 						except Sample.MultipleObjectsReturned as e:
 							self.stderr.write(f'{sample_id_number} has {str(e)}')
@@ -103,6 +112,7 @@ class Command(BaseCommand):
 					if sample is None:
 						self.stderr.write(f'{individual_id} not found')
 						failure = True
+						continue
 					else:
 						if len(special_restriction) > 0 and special_restriction != '0':
 							sample.special_restrictions = True
@@ -123,7 +133,7 @@ class Command(BaseCommand):
 						if fixme_data:
 							num_data += 1
 						if num_data == 0 and 'HO' not in genetic_id:
-							self.stderr.write(line)
+							# self.stderr.write(line)
 							self.stderr.write(f'{genetic_id} has no files')
 						data_instance = DataInstance.objects.annotate(total_files=Count('data_files'), matching_files=Count('data_files', filter=Q(data_files__in=assigned_data)) ).get(primary_sample=sample, libraries=libraries)
 					# except DataInstance.MultipleObjectsReturned:
@@ -153,12 +163,16 @@ class Command(BaseCommand):
 					# genetic id
 					genetic_analysis, created = GeneticAnalysis.objects.get_or_create(data_instance=data_instance, genetic_id=genetic_id, pulldown_id=pulldown_id)
 					genetic_analysis.permanent_repository = permanent_repository
+					try:
+						genetic_analysis.assessment = AssessmentCategory.objects.get(category__iexact=assessment)
+					except AssessmentCategory.DoesNotExist:
+						genetic_analysis.assessment = AssessmentCategory.objects.create(category=assessment, sort_order=10000)
 					genetic_analysis.save()
 					
 					if publication_abbreviation != 'Unpublished' and len(publication_abbreviation) > 0:
 						try:
 							search = publication_abbreviation.split()[0] # notes may follow, ignore these
-							publication = Publication.objects.get(abbreviation=search)
+							publication, created = Publication.objects.get_or_create(abbreviation=search)
 						
 							label, created = PublicationLabels.objects.get_or_create(sample=sample, publication=publication, genetic_id=genetic_id, genetic_id_entry=genetic_analysis)
 						except Publication.DoesNotExist as e:
@@ -172,4 +186,4 @@ class Command(BaseCommand):
 							raise e
 					
 			if failure or options['rollback']:
-				raise ValueError('rollback exception')
+				transaction.set_rollback(True)
