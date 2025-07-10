@@ -383,16 +383,13 @@ class GeneticAnalysis(Timestamped):
 	notes = models.TextField(blank=True)
 	outlier = models.BooleanField(null=True)
 	
-class FamilyRelationshipDegree(models.Model):
-	degree = models.TextField(unique=True)
-	
 class FamilyRelationshipType(models.Model):
 	relationship = models.TextField(unique=True)
 
 class FamilyRelationship(Timestamped):
 	person1 = models.ForeignKey(GeneticAnalysis, on_delete=models.PROTECT, related_name='first')
 	person2 = models.ForeignKey(GeneticAnalysis, on_delete=models.PROTECT, related_name='second')
-	degree = models.ForeignKey(FamilyRelationshipDegree, on_delete=models.PROTECT)
+	degree = models.FloatField(db_index=True)
 	relationship = models.ForeignKey(FamilyRelationshipType, null=True, on_delete=models.PROTECT)
 	version = models.PositiveSmallIntegerField(null=True)
 	notes = models.TextField(blank=True)
