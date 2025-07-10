@@ -657,9 +657,13 @@ def sample_summary(request):
 		# apparently it's not possible to filter a queryset using a method
 		powder_samples = PowderSample.objects.filter(sample=sample).order_by('powder_sample_id')
 		lysate_layouts = LysateBatchLayout.objects.filter(Q(powder_sample__sample=sample) | Q(lysate__sample=sample) | Q(lysate__powder_sample__sample=sample)).distinct().select_related('lysate').order_by('lysate__reich_lab_lysate_number')
+		
 		extract_layouts = ExtractionBatchLayout.objects.filter(Q(extract__sample=sample) | Q(extract__lysate__powder_sample__sample=sample) | Q(extract__lysate__sample=sample) | Q(lysate__sample=sample)).distinct().select_related('extract').order_by('lysate__sample__reich_lab_id', 'lysate__reich_lab_lysate_number', 'extract__reich_lab_extract_number')
-		extracts = [layout.extract for layout in extract_layouts.all()]
-		# 
+		external_extracts = Extract.objects.filter(sample=sample)
+		external_extracts_fake_layout = [types.SimpleNamespace(extract=x) for x in external_extracts]
+		extract_layouts = list(extract_layouts) + external_extracts_fake_layout
+		extracts = [layout.extract for layout in extract_layouts]
+		
 		library_layouts = LibraryBatchLayout.objects.filter(Q(library__sample=sample) | Q(library__extract__in=extracts) | Q(extract__sample=sample) ).distinct().select_related('library').order_by('library__extract__lysate__sample__reich_lab_id',  'library__extract__lysate__reich_lab_lysate_number', 'library__extract__reich_lab_extract_number', 'library__reich_lab_library_number')
 		libraries = [layout.library for layout in library_layouts.all()]
 		captured_libraries = CaptureLayout.objects.filter(library__in=libraries).order_by('library__sample__reich_lab_id', 'library__extract__lysate__reich_lab_lysate_number',  'library__extract__reich_lab_extract_number', 'library__reich_lab_library_number', 'capture_batch__date')

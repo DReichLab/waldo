@@ -1834,7 +1834,7 @@ class Extract(Timestamped):
 		lost_extracts = LibraryBatchLayout.objects.filter(extract=self, library_batch=None)
 		for lost in lost_extracts:
 			extract_used += lost.ul_extract_used
-		extract_remaining = get_value(self, 'extract_batch', 'protocol', 'final_extract_volume') - extract_used
+		extract_remaining = get_value(self, 'extract_batch', 'protocol', 'final_extract_volume', default=-1) - extract_used
 		return extract_remaining
 	
 # lysate -> extract
