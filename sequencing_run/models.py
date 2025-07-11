@@ -385,6 +385,9 @@ class GeneticAnalysis(Timestamped):
 	
 class FamilyRelationshipType(models.Model):
 	relationship = models.TextField(unique=True)
+	
+class FamilyRelationshipMethod(Timestamped):
+	method = models.TextField(blank=False, unique=True, db_index=True)
 
 class FamilyRelationship(Timestamped):
 	person1 = models.ForeignKey(GeneticAnalysis, on_delete=models.PROTECT, related_name='first')
@@ -393,3 +396,4 @@ class FamilyRelationship(Timestamped):
 	relationship = models.ForeignKey(FamilyRelationshipType, null=True, on_delete=models.PROTECT)
 	version = models.PositiveSmallIntegerField(null=True)
 	notes = models.TextField(blank=True)
+	method = models.ForeignKey(FamilyRelationshipMethod, on_delete=models.PROTECT)
