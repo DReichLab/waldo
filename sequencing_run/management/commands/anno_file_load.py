@@ -15,6 +15,7 @@ class Command(BaseCommand):
 	def add_arguments(self, parser):
 		parser.add_argument('annotation_file')
 		parser.add_argument('-r', '--rollback', action='store_true')
+		parser.add_argument('-d', '--disable_rollback', action='store_true')
 		
 	def handle(self, *args, **options):
 		annotation_filename = options['annotation_file']
@@ -185,5 +186,5 @@ class Command(BaseCommand):
 							self.stderr.write(line)
 							raise e
 					
-			if failure or options['rollback']:
+			if not options['disable_rollback'] and (failure or options['rollback']):
 				transaction.set_rollback(True)
