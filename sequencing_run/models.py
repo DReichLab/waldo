@@ -1,6 +1,6 @@
 from django.db import models
 
-from samples.models import Timestamped, Results, AssessmentCategory, DataInstance
+from samples.models import Timestamped, Results, AssessmentCategory, DataInstance, DataFile
 import samples.models
 
 # Create your models here.
@@ -390,8 +390,10 @@ class FamilyRelationshipMethod(Timestamped):
 	method = models.TextField(blank=False, unique=True, db_index=True)
 
 class FamilyRelationship(Timestamped):
-	person1 = models.ForeignKey(GeneticAnalysis, on_delete=models.PROTECT, related_name='first')
-	person2 = models.ForeignKey(GeneticAnalysis, on_delete=models.PROTECT, related_name='second')
+	person1 = models.ForeignKey(DataInstance, on_delete=models.PROTECT, related_name='first')
+	person1_file = models.ForeignKey(DataFile, on_delete=models.PROTECT, related_name='first_file')
+	person2 = models.ForeignKey(DataInstance, on_delete=models.PROTECT, related_name='second')
+	person2_file = models.ForeignKey(DataFile, on_delete=models.PROTECT, related_name='second_file')
 	degree = models.FloatField(db_index=True)
 	relationship = models.ForeignKey(FamilyRelationshipType, null=True, on_delete=models.PROTECT)
 	version = models.PositiveSmallIntegerField(null=True)

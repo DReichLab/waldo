@@ -6,7 +6,7 @@ from django.db.models import Count, Q
 from pathlib import Path
 import re
 
-from samples.models import Sample, SpecialRestriction, DataFileType, DataFile, DataInstance, DataFileAssignment, PublicationLabels, Publication, SID_IID_REGEX, AssessmentCategory
+from samples.models import Sample, SpecialRestriction, DataFileType, DataFile, DataInstance, DataFileAssignment, PublicationLabels, Publication, SID_IID_REGEX, AssessmentCategory, get_sample_by_anyid
 from sequencing_run.models import GeneticAnalysis, FamilyRelationshipMethod, FamilyRelationship, FamilyRelationshipType
 
 def degree_to_float(s):
@@ -65,43 +65,35 @@ class Command(BaseCommand):
 						self.stderr.write(f'{id2} is missing file')
 					
 					# check that genetic IDs have data files associated with them
-					person1 = self.genetic_id_has_file(id1, file1, degree)
-					person2 = self.genetic_id_has_file(id2, file2, degree)
+					person1, person1_file = self.setup_data(id1, file1)
+					person2, person2_file = self.setup_data(id2, file2)
 					if person1 and person2:
 						method, method_created = FamilyRelationshipMethod.objects.get_or_create(method=method)
 						try:
-							relationship = FamilyRelationship.objects.get(person1=person1, person2=person2, method=method)
+							relationship = FamilyRelationship.objects.get(person1=person1, person1_file=person1_file, person2=person2, person2_file=person2_file, method=method)
 							self.stderr.write(f'relationship between {id1} and {id2} already exists')
 							failure = True
 						except FamilyRelationship.DoesNotExist:
-							relationship = FamilyRelationship(person1=person1, person2=person2, method=method)
+							relationship = FamilyRelationship(person1=person1, person1_file=person1_file, person2=person2, person2_file=person2_file, method=method)
 						relationship.degree = degree
 						relationship.relationship, relationship_type_created = FamilyRelationshipType.objects.get_or_create(relationship=degree_type)
 						relationship.version = version_from_str(version)
 						relationship.notes = comments
 						relationship.save()
-					else: # genetic analysis missing
+					else:
 						failure = True
 					
 			if not options['disable_rollback'] and (failure or options['rollback']):
 				transaction.set_rollback(True)
 				
-	def genetic_id_has_file(self, individual, filepath, degree):
+	def setup_data(self, individual, filepath):
+		autosomal_data_type, ignored = DataFileType.objects.get_or_create(name='autosomal bam')
+		data_file, created = DataFile.objects.get_or_create(file_type=autosomal_data_type, path=filepath)
+		
 		try:
-			data_file_candidates = [d.id for d in DataFile.objects.filter(path=filepath)]
-			genetic_analysis_candidates = GeneticAnalysis.objects.filter((Q(genetic_id__contains=individual) | Q(data_instance__primary_sample__individual_id=individual)), data_instance__data_files__in=data_file_candidates).distinct()
-			genetic_analysis = genetic_analysis_candidates.get()
-			
-			#DataFileAssignment.objects.get(data_file__path=filepath, collection=genetic_analysis.data_instance)
-			return genetic_analysis
-		except GeneticAnalysis.DoesNotExist:
-			if degree > 0.5:
-				self.stderr.write(f'cannot locate {individual}')
-			return None
-		except GeneticAnalysis.MultipleObjectsReturned:
-			multiple_str = '\t'.join([x.genetic_id for x in genetic_analysis_candidates])
-			self.stderr.write(f'{individual} multiple {multiple_str}')
-			return None
-		except DataFileAssignment.DoesNotExist:
-			self.stderr.write(f'genetic id {id1} does not have file {filepath}')
-			return None
+			data_instance = DataInstance.objects.get(data_files__in=[data_file.id])
+		except DataInstance.DoesNotExist:
+			sample = get_sample_by_anyid(individual)
+			data_instance = DataInstance.objects.create(primary_sample=sample)
+			data_instance.data_files.add(data_file)
+		return data_instance, data_file

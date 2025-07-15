@@ -611,6 +611,13 @@ class Sample(Timestamped):
 			date_list += [SampleDate('Culture', d.abbreviation, date_bp, '', date_range)]
 		return date_list
 		
+def get_sample_by_anyid(sample_str):
+	match = re.fullmatch(SID_IID_REGEX, sample_str)
+	if match:
+		return Sample.objects.get(reich_lab_id=int(match.group('sample')), control='')
+	else:
+		return Sample.objects.get(external_id=sample_str)
+		
 class SamplePrepProtocol(Timestamped):
 	preparation_method = models.CharField(max_length=50, help_text='Method used to produce bone powder')
 	manuscript_summary = models.TextField(blank=True, help_text='Sampling method summary for manuscripts')
@@ -3307,7 +3314,7 @@ class DataFileAssignment(models.Model):
 	data_file = models.ForeignKey(DataFile, on_delete=models.CASCADE)
 	collection = models.ForeignKey(DataInstance, on_delete=models.CASCADE)
 	read_group = models.TextField(blank=True, help_text='Blank indicates all read groups. Non-blank indicates a single one.')
-	# TODO validate that read groups is in file
+	# TODO validate that read groups are in file
 	class Meta:
 		unique_together = [['data_file', 'collection', 'read_group']]
 
