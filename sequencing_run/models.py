@@ -382,6 +382,7 @@ class GeneticAnalysis(Timestamped):
 	permanent_repository = models.TextField(blank=True)
 	notes = models.TextField(blank=True)
 	outlier = models.BooleanField(null=True)
+	use_instead = models.ForeignKey('self', null=True, on_delete=models.PROTECT, help_text='This other analysis is an improvement and should be used instead.')
 	
 class FamilyRelationshipType(models.Model):
 	relationship = models.TextField(unique=True)
