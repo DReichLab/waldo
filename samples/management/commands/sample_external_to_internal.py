@@ -18,7 +18,7 @@ class Command(BaseCommand):
 		with transaction.atomic():
 			for sample_id in options['ids']:
 				sample = Sample.objects.get(external_id=sample_id)
-				sample.external_id = ''
+				sample.external_id = None
 				sample.individual_id = sample_id
 				match = re.match(SID_IID_REGEX, sample_id)
 				reich_lab_id = int(match.group('sample'))
