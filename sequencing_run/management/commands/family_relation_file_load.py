@@ -93,7 +93,11 @@ class Command(BaseCommand):
 		try:
 			data_instance = DataInstance.objects.get(data_files__in=[data_file.id])
 		except DataInstance.DoesNotExist:
-			sample = get_sample_by_anyid(individual)
+			try:
+				sample = get_sample_by_anyid(individual)
+			except Sample.DoesNotExist as e:
+				self.stderr.write(individual)
+				raise e
 			data_instance = DataInstance.objects.create(primary_sample=sample)
 			data_instance.data_files.add(data_file)
 		return data_instance, data_file
