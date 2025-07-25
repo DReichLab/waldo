@@ -27,7 +27,7 @@ class Command(BaseCommand):
 			if reich_lab_id:
 				sample.reich_lab_id = reich_lab_id
 			if external_id:
-				sample.external_id = reich_lab_id
+				sample.external_id = external_id
 			sample.save(save_user=user)
 		else:
 			self.stderr.write('Need either a reich_lab_id or an external id')
