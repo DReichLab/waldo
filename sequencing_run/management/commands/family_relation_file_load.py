@@ -63,6 +63,8 @@ class Command(BaseCommand):
 						self.stderr.write(f'{id1} is missing file')
 					if file2 == '':
 						self.stderr.write(f'{id2} is missing file')
+					if file1 == file2:
+						self.stderr.write(f'{file1} is repeated for same relationship {id1} {id2}')
 					
 					# check that genetic IDs have data files associated with them
 					person1, person1_file = self.setup_data(id1, file1)
@@ -91,13 +93,30 @@ class Command(BaseCommand):
 		data_file, created = DataFile.objects.get_or_create(file_type=autosomal_data_type, path=filepath)
 		
 		try:
-			data_instance = DataInstance.objects.get(data_files__in=[data_file.id])
+			# TODO account for read groups
+			data_instances = DataInstance.objects.filter(data_files__in=[data_file.id]).distinct()
+			data_instance = data_instances.get()
 		except DataInstance.DoesNotExist:
 			try:
 				sample = get_sample_by_anyid(individual)
 			except Sample.DoesNotExist as e:
-				self.stderr.write(individual)
-				raise e
+				try:
+					genetic_analysis = GeneticAnalysis.objects.get(genetic_id__startswith=individual)
+					sample = genetic_analysis.data_instance.primary_sample
+				except GeneticAnalysis.DoesNotExist:
+					self.stderr.write(f'{individual}\tmissing sample')
+					return None, None
+				except GeneticAnalysis.MultipleObjectsReturned:
+					self.stderr.write(f'{individual}\tambiguous sample')
+					return None, None
+			except Sample.MultipleObjectsReturned:
+				self.stderr.write(f'{individual}\tmultiple sample')
+				return None, None
 			data_instance = DataInstance.objects.create(primary_sample=sample)
 			data_instance.data_files.add(data_file)
+		except DataInstance.MultipleObjectsReturned:
+			self.stderr.write(f'{individual}\t{filepath} multiple data instances')
+			for data_instance in data_instances:
+				self.stderr.write(f'\t{data_instance}')
+			return None, None
 		return data_instance, data_file
