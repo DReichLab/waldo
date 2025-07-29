@@ -92,11 +92,23 @@ class Command(BaseCommand):
 		autosomal_data_type, ignored = DataFileType.objects.get_or_create(name='autosomal bam')
 		data_file, created = DataFile.objects.get_or_create(file_type=autosomal_data_type, path=filepath)
 		
-		try:
-			# TODO account for read groups
-			data_instances = DataInstance.objects.filter(data_files__in=[data_file.id]).distinct()
+		# no read groups (all data)
+		data_file_assigments = DataFileAssignment.objects.filter(data_file=data_file, read_group='')
+		ids = map(lambda x: x.data_file.id, data_file_assigments)
+		data_instances = DataInstance.objects.filter(data_files__in=ids).distinct()
+		num_instances = data_instances.count()
+		if num_instances == 1:
 			data_instance = data_instances.get()
-		except DataInstance.DoesNotExist:
+			return data_instance, data_file
+		
+		# relax to allow read groups
+		data_file_assigments = DataFileAssignment.objects.filter(data_file=data_file)
+		ids = map(lambda x: x.data_file.id, data_file_assigments)
+		data_instances = DataInstance.objects.filter(data_files__in=ids).distinct()
+		num_instances = data_instances.count()
+		if num_instances == 1:
+			data_instance = data_instances.get()
+		elif num_instances == 0:
 			try:
 				sample = get_sample_by_anyid(individual)
 			except Sample.DoesNotExist as e:
@@ -114,8 +126,8 @@ class Command(BaseCommand):
 				return None, None
 			data_instance = DataInstance.objects.create(primary_sample=sample)
 			data_instance.data_files.add(data_file)
-		except DataInstance.MultipleObjectsReturned:
-			self.stderr.write(f'{individual}\t{filepath} multiple data instances')
+		else: # 
+			self.stderr.write(f'{individual}\t{filepath} multiple data instances {num_instances}')
 			for data_instance in data_instances:
 				self.stderr.write(f'\t{data_instance}')
 			return None, None
