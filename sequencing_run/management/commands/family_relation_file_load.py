@@ -108,17 +108,18 @@ class Command(BaseCommand):
 		num_instances = data_instances.count()
 		if num_instances == 1:
 			data_instance = data_instances.get()
-		elif num_instances == 0:
+		else: # if there isn't one, or if we can't find a unique one
 			try:
 				sample = get_sample_by_anyid(individual)
 			except Sample.DoesNotExist as e:
-				try:
-					genetic_analysis = GeneticAnalysis.objects.get(genetic_id__startswith=individual)
-					sample = genetic_analysis.data_instance.primary_sample
-				except GeneticAnalysis.DoesNotExist:
+				genetic_analyses = GeneticAnalysis.objects.filter(genetic_id__startswith=individual)
+				num_analyses = genetic_analyses.count()
+				if num_analyses == 1:
+					sample = genetic_analyses.get().data_instance.primary_sample
+				elif num_analyses == 0:
 					self.stderr.write(f'{individual}\tmissing sample')
 					return None, None
-				except GeneticAnalysis.MultipleObjectsReturned:
+				else:
 					self.stderr.write(f'{individual}\tambiguous sample')
 					return None, None
 			except Sample.MultipleObjectsReturned:
@@ -126,9 +127,4 @@ class Command(BaseCommand):
 				return None, None
 			data_instance = DataInstance.objects.create(primary_sample=sample)
 			data_instance.data_files.add(data_file)
-		else: # 
-			self.stderr.write(f'{individual}\t{filepath} multiple data instances {num_instances}')
-			for data_instance in data_instances:
-				self.stderr.write(f'\t{data_instance}')
-			return None, None
 		return data_instance, data_file
