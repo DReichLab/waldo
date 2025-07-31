@@ -27,7 +27,7 @@ class Command(BaseCommand):
 					try:
 						raw_fields = [x.strip() for x in re.split('\t|\n', line)]
 						fields = [x if x != '..' else '' for x in raw_fields] # remove this anno file representation for null
-						genetic_id = fields[1]
+						genetic_id = fields[63]
 						individual_id = fields[2] # check this against data entries
 						publication_abbreviation = fields[7]
 						permanent_repository = fields[9]
