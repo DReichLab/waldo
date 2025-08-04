@@ -10,12 +10,13 @@ from samples.models import Sample, SpecialRestriction, DataFileType, DataFile, D
 from sequencing_run.models import GeneticAnalysis
 
 class Command(BaseCommand):
-	help = 'This command loads data from the Reich Lab annotation file v.64.2'
+	help = 'This command loads data from the Reich Lab annotation file v.64.2. Skips header line'
 	
 	def add_arguments(self, parser):
 		parser.add_argument('annotation_file')
 		parser.add_argument('-r', '--rollback', action='store_true')
 		parser.add_argument('-d', '--disable_rollback', action='store_true')
+		parser.add_argument('-n', '--genetic_id_column', type=int, help='0-indexed column containing genetic ID')
 		
 	def handle(self, *args, **options):
 		annotation_filename = options['annotation_file']
@@ -27,7 +28,7 @@ class Command(BaseCommand):
 					try:
 						raw_fields = [x.strip() for x in re.split('\t|\n', line)]
 						fields = [x if x != '..' else '' for x in raw_fields] # remove this anno file representation for null
-						genetic_id = fields[63]
+						genetic_id = fields[1] if not options['genetic_id_column'] else fields[options['genetic_id_column']]
 						individual_id = fields[2] # check this against data entries
 						publication_abbreviation = fields[7]
 						permanent_repository = fields[9]
@@ -182,9 +183,10 @@ class Command(BaseCommand):
 							else:
 								self.stderr.write(f'Publication {publication_abbreviation} not found')
 								# raise e
-						except IndexError as e:
+						except Exception as e:
 							self.stderr.write(line)
 							raise e
 					
 			if not options['disable_rollback'] and (failure or options['rollback']):
+				self.stderr.write('rolling back')
 				transaction.set_rollback(True)
