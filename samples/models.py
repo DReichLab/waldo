@@ -412,7 +412,7 @@ class PublicationLabels(Timestamped):
 	individual_id = models.CharField(max_length=50, blank=True, help_text='Individual ID in paper')
 	group_label = models.CharField(max_length=200, blank=True, help_text='Group label for sample in paper')
 	digital_accession_number = models.CharField(max_length=100, blank=True, help_text='Reference to access published data')
-	genetic_id = models.CharField(max_length=50, blank=True, help_text='Genetic ID identifying published analysis. Needed if there is more than one anno file line for this individual.')
+	genetic_id = models.TextField(blank=True, help_text='Genetic ID identifying published analysis. Needed if there is more than one anno file line for this individual.')
 	genetic_id_entry = models.ForeignKey('sequencing_run.GeneticAnalysis', null=True, on_delete=models.PROTECT, help_text='Analysis that was published. This should replace the sample and text genetic ID.')
 	
 	def clean(self):
@@ -617,6 +617,7 @@ def get_sample_by_anyid(sample_str):
 		return Sample.objects.get(reich_lab_id=int(match.group('sample')), control='')
 	else:
 		return Sample.objects.get(external_id=sample_str)
+		#return Sample.objects.get(Q(external_id=sample_str) | Q(individual_id=sample_str) )
 		
 class SamplePrepProtocol(Timestamped):
 	preparation_method = models.CharField(max_length=50, help_text='Method used to produce bone powder')
