@@ -50,13 +50,14 @@ def sample_site_update(sample_file, user):
 			create_archaeological_assemblage = False
 			if sample.archaeological_assemblage:
 				arch_assemblage = sample.archaeological_assemblage
-				if arch_assemblage.burial_code != row.burial_code:
-					if Sample.objects.filter(archaeological_assemblage=arch_assemblage).count() > 1:
-						# create a new archaeological_assemblage to preserve burial code for other samples
+				if Sample.objects.filter(archaeological_assemblage=arch_assemblage).count() > 1:
+					if arch_assemblage.burial_code != row.burial_code or arch_assemblage.site != site:
+						# create a new archaeological_assemblage to preserve site and burial code for other samples
 						create_archaeological_assemblage = True
-					else: # change burial code, only for this sample
-						arch_assemblage.burial_code = row.burial_code
-						arch_assemblage.save(save_user=user)
+				else: # change site and burial code, only for this sample
+					arch_assemblage.site = site
+					arch_assemblage.burial_code = row.burial_code
+					arch_assemblage.save(save_user=user)
 			else:
 				try:
 					arch_assemblage = ArchaeologicalAssemblage.objects.get(site=site, burial_code=row.burial_code)
