@@ -780,7 +780,7 @@ class ArchaeologicalAssemblageForm(UserModelForm):
 class PeriodForm(UserModelForm):
 	class Meta:
 		model = Period
-		fields = ['abbreviation', 'text', 'region', 'description', 'date_range', 'date_start', 'date_end', 'date_accuracy']
+		fields = ['abbreviation', 'text', 'region', 'description', 'date_range', 'date_start', 'date_end', 'date_accuracy', 'ancient_region']
 	
 	def __init__(self, *args, **kwargs):
 		super(PeriodForm, self).__init__(*args, **kwargs)

@@ -344,6 +344,7 @@ class Period(Timestamped):
 	date_start = models.IntegerField(null=True, help_text=CE_DATE_HELP)
 	date_end = models.IntegerField(null=True, help_text=CE_DATE_HELP)
 	date_accuracy = models.FloatField(null=True)
+	ancient_region = models.BooleanField(default=False, help_text='Ancient regions head the group label period section')
 	
 	def __str__(self):
 		return self.abbreviation
@@ -575,7 +576,7 @@ class Sample(Timestamped):
 				parts += [site]
 		if self.group_label_use_period:
 			if len(self.periods.all()) > 0:
-				period_s = '_'.join([period.abbreviation for period in self.periods.filter(abbreviation__length__gt=0).order_by('date_start')])
+				period_s = '_'.join([period.abbreviation for period in self.periods.filter(abbreviation__length__gt=0).order_by('-ancient_region', 'date_start')])
 			else:
 				period_s = self.period
 			if len(period_s) > 0:

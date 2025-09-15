@@ -52,6 +52,7 @@ table{
 		<th><button class="sort" data-sort="date_end">Date End Year</button></th>
 		<th><button class="sort" data-sort="date_range">Date Range</button></th>
 		<th><button class="sort" data-sort="date_accuracy">Date Accuracy</button></th>
+		<th><button class="sort" data-sort="ancient_region">Ancient Region</button></th>
 	</tr>
 	</thead>
 	<tbody class="list">
@@ -65,6 +66,7 @@ table{
 		<td class="date_end">{{entry.date_end}}</td>
 		<td class="date_range">{{entry.date_range}}</td>
 		<td class="date_accuracy">{{entry.date_accuracy}}</td>
+		<td class="date_accuracy">{{entry.ancient_region}}</td>
 	</tr>
 	{% endfor %}
 	</tbody>
@@ -74,7 +76,7 @@ table{
 
 <script>
 	var list_options = {
-		valueNames: ['abbreviation', 'text', 'region', 'description', 'date_start', 'date_end', 'date_range', 'date_accuracy'
+		valueNames: ['abbreviation', 'text', 'region', 'description', 'date_start', 'date_end', 'date_range', 'date_accuracy', 'ancient_region'
 		],
 		searchColumns: ['abbreviation', 'text', 'region', 'description', 'date_start', 'date_end', 'date_range', 'date_accuracy'],
 		searchDelay: 500
