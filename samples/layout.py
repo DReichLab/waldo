@@ -218,7 +218,8 @@ def indices_for_location(int_position, p5_index_starting):
 	p7 = row_num * ROW_LENGTH + column
 	return p5, p7
 
-def location_from_indices(i5_str, i7_str):
+# if the plate does not adhere to odd i5 on top half, then run with check_ds_i5=False
+def location_from_indices(i5_str, i7_str, check_ds_i5=True):
 	# single-stranded
 	# i5 is expected to be [1,96]ss
 	if 'ss' in str(i5_str):
@@ -240,7 +241,7 @@ def location_from_indices(i5_str, i7_str):
 		row = row_first_position // ROW_LENGTH
 		column = (row_first_position % ROW_LENGTH) + 1 # to [1,12]
 		# check agreement between indices
-		if is_top and row_first_position >= PLATE_WELL_COUNT_HALF:
+		if check_ds_i5 and is_top and row_first_position >= PLATE_WELL_COUNT_HALF:
 			raise ValueError(f'Unexpected index pair {i5} {i7}')
 		row_letter = PLATE_ROWS[row]
 		return reverse_plate_location_coordinate(row_letter, column)
