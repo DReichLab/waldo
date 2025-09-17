@@ -232,10 +232,14 @@ def all_lysates(headers, data_rows):
 	for row in data_rows:
 		library_id = get_spreadsheet_value(headers, row, 'Sample_Name')
 
-def process_row(row, headers, sequencing_run, options, capture_positive, pcr_negative, extract_control_sample_number, library_control_sample_number, dnu_header, notes_header, update, command):
+def process_row(row, headers, sequencing_run, options, capture_positive, pcr_negative, extract_control_sample_number, library_control_sample_number, dnu_header, notes_header, update, command, manual, i5_ds_check_off):
 
 	# parse spreadsheet row into fields
-	ess_entry = ESS_Entry(row, headers, sequencing_run, dnu_header, notes_header, command)
+	try:
+		ess_entry = ESS_Entry(row, headers, sequencing_run, dnu_header, notes_header, command)
+	except LibraryBatch.DoesNotExist as e:
+		command.stderr.write(f'No library batch for {row}')
+		raise e
 	# perform field checks
 	try:
 		library = Library.objects.get(reich_lab_library_id=ess_entry.library_id)
@@ -332,12 +336,15 @@ def process_row(row, headers, sequencing_run, options, capture_positive, pcr_neg
 		# only set indices for double-stranded libraries
 		layout_element.p5_index = ess_entry.i5
 		layout_element.p7_index = ess_entry.i7
-		capture_row, capture_column = plate_location(location_from_indices(int(ess_entry.i5.label), int(ess_entry.i7.label)))
+		capture_row, capture_column = plate_location(location_from_indices(int(ess_entry.i5.label), int(ess_entry.i7.label), not i5_ds_check_off))
 	elif len(ess_entry.i5.sequence) == 8 and len(ess_entry.i7.sequence) == 8:
 		# single stranded
 		capture_row, capture_column = plate_location(location_from_indices(ess_entry.i5.label, ess_entry.i7.label))
 	else:
 		raise NotImplementedError(f'Unexpected index lengths {len(ess_entry.i5.sequence)}, {len(ess_entry.i7.sequence)}')
+	if manual:
+		capture_row = None
+		capture_column = None
 	layout_element.row = capture_row
 	layout_element.column = capture_column
 	layout_element.clean()
@@ -419,9 +426,11 @@ class Command(BaseCommand):
 		parser.add_argument('-u', '--update', action='store_true', help='Fill in blank data with fields from ESS')
 		parser.add_argument('--dnu', nargs='*', help='Series of strings to identify "Do Not Use" header')
 		parser.add_argument('--notes', nargs='*', help='Series of strings to identify "wetlab_notes" header')
-		parser.add_argument('-l', '--update_library_layout', action='store_true', help='')
-		parser.add_argument('-e', '--update_extract_layout', action='store_true', help='')
-		parser.add_argument('-y', '--update_lysate_layout', action='store_true', help='')
+		parser.add_argument('-l', '--update_library_layout', action='store_true', help='create/update library layout objects')
+		parser.add_argument('-e', '--update_extract_layout', action='store_true', help='create/update extract layout objects')
+		parser.add_argument('-y', '--update_lysate_layout', action='store_true', help='create/update lysate layout objects')
+		parser.add_argument('-m', '--manual', action='store_true', help='Do not attempt to assign plate locations to any layouts')
+		parser.add_argument('--i5_ds_check_off', action='store_true', help='Do not check i5 index location when inferring locations from i7')
 		
 	def handle(self, *args, **options):
 		ess_file = options['ess']
@@ -441,6 +450,8 @@ class Command(BaseCommand):
 		self.stderr.write(f'DNU header: {dnu_header}')
 		notes_header = notes_label(headers, options['notes'])
 		self.stderr.write(f'notes header: {notes_header}')
+		manual = options['manual']
+		i5_ds_check_off = options['i5_ds_check_off']
 
 		extract_control_sample_number, library_control_sample_number =  controls(headers, data_rows)
 		if extract_control_sample_number:
@@ -454,7 +465,7 @@ class Command(BaseCommand):
 		lysate_batches = Counter()
 		with transaction.atomic():
 			for row in data_rows:
-				ess_entry, control_type = process_row(row, headers, sequencing_run, options, capture_positive, pcr_negative, extract_control_sample_number, library_control_sample_number, dnu_header, notes_header, True, self)
+				ess_entry, control_type = process_row(row, headers, sequencing_run, options, capture_positive, pcr_negative, extract_control_sample_number, library_control_sample_number, dnu_header, notes_header, True, self, manual, i5_ds_check_off)
 				capture_or_shotgun_batches.update([ess_entry.capture])
 				if control_type != capture_positive and control_type != pcr_negative:
 					library_batches.update([ess_entry.library_batch])
