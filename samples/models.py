@@ -415,6 +415,7 @@ class PublicationLabels(Timestamped):
 	digital_accession_number = models.CharField(max_length=100, blank=True, help_text='Reference to access published data')
 	genetic_id = models.TextField(blank=True, help_text='Genetic ID identifying published analysis. Needed if there is more than one anno file line for this individual.')
 	genetic_id_entry = models.ForeignKey('sequencing_run.GeneticAnalysis', null=True, on_delete=models.PROTECT, help_text='Analysis that was published. This should replace the sample and text genetic ID.')
+	#data = models.ForeignKey(DataInstance, on_delete=models.PROTECT, null=True, help_text='Published data. ')
 	
 	def clean(self):
 		super(PublicationLabels, self).clean()
@@ -3308,7 +3309,7 @@ class DataInstance(Timestamped):
 	libraries = models.TextField(blank=True, help_text='Library list from anno file, experiments unknown. This should be superceded by SequencingComponents with experiment (1240k v. Twist) information.')
 	
 	def __str__(self):
-		file_str = ' '.join([data_file.path for data_file in self.data_files.all()])
+		file_str = ' '.join([f'({x.data_file.path} [{x.read_group}])' for x in DataFileAssignment.objects.filter(collection=self)])
 		return f'{str(self.primary_sample)} {file_str} {self.libraries}'
 	
 # associate DataFile with a DataInstance collection
