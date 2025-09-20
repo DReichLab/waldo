@@ -99,7 +99,7 @@ class Command(BaseCommand):
 						mt_data = None
 					# MT fasta
 					if len(mt_fasta) > 0:
-						mt_fasta_data, DataFile.objects.get_or_create(file_type=mt_fasta_type, path=mt_fasta)
+						mt_fasta_data, created = DataFile.objects.get_or_create(file_type=mt_fasta_type, path=mt_fasta)
 						assigned_data.append(mt_fasta_data)
 					else:
 						mt_fasta_data = None
