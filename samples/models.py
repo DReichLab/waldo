@@ -415,7 +415,7 @@ class PublicationLabels(Timestamped):
 	digital_accession_number = models.CharField(max_length=100, blank=True, help_text='Reference to access published data')
 	genetic_id = models.TextField(blank=True, help_text='Genetic ID identifying published analysis. Needed if there is more than one anno file line for this individual.')
 	genetic_id_entry = models.ForeignKey('sequencing_run.GeneticAnalysis', null=True, on_delete=models.PROTECT, help_text='Analysis that was published. This should replace the sample and text genetic ID.')
-	#data = models.ForeignKey(DataInstance, on_delete=models.PROTECT, null=True, help_text='Published data. ')
+	published_data = models.ForeignKey('DataInstance', on_delete=models.PROTECT, null=True, help_text='Published data. ')
 	
 	def clean(self):
 		super(PublicationLabels, self).clean()
