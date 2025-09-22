@@ -106,7 +106,10 @@ def sample_anno(sample):
 	mod_append(fields, skeletal_code_final)
 	
 	#Skeletal element
-	mod_append(fields, get_text(sample, 'skeletal_element'))
+	skeletal_element_category = get_value(sample, 'skeletal_element_category', 'category')
+	skeletal_element_freeform = get_text(sample, 'skeletal_element')
+	skeletal_element_text = skeletal_element_category + (f' ({skeletal_element_freeform})' if len(skeletal_element_freeform) > 0 else '')
+	mod_append(fields, skeletal_element_text)
 	#Year this sample was first published [missing: GreenScience 2010 (Vi33.15, Vi33.26), Olalde2018 (I2657), RasmussenNature2010 (Australian)]
 	#Publication
 	if len(sample.publications.all()) > 0:
