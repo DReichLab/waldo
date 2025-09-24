@@ -3311,6 +3311,25 @@ class DataInstance(Timestamped):
 	def __str__(self):
 		file_str = ' '.join([f'({x.data_file.path} [{x.read_group}])' for x in DataFileAssignment.objects.filter(collection=self)])
 		return f'{str(self.primary_sample)} {file_str} {self.libraries}'
+		
+	def compare(self, other):
+		# check set inclusion both ways
+		in_self_not_other = [] 
+		in_other_not_self = []
+		
+		for assignment in DataFileAssignment.objects.filter(collection=self):
+			try:
+				DataFileAssignment.objects.get(collection=other, data_file=assignment.data_file, read_group=assignment.read_group)
+			except DataFileAssignment.DoesNotExist:
+				in_self_not_other.append(assignment)
+		for assignment in DataFileAssignment.objects.filter(collection=other):
+			try:
+				DataFileAssignment.objects.get(collection=self, data_file=assignment.data_file, read_group=assignment.read_group)
+			except DataFileAssignment.DoesNotExist:
+				in_other_not_self.append(assignment)
+		library_match = self.libraries == other.libraries
+		equal = len(in_self_not_other) == 0 and len(in_other_not_self) == 0 and library_match
+		return equal, in_self_not_other, in_other_not_self, library_match
 	
 # associate DataFile with a DataInstance collection
 class DataFileAssignment(models.Model):
@@ -3320,6 +3339,9 @@ class DataFileAssignment(models.Model):
 	# TODO validate that read groups are in file
 	class Meta:
 		unique_together = [['data_file', 'collection', 'read_group']]
+		
+	def __str__(self):
+		return f'{self.data_file.path}\t{self.read_group}'
 
 class Project(models.Model):
 	name = models.CharField(max_length=100)
