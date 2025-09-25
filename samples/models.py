@@ -3317,6 +3317,8 @@ class DataInstance(Timestamped):
 		in_self_not_other = [] 
 		in_other_not_self = []
 		
+		if other is None:
+			return False
 		for assignment in DataFileAssignment.objects.filter(collection=self):
 			try:
 				DataFileAssignment.objects.get(collection=other, data_file=assignment.data_file, read_group=assignment.read_group)
