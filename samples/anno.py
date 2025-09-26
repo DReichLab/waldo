@@ -1,7 +1,8 @@
 import re
 import sys
-from django.db.models import Min
-from samples.models import Library, Sample, Results, Collaborator, get_value, RadiocarbonDatedSample
+from django.db.models import Min, Q
+
+from samples.models import Library, Sample, Results, Collaborator, get_value, RadiocarbonDatedSample, PublicationLabels, DataFileAssignment
 from sequencing_run.models import AnalysisFiles, MTAnalysis, ShotgunAnalysis, NuclearAnalysis
 from sequencing_run.library_id import LibraryID
 
@@ -58,6 +59,11 @@ def mod_append(thelist, string, default=EMPTY):
 		thelist.append(string)
 	else:
 		thelist.append(default)
+		
+def clean_string(value, default=EMPTY):
+	if value is not None:
+		value = value.replace('\r', '').replace('\n', '')
+	return value if (value != '' and value is not None) else default
 
 def replace_empty(thelist):
 	return [s if len(s) > 0 else EMPTY for s in thelist]
@@ -71,11 +77,9 @@ def reformat_interval(interval_string):
 		print(error, file=sys.stderr)
 	finally:
 		return new_interval_string
-
-# subset of anno file fields relating to sample info, not analysis
-def sample_anno(sample):
-	fields = []
-	#Skeletal code
+		
+# return string representing anno file skeletal code column based on all of the underlying fields
+def skeletal_code(sample):
 	# Build a string like "collaborator_code (skeletal_code, accession_number, burial_code, burial_subcode)"
 	# But, with no blanks and no repeated information
 	skeletal_code = get_text(sample, 'skeletal_code')
@@ -103,13 +107,73 @@ def sample_anno(sample):
 		skeletal_code_final = skeletal_code_name_elements[0]
 	if len(skeletal_code_name_elements) > 1:
 		skeletal_code_final += f' ({", ".join(skeletal_code_name_elements[1:])})'
-	mod_append(fields, skeletal_code_final)
+	return skeletal_code_final
 	
-	#Skeletal element
+def skeletal_element(sample):
 	skeletal_element_category = get_value(sample, 'skeletal_element_category', 'category')
 	skeletal_element_freeform = get_text(sample, 'skeletal_element')
 	skeletal_element_text = skeletal_element_category + (f' ({skeletal_element_freeform})' if len(skeletal_element_freeform) > 0 else '')
-	mod_append(fields, skeletal_element_text)
+	return skeletal_element_text
+	
+def morphological(sample):
+	morphological_sex = get_text(sample, 'morphological_sex') # three db fields to build anno file entry from
+	morphological_age = get_text(sample, 'morphological_age')
+	morphological_age_range = get_text(sample, 'morphological_age_range')
+	if morphological_age_range and not morphological_age_range.endswith('mos'):
+		morphological_age_range += ' yrs' # add " yrs" to end if not listed explicitly in months
+	morphological_column_elements = [morphological_age, morphological_age_range, morphological_sex]
+	return '; '.join(filter(None, morphological_column_elements))
+	
+# return (file path, list of read groups)
+def get_single_file_and_read_groups(genetic_analysis, file_type_str):
+	files = {}
+	assignments = DataFileAssignment.objects.filter(collection=genetic_analysis.data_instance, data_file__file_type__name=file_type_str)
+	for data_file_assignment in assignments:
+		if data_file_assignment.data_file.path not in files:
+			files[data_file_assignment.data_file.path] = []
+		read_group = data_file_assignment.read_group
+		if len(read_group) > 0:
+			files[data_file_assignment.data_file.path].append(data_file_assignment.read_group)
+		
+	if len(files) == 0:
+		return '', []
+	elif len(files) == 1:
+		key = list(files.keys())[0]
+		return key, files[key]
+	else:
+		raise NotImplementedError()
+
+def get_single_file(genetic_analysis, file_type_str):
+	single_file, read_groups = get_single_file_and_read_groups(genetic_analysis, file_type_str)
+	return single_file
+	
+def get_read_groups(genetic_analysis):
+	single_file, read_groups = get_single_file_and_read_groups(genetic_analysis, 'autosomal bam')
+	return read_groups
+
+# return string
+def hetfa_ranfa_readgroups(genetic_analysis):
+	hetfa = get_single_file(genetic_analysis, 'hetfa')
+	ranfa = get_single_file(genetic_analysis, 'ranfa')
+	read_groups = get_read_groups(genetic_analysis)
+	values = (1 if len(hetfa) > 0 else 0) + (1 if len(hetfa) > 0 else 0) + (1 if len(read_groups) > 0 else 0)
+	if values > 1:
+		raise ValueError(f'Too many elements for hetfa/ranfa/readgroups {genetic_analysis.genetic_id}')
+	elif len(hetfa) > 0:
+		return hetfa
+	elif len(ranfa) > 0:
+		return ranfa
+	else:
+		return ':'.join(read_groups)
+
+# subset of anno file fields relating to sample info, not analysis
+def sample_anno(sample):
+	fields = []
+	#Skeletal code
+	mod_append(fields, skeletal_code(sample))
+	
+	#Skeletal element
+	mod_append(fields, skeletal_element(sample))
 	#Year this sample was first published [missing: GreenScience 2010 (Vi33.15, Vi33.26), Olalde2018 (I2657), RasmussenNature2010 (Australian)]
 	#Publication
 	if len(sample.publications.all()) > 0:
@@ -148,13 +212,7 @@ def sample_anno(sample):
 	#Date: One of two formats. (Format 1) 95.4% CI calibrated radiocarbon age (Conventional Radiocarbon Age BP, Lab number) e.g. 5983-5747 calBCE (6980±50 BP, Beta-226472). (Format 2) Archaeological context date, e.g. 2500-1700 BCE
 	mod_append(fields, get_text(sample, 'sample_date'))
 	# Age at death, Morphological sex from physical anthropology
-	morphological_sex = get_text(sample, 'morphological_sex') # three db fields to build anno file entry from
-	morphological_age = get_text(sample, 'morphological_age')
-	morphological_age_range = get_text(sample, 'morphological_age_range')
-	if morphological_age_range and not morphological_age_range.endswith('mos'):
-		morphological_age_range += ' yrs' # add " yrs" to end if not listed explicitly in months
-	morphological_column_elements = [morphological_age, morphological_age_range, morphological_sex]
-	mod_append(fields, '; '.join(filter(None, morphological_column_elements))) # concatenate non-empty fields
+	mod_append(fields, morphological(sample))
 	#Group_ID (format convention which we try to adhere to is "Country_<Geographic.Region_<Geographic.Subregion_>><Archaeological.Period.Or.DateBP_<Alternative.Archaeological.Period_>><Archaeological.Culture_<Alternative.Archaeological.Culture>><genetic.subgrouping.index.if.necessary_><"o_"sometimes.with.additional.detail.if.an.outlier><additional.suffix.especially.relative.status.if.we.recommend.removing.from.main.analysis.grouping><"contam_".if.contaminated><"lc_".if.<15000.SNPs.on.autosomal.targets><".SG".or.".DG".if.shotgun.data>; HG=hunter-gatherer, N=Neolithic, C=Chalcolithic/CopperAge, BA=BronzeAge, IA=IronAge, E=Early, M=Middle, L=Late, A=Antiquity)
 	if sample.is_control():
 		mod_append(fields, 'Control')
@@ -172,6 +230,123 @@ def sample_anno(sample):
 	mod_append(fields, get_value(sample, 'get_site', 'longitude') if sample else '')
 	
 	return fields
+	
+UNPUBLISHED = 'Unpublished'
+# header strings
+genetic_id_h = 'Genetic ID'
+persistent_genetic_id_h = 'Persistent Genetic ID'
+persistent_data_h = 'Persistent Data ID'
+skeletal_code_h = 'Skeletal code'
+skeletal_element_h = 'Skeletal element'
+is_published_h = 'Is published'
+pub_abbr_h = 'Publication abbreviation'
+doi_h = 'DOI'
+permanent_repo_h = 'Link to the most permanent repository hosting these data'
+contact_h = 'Representative contact'
+date_method_h = 'Method for Determining Date; unless otherwise specified, calibrations use 95.4% intervals from OxCal v4.4.2 Bronk Ramsey (2009); r5; Atmospheric data from Reimer et al (2020)'
+date_bp_h = 'Date mean in BP in years before 1950 CE [OxCal mu for a direct radiocarbon date, and average of range for a contextual date]'
+date_stdev_h = 'Date standard deviation in BP [OxCal sigma for a direct radiocarbon date, and standard deviation of the uniform distribution between the two bounds for a contextual date]'
+date_full_h = 'Full Date One of two formats. (Format 1) 95.4% CI calibrated radiocarbon age (Conventional Radiocarbon Age BP, Lab number) e.g. 2624-2350 calBCE (3990±40 BP, Ua-35016). (Format 2) Archaeological context range, e.g. 2500-1700 calBCE'
+morphological_h = 'Age at death, Morphological sex from physical anthropology'
+group_id_h = 'Group ID'
+locality_h = 'Locality'
+political_entity_h = 'Political Entity'
+latitude_h = 'Lat.'
+longitude_h = 'Long.'
+restrictions_h = 'Restrictions'
+assessment_h = 'ASSESSMENT'
+data_mt_bam = 'Data mtDNA bam'
+data_mt_fasta = 'Data mtDNA fasta'
+data_autosomal_bam_h = 'Data autosomal bam'
+data_hetfa_ranfa_readgroups_h = 'Data autosomal readgroups or hetfa or ranfa'
+	
+def genetic_analysis_anno_headers():
+	headers = [
+		genetic_id_h,
+		persistent_genetic_id_h,
+		skeletal_code_h,
+		skeletal_element_h,
+		is_published_h,
+		pub_abbr_h,
+		doi_h,
+		permanent_repo_h,
+		contact_h,
+		date_method_h,
+		date_bp_h,
+		date_stdev_h,
+		date_full_h,
+		morphological_h,
+		group_id_h,
+		locality_h,
+		political_entity_h,
+		latitude_h,
+		longitude_h,
+		restrictions_h,
+		persistent_data_h,
+		data_mt_bam,
+		data_mt_fasta,
+		data_autosomal_bam_h,
+		data_hetfa_ranfa_readgroups_h,
+		assessment_h
+	]
+	return headers
+
+def genetic_analysis_anno(genetic_analysis):
+	sample = get_value(genetic_analysis, 'data_instance', 'primary_sample')
+	
+	fields = {}
+	# Genetic ID
+	fields[genetic_id_h] = genetic_analysis.genetic_id
+	# Persistent 
+	fields[persistent_genetic_id_h] = genetic_analysis.id
+	fields[persistent_data_h] = genetic_analysis.data_instance.id
+	
+	#Skeletal code
+	fields[skeletal_code_h] = skeletal_code(sample)
+	
+	#Skeletal element
+	fields[skeletal_element_h] = skeletal_element(sample)
+	
+	#publication
+	publication_labels = PublicationLabels.objects.filter(genetic_id_entry=genetic_analysis, publication__year__isnull=False).order_by('id')
+	if publication_labels.count() > 0:
+		is_published = 1
+		publication_label = publication_labels[0]
+	else:
+		publication_label = None
+		is_published = 0
+	if publication_labels.count() > 1:
+		print(f'Multiple publication labels for the same genetic id {genetic_analysis.genetic_id}\t{" ".join([str(p.id) for p in publication_labels])}', file=sys.stderr)
+
+	fields[is_published_h] = str(is_published)
+	fields[pub_abbr_h] = get_value(publication_label, 'publication', 'abbreviation', default=UNPUBLISHED)
+	fields[doi_h] = get_value(publication_label, 'publication', 'url')
+	fields[permanent_repo_h] = genetic_analysis.permanent_repository
+	
+	fields[contact_h] = get_value(sample, 'collaborator', 'get_name_last_first')
+	fields[date_method_h] = get_value(sample, 'date_fix_flag')
+	fields[date_bp_h] = get_number(sample, 'average_bp_date', 0)
+	fields[date_stdev_h] = get_value(sample, 'date_stdev')
+	fields[date_full_h] = get_value(sample, 'sample_date')
+	fields[morphological_h] = morphological(sample)
+	fields[group_id_h] = get_value(sample, 'get_group_label')
+	fields[locality_h] = get_value(sample, 'location_str')
+	fields[political_entity_h] = get_value(sample, 'get_country', 'country_name')
+	fields[latitude_h] = get_value(sample, 'get_site', 'latitude', default='')
+	fields[longitude_h] = get_value(sample, 'get_site', 'longitude', default='')
+	fields[restrictions_h] = get_value(sample, 'special_restriction', 'description')
+	
+	fields[data_mt_bam] = get_single_file(genetic_analysis, 'MT bam')
+	fields[data_mt_fasta] = get_single_file(genetic_analysis, 'MT fasta')
+	fields[data_autosomal_bam_h] = get_single_file(genetic_analysis, 'autosomal bam')
+	fields[data_hetfa_ranfa_readgroups_h] = hetfa_ranfa_readgroups(genetic_analysis)
+	
+	fields[assessment_h] = get_value(genetic_analysis, 'assessment', 'category')
+		
+	# publications = PublicationLabels.objects.filter(Q(sample=sample) | Q(genetic_id_entry__data_instance__primary_sample=sample) ).distinct().order_by('publication__year')
+	
+	display_fields = { key : clean_string(str(value)) for key, value in fields.items() }
+	return display_fields
 
 # this library id may contain _d damage-restriction indicator
 def library_anno_line(instance_id_raw, sequencing_run_name, release_label, component_library_ids=[], ignore_missing_analyses = False):

@@ -187,6 +187,9 @@ class Collaborator(Timestamped):
 	
 	def name(self):
 		return f'{self.first_name} {self.last_name}'
+	
+	def get_name_last_first(self):
+			return f'{self.last_name}, {self.first_name}'
 		
 	def __str__(self):
 		return self.name()
@@ -3317,7 +3320,7 @@ class DataInstance(Timestamped):
 		in_self_not_other = [] 
 		in_other_not_self = []
 		
-		if other is None:
+		if other is None or self.sample != primary_sample:
 			return False
 		for assignment in DataFileAssignment.objects.filter(collection=self):
 			try:
