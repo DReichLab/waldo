@@ -11,7 +11,7 @@ from samples.models import Sample, SpecialRestriction, DataFileType, DataFile, D
 from sequencing_run.models import GeneticAnalysis
 
 class Command(BaseCommand):
-	help = 'This command loads data from the Reich Lab annotation file v.64.2. Skips header line'
+	help = 'Generate anno file. This filters on assessments, dropping those below the threshold (expected for failures and ignores). Optionally, this will generate only anno file entries for specific IDs. If none are specified, all those meeting threshold will be generated.' 
 	
 	def add_arguments(self, parser):
 		parser.add_argument('-f', '--filter', type=int, default=10, help='Filter on assessments')
