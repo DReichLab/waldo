@@ -158,7 +158,8 @@ def hetfa_ranfa_readgroups(genetic_analysis):
 	read_groups = get_read_groups(genetic_analysis)
 	values = (1 if len(hetfa) > 0 else 0) + (1 if len(hetfa) > 0 else 0) + (1 if len(read_groups) > 0 else 0)
 	if values > 1:
-		raise ValueError(f'Too many elements for hetfa/ranfa/readgroups {genetic_analysis.genetic_id}')
+		print((f'Too many elements for hetfa/ranfa/readgroups {genetic_analysis.genetic_id}', file=sys.stderr)
+		return 'FIXME'
 	elif len(hetfa) > 0:
 		return hetfa
 	elif len(ranfa) > 0:
