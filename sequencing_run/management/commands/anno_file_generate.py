@@ -20,7 +20,7 @@ class Command(BaseCommand):
 	def handle(self, *args, **options):
 		with transaction.atomic():
 			filter_threshold = options['filter']
-			entries = GeneticAnalysis.objects.filter(assessment__sort_order__gte=filter_threshold)
+			entries = GeneticAnalysis.objects.filter(assessment__sort_order__gte=filter_threshold).order_by('id')
 			if options['ids']:
 				entries = entries.filter(genetic_id__in=options['ids'])
 			
