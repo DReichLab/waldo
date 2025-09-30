@@ -87,7 +87,11 @@ def skeletal_code(sample):
 	accession_number = get_text(sample, 'accession_number')
 	burial_code = get_value(sample, 'archaeological_assemblage', 'burial_code')
 	burial_subcode = get_value(sample, 'burial_subcode')
-	skeletal_code_possible_name_elements = [collaborator_code, skeletal_code, accession_number, burial_code, burial_subcode]
+	# ordering of Pinhasi elements is different
+	if get_value(sample, 'collaborator', 'last_name') == 'Pinhasi' and get_value(sample, 'collaborator', 'first_name'):
+		skeletal_code_possible_name_elements = [burial_code, collaborator_code, skeletal_code, accession_number, burial_subcode]
+	else:
+		skeletal_code_possible_name_elements = [collaborator_code, skeletal_code, accession_number, burial_code, burial_subcode]
 	skeletal_code_name_elements = []
 	for candidate in skeletal_code_possible_name_elements:
 		if candidate is not None and len(candidate) > 0: # not empty
