@@ -18,7 +18,7 @@ from datetime import datetime
 from collections import OrderedDict
 
 from samples.pipeline import udg_and_strandedness
-from samples.models import Results, Library, Sample, PowderBatch, WetLabStaff, PowderSample, ControlType, ControlSet, ControlLayout, ExtractionProtocol, LysateBatch, SamplePrepQueue, PowderPrepQueue, PLATE_ROWS, LysateBatchLayout, ExtractionBatch, ExtractionBatchLayout, Lysate, LibraryBatch, LibraryBatchLayout, Extract, CaptureOrShotgunPlate, CaptureLayout, Storage, is_active_wetlab, Location, SID_IID_REGEX
+from samples.models import Results, Library, Sample, PowderBatch, WetLabStaff, PowderSample, ControlType, ControlSet, ControlLayout, ExtractionProtocol, LysateBatch, SamplePrepQueue, PowderPrepQueue, PLATE_ROWS, LysateBatchLayout, ExtractionBatch, ExtractionBatchLayout, Lysate, LibraryBatch, LibraryBatchLayout, Extract, CaptureOrShotgunPlate, CaptureLayout, Storage, is_active_wetlab, Location, SID_IID_REGEX, get_sample_by_anyid
 from samples.intake import sample_site_update, sample_site_values, sample_headers, publication_batch_update, publication_headers, publication_sample_assign, publication_sample_assign_headers, lost_lysate_headers, lost_lysate_batch_update
 from .anno import sample_anno
 from .forms import *
@@ -1668,14 +1668,7 @@ def sample_archaeology_update_headers(request):
 			# header
 			writer.writerow(sample_headers)
 			for sample_str in form.cleaned_data['text'].split():
-				try:
-					if sample_str.startswith('S') or sample_str.startswith('I'):
-						sample_str = sample_str[1:]
-					sample = Sample.objects.get(reich_lab_id=int(sample_str))
-					output_id = f'S{sample.reich_lab_id}'
-				except (Sample.DoesNotExist, ValueError):
-					sample = Sample.objects.get(external_id=sample_str)
-					output_id = sample_str
+				sample = get_sample_by_anyid(sample_str)
 				writer.writerow(sample_site_values(sample))
 			return response
 	elif request.method == 'GET':
