@@ -151,7 +151,10 @@ def publication_batch_update(batch_file, user):
 			pub_row = row.spreadsheet_row_to_obj()
 			publication, created = Publication.objects.get_or_create(abbreviation=pub_row.abbreviation)
 			for field in publication_headers[1:-1]:
-				setattr(publication, field, getattr(pub_row, field))
+				if field not in ['year']:
+					setattr(publication, field, getattr(pub_row, field))
+			if len(pub_row.year) > 0:
+				publication.year = int(pub_row.year)
 			if len(pub_row.publication_type) > 0:
 				publication.publication_type = PublicationType.objects.get(category=pub_row.publication_type)
 			publication.save(save_user=user)
