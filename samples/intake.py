@@ -2,7 +2,7 @@ from django.db import transaction
 from django.db.models import Q
 import re
 import sys
-from samples.models import get_value, Sample, ArchaeologicalAssemblage, Location, parse_sample_string, Publication, PublicationType, PublicationLabels, ExtractionBatchLayout, Lysate, Period, Culture
+from samples.models import get_value, Sample, ArchaeologicalAssemblage, Location, parse_sample_string, Publication, PublicationType, PublicationLabels, ExtractionBatchLayout, Lysate, Period, Culture, SkeletalElementCategory
 from samples.spreadsheet import spreadsheet_pass
 
 def reich_sample_number(s):
@@ -21,7 +21,7 @@ def boolean_from_str(s):
 		return False
 	return bool(s)
 
-sample_headers = ['sample_id', 'external_id', 'site_name', 'burial_code', 'burial_subcode', 'excavation_year', 'excavation_grid', 'skeletal_code', 'skeletal_element', 'sample_date', 'average_bp_date', 'date_stdev', 'date_fix_flag', 'morphological_sex', 'morphological_age', 'morphological_age_range', 'periods', 'cultures', 'group_label_use_country', 'group_label_use_site', 'group_label_use_period', 'group_label_use_culture']
+sample_headers = ['sample_id', 'external_id', 'site_name', 'burial_code', 'burial_subcode', 'excavation_year', 'excavation_grid', 'skeletal_code', 'skeletal_element', 'skeletal_element_category', 'sample_date', 'average_bp_date', 'date_stdev', 'date_fix_flag', 'morphological_sex', 'morphological_age', 'morphological_age_range', 'periods', 'cultures', 'group_label_use_country', 'group_label_use_site', 'group_label_use_period', 'group_label_use_culture']
 def sample_site_update(sample_file, user):
 	messages = []
 	with transaction.atomic():
@@ -76,6 +76,8 @@ def sample_site_update(sample_file, user):
 				sample.collaborator_code = row.skeletal_code
 			sample.skeletal_code = row.skeletal_code
 			sample.skeletal_element = row.skeletal_element
+			if len(row.skeletal_element_category) > 0:
+				sample.skeletal_element_category = SkeletalElementCategory.objects.get(category__iexact=row.skeletal_element_category)
 			sample.sample_date = row.sample_date
 			sample.average_bp_date = float(row.average_bp_date) if len(row.average_bp_date) > 0 else None
 			sample.date_stdev = float(row.date_stdev) if len(row.date_stdev) > 0 else None
@@ -113,8 +115,9 @@ def sample_site_values(sample):
 	else: # external
 		values['sample_id'] = ''
 		values['external_id'] = str(sample)
-	values['site_name'] = get_value(sample.archaeological_assemblage, 'site', 'site')
-	values['burial_code'] = get_value(sample.archaeological_assemblage, 'burial_code')
+	values['site_name'] = get_value(sample, 'archaeological_assemblage', 'site', 'site')
+	values['burial_code'] = get_value(sample, 'archaeological_assemblage', 'burial_code')
+	values['skeletal_element_category'] = get_value(sample, 'skeletal_element_category', 'category')
 	
 	for key in ['burial_subcode', 
 	'excavation_year',
