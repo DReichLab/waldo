@@ -3,7 +3,7 @@ import sys
 from django.db.models import Min, Q
 
 from samples.models import Library, Sample, Results, Collaborator, get_value, RadiocarbonDatedSample, PublicationLabels, DataFileAssignment
-from sequencing_run.models import AnalysisFiles, MTAnalysis, ShotgunAnalysis, NuclearAnalysis
+from sequencing_run.models import AnalysisFiles, MTAnalysis, ShotgunAnalysis, NuclearAnalysis, GeneticAnalysis
 from sequencing_run.library_id import LibraryID
 
 def library_list_from_library_id(library_id_raw):
@@ -171,6 +171,7 @@ def hetfa_ranfa_readgroups(genetic_analysis):
 		return ':'.join(read_groups)
 
 # subset of anno file fields relating to sample info, not analysis
+# This is now obsolete. Use genetic_analysis_anno instead
 def sample_anno(sample):
 	fields = []
 	#Skeletal code
@@ -351,6 +352,10 @@ def genetic_analysis_anno(genetic_analysis):
 	
 	display_fields = { key : clean_string(str(value)) for key, value in fields.items() }
 	return display_fields
+	
+def genetic_id_anno(genetic_id):
+	genetic_analysis = GeneticAnalysis.objects.get(genetic_id=genetic_id)
+	return genetic_analysis_anno(genetic_analysis)
 
 # this library id may contain _d damage-restriction indicator
 def library_anno_line(instance_id_raw, sequencing_run_name, release_label, component_library_ids=[], ignore_missing_analyses = False):

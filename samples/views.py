@@ -18,9 +18,9 @@ from datetime import datetime
 from collections import OrderedDict
 
 from samples.pipeline import udg_and_strandedness
-from samples.models import Results, Library, Sample, PowderBatch, WetLabStaff, PowderSample, ControlType, ControlSet, ControlLayout, ExtractionProtocol, LysateBatch, SamplePrepQueue, PowderPrepQueue, PLATE_ROWS, LysateBatchLayout, ExtractionBatch, ExtractionBatchLayout, Lysate, LibraryBatch, LibraryBatchLayout, Extract, CaptureOrShotgunPlate, CaptureLayout, Storage, is_active_wetlab, Location, SID_IID_REGEX, get_sample_by_anyid
+from samples.models import Results, Library, Sample, PowderBatch, WetLabStaff, PowderSample, ControlType, ControlSet, ControlLayout, ExtractionProtocol, LysateBatch, SamplePrepQueue, PowderPrepQueue, PLATE_ROWS, LysateBatchLayout, ExtractionBatch, ExtractionBatchLayout, Lysate, LibraryBatch, LibraryBatchLayout, Extract, CaptureOrShotgunPlate, CaptureLayout, Storage, is_active_wetlab, Location, get_sample_by_anyid
 from samples.intake import sample_site_update, sample_site_values, sample_headers, publication_batch_update, publication_headers, publication_sample_assign, publication_sample_assign_headers, lost_lysate_headers, lost_lysate_batch_update
-from .anno import sample_anno
+from .anno import genetic_id_anno, genetic_analysis_anno_headers
 from .forms import *
 from sequencing_run.models import MTAnalysis
 
@@ -1857,25 +1857,20 @@ def sample_edit(request):
 @login_required
 def sample_archaeology_anno(request):
 	if request.method == 'POST':
-		form = SampleTextEntryForm(request.POST)
+		form = GeneticIDTextEntryForm(request.POST)
 		if form.is_valid():
 			response = HttpResponse(content_type='text/csv')
 			response['Content-Disposition'] = f'attachment; filename="anno.txt"'
 
 			writer = csv.writer(response, delimiter='\t')
-			for sample_str in form.cleaned_data['text'].split():
-				match = re.fullmatch(SID_IID_REGEX, sample_str)
-				if match:
-					sample = Sample.objects.filter(control__length=0).get(reich_lab_id=int(match.group('sample')))
-					output_id = f'S{sample.reich_lab_id}'
-				else:
-					sample = Sample.objects.get(external_id=sample_str)
-					output_id = sample_str
-				writer.writerow([output_id] + sample_anno(sample))
+			headers = genetic_analysis_anno_headers()
+			writer.writerow(headers)
+			for genetic_id in form.cleaned_data['text'].split():
+				writer.writerow([genetic_id_anno(genetic_id)[h] for h in headers])
 			
 			return response
 	elif request.method == 'GET':
-		form = SampleTextEntryForm()
+		form = GeneticIDTextEntryForm()
 	
 	return render(request, 'samples/generic_form.html', { 'title': f'Anno info for Sample IDs', 'form': form, 'submit_button_text': 'Anno file'} )
 
