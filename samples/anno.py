@@ -241,6 +241,7 @@ UNPUBLISHED = 'Unpublished'
 genetic_id_h = 'Genetic ID'
 persistent_genetic_id_h = 'Persistent Genetic ID'
 persistent_data_h = 'Persistent Data ID'
+individual_id_h = 'Individual ID'
 skeletal_code_h = 'Skeletal code'
 skeletal_element_h = 'Skeletal element'
 is_published_h = 'Is published'
@@ -269,6 +270,7 @@ def genetic_analysis_anno_headers():
 	headers = [
 		genetic_id_h,
 		persistent_genetic_id_h,
+		individual_id_h,
 		skeletal_code_h,
 		skeletal_element_h,
 		is_published_h,
@@ -305,6 +307,8 @@ def genetic_analysis_anno(genetic_analysis):
 	# Persistent 
 	fields[persistent_genetic_id_h] = genetic_analysis.id
 	fields[persistent_data_h] = genetic_analysis.data_instance.id
+	# individual ID
+	fields[individual_id_h] = sample.get_individual_id()
 	
 	#Skeletal code
 	fields[skeletal_code_h] = skeletal_code(sample)

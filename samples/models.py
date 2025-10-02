@@ -616,6 +616,9 @@ class Sample(Timestamped):
 			date_list += [SampleDate('Culture', d.abbreviation, date_bp, '', date_range)]
 		return date_list
 		
+	def get_individual_id(self):
+		return self.individual_id
+		
 def get_sample_by_anyid(sample_str):
 	match = re.fullmatch(SID_IID_REGEX, sample_str)
 	if match:
