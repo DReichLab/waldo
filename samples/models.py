@@ -617,7 +617,14 @@ class Sample(Timestamped):
 		return date_list
 		
 	def get_individual_id(self):
-		return self.individual_id
+		if len(self.individual_id) > 0:
+			return self.individual_id
+		elif self.reich_lab_id:
+			return f'I{reich_lab_id}'
+		elif self.external_id:
+			return self.external_id
+		else:
+			raise NotImplementedError()
 		
 def get_sample_by_anyid(sample_str):
 	match = re.fullmatch(SID_IID_REGEX, sample_str)
@@ -3323,8 +3330,8 @@ class DataInstance(Timestamped):
 		in_self_not_other = [] 
 		in_other_not_self = []
 		
-		if other is None or self.sample != primary_sample:
-			return False
+		if other is None or self.primary_sample != other.primary_sample:
+			return False, [], [], False
 		for assignment in DataFileAssignment.objects.filter(collection=self):
 			try:
 				DataFileAssignment.objects.get(collection=other, data_file=assignment.data_file, read_group=assignment.read_group)

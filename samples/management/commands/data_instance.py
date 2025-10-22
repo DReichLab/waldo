@@ -9,7 +9,7 @@ class Command(BaseCommand):
 	help = 'Inspect data instances by sample'
 	
 	def add_arguments(self, parser):
-		parser.add_argument('samples', nargs='*')
+		parser.add_argument('samples', nargs='*', help='String id')
 		parser.add_argument('-p', '--publication_label_ids', type=int, nargs='+', help='samples from publication label ids')
 		parser.add_argument('-q', '--quiet', action='store_true', help='Do not print each instance')
 		parser.add_argument('-k', '--compare_from_sample', action='store_true', help='compare data instances as specified by samples')

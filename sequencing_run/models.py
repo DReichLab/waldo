@@ -400,3 +400,6 @@ class FamilyRelationship(Timestamped):
 	version = models.PositiveSmallIntegerField(null=True)
 	notes = models.TextField(blank=True)
 	method = models.ForeignKey(FamilyRelationshipMethod, on_delete=models.PROTECT)
+	
+	def __str__(self):
+		return f'{self.degree}d{f" {self.relationship.relationship}" if self.relationship else ""}: {self.person1.primary_sample.get_individual_id()}-{self.person2.primary_sample.get_individual_id()}'

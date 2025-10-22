@@ -3,7 +3,7 @@ import sys
 from django.db.models import Min, Q
 
 from samples.models import Library, Sample, Results, Collaborator, get_value, RadiocarbonDatedSample, PublicationLabels, DataFileAssignment
-from sequencing_run.models import AnalysisFiles, MTAnalysis, ShotgunAnalysis, NuclearAnalysis, GeneticAnalysis
+from sequencing_run.models import AnalysisFiles, MTAnalysis, ShotgunAnalysis, NuclearAnalysis, GeneticAnalysis, FamilyRelationship
 from sequencing_run.library_id import LibraryID
 
 def library_list_from_library_id(library_id_raw):
@@ -169,6 +169,14 @@ def hetfa_ranfa_readgroups(genetic_analysis):
 		return ranfa
 	else:
 		return ':'.join(read_groups)
+		
+def family_representation(genetic_analysis):
+	primary_sample = genetic_analysis.data_instance.primary_sample
+	relations = FamilyRelationship.objects.filter(Q(person1__primary_sample=primary_sample) | Q(person2__primary_sample=primary_sample) ).filter(degree__gt=0).order_by('degree')
+	relation_strings = []
+	for relation in relations:
+		relation_strings.append(str(relation))
+	return ', '.join(relation_strings)
 
 # subset of anno file fields relating to sample info, not analysis
 # This is now obsolete. Use genetic_analysis_anno instead
@@ -264,6 +272,7 @@ assessment_h = 'ASSESSMENT'
 data_mt_bam = 'Data mtDNA bam'
 data_mt_fasta = 'Data mtDNA fasta'
 data_autosomal_bam_h = 'Data autosomal bam'
+family_h = 'Family relations'
 data_hetfa_ranfa_readgroups_h = 'Data autosomal readgroups or hetfa or ranfa'
 	
 def genetic_analysis_anno_headers():
@@ -294,6 +303,7 @@ def genetic_analysis_anno_headers():
 		data_mt_fasta,
 		data_autosomal_bam_h,
 		data_hetfa_ranfa_readgroups_h,
+		family_h,
 		assessment_h
 	]
 	return headers
@@ -349,6 +359,8 @@ def genetic_analysis_anno(genetic_analysis):
 	fields[data_mt_fasta] = get_single_file(genetic_analysis, 'MT fasta')
 	fields[data_autosomal_bam_h] = get_single_file(genetic_analysis, 'autosomal bam')
 	fields[data_hetfa_ranfa_readgroups_h] = hetfa_ranfa_readgroups(genetic_analysis)
+	
+	fields[family_h] = family_representation(genetic_analysis)
 	
 	fields[assessment_h] = get_value(genetic_analysis, 'assessment', 'category')
 		
