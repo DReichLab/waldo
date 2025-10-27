@@ -2864,7 +2864,7 @@ class CaptureLayout(TimestampedWellPosition):
 							params={'p5_index_capture': self.p5_index,
 									'p7_index_capture': self.p7_index,
 									'p5_index_library': self.library.p5_index,
-									'p5_index_library': self.library.p7_index
+									'p7_index_library': self.library.p7_index
 					})
 		elif self.control_type is None:
 			raise ValidationError(_('Should have either library or control'))
