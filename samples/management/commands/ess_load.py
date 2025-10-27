@@ -431,6 +431,7 @@ class Command(BaseCommand):
 		parser.add_argument('-y', '--update_lysate_layout', action='store_true', help='create/update lysate layout objects')
 		parser.add_argument('-m', '--manual', action='store_true', help='Do not attempt to assign plate locations to any layouts')
 		parser.add_argument('--i5_ds_check_off', action='store_true', help='Do not check i5 index location when inferring locations from i7')
+		parser.add_argument('--force_rollback', action='store_true', help='Force rollback regardless of update option')
 		
 	def handle(self, *args, **options):
 		ess_file = options['ess']
@@ -509,5 +510,5 @@ class Command(BaseCommand):
 
 			sequencing_run.reich_lab_release_version = options['release_version']
 			sequencing_run.save()
-			if not update:
+			if options['force_rollback'] or not update:
 				transaction.set_rollback(True)
