@@ -183,6 +183,8 @@ def publication_sample_assign(batch_file, user):
 				pairing.digital_accession_number = row_obj.digital_accession_number
 			if len(row_obj.genetic_id) > 0:
 				pairing.genetic_id = row_obj.genetic_id
+			else:
+				raise ValueError('Genetic ID is required')
 			pairing.save(save_user=user)
 			messages += [f'{sample_label} was published in {publication.title}']
 	return '\n'.join(messages)

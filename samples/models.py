@@ -458,6 +458,7 @@ class Sample(Timestamped):
 	publications = models.ManyToManyField(Publication, through='PublicationLabels', related_name='published_id_and_group_label')
 
 	individual_id = models.CharField(max_length=15, blank=True)
+	primary_sample = models.ForeignKey('Sample', null=True, on_delete=models.PROTECT, help_text='Primary sample entry for data. Use for duplicates.')
 	
 	skeletal_element = models.CharField(max_length=50, blank=True, help_text='Type of bone sample submitted for aDNA analysis')
 	skeletal_element_category = models.ForeignKey(SkeletalElementCategory, null=True, on_delete=models.PROTECT)
