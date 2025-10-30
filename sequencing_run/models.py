@@ -382,7 +382,14 @@ class GeneticAnalysis(Timestamped):
 	permanent_repository = models.TextField(blank=True)
 	notes = models.TextField(blank=True)
 	outlier = models.BooleanField(null=True)
+	outlier_label = models.TextField(blank=True)
 	use_instead = models.ForeignKey('self', null=True, on_delete=models.PROTECT, help_text='This other analysis is an improvement and should be used instead.')
+	
+	def get_group_label(self):
+		group_label = self.data_instance.primary_sample.group_label()
+		if self.outlier:
+			group_label += f'_o{self.outlier_label}'
+		return group_label
 	
 class FamilyRelationshipType(models.Model):
 	relationship = models.TextField(unique=True)

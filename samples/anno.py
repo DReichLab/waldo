@@ -348,7 +348,7 @@ def genetic_analysis_anno(genetic_analysis):
 	fields[date_stdev_h] = get_value(sample, 'date_stdev')
 	fields[date_full_h] = get_value(sample, 'sample_date')
 	fields[morphological_h] = morphological(sample)
-	fields[group_id_h] = get_value(sample, 'get_group_label')
+	fields[group_id_h] = genetic_analysis.get_group_label()
 	fields[locality_h] = get_value(sample, 'location_str')
 	fields[political_entity_h] = get_value(sample, 'get_country', 'country_name')
 	fields[latitude_h] = get_value(sample, 'get_site', 'latitude', default='')
