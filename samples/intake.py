@@ -21,7 +21,7 @@ def boolean_from_str(s):
 		return False
 	return bool(s)
 
-sample_headers = ['sample_id', 'external_id', 'site_name', 'burial_code', 'burial_subcode', 'excavation_year', 'excavation_grid', 'skeletal_code', 'skeletal_element', 'skeletal_element_category', 'sample_date', 'average_bp_date', 'date_stdev', 'date_fix_flag', 'morphological_sex', 'morphological_age', 'morphological_age_range', 'periods', 'cultures', 'group_label_use_country', 'group_label_use_site', 'group_label_use_period', 'group_label_use_culture']
+sample_headers = ['sample_id', 'external_id', 'site_name', 'burial_code', 'burial_subcode', 'excavation_year', 'excavation_grid', 'skeletal_code', 'skeletal_element', 'skeletal_element_category', 'sample_date', 'average_bp_date', 'date_stdev', 'date_fix_flag', 'morphological_sex', 'morphological_age', 'morphological_age_range', 'periods', 'cultures', 'group_label_use_country', 'group_label_use_level_1', 'group_label_use_level_2', 'group_label_use_site', 'group_label_use_period', 'group_label_use_culture']
 def sample_site_update(sample_file, user):
 	messages = []
 	with transaction.atomic():
@@ -98,6 +98,8 @@ def sample_site_update(sample_file, user):
 				sample.cultures.add(Culture.objects.get(abbreviation=culture))
 			
 			sample.group_label_use_country = boolean_from_str(row.group_label_use_country)
+			sample.group_label_use_level_1 = boolean_from_str(row.group_label_use_level_1)
+			sample.group_label_use_level_2 = boolean_from_str(row.group_label_use_level_2)
 			sample.group_label_use_site = boolean_from_str(row.group_label_use_site)
 			sample.group_label_use_period = boolean_from_str(row.group_label_use_period)
 			sample.group_label_use_culture = boolean_from_str(row.group_label_use_culture)

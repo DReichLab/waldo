@@ -499,6 +499,7 @@ class Sample(Timestamped):
 	
 	group_label_use_country = models.BooleanField(default=True)
 	group_label_use_level_1 = models.BooleanField(default=False)
+	group_label_use_level_2 = models.BooleanField(default=False)
 	group_label_use_site = models.BooleanField(default=True)
 	group_label_use_period = models.BooleanField(default=True)
 	group_label_use_culture = models.BooleanField(default=True)
@@ -576,6 +577,10 @@ class Sample(Timestamped):
 			level_1 = get_value(self, 'get_site', 'level_1', default=None)
 			if level_1 is not None and len(level_1) > 0:
 				parts += [level_1]
+		if self.group_label_use_level_2:
+			level_2 = get_value(self, 'get_site', 'level_2', default=None)
+			if level_2 is not None and len(level_2) > 0:
+				parts += [level_2]
 		if self.group_label_use_site:
 			site = get_value(self, 'get_site', 'site', default=None)
 			if site is not None and len(site) > 0:

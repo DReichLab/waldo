@@ -386,7 +386,7 @@ class GeneticAnalysis(Timestamped):
 	use_instead = models.ForeignKey('self', null=True, on_delete=models.PROTECT, help_text='This other analysis is an improvement and should be used instead.')
 	
 	def get_group_label(self):
-		group_label = self.data_instance.primary_sample.group_label()
+		group_label = self.data_instance.primary_sample.get_group_label()
 		if self.outlier:
 			group_label += f'_o{self.outlier_label}'
 		return group_label
