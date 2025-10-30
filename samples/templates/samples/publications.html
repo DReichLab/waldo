@@ -53,6 +53,7 @@ table{
 		<th><button class="sort" data-sort="author_list">Author List</button></th>
 		<th><button class="sort" data-sort="url">url</button></th>
 		<th><button class="sort" data-sort="publication_type">Publication Type</button></th>
+		<th><button class="sort" data-sort="notes">Notes</button></th>
 	</tr>
 	</thead>
 	<tbody class="list">
@@ -74,6 +75,7 @@ table{
 		</td>
 		<td class="url">{{entry.url}}</td>
 		<td class="publication_type">{{entry.publication_type.category}}</td>
+		<td class="notes">{{entry.notes}}</td>
 	</tr>
 	{% endfor %}
 	</tbody>
@@ -83,9 +85,9 @@ table{
 
 <script>
 	var list_options = {
-		valueNames: ['abbreviation', 'title', 'first_author', 'year', 'journal', 'pages', 'author_list', 'url', 'publication_type'
+		valueNames: ['abbreviation', 'title', 'first_author', 'year', 'journal', 'pages', 'author_list', 'url', 'publication_type', 'notes',
 		],
-		searchColumns: ['abbreviation', 'title', 'first_author', 'year', 'journal', 'pages', 'author_list', 'url', 'publication_type'],
+		searchColumns: ['abbreviation', 'title', 'first_author', 'year', 'journal', 'pages', 'author_list', 'url', 'publication_type', 'notes'],
 		searchDelay: 500
 	};
 	var publication_list = new List('publications_rows', list_options);

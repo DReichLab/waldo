@@ -210,6 +210,7 @@ class Publication(Timestamped):
 	author_list = models.TextField(blank=True)
 	url = models.CharField(max_length=50, blank=True)
 	publication_type = models.ForeignKey(PublicationType, on_delete=models.PROTECT, null=True)
+	notes = models.TextField(blank=True)
 
 class WetLabStaff(Timestamped):
 	first_name = models.CharField(max_length=30, db_index=True)

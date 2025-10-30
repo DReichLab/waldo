@@ -143,7 +143,7 @@ def sample_site_values(sample):
 	ordered_values = [values[key] for key in sample_headers]
 	return ordered_values
 
-publication_headers = ['abbreviation', 'title', 'first_author', 'year', 'journal', 'pages', 'author_list', 'url', 'publication_type']
+publication_headers = ['abbreviation', 'title', 'first_author', 'year', 'journal', 'pages', 'author_list', 'url', 'publication_type', 'notes']
 def publication_batch_update(batch_file, user):
 	messages = []
 	with transaction.atomic():
