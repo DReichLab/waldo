@@ -134,6 +134,8 @@ def sample_site_values(sample):
 	'morphological_age',
 	'morphological_age_range',
 	'group_label_use_country',
+	'group_label_use_level_1',
+	'group_label_use_level_2',
 	'group_label_use_site',
 	'group_label_use_period',
 	'group_label_use_culture']:
