@@ -342,7 +342,9 @@ def genetic_analysis_anno(genetic_analysis):
 	fields[doi_h] = get_value(publication_label, 'publication', 'url')
 	fields[permanent_repo_h] = genetic_analysis.permanent_repository
 	
-	fields[contact_h] = get_value(sample, 'collaborator', 'get_name_last_first')
+	collaborators = [get_value(sample, 'collaborator')] + list(sample.secondary_collaborators.all().order_by('last_name'))
+	fields[contact_h] = '; '.join([get_value(collaborator, 'get_name_last_first') for collaborator in collaborators])
+	
 	fields[date_method_h] = get_value(sample, 'date_fix_flag')
 	fields[date_bp_h] = get_number(sample, 'average_bp_date', 0)
 	fields[date_stdev_h] = get_value(sample, 'date_stdev')

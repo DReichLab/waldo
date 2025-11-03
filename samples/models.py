@@ -448,6 +448,7 @@ class Sample(Timestamped):
 	queue_id = models.PositiveIntegerField(db_index=True, unique=True, null=True)
 	
 	collaborator = models.ForeignKey(Collaborator, on_delete=models.PROTECT, null=True) # sample provider
+	secondary_collaborators = models.ManyToManyField(Collaborator, related_name='secondary_collaborators')
 	collection_keeper = models.ForeignKey(Collaborator, on_delete=models.PROTECT, null=True, related_name='collection_keeper')
 	excavator = models.ForeignKey(Collaborator, on_delete=models.PROTECT, null=True, related_name='excavator')
 

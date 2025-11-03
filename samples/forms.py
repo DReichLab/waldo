@@ -811,6 +811,7 @@ class CultureForm(UserModelForm):
 class SampleForm(UserModelForm):
 	skeletal_element_category = SkeletalElementCategorySelect(queryset=SkeletalElementCategory.objects.filter().order_by('sort_order'))
 	collaborator_code = forms.CharField(required=False, widget=forms.Textarea(attrs={'rows': 1})) 
+	secondary_collaborators = ModelMultipleChoiceField(queryset = Collaborator.objects.all().order_by('last_name'), required=False, widget=Select2Multiple() )
 	periods = ModelMultipleChoiceField(queryset = Period.objects.all().order_by('abbreviation'), required=False, widget=Select2Multiple() )
 	cultures = ModelMultipleChoiceField(queryset = Culture.objects.all().order_by('abbreviation'), required=False, widget=Select2Multiple() )
 	# publications = forms.MultipleChoiceField(required=False, widget=forms.CheckboxSelectMultiple, choices=[(x, x.title) for x in Publication.objects.all()])
@@ -821,7 +822,7 @@ class SampleForm(UserModelForm):
 	
 	class Meta:
 		model = Sample
-		fields = ['reich_lab_id', 'external_id', 'special_restrictions', 'individual_id', 'collaborator', 'collection_keeper', 'excavator', 'skeletal_element', 'skeletal_element_category', 'skeletal_code', 'collaborator_code', 'sample_date', 'date_start', 'date_end', 'average_bp_date', 'date_stdev', 'date_fix_flag', 'dating_status', 'excavation_year', 'excavation_grid', 'burial_subcode', 'accession_number', 'morphological_sex', 'morphological_age', 'morphological_age_range', 'approved_negative_results', 'approved_photo_sharing', 'outlier', 'notes', 'notes_2', 'loan_expiration_date', 'group_label_use_country', 'group_label_use_level_1', 'group_label_use_level_2', 'group_label_use_site', 'group_label_use_period', 'group_label_use_culture', 'periods', 'cultures']
+		fields = ['reich_lab_id', 'external_id', 'special_restrictions', 'individual_id', 'collaborator', 'secondary_collaborators', 'collection_keeper', 'excavator', 'skeletal_element', 'skeletal_element_category', 'skeletal_code', 'collaborator_code', 'sample_date', 'date_start', 'date_end', 'average_bp_date', 'date_stdev', 'date_fix_flag', 'dating_status', 'excavation_year', 'excavation_grid', 'burial_subcode', 'accession_number', 'morphological_sex', 'morphological_age', 'morphological_age_range', 'approved_negative_results', 'approved_photo_sharing', 'outlier', 'notes', 'notes_2', 'loan_expiration_date', 'group_label_use_country', 'group_label_use_level_1', 'group_label_use_level_2', 'group_label_use_site', 'group_label_use_period', 'group_label_use_culture', 'periods', 'cultures']
 		
 	def __init__(self, *args, **kwargs):
 		super(SampleForm, self).__init__(*args, **kwargs)
