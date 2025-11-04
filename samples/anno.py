@@ -172,7 +172,7 @@ def hetfa_ranfa_readgroups(genetic_analysis):
 		
 def family_representation(genetic_analysis):
 	primary_sample = genetic_analysis.data_instance.primary_sample
-	relations = FamilyRelationship.objects.filter(Q(person1__primary_sample=primary_sample) | Q(person2__primary_sample=primary_sample) ).filter(degree__gt=0).order_by('degree')
+	relations = FamilyRelationship.objects.filter(Q(person1__primary_sample=primary_sample) | Q(person2__primary_sample=primary_sample) ).filter(degree__gt=0).order_by('degree').select_related('relationship', 'person1__primary_sample', 'person2__primary_sample')
 	relation_strings = []
 	for relation in relations:
 		relation_strings.append(str(relation))
@@ -327,7 +327,7 @@ def genetic_analysis_anno(genetic_analysis):
 	fields[skeletal_element_h] = skeletal_element(sample)
 	
 	#publication
-	publication_labels = PublicationLabels.objects.filter(genetic_id_entry=genetic_analysis, publication__year__isnull=False).order_by('id')
+	publication_labels = PublicationLabels.objects.filter(genetic_id_entry=genetic_analysis, publication__year__isnull=False).order_by('id').select_related('publication')
 	if publication_labels.count() > 0:
 		is_published = 1
 		publication_label = publication_labels[0]
