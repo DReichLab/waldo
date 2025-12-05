@@ -388,7 +388,9 @@ class GeneticAnalysis(Timestamped):
 	def get_group_label(self):
 		group_label = self.data_instance.primary_sample.get_group_label()
 		if self.outlier:
-			group_label += f'_o{self.outlier_label}'
+			group_label += f'-o{self.outlier_label}'
+		elif len(self.outlier_label) > 0:
+			group_label += f'-{self.outlier_label}'
 		return group_label
 	
 class FamilyRelationshipType(models.Model):
