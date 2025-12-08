@@ -2,7 +2,7 @@ import re
 import sys
 from django.db.models import Min, Q
 
-from samples.models import Library, Sample, Results, Collaborator, get_value, RadiocarbonDatedSample, PublicationLabels, DataFileAssignment
+from samples.models import Library, Sample, Results, Collaborator, get_value, RadiocarbonDatedSample, Publication,  PublicationLabels, DataFileAssignment
 from sequencing_run.models import AnalysisFiles, MTAnalysis, ShotgunAnalysis, NuclearAnalysis, GeneticAnalysis, FamilyRelationship
 from sequencing_run.library_id import LibraryID
 
@@ -127,6 +127,21 @@ def morphological(sample):
 		morphological_age_range += ' yrs' # add " yrs" to end if not listed explicitly in months
 	morphological_column_elements = [morphological_age, morphological_age_range, morphological_sex]
 	return '; '.join(filter(None, morphological_column_elements))
+	
+def first_publication(genetic_analysis):
+	# need to rework for individual table
+	individual_id = get_value(genetic_analysis, 'data_instance', 'primary_sample', 'individual_id')
+	samples = Sample.objects.filter(individual_id=individual_id, individual_id__length__gt=0).distinct() | Sample.objects.filter(
+		Q(id=get_value(genetic_analysis, 'data_instance', 'primary_sample', 'id', default=None) )
+		| Q(id=get_value(genetic_analysis, 'data_instance', 'primary_sample', 'primary_sample', 'id', default=None) ) ).distinct()
+		
+	publication_labels = PublicationLabels.objects.filter(
+		Q(sample__in=samples)
+		| Q(published_data__primary_sample__in=samples)
+		| Q(genetic_id_entry__data_instance__primary_sample__in=samples)).distinct()
+	publication_ids = publication_labels.values_list('publication', flat=True)
+	publications = Publication.objects.filter(id__in=publication_ids).order_by('year').distinct()
+	return publications.first()
 	
 # return (file path, list of read groups)
 def get_single_file_and_read_groups(genetic_analysis, file_type_str):
@@ -256,6 +271,7 @@ is_published_h = 'Is published'
 pub_abbr_h = 'Publication abbreviation'
 doi_h = 'DOI'
 permanent_repo_h = 'Link to the most permanent repository hosting these data'
+first_publication_h = 'First publication'
 contact_h = 'Representative contact'
 date_method_h = 'Method for Determining Date; unless otherwise specified, calibrations use 95.4% intervals from OxCal v4.4.2 Bronk Ramsey (2009); r5; Atmospheric data from Reimer et al (2020)'
 date_bp_h = 'Date mean in BP in years before 1950 CE [OxCal mu for a direct radiocarbon date, and average of range for a contextual date]'
@@ -286,6 +302,7 @@ def genetic_analysis_anno_headers():
 		pub_abbr_h,
 		doi_h,
 		permanent_repo_h,
+		first_publication_h,
 		contact_h,
 		date_method_h,
 		date_bp_h,
@@ -341,6 +358,7 @@ def genetic_analysis_anno(genetic_analysis):
 	fields[pub_abbr_h] = get_value(publication_label, 'publication', 'abbreviation', default=UNPUBLISHED)
 	fields[doi_h] = get_value(publication_label, 'publication', 'url')
 	fields[permanent_repo_h] = genetic_analysis.permanent_repository
+	fields[first_publication_h] = get_value(first_publication(genetic_analysis), 'abbreviation')
 	
 	collaborators = [get_value(sample, 'collaborator')] + list(sample.secondary_collaborators.all().order_by('last_name'))
 	fields[contact_h] = '; '.join([get_value(collaborator, 'get_name_last_first') for collaborator in collaborators])
