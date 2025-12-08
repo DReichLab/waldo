@@ -2,7 +2,8 @@ from django.db import transaction
 from django.db.models import Q
 import re
 import sys
-from samples.models import get_value, Sample, ArchaeologicalAssemblage, Location, parse_sample_string, Publication, PublicationType, PublicationLabels, ExtractionBatchLayout, Lysate, Period, Culture, SkeletalElementCategory
+from samples.models import get_value, Sample, ArchaeologicalAssemblage, Location, parse_sample_string, Publication, PublicationType, PublicationLabels, ExtractionBatchLayout, Lysate, Period, Culture, SkeletalElementCategory, get_sample_by_anyid, DataInstance
+from sequencing_run.models import GeneticAnalysis
 from samples.spreadsheet import spreadsheet_pass
 
 def reich_sample_number(s):
@@ -196,6 +197,21 @@ def publication_sample_assign(batch_file, user):
 				pairing.published_data = pairing.genetic_id_entry.data_instance
 			pairing.save(save_user=user)
 			messages += [f'{sample_label} was published in {publication.title}']
+	return '\n'.join(messages)
+	
+genetic_analysis_headers = ['genetic_id', 'primary_sample', 'nuclear_bam', 'mt_bam']
+def genetic_analysis_setup(batch_file, user):
+	messages = []
+	with transaction.atomic():
+		for row in spreadsheet_pass(batch_file):
+			row_obj = row.spreadsheet_row_to_obj()
+			sample = get_sample_by_anyid(row.primary_sample)
+			data_instances = DataInstance.objects.filter(primary_sample=sample)
+			try:
+				genetic_analysis = GeneticAnalysis.objects.get(genetic_id=genetic_id)
+			except GeneticAnalysis.DoesNotExist:
+				genetic_analysis = GeneticAnalysis.objects.create(genetic_id=genetic_id, primary_sample=data_instance)
+			genetic_analysis.save(save_user=user)
 	return '\n'.join(messages)
 
 lost_lysate_headers = ['lysate_id', 'notes']
