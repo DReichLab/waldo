@@ -178,7 +178,12 @@ def publication_sample_assign(batch_file, user):
 				sample = Sample.objects.get(external_id=row_obj.external_id)
 				sample_label = sample.external_id
 			publication = Publication.objects.get(abbreviation=row_obj.publication_abbreviation)
-			pairing, created = PublicationLabels.objects.get_or_create(sample=sample, publication=publication)
+			try:
+				pairing = PublicationLabels.objects.get(sample=sample, publication=publication)
+			except PublicationLabels.DoesNotExist:
+				pairing = PublicationLabels()
+				pairing.sample = sample
+				pairing.publication = publication
 			if len(row_obj.paper_individual_id) > 0:
 				pairing.individual_id = row_obj.paper_individual_id
 			if len(row_obj.paper_group_label) > 0:
@@ -187,8 +192,8 @@ def publication_sample_assign(batch_file, user):
 				pairing.digital_accession_number = row_obj.digital_accession_number
 			if len(row_obj.genetic_id) > 0:
 				pairing.genetic_id = row_obj.genetic_id
-			else:
-				raise ValueError('Genetic ID is required')
+				pairing.genetic_id_entry = GeneticAnalysis.objects.get(genetic_id=row_obj.genetic_id)
+				pairing.published_data = pairing.genetic_id_entry.data_instance
 			pairing.save(save_user=user)
 			messages += [f'{sample_label} was published in {publication.title}']
 	return '\n'.join(messages)

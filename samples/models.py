@@ -411,6 +411,7 @@ class ArchaeologicalAssemblage(Timestamped):
 	resolved_date_end = models.IntegerField(null=True, help_text=CE_DATE_HELP)
 	date_accuracy = models.FloatField(null=True)
 
+# For old samples without active genetic ids, we still support samples, so they can be listed as published without needing to recreate the genetic analysis
 class PublicationLabels(Timestamped):
 	sample = models.ForeignKey('Sample', on_delete=models.PROTECT)
 	publication = models.ForeignKey(Publication, on_delete=models.PROTECT)
