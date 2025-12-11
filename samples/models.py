@@ -3371,6 +3371,37 @@ class DataFileAssignment(models.Model):
 		
 	def __str__(self):
 		return f'{self.data_file.path}\t{self.read_group}'
+		
+# return the data instance containing the nuclear and MT bam, with exact read groups. 
+# If no read groups are given for a bam, this will not match the bam with read groups, only the bam without read groups. 
+# if exact is True, the number of data file assignments must match the number requested. This should be set equality rather than set subset
+def get_data_instance(sample, nuclear_bam_path, nuclear_read_groups, mt_bam_path, mt_read_groups, exact=False):
+	instances = DataInstance.objects.filter(primary_sample=sample).annotate(num_assignments=Count('datafileassignment'))
+	assignment_count = 0
+	if nuclear_bam_path and len(nuclear_bam_path) > 0:
+		if nuclear_read_groups is None or len(nuclear_read_groups) == 0:
+			nuclear_read_groups = ['']
+		for nuclear_read_group in nuclear_read_groups:
+			assignment_count += 1
+			instances = instances.filter(
+				datafileassignment__data_file__path = nuclear_bam_path,
+				datafileassignment__data_file__file_type__name = 'autosomal bam',
+				datafileassignment__read_group = nuclear_read_group
+			)
+	if mt_bam_path and len(mt_bam_path) > 0:
+		if mt_read_groups is None or len(mt_read_groups) == 0:
+			mt_read_groups = ['']
+		for mt_read_group in mt_read_groups:
+			assignment_count += 1
+			instances = instances.filter(
+				datafileassignment__data_file__path = mt_bam_path,
+				datafileassignment__data_file__file_type__name = 'MT bam',
+				datafileassignment__read_group = mt_read_group
+			)
+	# set inclusion the other way by counting
+	if exact:
+		instances = instances.filter(num_assignments=assignment_count)
+	return instances.distinct().get()
 
 class Project(models.Model):
 	name = models.CharField(max_length=100)
