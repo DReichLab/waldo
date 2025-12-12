@@ -1969,16 +1969,16 @@ def publication_sample_update(request):
 @login_required
 def collaborator_update(request):
 	primary_key = request.GET['id']
-	site = Collaborator.objects.get(pk=primary_key)
+	collaborator = Collaborator.objects.get(pk=primary_key)
 	
 	message = ''
 	if request.method == 'POST':
-		form = CollaboratorForm(request.POST, instance=site, user=request.user)
+		form = CollaboratorForm(request.POST, instance=collaborator, user=request.user)
 		if form.is_valid():
 			form.save()
 			message = UPDATED
 	elif request.method == 'GET':
-		form = CollaboratorForm(instance=site, user=request.user)
+		form = CollaboratorForm(instance=collaborator, user=request.user)
 	
 	return render(request, 'samples/generic_form.html', { 'title': f'Update Collaborator', 'form': form, 'message': message } )
 
