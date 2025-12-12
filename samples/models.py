@@ -3372,11 +3372,15 @@ class DataFileAssignment(models.Model):
 	def __str__(self):
 		return f'{self.data_file.path}\t{self.read_group}'
 		
+FILE_TYPE_AUTOSOMAL_BAM = 'autosomal bam'
+FILE_TYPE_MT_BAM = 'MT bam'
 # return the data instance containing the nuclear and MT bam, with exact read groups. 
 # If no read groups are given for a bam, this will not match the bam with read groups, only the bam without read groups. 
 # if exact is True, the number of data file assignments must match the number requested. This should be set equality rather than set subset
-def get_data_instance(sample, nuclear_bam_path, nuclear_read_groups, mt_bam_path, mt_read_groups, exact=False):
+def data_instance_get(sample, nuclear_bam_path, nuclear_read_groups, mt_bam_path, mt_read_groups, libraries=None, exact=False):
 	instances = DataInstance.objects.filter(primary_sample=sample).annotate(num_assignments=Count('datafileassignment'))
+	if libraries is not None:
+		instances = instances.filter(libraries=libraries)
 	assignment_count = 0
 	if nuclear_bam_path and len(nuclear_bam_path) > 0:
 		if nuclear_read_groups is None or len(nuclear_read_groups) == 0:
@@ -3385,7 +3389,7 @@ def get_data_instance(sample, nuclear_bam_path, nuclear_read_groups, mt_bam_path
 			assignment_count += 1
 			instances = instances.filter(
 				datafileassignment__data_file__path = nuclear_bam_path,
-				datafileassignment__data_file__file_type__name = 'autosomal bam',
+				datafileassignment__data_file__file_type__name = FILE_TYPE_AUTOSOMAL_BAM,
 				datafileassignment__read_group = nuclear_read_group
 			)
 	if mt_bam_path and len(mt_bam_path) > 0:
@@ -3395,13 +3399,45 @@ def get_data_instance(sample, nuclear_bam_path, nuclear_read_groups, mt_bam_path
 			assignment_count += 1
 			instances = instances.filter(
 				datafileassignment__data_file__path = mt_bam_path,
-				datafileassignment__data_file__file_type__name = 'MT bam',
+				datafileassignment__data_file__file_type__name = FILE_TYPE_MT_BAM,
 				datafileassignment__read_group = mt_read_group
 			)
 	# set inclusion the other way by counting
 	if exact:
 		instances = instances.filter(num_assignments=assignment_count)
 	return instances.distinct().get()
+	
+def data_file_assignments_create(data_instance, bam_path, file_type_str, read_groups, save_user):
+	with transaction.atomic():
+		try:
+			data_file = DataFile.objects.get(path=bam_path, file_type__name=file_type_str)
+		except DataFile.DoesNotExist:
+			data_file = DataFile()
+			data_file.path = bam_path
+			data_file.file_type = DataFileType.objects.get(name=file_type_str)
+			data_file.save(save_user=save_user)
+		if read_groups is None or len(read_groups) == 0:
+			read_groups = ['']
+		for read_group in read_groups:
+			assignment = DataFileAssignment()
+			assignment.data_file = data_file
+			assignment.collection = data_instance
+			assignment.read_group = read_group
+			assignment.save(save_user=save_user)
+
+def data_instance_create(sample, nuclear_bam_path, nuclear_read_groups, mt_bam_path, mt_read_groups, libraries, save_user):
+	data_instance = DataInstance()
+	data_instance.primary_sample = sample
+	data_instance.libraries = libraries if libraries else ''
+	data_instance.save(save_user=save_user)
+	
+	if nuclear_bam_path and len(nuclear_bam_path) > 0:
+		data_file_assignments_create(data_instance, nuclear_bam_path, FILE_TYPE_AUTOSOMAL_BAM, nuclear_read_groups, save_user)
+	if mt_bam_path and len(mt_bam_path) > 0:
+		data_file_assignments_create(data_instance, mt_bam_path, FILE_TYPE_MT_BAM, mt_read_groups, save_user)
+	
+	return data_instance
+	
 
 class Project(models.Model):
 	name = models.CharField(max_length=100)

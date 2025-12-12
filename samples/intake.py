@@ -2,7 +2,7 @@ from django.db import transaction
 from django.db.models import Q
 import re
 import sys
-from samples.models import get_value, Sample, ArchaeologicalAssemblage, Location, parse_sample_string, Publication, PublicationType, PublicationLabels, ExtractionBatchLayout, Lysate, Period, Culture, SkeletalElementCategory, get_sample_by_anyid, DataInstance
+from samples.models import get_value, Sample, ArchaeologicalAssemblage, Location, parse_sample_string, Publication, PublicationType, PublicationLabels, ExtractionBatchLayout, Lysate, Period, Culture, SkeletalElementCategory, get_sample_by_anyid, DataInstance, data_instance_get
 from sequencing_run.models import GeneticAnalysis
 from samples.spreadsheet import spreadsheet_pass
 
@@ -199,18 +199,31 @@ def publication_sample_assign(batch_file, user):
 			messages += [f'{sample_label} was published in {publication.title}']
 	return '\n'.join(messages)
 	
-genetic_analysis_headers = ['genetic_id', 'primary_sample', 'nuclear_bam', 'mt_bam']
+genetic_analysis_headers = ['genetic_id', 'primary_sample', 'nuclear_bam', 'nuclear_read_groups', 'mt_bam', 'mt_read_groups', 'libraries', 'pulldown_id', 'first_release']
 def genetic_analysis_setup(batch_file, user):
 	messages = []
 	with transaction.atomic():
 		for row in spreadsheet_pass(batch_file):
 			row_obj = row.spreadsheet_row_to_obj()
-			sample = get_sample_by_anyid(row.primary_sample)
-			data_instances = DataInstance.objects.filter(primary_sample=sample)
+			genetic_id = row_obj.genetic_id
+			sample = get_sample_by_anyid(row_obj.primary_sample)
+			nuclear_read_groups = row_obj.nuclear_read_groups.split()
+			mt_read_groups = row_obj.mt_read_groups.split()
+			
+			try:
+				data_instance = data_instance_get(sample, row_obj.nuclear_bam, nuclear_read_groups, row_obj.mt_bam, mt_read_groups, row_obj.libraries, exact=True)
+			except DataInstance.DoesNotExist:
+				data_instance = data_instance_create(sample, row_obj.nuclear_bam, nuclear_read_groups, row_obj.mt_bam, mt_read_groups, row_obj.libraries)
+			
 			try:
 				genetic_analysis = GeneticAnalysis.objects.get(genetic_id=genetic_id)
 			except GeneticAnalysis.DoesNotExist:
-				genetic_analysis = GeneticAnalysis.objects.create(genetic_id=genetic_id, primary_sample=data_instance)
+				genetic_analysis = GeneticAnalysis()
+				genetic_analysis.genetic_id = genetic_id
+				genetic_analysis.primary_sample = data_instance.primary_sample
+			genetic_analysis.data_instance = data_instance
+			genetic_analysis.pulldown_id = row_obj.pulldown_id
+			genetic_analysis.first_release = row_obj.first_release
 			genetic_analysis.save(save_user=user)
 	return '\n'.join(messages)
 
