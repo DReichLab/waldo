@@ -259,7 +259,7 @@ def sample_anno(sample):
 	
 	return fields
 	
-UNPUBLISHED = 'Unpublished'
+UNPUBLISHED = '..'
 # header strings
 genetic_id_h = 'Genetic ID'
 persistent_genetic_id_h = 'Persistent Genetic ID'
@@ -358,7 +358,7 @@ def genetic_analysis_anno(genetic_analysis):
 	fields[pub_abbr_h] = get_value(publication_label, 'publication', 'abbreviation', default=UNPUBLISHED)
 	fields[doi_h] = get_value(publication_label, 'publication', 'url')
 	fields[permanent_repo_h] = genetic_analysis.permanent_repository
-	fields[first_publication_h] = get_value(first_publication(genetic_analysis), 'abbreviation')
+	fields[first_publication_h] = get_value(first_publication(genetic_analysis), 'abbreviation', default=UNPUBLISHED)
 	
 	collaborators = [get_value(sample, 'collaborator')] + list(sample.secondary_collaborators.all().order_by('last_name'))
 	fields[contact_h] = '; '.join([get_value(collaborator, 'get_name_last_first') for collaborator in collaborators])
