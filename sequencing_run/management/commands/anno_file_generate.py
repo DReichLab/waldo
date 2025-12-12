@@ -15,7 +15,7 @@ class Command(BaseCommand):
 	
 	def add_arguments(self, parser):
 		parser.add_argument('-f', '--filter', type=int, default=10, help='Filter on assessments')
-		parser.add_argument('--ids', nargs='+', help='Specific IDs to display')
+		parser.add_argument('--ids', nargs='+', help='Specific genetic IDs to display')
 		
 	def handle(self, *args, **options):
 		with transaction.atomic():
