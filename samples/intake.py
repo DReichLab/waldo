@@ -2,7 +2,7 @@ from django.db import transaction
 from django.db.models import Q
 import re
 import sys
-from samples.models import get_value, Sample, ArchaeologicalAssemblage, Location, parse_sample_string, Publication, PublicationType, PublicationLabels, ExtractionBatchLayout, Lysate, Period, Culture, SkeletalElementCategory, get_sample_by_anyid, DataInstance, data_instance_get
+from samples.models import get_value, Sample, ArchaeologicalAssemblage, Location, parse_sample_string, Publication, PublicationType, PublicationLabels, ExtractionBatchLayout, Lysate, Period, Culture, SkeletalElementCategory, get_sample_by_anyid, DataInstance, data_instance_get, data_instance_create
 from sequencing_run.models import GeneticAnalysis
 from samples.spreadsheet import spreadsheet_pass
 
@@ -212,19 +212,24 @@ def genetic_analysis_setup(batch_file, user):
 			
 			try:
 				data_instance = data_instance_get(sample, row_obj.nuclear_bam, nuclear_read_groups, row_obj.mt_bam, mt_read_groups, row_obj.libraries, exact=True)
+				data_instance_created = False
 			except DataInstance.DoesNotExist:
-				data_instance = data_instance_create(sample, row_obj.nuclear_bam, nuclear_read_groups, row_obj.mt_bam, mt_read_groups, row_obj.libraries)
+				data_instance = data_instance_create(sample, row_obj.nuclear_bam, nuclear_read_groups, row_obj.mt_bam, mt_read_groups, row_obj.libraries, user)
+				data_instance_created = True
 			
 			try:
 				genetic_analysis = GeneticAnalysis.objects.get(genetic_id=genetic_id)
+				genetic_analysis_created = False
 			except GeneticAnalysis.DoesNotExist:
 				genetic_analysis = GeneticAnalysis()
 				genetic_analysis.genetic_id = genetic_id
 				genetic_analysis.primary_sample = data_instance.primary_sample
+				genetic_analysis_created = True
 			genetic_analysis.data_instance = data_instance
 			genetic_analysis.pulldown_id = row_obj.pulldown_id
 			genetic_analysis.first_release = row_obj.first_release
 			genetic_analysis.save(save_user=user)
+			messages += [f'Genetic analysis {genetic_id} {"created" if genetic_analysis_created else "updated"}. Data instance {data_instance.id} {"created" if data_instance_created else "updated"}.']
 	return '\n'.join(messages)
 
 lost_lysate_headers = ['lysate_id', 'notes']

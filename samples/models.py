@@ -3361,7 +3361,7 @@ class DataInstance(Timestamped):
 		return equal, in_self_not_other, in_other_not_self, library_match
 	
 # associate DataFile with a DataInstance collection
-class DataFileAssignment(models.Model):
+class DataFileAssignment(Timestamped):
 	data_file = models.ForeignKey(DataFile, on_delete=models.CASCADE)
 	collection = models.ForeignKey(DataInstance, on_delete=models.CASCADE)
 	read_group = models.TextField(blank=True, help_text='Blank indicates all read groups. Non-blank indicates a single one.')

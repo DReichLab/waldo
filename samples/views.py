@@ -19,7 +19,7 @@ from collections import OrderedDict
 
 from samples.pipeline import udg_and_strandedness
 from samples.models import Results, Library, Sample, PowderBatch, WetLabStaff, PowderSample, ControlType, ControlSet, ControlLayout, ExtractionProtocol, LysateBatch, SamplePrepQueue, PowderPrepQueue, PLATE_ROWS, LysateBatchLayout, ExtractionBatch, ExtractionBatchLayout, Lysate, LibraryBatch, LibraryBatchLayout, Extract, CaptureOrShotgunPlate, CaptureLayout, Storage, is_active_wetlab, Location, get_sample_by_anyid
-from samples.intake import sample_site_update, sample_site_values, sample_headers, publication_batch_update, publication_headers, publication_sample_assign, publication_sample_assign_headers, lost_lysate_headers, lost_lysate_batch_update
+from samples.intake import sample_site_update, sample_site_values, sample_headers, publication_batch_update, publication_headers, publication_sample_assign, publication_sample_assign_headers, lost_lysate_headers, lost_lysate_batch_update, genetic_analysis_headers, genetic_analysis_setup
 from .anno import genetic_id_anno, genetic_analysis_anno_headers
 from .forms import *
 from sequencing_run.models import MTAnalysis
@@ -1996,3 +1996,27 @@ def collaborators(request):
 	link = 'collaborator_update?id'
 	
 	return render(request, 'samples/generic_listjs.html', {'generic_list' : collaborators, 'title': 'Collaborators', 'headers': headers, 'link_header': link_header, 'link': link, 'form': form})
+
+@login_required
+def genetic_analysis_new_headers(request):
+	response = HttpResponse(content_type='text/csv')
+	response['Content-Disposition'] = f'attachment; filename="genetic_analysis_new.txt"'
+
+	writer = csv.writer(response, delimiter='\t')
+	# header
+	writer.writerow(genetic_analysis_headers)
+	
+	return response
+
+@login_required
+def genetic_analysis_new(request):
+	if request.method == 'POST':
+		spreadsheet_form = SpreadsheetForm(request.POST, request.FILES)
+		if spreadsheet_form.is_valid():
+			spreadsheet = codecs.EncodedFile(request.FILES.get('spreadsheet'), 'utf-8', file_encoding='utf-8')
+			message = genetic_analysis_setup(spreadsheet, request.user)
+			message = 'Values updated. ' + message
+	else:
+		spreadsheet_form = SpreadsheetForm()
+		message = ''
+	return render(request, 'samples/spreadsheet_upload.html', { 'title': f'New Genetic Analyses', 'form': spreadsheet_form, 'message': message} )
