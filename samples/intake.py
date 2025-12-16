@@ -200,7 +200,7 @@ def publication_sample_assign(batch_file, user):
 	return '\n'.join(messages)
 	
 genetic_analysis_headers = ['genetic_id', 'primary_sample', 'nuclear_bam', 'nuclear_read_groups', 'mt_bam', 'mt_read_groups', 'libraries', 'pulldown_id', 'first_release']
-def genetic_analysis_setup(batch_file, user):
+def genetic_analysis_setup(batch_file, user, allow_updates=False):
 	messages = []
 	with transaction.atomic():
 		for row in spreadsheet_pass(batch_file):
@@ -219,6 +219,8 @@ def genetic_analysis_setup(batch_file, user):
 			
 			try:
 				genetic_analysis = GeneticAnalysis.objects.get(genetic_id=genetic_id)
+				if not allow_updates:
+					raise ValueError(f'{genetic_id} already exists.')
 				genetic_analysis_created = False
 			except GeneticAnalysis.DoesNotExist:
 				genetic_analysis = GeneticAnalysis()
