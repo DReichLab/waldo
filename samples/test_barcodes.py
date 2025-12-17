@@ -1,6 +1,6 @@
 from django.test import SimpleTestCase
 
-from .models import parse_sample_string, Barcode, Library, reverse_complement
+from .models import parse_sample_string, Barcode, Library, reverse_complement, fluidx_noread_filter
 from .layout import *
 
 class BarcodesLayoutTest(SimpleTestCase):
@@ -197,3 +197,31 @@ class ReverseComplementTest(SimpleTestCase):
 		self.assertEquals(expected, result)
 		twice = reverse_complement(result)
 		self.assertEquals(sequence, twice)
+
+class FluidXNoRead(SimpleTestCase):
+	def test_no_read_upper(self):
+		self.assertIsNone(fluidx_noread_filter('NO READ'))
+		self.assertIsNone(fluidx_noread_filter('NOREAD'))
+		self.assertIsNone(fluidx_noread_filter('NO  READ'))
+		self.assertIsNone(fluidx_noread_filter('NO\tREAD'))
+		
+	def test_no_read_lower(self):
+		self.assertIsNone(fluidx_noread_filter('no read'))
+		self.assertIsNone(fluidx_noread_filter('noread'))
+		self.assertIsNone(fluidx_noread_filter('no  read'))
+		self.assertIsNone(fluidx_noread_filter('no\tread'))
+		
+	def test_no_read_mixed_case(self):
+		self.assertIsNone(fluidx_noread_filter('no read'))
+		self.assertIsNone(fluidx_noread_filter('NO read'))
+		self.assertIsNone(fluidx_noread_filter('no READ'))
+		self.assertIsNone(fluidx_noread_filter('NoReAd'))
+	
+	def test_fluidx_barcode(self):
+		self.assertIsNotNone(fluidx_noread_filter('FR24095427'))
+	
+	def test_none(self):
+		self.assertIsNone(fluidx_noread_filter(None))
+		
+	def test_empty(self):
+		self.assertIsNone(fluidx_noread_filter(''))

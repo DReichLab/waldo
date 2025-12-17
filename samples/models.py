@@ -82,6 +82,15 @@ def value_convert_or_none(value_str, conversion_function):
 	if len(trimmed_value_str) > 0:
 		return conversion_function(trimmed_value_str)
 	return None
+	
+# For FluidX, convert strings that look like NO READ to None
+REGEX_NO_READ = re.compile(r'(?i)NO[\s]*READ')
+def fluidx_noread_filter(s):
+	# we do not expect "no read" to appear in any real FluidX barcode
+	if s is None or len(s) == 0 or re.search(REGEX_NO_READ, s):
+		return None
+	else:
+		return s
 		
 class Timestamped(models.Model):
 	creation_timestamp = models.DateTimeField(default=timezone.now, null=True)
