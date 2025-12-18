@@ -1397,7 +1397,8 @@ class LysateBatchLayout(TimestampedWellPosition):
 		values.append(get_value(self.lysate, 'powder_used_mg'))
 		values.append(get_value(self.lysate, 'total_volume_produced'))
 		values.append(get_value(self.lysate, 'plate_id'))
-		values.append(get_value(self.lysate, 'barcode'))
+		fluidx_barcode = get_value(self.lysate, 'barcode')
+		values.append(fluidx_barcode if fluidx_barcode else '')
 		values.append(get_value(self.lysate, 'notes'))
 		
 		if cumulative:
@@ -1415,7 +1416,7 @@ class LysateBatchLayout(TimestampedWellPosition):
 			lysate.powder_used_mg = float(arg_array[headers.index('powder_used_mg')])
 			lysate.total_volume_produced = float(arg_array[headers.index('total_volume_produced')])
 			lysate.plate_id = arg_array[headers.index('plate_id')]
-			lysate.barcode = arg_array[headers.index('barcode')]
+			lysate.barcode = fluidx_noread_filter(arg_array[headers.index('barcode')])
 			lysate.notes = arg_array[headers.index('notes')]
 			lysate.save(save_user=user)
 			
