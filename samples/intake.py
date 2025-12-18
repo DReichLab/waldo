@@ -90,10 +90,8 @@ def sample_site_update(sample_file, user):
 			# abbreviations
 			# clear periods and cultures and replace with those listed
 			sample.periods.clear()
-			sample.period = ''
 			for period in row.periods.split():
 				sample.periods.add(Period.objects.get(abbreviation=period))
-			sample.culture = ''
 			sample.cultures.clear()
 			for culture in row.cultures.split():
 				sample.cultures.add(Culture.objects.get(abbreviation=culture))

@@ -487,8 +487,6 @@ class Sample(Timestamped):
 	date_stdev = models.DecimalField(max_digits=8, decimal_places=1, null=True)
 	date_fix_flag = models.TextField(help_text='Flag for any issues with the date information submitted by the collaborator', blank=True)
 	group_label = models.CharField(max_length=100, blank=True, help_text='Country_Culture_Period of Individual')
-	period = models.CharField(max_length=50, blank=True, help_text='Archaeologic period component of group label of an Individual')
-	culture = models.CharField(max_length=50, blank=True, help_text='Archaeologic culture component of group label of an Individual')
 	outlier = models.CharField(max_length=50, blank=True, help_text='Outlier designation component of group label of an Individual')
 	notes = models.TextField(blank=True, help_text='technician notes')
 	notes_2 = models.TextField(blank=True, help_text='Any notes from the collaborator about the individual, sample, site, etc.')
@@ -552,6 +550,25 @@ class Sample(Timestamped):
 			
 	def location_str(self):
 		return get_value(self, 'get_site', 'locality_str')
+		
+	def get_periods_str(self, short=False):
+		if len(self.periods.all()) > 0:
+			periods = self.periods.filter(abbreviation__length__gt=0).order_by('-ancient_region', 'date_start')
+			if short:
+				return '_'.join([period.abbreviation for period in periods])
+			else:
+				return ', '.join([period.text for period in periods])
+		return ''
+	
+	def get_cultures_str(self, short=False):
+		if len(self.cultures.all()) > 0:
+			cultures = self.cultures.filter(abbreviation__length__gt=0).order_by('date_start')
+			if short:
+				return '_'.join([culture.abbreviation for culture in cultures])
+			else:
+				return ', '.join([culture.text for culture in cultures])
+		return ''
+			
 			
 	# 1. Used to generate extract object for an external sample received as an extract.
 	# 2. Used for library negative controls starting at the library batch step. 
@@ -600,17 +617,11 @@ class Sample(Timestamped):
 			if site is not None and len(site) > 0:
 				parts += [site]
 		if self.group_label_use_period:
-			if len(self.periods.all()) > 0:
-				period_s = '_'.join([period.abbreviation for period in self.periods.filter(abbreviation__length__gt=0).order_by('-ancient_region', 'date_start')])
-			else:
-				period_s = self.period
+			period_s = self.get_periods_str(True)
 			if len(period_s) > 0:
 				parts += [period_s]
 		if self.group_label_use_culture:
-			if len(self.cultures.all()) > 0:
-				culture_s = '_'.join([culture.abbreviation for culture in self.cultures.filter(abbreviation__length__gt=0).order_by('date_start')])
-			else:
-				culture_s = self.culture
+			culture_s = self.get_cultures_str(True)
 			if len(culture_s) > 0:
 				parts += [culture_s]
 		return re.sub(Sample.GROUP_LABEL_ANNO_REGEX_INVERSE, '', unidecode('_'.join(parts)))
@@ -1526,8 +1537,8 @@ def queue_to_spreadsheet_row(queue_item, sample=None):
 		csv_text_escape(get_value(sample, 'skeletal_code')),
 		get_value(sample, 'get_country', 'country_name'),
 		get_value(sample, 'get_country', 'region'),
-		get_value(sample, 'period'),
-		get_value(sample, 'culture'),
+		get_value(sample, 'get_periods_str'),
+		get_value(sample, 'get_cultures_str'),
 		get_value(sample, 'notes'),
 		get_value(sample, 'notes_2'),
 		get_value(queue_item, 'id'),
