@@ -2,7 +2,7 @@ from django.db import transaction
 from django.db.models import Q
 import re
 import sys
-from samples.models import get_value, Sample, ArchaeologicalAssemblage, Location, parse_sample_string, Publication, PublicationType, PublicationLabels, ExtractionBatchLayout, Lysate, Period, Culture, SkeletalElementCategory, get_sample_by_anyid, DataInstance, data_instance_get, data_instance_create
+from samples.models import get_value, Sample, ArchaeologicalAssemblage, Location, parse_sample_string, Publication, PublicationType, PublicationLabels, ExtractionBatchLayout, Lysate, Period, Culture, SkeletalElementCategory, AssessmentCategory, get_sample_by_anyid, DataInstance, data_instance_get, data_instance_create
 from sequencing_run.models import GeneticAnalysis
 from samples.spreadsheet import spreadsheet_pass
 
@@ -197,10 +197,15 @@ def publication_sample_assign(batch_file, user):
 			messages += [f'{sample_label} was published in {publication.title}']
 	return '\n'.join(messages)
 	
+PROVISIONAL = 'Provisional'
 genetic_analysis_headers = ['genetic_id', 'primary_sample', 'nuclear_bam', 'nuclear_read_groups', 'mt_bam', 'mt_read_groups', 'libraries', 'pulldown_id', 'first_release']
 def genetic_analysis_setup(batch_file, user, allow_updates=False):
 	messages = []
 	with transaction.atomic():
+		try:
+			provisional_assessment = AssessmentCategory.objects.get(category__iexact=PROVISIONAL)
+		except AssessmentCategory.DoesNotExist:
+			provisional_assessment = AssessmentCategory.objects.create(category=PROVISIONAL, sort_order=15)
 		for row in spreadsheet_pass(batch_file):
 			row_obj = row.spreadsheet_row_to_obj()
 			genetic_id = row_obj.genetic_id
@@ -224,6 +229,7 @@ def genetic_analysis_setup(batch_file, user, allow_updates=False):
 				genetic_analysis = GeneticAnalysis()
 				genetic_analysis.genetic_id = genetic_id
 				genetic_analysis.primary_sample = data_instance.primary_sample
+				genetic_analysis.assessment = provisional_assessment
 				genetic_analysis_created = True
 			genetic_analysis.data_instance = data_instance
 			genetic_analysis.pulldown_id = row_obj.pulldown_id
