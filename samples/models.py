@@ -1294,7 +1294,7 @@ class Lysate(Timestamped):
 	
 	plate_id = models.CharField(max_length=12, blank=True, help_text='FluidX rack barcode')
 	position = models.CharField(max_length=3, blank=True, help_text='well/tube position in plate/rack')
-	barcode = models.CharField(max_length=12, blank=True, null=True, help_text='Physical barcode on FluidX tube')
+	barcode = models.CharField(max_length=12, unique=True, null=True, help_text='Physical barcode on FluidX tube')
 	notes = models.TextField(blank=True)
 	
 	def clean(self):
