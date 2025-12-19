@@ -18,4 +18,4 @@ class Command(BaseCommand):
 		with transaction.atomic():
 			user = User.objects.get(username=options['user'])
 			with open(options['batch_file']) as f:
-				genetic_analysis_assessment_intake_update(f, user)
+				self.stdout.write(genetic_analysis_assessment_intake_update(f, user))
