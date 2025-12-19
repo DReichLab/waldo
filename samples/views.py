@@ -19,7 +19,7 @@ from collections import OrderedDict
 
 from samples.pipeline import udg_and_strandedness
 from samples.models import Results, Library, Sample, PowderBatch, WetLabStaff, PowderSample, ControlType, ControlSet, ControlLayout, ExtractionProtocol, LysateBatch, SamplePrepQueue, PowderPrepQueue, PLATE_ROWS, LysateBatchLayout, ExtractionBatch, ExtractionBatchLayout, Lysate, LibraryBatch, LibraryBatchLayout, Extract, CaptureOrShotgunPlate, CaptureLayout, Storage, is_active_wetlab, Location, get_sample_by_anyid
-from samples.intake import sample_site_update, sample_site_values, sample_headers, publication_batch_update, publication_headers, publication_sample_assign, publication_sample_assign_headers, lost_lysate_headers, lost_lysate_batch_update, genetic_analysis_headers, genetic_analysis_setup
+from samples.intake import sample_site_update, sample_site_values, sample_headers, publication_batch_update, publication_headers, publication_sample_assign, publication_sample_assign_headers, lost_lysate_headers, lost_lysate_batch_update, genetic_analysis_headers, genetic_analysis_setup, genetic_analysis_assessment_headers, genetic_analysis_assessment_intake_update
 from .anno import genetic_id_anno, genetic_analysis_anno_headers
 from .forms import *
 from sequencing_run.models import MTAnalysis
@@ -1655,6 +1655,31 @@ def denied(request):
 @login_required
 def sample_archaeology(request):
 	return render(request, 'samples/sample_archaeology.html', {})
+	
+@login_required
+def generic_headers(request, downloaded_filename, headers_list):
+	response = HttpResponse(content_type='text/csv')
+	response['Content-Disposition'] = f'attachment; filename="{downloaded_filename}"'
+
+	writer = csv.writer(response, delimiter='\t')
+	# header
+	writer.writerow(headers_list)
+	
+	return response
+	
+@login_required
+def genetic_spreadsheet_update(request, title, spreadsheet_update_function):
+	if request.method == 'POST':
+		spreadsheet_form = SpreadsheetForm(request.POST, request.FILES)
+		if spreadsheet_form.is_valid():
+			spreadsheet = codecs.EncodedFile(request.FILES.get('spreadsheet'), 'utf-8', file_encoding='utf-8')
+			message = spreadsheet_update_function(spreadsheet, request.user)
+			message = 'Values updated. ' + message
+	else:
+		spreadsheet_form = SpreadsheetForm()
+		message = ''
+	return render(request, 'samples/spreadsheet_upload.html', { 'title': f'{title}', 'form': spreadsheet_form, 'message': message} )
+
 
 @login_required
 def sample_archaeology_update_headers(request):
@@ -1999,14 +2024,7 @@ def collaborators(request):
 
 @login_required
 def genetic_analysis_new_headers(request):
-	response = HttpResponse(content_type='text/csv')
-	response['Content-Disposition'] = f'attachment; filename="genetic_analysis_new.txt"'
-
-	writer = csv.writer(response, delimiter='\t')
-	# header
-	writer.writerow(genetic_analysis_headers)
-	
-	return response
+	return generic_headers(request, 'genetic_analysis_new.txt', genetic_analysis_headers)
 
 @login_required
 def genetic_analysis_new(request):
@@ -2020,3 +2038,11 @@ def genetic_analysis_new(request):
 		spreadsheet_form = SpreadsheetForm()
 		message = ''
 	return render(request, 'samples/spreadsheet_upload.html', { 'title': f'New Genetic Analyses', 'form': spreadsheet_form, 'message': message} )
+
+@login_required
+def genetic_analysis_assessment_update_headers(request):
+	return generic_headers(request, 'genetic_analysis_assessment_update.txt', genetic_analysis_assessment_headers)
+
+@login_required
+def genetic_analysis_assessment_update(request):
+	return genetic_spreadsheet_update(request, 'Update Genetic Analysis Assessments', genetic_analysis_assessment_intake_update)

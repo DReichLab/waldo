@@ -237,6 +237,29 @@ def genetic_analysis_setup(batch_file, user, allow_updates=False):
 			genetic_analysis.save(save_user=user)
 			messages += [f'Genetic analysis {genetic_id} {"created" if genetic_analysis_created else "updated"}. Data instance {data_instance.id} {"created" if data_instance_created else "updated"}.']
 	return '\n'.join(messages)
+	
+genetic_analysis_assessment_headers = ['genetic_analysis_primary_key', 'genetic_id', 'genetic_id_new', 'assessment_category', 'assessment_notes']
+def genetic_analysis_assessment_intake_update(batch_file, user):
+	messages = []
+	with transaction.atomic():
+		for row in spreadsheet_pass(batch_file):
+			row_obj = row.spreadsheet_row_to_obj()
+			primary_key = row_obj.genetic_analysis_primary_key
+			genetic_id = row_obj.genetic_id
+			candidates = GeneticAnalysis.objects.all()
+			if primary_key and len(primary_key) > 0:
+				candidates = candidates.filter(id=int(primary_key))
+			if genetic_id and len(genetic_id) > 0:
+				candidates = candidates.filter(genetic_id=genetic_id)
+			genetic_analysis = candidates.get()
+			
+			genetic_analysis.genetic_id = row_obj.genetic_id_new
+			genetic_analysis.assessment = AssessmentCategory.objects.get(category=row_obj.assessment_category)
+			genetic_analysis.assessment_notes = row_obj.assessment_notes
+			genetic_analysis.save(save_user=user)
+			
+			messages += [f'Genetic analysis {genetic_id} updated.']
+	return '\n'.join(messages)
 
 lost_lysate_headers = ['lysate_id', 'notes']
 def lost_lysate_batch_update(batch_file, user):
