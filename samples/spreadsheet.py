@@ -14,9 +14,13 @@ def spreadsheet_pass(spreadsheet_file, **kwargs):
 	header = spreadsheet_file.readline()
 	# the header should contain python variable names, remove leading non alphanumberic + _ characters
 	# Mac Excel has added these when exporting UTF8
-	header = re.sub(utf8_pattern_filter, '', header.decode('utf-8'), count=1).encode('utf-8')
+	try:
+		comment_start = b'#'
+		header = re.sub(utf8_pattern_filter, '', header.decode('utf-8'), count=1).encode('utf-8')
+	except AttributeError:
+		comment_start = '#'
 	for line in spreadsheet_file:
-		if not line.startswith(b'#'):
+		if not line.startswith(comment_start):
 			row = SpreadsheetRow(header, line, delimiter=delimiter)
 			yield row
 
