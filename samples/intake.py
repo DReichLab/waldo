@@ -253,12 +253,13 @@ def genetic_analysis_assessment_intake_update(batch_file, user):
 				candidates = candidates.filter(genetic_id=genetic_id)
 			genetic_analysis = candidates.get()
 			
-			genetic_analysis.genetic_id = row_obj.genetic_id_new
+			if row_obj.genetic_id_new and len(row_obj.genetic_id_new) > 0:
+				genetic_analysis.genetic_id = row_obj.genetic_id_new
 			genetic_analysis.assessment = AssessmentCategory.objects.get(category=row_obj.assessment_category)
 			genetic_analysis.assessment_notes = row_obj.assessment_notes
 			genetic_analysis.save(save_user=user)
 			
-			messages += [f'Genetic analysis {genetic_id} updated.']
+			messages += [f'Genetic analysis {genetic_analysis.genetic_id} updated.']
 	return '\n'.join(messages)
 
 lost_lysate_headers = ['lysate_id', 'notes']
