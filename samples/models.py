@@ -296,6 +296,10 @@ class Country(Timestamped):
 
 CE_DATE_HELP = 'Positive is year in CE. Negative is year BCE.'
 
+class LocationLevelType(models.Model):
+	name = models.TextField(blank=False, unique=True)
+	is_suffix = models.BooleanField(default=True)
+
 class Location(Timestamped):
 	country = models.ForeignKey(Country, on_delete=models.PROTECT, null=True)
 	level_1 = models.CharField(max_length=100, blank=True) # coarsest
@@ -303,6 +307,12 @@ class Location(Timestamped):
 	level_3 = models.CharField(max_length=100, blank=True)
 	level_4 = models.CharField(max_length=100, blank=True)
 	level_5 = models.CharField(max_length=100, blank=True) # finest
+	# levels do not need reverse accessors
+	level_1_type = models.ForeignKey(LocationLevelType, null=True, on_delete=models.PROTECT, related_name='+')
+	level_2_type = models.ForeignKey(LocationLevelType, null=True, on_delete=models.PROTECT, related_name='+')
+	level_3_type = models.ForeignKey(LocationLevelType, null=True, on_delete=models.PROTECT, related_name='+')
+	level_4_type = models.ForeignKey(LocationLevelType, null=True, on_delete=models.PROTECT, related_name='+')
+	level_5_type = models.ForeignKey(LocationLevelType, null=True, on_delete=models.PROTECT, related_name='+')
 	site = models.TextField(blank=True)
 	description = models.TextField(blank=True)
 	latitude = models.CharField(max_length=20, blank=True) # TODO convert to spatial
