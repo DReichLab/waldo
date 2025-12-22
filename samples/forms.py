@@ -7,7 +7,7 @@ from django.db.models import Q
 
 from easy_select2 import Select2, Select2Multiple
 
-from samples.models import PowderBatch, PowderSample, Sample, SamplePrepProtocol, ControlType, ControlSet, ControlLayout, LysateBatch, ExtractionProtocol, ExpectedComplexity, SamplePrepQueue, Lysate, LysateBatchLayout, ExtractionBatch, ExtractionBatchLayout, LibraryProtocol, LibraryBatch, Extract, Storage, Library, LibraryBatchLayout, P5_Index, P7_Index, Barcode, CaptureProtocol, CaptureOrShotgunPlate, CaptureLayout, SequencingPlatform, SequencingRun, SkeletalElementCategory, get_value, LIBRARY_POSITIVE, Location, ArchaeologicalAssemblage,  ArchaeologicalAssemblageType, Country, Period, Culture, Collaborator, Publication, PublicationType
+from samples.models import PowderBatch, PowderSample, Sample, SamplePrepProtocol, ControlType, ControlSet, ControlLayout, LysateBatch, ExtractionProtocol, ExpectedComplexity, SamplePrepQueue, Lysate, LysateBatchLayout, ExtractionBatch, ExtractionBatchLayout, LibraryProtocol, LibraryBatch, Extract, Storage, Library, LibraryBatchLayout, P5_Index, P7_Index, Barcode, CaptureProtocol, CaptureOrShotgunPlate, CaptureLayout, SequencingPlatform, SequencingRun, SkeletalElementCategory, get_value, LIBRARY_POSITIVE, LocationLevelType, Location, ArchaeologicalAssemblage,  ArchaeologicalAssemblageType, Country, Period, Culture, Collaborator, Publication, PublicationType
 
 import datetime
 
@@ -758,10 +758,15 @@ StorageFormset = modelformset_factory(Storage, form=StorageForm)
 class SiteForm(UserModelForm):
 	site = forms.CharField()
 	country = ModelChoiceField(queryset=Country.objects.all().order_by('country_name'), widget=Select2())
+	level_1_type = ModelChoiceField(queryset=LocationLevelType.objects.all().order_by('name'), widget=Select2())
+	level_2_type = ModelChoiceField(queryset=LocationLevelType.objects.all().order_by('name'), widget=Select2())
+	level_3_type = ModelChoiceField(queryset=LocationLevelType.objects.all().order_by('name'), widget=Select2())
+	level_4_type = ModelChoiceField(queryset=LocationLevelType.objects.all().order_by('name'), widget=Select2())
+	level_5_type = ModelChoiceField(queryset=LocationLevelType.objects.all().order_by('name'), widget=Select2())
 	
 	class Meta:
 		model = Location
-		fields = ['site', 'country', 'level_1', 'level_2', 'level_3', 'level_4', 'level_5', 'latitude', 'longitude', 'description', 'ecological_zone', 'river_basin', 'mountain']
+		fields = ['site', 'country', 'level_1', 'level_1_type', 'level_2', 'level_2_type','level_3', 'level_3_type', 'level_4', 'level_4_type', 'level_5', 'level_5_type', 'latitude', 'longitude', 'description', 'ecological_zone', 'river_basin', 'mountain']
 
 class ArchaeologicalAssemblageTypeSelect(ModelChoiceField):
 	def label_from_instance(self, obj):

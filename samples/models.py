@@ -299,6 +299,9 @@ CE_DATE_HELP = 'Positive is year in CE. Negative is year BCE.'
 class LocationLevelType(models.Model):
 	name = models.TextField(blank=False, unique=True)
 	is_suffix = models.BooleanField(default=True)
+	
+	def __str__(self):
+		return self.name
 
 class Location(Timestamped):
 	country = models.ForeignKey(Country, on_delete=models.PROTECT, null=True)
