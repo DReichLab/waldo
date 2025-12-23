@@ -38,7 +38,10 @@ def clean_level_of_type(apps, location, field):
 	initial = current
 	for s in move_strings:
 		if current:
-			current = current.removeprefix(s).removeprefix(s.lower()).removesuffix(s).removesuffix(s.lower())
+			if current.startswith(s) or current.startswith(s.lower()):
+				current = current[len(s):]
+			if current.endswith(s) or current.endswith(s.lower()):
+				current = current[:-len(s)]
 		# only expect up to one location type
 		if current != initial:
 			setattr(location, field, current.strip())
