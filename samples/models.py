@@ -190,15 +190,20 @@ class Collaborator(Timestamped):
 	website = models.CharField(max_length=200, blank=True)
 	research_gate_academia = models.CharField(max_length=100, blank=True)
 	notes = models.TextField(help_text='Additional information about collaborator', blank=True)
+	is_institution = models.BooleanField(default=False, help_text='Is an institution and not a person')
 	
 	primary_collaborator = models.BooleanField(null=True, db_index=True, help_text='Is this person a Primary Collaborator? This field is used select collaborators for Harvard office of Academic Reasearch Integrity approval')
 	ora_approval = models.BooleanField(db_index=True, help_text='Has the Harvard office of Academic Research Integrity cleared this collaborator?', default=False)
 	
 	def name(self):
+		if self.is_institution:
+			return self.institution
 		return f'{self.first_name} {self.last_name}'
 	
 	def get_name_last_first(self):
-			return f'{self.last_name}, {self.first_name}'
+		if self.is_institution:
+			return self.institution
+		return f'{self.last_name}, {self.first_name}'
 		
 	def __str__(self):
 		return self.name()
