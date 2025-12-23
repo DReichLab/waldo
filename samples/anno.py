@@ -259,7 +259,7 @@ def sample_anno(sample):
 	
 	return fields
 	
-UNPUBLISHED = '..'
+UNPUBLISHED = 'Unpublished'
 # header strings
 genetic_id_h = 'Genetic ID'
 persistent_genetic_id_h = 'Persistent Genetic ID'
