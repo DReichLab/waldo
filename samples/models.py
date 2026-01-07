@@ -1323,7 +1323,7 @@ class Lysate(Timestamped):
 	
 	plate_id = models.CharField(max_length=12, blank=True, help_text='FluidX rack barcode')
 	position = models.CharField(max_length=3, blank=True, help_text='well/tube position in plate/rack')
-	barcode = models.CharField(max_length=12, unique=True, null=True, help_text='Physical barcode on FluidX tube')
+	barcode = models.CharField(max_length=12, unique=True, null=True, help_text='Physical barcode on FluidX tube', validators=[validate_no_whitespace])
 	notes = models.TextField(blank=True)
 	
 	def clean(self):
@@ -1445,7 +1445,7 @@ class LysateBatchLayout(TimestampedWellPosition):
 			lysate.powder_used_mg = float(arg_array[headers.index('powder_used_mg')])
 			lysate.total_volume_produced = float(arg_array[headers.index('total_volume_produced')])
 			lysate.plate_id = arg_array[headers.index('plate_id')]
-			lysate.barcode = fluidx_noread_filter(arg_array[headers.index('barcode')])
+			lysate.barcode = fluidx_noread_filter(arg_array[headers.index('barcode')].strip())
 			lysate.notes = arg_array[headers.index('notes')]
 			lysate.save(save_user=user)
 			
@@ -2505,7 +2505,7 @@ class Library(Timestamped):
 	storage = models.ForeignKey(Storage, on_delete=models.PROTECT, null=True)
 	plate_id = models.CharField(max_length=12, blank=True, help_text='FluidX rack barcode')
 	position = models.CharField(max_length=3, blank=True, help_text='well/tube position in plate/rack')
-	fluidx_barcode = models.CharField(max_length=12, blank=True, help_text='Physical barcode on FluidX tube')
+	fluidx_barcode = models.CharField(max_length=12, null=True, blank=True, help_text='Physical barcode on FluidX tube', validators=[validate_no_whitespace])
 	
 	nanodrop = models.DecimalField(max_digits=5, decimal_places=2, null=True)
 	qpcr_ds = models.DecimalField(max_digits=4, decimal_places=2, null=True, help_text='DS qpcr value')
@@ -2692,7 +2692,7 @@ class LibraryBatchLayout(TimestampedWellPosition):
 		library.assay_a_percent_inhibition = value_convert_or_none(arg_array[headers.index('assay_a_percent_inhibition')], float)
 		library.assay_b_total_molecules = value_convert_or_none(arg_array[headers.index('assay_b_total_molecules')], int)
 		library.plate_id = arg_array[headers.index('plate_id')]
-		library.fluidx_barcode = arg_array[headers.index('fluidx_barcode')]
+		library.fluidx_barcode = fluidx_noread_filter(arg_array[headers.index('fluidx_barcode')].strip())
 		library.notes = arg_array[headers.index('notes')]
 		library.save(save_user=user)
 		
