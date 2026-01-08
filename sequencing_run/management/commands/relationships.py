@@ -15,6 +15,7 @@ class Command(BaseCommand):
 	def add_arguments(self, parser):
 		parser.add_argument('ids', nargs='+', help='Individual IDs')
 		parser.add_argument('--max_degree', type=float)
+		parser.add_argument('--verbose', action='store_true', help='Show relation IDs')
 		parser.add_argument('--delete', action='store_true')
 		
 	def handle(self, *args, **options):
@@ -23,10 +24,12 @@ class Command(BaseCommand):
 		with transaction.atomic():
 			for individual_id in options['ids']:
 				sample = get_sample_by_anyid(individual_id)
-				relations = FamilyRelationship.objects.filter(Q(person1__primary_sample=sample) | Q(person2__primary_sample=sample)).order_by('degree')
+				relations = FamilyRelationship.objects.filter(Q(person1__primary_sample=sample) | Q(person2__primary_sample=sample)).order_by('degree').distinct()
 				if max_degree is not None:
 					relationships = relationships.filter(degree__lte=max_degree)
 				for relation in relations:
+					if options['verbose']:
+						self.stdout.write(str(relation.id))
 					self.stdout.write(str(relation))
 					if options['delete']:
 						relation.delete()
