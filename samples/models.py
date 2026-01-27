@@ -2505,7 +2505,7 @@ class Library(Timestamped):
 	storage = models.ForeignKey(Storage, on_delete=models.PROTECT, null=True)
 	plate_id = models.CharField(max_length=12, blank=True, help_text='FluidX rack barcode')
 	position = models.CharField(max_length=3, blank=True, help_text='well/tube position in plate/rack')
-	fluidx_barcode = models.CharField(max_length=12, null=True, blank=True, help_text='Physical barcode on FluidX tube', validators=[validate_no_whitespace])
+	fluidx_barcode = models.CharField(max_length=12, null=True, unique=True, help_text='Physical barcode on FluidX tube', validators=[validate_no_whitespace])
 	
 	nanodrop = models.DecimalField(max_digits=5, decimal_places=2, null=True)
 	qpcr_ds = models.DecimalField(max_digits=4, decimal_places=2, null=True, help_text='DS qpcr value')
