@@ -160,7 +160,28 @@ class SampleSummaryLookupForm(forms.Form):
 		required=False
 	)
 	collaborator_id = CharField(
-		help_text='Collaborator ID for sample (skeletal code)',
+		help_text='Collaborator ID or skeletal code',
+		required=False
+	)
+	period = ModelChoiceField(
+		queryset=Period.objects.all(),
+		widget=TextInput,
+		help_text='Abbreviation for any period associated with sample',
+		to_field_name='abbreviation',
+		required=False
+	)
+	culture = ModelChoiceField(
+		queryset=Culture.objects.all(),
+		widget=TextInput,
+		help_text='Abbreviation for any culture associated with sample',
+		to_field_name='abbreviation',
+		required=False
+	)
+	site = ModelChoiceField(
+		queryset=Location.objects.all(),
+		widget=TextInput,
+		help_text='Site name',
+		to_field_name='site',
 		required=False
 	)
 

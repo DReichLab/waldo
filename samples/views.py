@@ -11,6 +11,7 @@ from django.contrib.auth.views import logout_then_login
 from django.db.models import Q, Count
 from django.utils import timezone
 from django.views.generic import DetailView
+from django.views.generic.edit import FormMixin
 from django.views.generic.list import ListView
 
 import codecs
@@ -617,36 +618,51 @@ def delete_sample_photo(request):
 		
 	return render(request, 'samples/confirm_delete_sample_photo.html', {'image': photo_filename, 'link': url } )
 	
-class SampleListView(LoginRequiredMixin, ListView):
+class SampleListView(FormMixin, ListView): #LoginRequiredMixin
 	model = Sample
-	paginate_by = 20
+	paginate_by = 10
+	form_class = SampleSummaryLookupForm
 	
-	def get_context_data(self, **kwargs):
-		context = super().get_context_data(**kwargs)
-		context['form'] = SampleSummaryLookupForm(self.request.GET)
-		return context
+	def get_form_kwargs(self):
+		kwargs = super().get_form_kwargs()
+		# ensure form sees GET data so is_valid() can be True
+		if self.request.method == "GET":
+			kwargs.update({"data": self.request.GET})
+		return kwargs
 		
 	def get_queryset(self):
-		sample_number = self.request.GET.get('sample_number')
-		sample_control = self.request.GET.get('sample_control')
-		external_sample = self.request.GET.get('external_id')
-		lysate = self.request.GET.get('lysate')
-		library = self.request.GET.get('library')
-		collaborator_id = self.request.GET.get('collaborator_id')
-		
 		samples = Sample.objects.all()
-		if sample_number:
-			samples = samples.filter(reich_lab_id=sample_number)
-		if sample_control: 
-			samples = samples.filter(control=sample_control)
-		if external_sample:
-			samples = samples.filter(id=external_sample.id)
-		if lysate:
-			samples = samples.filter(id=lysate.powder_sample.sample.id)
-		if library:
-			samples = samples.filter(id=library.get_sample().id)
-		if collaborator_id:
-			samples = samples.filter(skeletal_code=collaborator_id)
+		form = self.get_form()
+		if form.is_valid():
+			sample_number = form.cleaned_data['sample_number']
+			sample_control = form.cleaned_data['sample_control']
+			external_sample = form.cleaned_data['external_id']
+			lysate = form.cleaned_data['lysate']
+			library = form.cleaned_data['library']
+			collaborator_id = form.cleaned_data['collaborator_id']
+			period =  form.cleaned_data['period']
+			culture =  form.cleaned_data['culture']
+			site =  form.cleaned_data['site']
+			
+			if sample_number:
+				samples = samples.filter(reich_lab_id=sample_number)
+			if sample_control: 
+				samples = samples.filter(control=sample_control)
+			if external_sample:
+				samples = samples.filter(id=external_sample.id)
+			if lysate:
+				samples = samples.filter(id=lysate.powder_sample.sample.id)
+			if library:
+				samples = samples.filter(id=library.get_sample().id)
+			if collaborator_id:
+				samples = samples.filter(Q(collaborator_code__contains=collaborator_id) | Q(skeletal_code__contains=collaborator_id) )
+			if period:
+				samples = samples.filter(periods=period)
+			if culture:
+				samples = samples.filter(cultures=culture)
+			if site:
+				samples = samples.filter(archaeological_assemblage__site=site)
+		
 		return samples
 		
 class SampleSummaryView(LoginRequiredMixin, DetailView):
