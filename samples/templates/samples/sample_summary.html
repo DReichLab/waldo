@@ -93,7 +93,7 @@
 {% endfor %}
 </table>
 {% if reich_lab_sample_number %}
-<a href=""{% url 'sample' %}?sample=S{{reich_lab_sample_number}}">S{{reich_lab_sample_number}} photos</a>
+<a href="{% url 'sample' %}?sample=S{{reich_lab_sample_number}}">S{{reich_lab_sample_number}} photos</a>
 {% endif %}
 
 <br>
