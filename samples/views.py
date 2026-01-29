@@ -618,7 +618,7 @@ def delete_sample_photo(request):
 		
 	return render(request, 'samples/confirm_delete_sample_photo.html', {'image': photo_filename, 'link': url } )
 	
-class SampleListView(FormMixin, ListView): #LoginRequiredMixin
+class SampleListView(LoginRequiredMixin, FormMixin, ListView):
 	model = Sample
 	paginate_by = 10
 	form_class = SampleSummaryLookupForm
