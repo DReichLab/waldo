@@ -5,6 +5,7 @@ from django.conf.urls.static import static
 from django.contrib.auth.views import PasswordChangeView
 
 from . import views
+from .views import *
 
 urlpatterns = [
 	re_path(r'^query', views.query, name='query'),
@@ -94,7 +95,8 @@ urlpatterns = [
 	path('lost_lysate', views.lost_lysate, name='lost_lysate'),
 	path('sample', views.sample, name='sample'),
 	path('delete_sample_photo', views.delete_sample_photo, name='delete_sample_photo'),
-	path('sample_summary', views.sample_summary, name='sample_summary'),
+	path('sample_summary', SampleListView.as_view(), name='sample_summary'),
+	path('sample_detail/<int:pk>', SampleSummaryView.as_view(), name='sample_detail'),
 	
 	path('sample_archaeology', views.sample_archaeology, name='sample_archaeology'),
 	path('sample_archaeology_update_headers', views.sample_archaeology_update_headers, name='sample_archaeology_update_headers'),

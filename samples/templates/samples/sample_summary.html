@@ -6,19 +6,12 @@
 
 {% block content %}
 
-<h2>Select Sample</h2>
-<form action="" method='post'>
-{% csrf_token %}
-{{ form.as_p }}
-<input type='submit' value='Query sample'>
-</form>
-
 {% if reich_lab_sample_number %}
 <h2>Sample {{reich_lab_sample_number}}</h2>
-<a href="sample_edit?reich_lab_id={{sample.reich_lab_id}}">Edit sample</a>
+<a href="{% url 'sample_edit' %}?reich_lab_id={{sample.reich_lab_id}}">Edit sample</a>
 {% elif external_id %}
 <h2>Sample {{external_id}}</h2>
-<a href="sample_edit?external_id={{sample.external_id}}">Edit sample</a>
+<a href="{% url 'sample_edit' %}?external_id={{sample.external_id}}">Edit sample</a>
 {% else %}
 <h2>Sample</h2>
 {% endif %}
@@ -39,14 +32,14 @@
 	<td>{{ sample.collaborator.name }}</td>
 	<td>{{ sample.collaborator_code }}</td>
 	<td>{{ sample.skeletal_code }}</td>
-	<td><a href="sample_archaeological_assemblage?archaeological_assemblage_pk={{sample.archaeological_assemblage.id}}">
+	<td><a href="{% url 'sample_archaeological_assemblage' %}?archaeological_assemblage_pk={{sample.archaeological_assemblage.id}}">
 	{% if sample.archaeological_assemblage.burial_code == '' %}
 	[BLANK]
 	{% else %}
 	{{ sample.archaeological_assemblage.burial_code }}
 	{% endif %}
 	</a></td>
-	<td><a href="sample_archaeology_site?site_pk={{sample.archaeological_assemblage.site.id}}">{{ sample.archaeological_assemblage.site.site }}</a></td>
+	<td><a href="{% url 'sample_archaeology_site' %}?site_pk={{sample.archaeological_assemblage.site.id}}">{{ sample.archaeological_assemblage.site.site }}</a></td>
 	<td>{{ sample.individual_id }}</td>
 	<td>{{ sample.location_str }}</td>
 	<td>{{ sample.get_group_label }}</td>
@@ -88,10 +81,10 @@
 {% for powder_sample in powder_samples %}
 <tr>
 	<td>{{ powder_sample.powder_sample_id }}</td>
-	<td><a href="powder_samples?powder_batch={{ powder_sample.powder_batch.name }}">{{ powder_sample.powder_batch.name }}</a></td>
+	<td><a href="{% url 'powder_samples' %}?powder_batch={{ powder_sample.powder_batch.name }}">{{ powder_sample.powder_batch.name }}</a></td>
 	<td>
 		{% if reich_lab_sample_number %}
-		<a href="sample?sample=S{{reich_lab_sample_number}}">S{{reich_lab_sample_number}}</a>
+		<a href="{% url 'sample' %}?sample=S{{reich_lab_sample_number}}">S{{reich_lab_sample_number}}</a>
 		{% endif %}
 	</td>
 	<td>{{ powder_sample.total_powder_produced_mg | floatformat }}</td>
@@ -100,7 +93,7 @@
 {% endfor %}
 </table>
 {% if reich_lab_sample_number %}
-<a href="sample?sample=S{{reich_lab_sample_number}}">S{{reich_lab_sample_number}} photos</a>
+<a href=""{% url 'sample' %}?sample=S{{reich_lab_sample_number}}">S{{reich_lab_sample_number}} photos</a>
 {% endif %}
 
 <br>
@@ -118,7 +111,7 @@
 {% for lysate_layout in lysate_layouts %}
 <tr>
 	<td>{{ lysate_layout.lysate.lysate_id }}</td>
-	<td><a href="lysates_in_batch?lysate_batch_name={{ lysate_layout.lysate.lysate_batch.batch_name }}">{{  lysate_layout.lysate_batch.batch_name }}</a></td>
+	<td><a href="{% url 'lysates_in_batch' %}?lysate_batch_name={{ lysate_layout.lysate.lysate_batch.batch_name }}">{{  lysate_layout.lysate_batch.batch_name }}</a></td>
 	<td>{{ lysate_layout.lysate.barcode }}</td>
 	<td>{{ lysate_layout.powder_used_mg | floatformat }}</td>
 	<td>{{ lysate_layout.lysate.powder_used_mg | floatformat }}</td>
@@ -143,7 +136,7 @@
 {% for extract_layout in extract_layouts %}
 <tr>
 	<td>{{ extract_layout.extract.extract_id }}</td>
-	<td><a href="extracts_in_batch?extract_batch_name={{ extract_layout.extract.extract_batch.batch_name }}">{{ extract_layout.extract.extract_batch.batch_name }}</a></td>
+	<td><a href="{% url 'extracts_in_batch' %}?extract_batch_name={{ extract_layout.extract.extract_batch.batch_name }}">{{ extract_layout.extract.extract_batch.batch_name }}</a></td>
 	<td>{{ extract_layout.extract_batch.protocol.final_extract_volume | floatformat }}</td>
 	<td>{{ extract_layout.lysate_volume_used | floatformat }}</td>
 	<td>{{ extract_layout.extract.lysis_volume_extracted | floatformat }}</td>
@@ -170,7 +163,7 @@
 {% for library_layout in library_layouts %}
 <tr>
 	<td>{{ library_layout.library.reich_lab_library_id }}</td>
-	<td><a href="libraries_in_batch?library_batch_name={{ library_layout.library_batch.name }}">{{ library_layout.library_batch.name }}</a></td>
+	<td><a href="{% url 'libraries_in_batch' %}?library_batch_name={{ library_layout.library_batch.name }}">{{ library_layout.library_batch.name }}</a></td>
 	<td>{{ library_layout.library_batch.prep_date |date:'Y-m-d' }}</td>
 	<td>{{ library_layout.library.fluidx_barcode }}</td>
 	<td>{{ library_layout.library.library_type }}</td>
@@ -194,12 +187,12 @@
 {% for captured_library in captured_libraries %}
 <tr>
 	<td>{{ captured_library.library.reich_lab_library_id }}</td>
-	<td><a href="captures_in_batch?capture_batch_name={{ captured_library.capture_batch.name }}">{{ captured_library.capture_batch.name }}</a></td>
+	<td><a href="{% url 'captures_in_batch' %}?capture_batch_name={{ captured_library.capture_batch.name }}">{{ captured_library.capture_batch.name }}</a></td>
 	<td>{{ captured_library.capture_batch.protocol.name }}</td>
 	<td>
 		{% for sequencing_run in captured_library.sequencingrun_set.all %}
 		{% if not forloop.first %}, {% endif %}
-		<a href="sequencing_run_assign_captures?sequencing_run_name={{ sequencing_run.name }}">{{ sequencing_run.name }}</a>
+		<a href="{% url 'sequencing_run_assign_captures' %}?sequencing_run_name={{ sequencing_run.name }}">{{ sequencing_run.name }}</a>
 		{% endfor %}
 	</td>
 </tr>

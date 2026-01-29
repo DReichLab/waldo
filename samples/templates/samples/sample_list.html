@@ -1,0 +1,68 @@
+{% extends "samples/reich_lab_base.html" %}
+
+{% load static %}
+
+{% block title %}Samples List{% endblock %}
+
+{% block content %}
+
+<h2>Select Sample</h2>
+<form action="" method='get'>
+{% csrf_token %}
+{{ form.as_p }}
+<input type='submit' value='Query sample'>
+</form>
+
+<h1>Samples List</h1>
+<table>
+<tr>
+	<th>Primary Key</th>
+	<th>Reich Lab ID</th>
+	<th>External ID</th>
+	<th>Collaborator</th>
+	<th>collaborator_code</th>
+	<th>skeletal_code (Reich Lab)</th>
+	<th>burial_code</th>
+	<th>site_name</th>
+</tr>
+{% for sample in page_obj %}
+<tr>
+	<td><a href="sample_detail/{{ sample.id }}">{{ sample.id }}</a></td>
+	<td>{{ sample.reich_lab_id }}</td>
+	<td>{{ sample.external_id }}</td>
+	<td>{{ sample.collaborator.name }}</td>
+	<td>{{ sample.collaborator_code }}</td>
+	<td>{{ sample.skeletal_code }}</td>
+	<td><a href="sample_archaeological_assemblage?archaeological_assemblage_pk={{sample.archaeological_assemblage.id}}">
+	{% if sample.archaeological_assemblage.burial_code == '' %}
+	[BLANK]
+	{% else %}
+	{{ sample.archaeological_assemblage.burial_code }}
+	{% endif %}
+	</a></td>
+	<td><a href="sample_archaeology_site?site_pk={{sample.archaeological_assemblage.site.id}}">{{ sample.archaeological_assemblage.site.site }}</a></td>
+</tr>
+{% empty %}
+	
+{% endfor %}
+</table>
+
+<div class="pagination">
+	<span class="step-links">
+		{% if page_obj.has_previous %}
+			<a href="?page=1">&laquo; first</a>
+			<a href="?page={{ page_obj.previous_page_number }}">previous</a>
+		{% endif %}
+
+		<span class="current">
+			Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}.
+		</span>
+
+		{% if page_obj.has_next %}
+			<a href="?page={{ page_obj.next_page_number }}">next</a>
+			<a href="?page={{ page_obj.paginator.num_pages }}">last &raquo;</a>
+		{% endif %}
+	</span>
+</div>
+
+{% endblock %}

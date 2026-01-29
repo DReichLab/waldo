@@ -5,9 +5,13 @@ from django.http import HttpResponse, HttpResponseBadRequest
 from django.utils.http import urlencode
 
 from django.contrib.auth.decorators import login_required, user_passes_test
+from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.views import logout_then_login
 
 from django.db.models import Q, Count
+from django.utils import timezone
+from django.views.generic import DetailView
+from django.views.generic.list import ListView
 
 import codecs
 import csv
@@ -613,64 +617,68 @@ def delete_sample_photo(request):
 		
 	return render(request, 'samples/confirm_delete_sample_photo.html', {'image': photo_filename, 'link': url } )
 	
-# This currently only handles a single sample. If more than one is returned, there will be an error. 
-@login_required
-def sample_summary(request):
-	sample = None
-	if request.method == 'POST':
-		form = SampleSummaryLookupForm(request.POST)
-		if form.is_valid():
-			sample_number = form.cleaned_data['sample_number']
-			sample_control = form.cleaned_data['sample_control']
-			external_sample = form.cleaned_data['external_id']
-			lysate = form.cleaned_data['lysate']
-			library = form.cleaned_data['library']
-			collaborator_id = form.cleaned_data['collaborator_id']
-			
-			if sample_number:
-				# print(f'sample lookup by Reich Lab sample number')
-				sample = Sample.objects.get(reich_lab_id=sample_number, control=sample_control)
-			elif external_sample:
-				# print(f'sample lookup by external id')
-				sample = external_sample
-			elif lysate:
-				sample = lysate.powder_sample.sample
-				# print(f'sample lookup by lysate FluidX {lysate.lysate_id}')
-			elif library:
-				sample = library.get_sample()
-				# print(f'sample lookup by library FluidX {library.reich_lab_library_id}')
-			elif collaborator_id:
-				sample = Sample.objects.get(skeletal_code=collaborator_id)
-	else:
-		form = SampleSummaryLookupForm()
-		
-		external_sample_str = request.GET.get('external_sample', None)
-		if external_sample_str:
-			sample = Sample.objects.get(external_id=external_sample_str)
-		
-		sample_str = request.GET.get('sample', None)
-		if sample_str:
-			reich_lab_sample_number = reich_lab_sample_number_from_string(sample_str)
-			sample = Sample.objects.get(reich_lab_id=reich_lab_sample_number)
+class SampleListView(LoginRequiredMixin, ListView):
+	model = Sample
+	paginate_by = 20
 	
-	if sample:
+	def get_context_data(self, **kwargs):
+		context = super().get_context_data(**kwargs)
+		context['form'] = SampleSummaryLookupForm(self.request.GET)
+		return context
+		
+	def get_queryset(self):
+		sample_number = self.request.GET.get('sample_number')
+		sample_control = self.request.GET.get('sample_control')
+		external_sample = self.request.GET.get('external_id')
+		lysate = self.request.GET.get('lysate')
+		library = self.request.GET.get('library')
+		collaborator_id = self.request.GET.get('collaborator_id')
+		
+		samples = Sample.objects.all()
+		if sample_number:
+			samples = samples.filter(reich_lab_id=sample_number)
+		if sample_control: 
+			samples = samples.filter(control=sample_control)
+		if external_sample:
+			samples = samples.filter(id=external_sample.id)
+		if lysate:
+			samples = samples.filter(id=lysate.powder_sample.sample.id)
+		if library:
+			samples = samples.filter(id=library.get_sample().id)
+		if collaborator_id:
+			samples = samples.filter(skeletal_code=collaborator_id)
+		return samples
+		
+class SampleSummaryView(LoginRequiredMixin, DetailView):
+	model = Sample
+	template_name = 'samples/sample_summary.html'
+	context_object_name = 'sample'
+	
+	def get_context_data(self, **kwargs):
+		context = super().get_context_data(**kwargs)
+		sample = self.object
+		
 		# apparently it's not possible to filter a queryset using a method
-		powder_samples = PowderSample.objects.filter(sample=sample).order_by('powder_sample_id')
-		lysate_layouts = LysateBatchLayout.objects.filter(Q(powder_sample__sample=sample) | Q(lysate__sample=sample) | Q(lysate__powder_sample__sample=sample)).distinct().select_related('lysate').order_by('lysate__reich_lab_lysate_number')
+		context['powder_samples'] = PowderSample.objects.filter(sample=sample).order_by('powder_sample_id')
+		context['lysate_layouts'] = LysateBatchLayout.objects.filter(Q(powder_sample__sample=sample) | Q(lysate__sample=sample) | Q(lysate__powder_sample__sample=sample)).distinct().select_related('lysate').order_by('lysate__reich_lab_lysate_number')
 		
 		extract_layouts = ExtractionBatchLayout.objects.filter(Q(extract__sample=sample) | Q(extract__lysate__powder_sample__sample=sample) | Q(extract__lysate__sample=sample) | Q(lysate__sample=sample)).distinct().select_related('extract').order_by('lysate__sample__reich_lab_id', 'lysate__reich_lab_lysate_number', 'extract__reich_lab_extract_number')
 		external_extracts = Extract.objects.filter(sample=sample)
 		external_extracts_fake_layout = [types.SimpleNamespace(extract=x) for x in external_extracts]
 		extract_layouts = list(extract_layouts) + external_extracts_fake_layout
 		extracts = [layout.extract for layout in extract_layouts]
+		context['extract_layouts'] = extract_layouts
 		
 		library_layouts = LibraryBatchLayout.objects.filter(Q(library__sample=sample) | Q(library__extract__in=extracts) | Q(extract__sample=sample) ).distinct().select_related('library').order_by('library__extract__lysate__sample__reich_lab_id',  'library__extract__lysate__reich_lab_lysate_number', 'library__extract__reich_lab_extract_number', 'library__reich_lab_library_number')
 		libraries = [layout.library for layout in library_layouts.all()]
 		captured_libraries = CaptureLayout.objects.filter(library__in=libraries).order_by('library__sample__reich_lab_id', 'library__extract__lysate__reich_lab_lysate_number',  'library__extract__reich_lab_extract_number', 'library__reich_lab_library_number', 'capture_batch__date')
 		
-		return render(request, 'samples/sample_summary.html', { 'form': form, 'reich_lab_sample_number': sample.reich_lab_id, 'external_id': sample.external_id, 'sample': sample, 'date_entries': sample.dates(), 'powder_samples': powder_samples, 'lysate_layouts': lysate_layouts, 'extract_layouts': extract_layouts, 'library_layouts': library_layouts, 'captured_libraries': captured_libraries, } )
-	else:
-		return render(request, 'samples/sample_summary.html', { 'form': form, } )
+		context['reich_lab_sample_number'] = sample.reich_lab_id
+		context['external_id'] = sample.external_id
+		context['date_entries'] = sample.dates()
+		context['library_layouts'] = library_layouts
+		context['captured_libraries'] = captured_libraries
+		return context
 
 PLATE_ROWS = 'ABCDEFGH'
 WELL_PLATE_COLUMNS = range(1,13)
