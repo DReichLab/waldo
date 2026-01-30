@@ -350,7 +350,7 @@ class LysateBatchForm(UserModelForm):
 			self.fields[field].disabled = True
 			
 class LysateForm(UserModelForm):
-	well_position = forms.CharField(disabled=True)
+	well_position = forms.CharField(disabled=True, required=False)
 	collaborator_id = forms.CharField(disabled=True, required=False)
 	powder_batch_name = forms.CharField(disabled=True, required=False)
 	class Meta:
@@ -364,6 +364,8 @@ class LysateForm(UserModelForm):
 		super().__init__(*args, **kwargs)
 		for option in ['lysate_id']:
 			self.fields[option].disabled = True
+		for option in ['barcode']:
+			self.fields[option].required = False
 		if self.instance:
 			try:
 				layout_element = self.instance.lysatebatchlayout
