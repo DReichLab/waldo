@@ -227,7 +227,8 @@ def powder_batches(request):
 					low_complexity_count=Count('sampleprepqueue', distinct=True, filter=Q(sampleprepqueue__sample__expected_complexity__description__iexact='low')) + Count('powderprepqueue', distinct=True, filter=Q(powderprepqueue__sample__expected_complexity__description__iexact='low')),
 					high_complexity_count=Count('sampleprepqueue', distinct=True, filter=Q(sampleprepqueue__sample__expected_complexity__description__iexact='high')) + Count('powderprepqueue', distinct=True, filter=Q(powderprepqueue__sample__expected_complexity__description__iexact='high')),
 					priority_count = Count('sampleprepqueue', distinct=True, filter=Q(sampleprepqueue__priority=0)) + Count('powderprepqueue', distinct=True, filter=Q(powderprepqueue__priority=0)),
-					).order_by('status', '-id')
+					)
+	batches = batches.order_by('status', '-id')
 	return render(request, 'samples/powder_batches.html', {'powder_batches' : batches, 'form' : form, 'plated_count': perform_plated_count, } )
 
 @login_required
