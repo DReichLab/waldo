@@ -265,10 +265,10 @@ PowderSampleFormset = modelformset_factory(PowderSample, form=PowderSampleForm, 
 class LysateBatchLayoutForm(PowderSampleSharedForm):
 	# These put widgets in place for fields that are present for PowderSample but not LysateBatchLayout
 	powder_sample_id = CharField(disabled=True, required=False)
-	sampling_notes = CharField(disabled=True, required=False)
+	sampling_notes = CharField(required=False)
 	
 	total_powder_produced_mg = FloatField(min_value=0, required=False)
-	storage_location = CharField(required=False, disabled=True)
+	storage_location = CharField(required=False)
 	sample_prep_lab  = CharField(required=False, disabled=True)
 	
 	class Meta(PowderSampleSharedForm.Meta):
@@ -289,8 +289,10 @@ class LysateBatchLayoutForm(PowderSampleSharedForm):
 		
 	def save(self, commit=True):
 		powder_sample = self.instance.powder_sample
+		powder_sample.sample_notes = self.cleaned_data['sampling_notes']
 		powder_sample.total_powder_produced_mg = self.cleaned_data['total_powder_produced_mg']
 		powder_sample.sample_prep_protocol = self.cleaned_data['sample_prep_protocol']
+		powder_sample.storage_location = self.cleaned_data['storage_location']
 		powder_sample.save(save_user=self.user)
 		return super().save(commit=commit)
 		
