@@ -11,6 +11,7 @@ class Command(BaseCommand):
 		parser.add_argument('-u', '--user', nargs='+', required=True, help='Wetlab Staff name or username')
 		parser.add_argument('-f', '--file', required=True, help='File containing tab-delimited columns: [1] sample number primary key (not Reich lab ID number), [2] I5 index sequence, [3] I7 index sequence, [4] P5 barcode sequence, [5] P7 barcode sequence, [6] library notes')
 		parser.add_argument('-s', '--create_samples', action='store_true', help='Specify negative integers for sample primary key. Matching values get same sample')
+		parser.add_argument('--reich_id', action='store_true', help='Assign Reich Lab IDs to the samples')
 		
 	def handle(self, *args, **options):
 		wetlab_user = get_wetlab_staff(options['user'])
@@ -41,6 +42,8 @@ class Command(BaseCommand):
 							self.stdout.write(f'Sample created pk: {sample.id}')
 					else: # sample already exists
 						sample = Sample.objects.get(id=sample_pk_file)
+					if options['reich_id']:
+						sample.assign_reich_lab_sample_number()
 						
 					# get index and barcode objects from sequence strings
 					i5_obj = P5_Index.objects.get(sequence=i5) if len(i5) > 0 else None
