@@ -2,7 +2,7 @@ from django.db import transaction
 from django.db.models import Q
 import re
 import sys
-from samples.models import get_value, Sample, ArchaeologicalAssemblage, Location, parse_sample_string, Publication, PublicationType, PublicationLabels, ExtractionBatchLayout, Lysate, Period, Culture, SkeletalElementCategory, AssessmentCategory, get_sample_by_anyid, DataInstance, data_instance_get, data_instance_create
+from samples.models import get_value, Sample, ArchaeologicalAssemblage, Location, parse_sample_string, Publication, PublicationType, PublicationLabels, ExtractionBatchLayout, Lysate, Period, Culture, SkeletalElementCategory, AssessmentCategory, get_sample_by_anyid, DataInstance, data_instance_get, data_instance_create, SpecialRestriction
 from sequencing_run.models import GeneticAnalysis
 from samples.spreadsheet import spreadsheet_pass
 
@@ -22,7 +22,7 @@ def boolean_from_str(s):
 		return False
 	return bool(s)
 
-sample_headers = ['sample_id', 'external_id', 'site_name', 'burial_code', 'burial_subcode', 'excavation_year', 'excavation_grid', 'skeletal_code', 'skeletal_element', 'skeletal_element_category', 'sample_date', 'average_bp_date', 'date_stdev', 'date_fix_flag', 'morphological_sex', 'morphological_age', 'morphological_age_range', 'periods', 'cultures', 'group_label_use_country', 'group_label_use_level_1', 'group_label_use_level_2', 'group_label_use_site', 'group_label_use_period', 'group_label_use_culture']
+sample_headers = ['sample_id', 'external_id', 'site_name', 'burial_code', 'burial_subcode', 'excavation_year', 'excavation_grid', 'skeletal_code', 'skeletal_element', 'skeletal_element_category', 'sample_date', 'average_bp_date', 'date_stdev', 'date_fix_flag', 'morphological_sex', 'morphological_age', 'morphological_age_range', 'periods', 'cultures', 'group_label_use_country', 'group_label_use_level_1', 'group_label_use_level_2', 'group_label_use_site', 'group_label_use_period', 'group_label_use_culture', 'special_restriction']
 def sample_site_update(sample_file, user):
 	messages = []
 	with transaction.atomic():
@@ -102,6 +102,11 @@ def sample_site_update(sample_file, user):
 			sample.group_label_use_site = boolean_from_str(row.group_label_use_site)
 			sample.group_label_use_period = boolean_from_str(row.group_label_use_period)
 			sample.group_label_use_culture = boolean_from_str(row.group_label_use_culture)
+			
+			if len(row.special_restriction) > 0:
+				sample.special_restriction = SpecialRestriction.objects.get(anno_file_key=int(row.special_restriction))
+			# special_restrictions and special_restriction currently contain separate info
+			
 			sample.save(save_user=user)
 				
 	return '\n'.join(messages)
@@ -142,6 +147,7 @@ def sample_site_values(sample):
 	
 	values['periods'] = ' '.join([p.abbreviation for p in sample.periods.all().order_by('date_start', 'abbreviation')])
 	values['cultures'] = ' '.join([p.abbreviation for p in sample.cultures.all().order_by('date_start', 'abbreviation')])
+	values['special_restriction'] = str(get_value(sample, 'special_restriction', 'anno_file_key'))
 	
 	ordered_values = [values[key] for key in sample_headers]
 	return ordered_values

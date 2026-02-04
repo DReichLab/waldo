@@ -468,6 +468,9 @@ class SampleDate():
 class SpecialRestriction(models.Model):
 	anno_file_key = models.PositiveSmallIntegerField(unique=True, db_index=True)
 	description = models.TextField(blank=False, unique=True)
+	
+	def __str__(self):
+		return str(self.anno_file_key)
 
 class Sample(Timestamped):
 	reich_lab_id = models.PositiveIntegerField(db_index=True, null=True, help_text=' assigned when a sample is selected from the queue by the wetlab')
