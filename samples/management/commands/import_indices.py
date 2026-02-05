@@ -11,6 +11,7 @@ class Command(BaseCommand):
 		parser.add_argument("barcodes_file", help='text file with two columns: label and sequence')
 		parser.add_argument('-d', "--default",  action='store_true', help='new indices will be part of default set')
 		parser.add_argument('--allow_existing',  action='store_true', help='Do not fail if an index already exists')
+		parser.add_argument('--label2',  action='store_true', help='File contains a third column for label2')
 		
 	def handle(self, *args, **options):
 		barcode_type = options['type']
@@ -29,12 +30,13 @@ class Command(BaseCommand):
 					fields = line.split()
 					label = fields[0]
 					sequence = fields[1]
+					label2 = fields[2] if options['label2'] else ''
 					try:
 						barcode = barcodes.get(sequence=sequence)
 						self.stderr.write(f'{sequence} exists as {barcode.label} {barcode.label2}, new is {label}')
 						num_existing += 1
 					except (P5_Index.DoesNotExist, P7_Index.DoesNotExist):
-						barcode = barcodes.create(label=label, sequence=sequence, reich_lab_default=default)
+						barcode = barcodes.create(label=label, sequence=sequence, reich_lab_default=default, label2=label2)
 					barcode.full_clean()
 				if num_existing > 0 and not options['allow_existing']:
 					transaction.set_rollback(True)
