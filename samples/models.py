@@ -448,6 +448,7 @@ class PublicationLabels(Timestamped):
 	genetic_id = models.TextField(blank=True, help_text='Genetic ID identifying published analysis. Needed if there is more than one anno file line for this individual.')
 	genetic_id_entry = models.ForeignKey('sequencing_run.GeneticAnalysis', null=True, on_delete=models.PROTECT, help_text='Analysis that was published. This should replace the sample and text genetic ID.')
 	published_data = models.ForeignKey('DataInstance', on_delete=models.PROTECT, null=True, help_text='Published data. ')
+	meta_data_published = models.BooleanField(default=True, help_text='Generally samples have meta data published with data. However, there are examples of samples having genetic data published without their metadata, usually with the intention that the metadata will be appear in a later publication.')
 	
 	def clean(self):
 		super(PublicationLabels, self).clean()
