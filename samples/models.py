@@ -1921,7 +1921,12 @@ class Extract(Timestamped):
 		# potential improvement is to move all of these computations into LibraryBatchLayout objects
 		libraries = Library.objects.filter(extract=self)
 		for library in libraries:
-			extract_used += library.ul_extract_used
+			single_library_extract_used = library.get_ul_extract_used()
+			# if there is a library we don't know report None
+			if single_library_extract_used is None:
+				return None 
+			else:
+				extract_used += library.ul_extract_used
 		# Lost extract is in LibraryBatchLayout
 		lost_extracts = LibraryBatchLayout.objects.filter(extract=self, library_batch=None)
 		for lost in lost_extracts:
@@ -2600,6 +2605,8 @@ class Library(Timestamped):
 		except TypeError:
 			return None
 		
+	def get_ul_extract_used(self):
+		return get_value(self.librarybatchlayout, 'ul_extract_used', default=None)
 	
 # extract -> library
 class LibraryBatchLayout(TimestampedWellPosition):
