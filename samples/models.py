@@ -1934,6 +1934,13 @@ class Extract(Timestamped):
 			extract_used += lost.ul_extract_used
 		extract_remaining = get_value(self, 'extract_batch', 'protocol', 'final_extract_volume', default=-1) - extract_used
 		return extract_remaining
+		
+	# used for paper reporting, this is the total amount of powder extracted for a source lysate
+	def total_extraction_powder(self):
+		old_powder = self.extractionbatchlayout.powder_used_mg 
+		if old_powder and old_powder > 0:
+			return old_powder
+		return self.lysate.powder_used_mg
 	
 # lysate -> extract
 # for old batches, powder -> extract
