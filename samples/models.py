@@ -679,6 +679,19 @@ class Sample(Timestamped):
 			return self.external_id
 		else:
 			raise NotImplementedError()
+			
+	# The proper place to determine how much powder is left is in the sample, not the powder sample
+	# This is because the wetlab rolls over each powder sample into the next
+	# When a sample is redrilled, it gets a new sample number
+	# This is based on layout powder accounting values. 
+	def powder_remaining(self):
+		powder_samples = PowderSample.objects.filter(sample=self)
+		total_powder = powder_samples.aggregate(Max('total_powder_produced_mg'))['total_powder_produced_mg__max'] if powder_samples.exists() else 0
+		lysates = LysateBatchLayout.objects.filter(powder_sample__sample=self, powder_used_mg__isnull=False)
+		powder_for_lysates = lysates.aggregate(Sum('powder_used_mg'))['powder_used_mg__sum'] if lysates.exists() else 0
+		extracts = ExtractionBatchLayout.objects.filter(powder_sample__sample=self, powder_used_mg__isnull=False)
+		powder_for_extracts = extracts.aggregate(Sum('powder_used_mg'))['powder_used_mg__sum'] if extracts.exists() else 0
+		return total_powder - powder_for_lysates - powder_for_extracts
 		
 def get_sample_by_anyid(sample_str):
 	match = re.fullmatch(SID_IID_REGEX, sample_str)
