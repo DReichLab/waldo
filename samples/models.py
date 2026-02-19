@@ -334,9 +334,15 @@ class Location(Timestamped):
 	
 	def locality_str(self):
 		levels = []
-		for level in [self.level_1, self.level_2, self.level_3, self.level_4, self.level_5]:
+		for level, level_type in zip([self.level_1, self.level_2, self.level_3, self.level_4, self.level_5], [self.level_1_type, self.level_2_type, self.level_3_type, self.level_4_type, self.level_5_type]):
 			if len(level) > 0:
-				levels += [level]
+				level_string = level
+				if level_type:
+					if level_type.is_suffix:
+						level_string += ' ' + level_type.name
+					else:
+						level_string = level_type.name + ' ' + level
+				levels += [level_string]
 		s = self.site
 		if len(levels) > 0:
 			s += f' ({", ".join(levels)})'
