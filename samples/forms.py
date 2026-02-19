@@ -783,11 +783,11 @@ StorageFormset = modelformset_factory(Storage, form=StorageForm)
 class SiteForm(UserModelForm):
 	site = forms.CharField()
 	country = ModelChoiceField(queryset=Country.objects.all().order_by('country_name'), widget=Select2())
-	level_1_type = ModelChoiceField(queryset=LocationLevelType.objects.all().order_by('name'), widget=Select2())
-	level_2_type = ModelChoiceField(queryset=LocationLevelType.objects.all().order_by('name'), widget=Select2())
-	level_3_type = ModelChoiceField(queryset=LocationLevelType.objects.all().order_by('name'), widget=Select2())
-	level_4_type = ModelChoiceField(queryset=LocationLevelType.objects.all().order_by('name'), widget=Select2())
-	level_5_type = ModelChoiceField(queryset=LocationLevelType.objects.all().order_by('name'), widget=Select2())
+	level_1_type = ModelChoiceField(queryset=LocationLevelType.objects.all().order_by('name'), widget=Select2(), required=False)
+	level_2_type = ModelChoiceField(queryset=LocationLevelType.objects.all().order_by('name'), widget=Select2(), required=False)
+	level_3_type = ModelChoiceField(queryset=LocationLevelType.objects.all().order_by('name'), widget=Select2(), required=False)
+	level_4_type = ModelChoiceField(queryset=LocationLevelType.objects.all().order_by('name'), widget=Select2(), required=False)
+	level_5_type = ModelChoiceField(queryset=LocationLevelType.objects.all().order_by('name'), widget=Select2(), required=False)
 	
 	class Meta:
 		model = Location
