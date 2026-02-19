@@ -697,7 +697,11 @@ class Sample(Timestamped):
 		powder_for_lysates = lysates.aggregate(Sum('powder_used_mg'))['powder_used_mg__sum'] if lysates.exists() else 0
 		extracts = ExtractionBatchLayout.objects.filter(powder_sample__sample=self, powder_used_mg__isnull=False)
 		powder_for_extracts = extracts.aggregate(Sum('powder_used_mg'))['powder_used_mg__sum'] if extracts.exists() else 0
-		return total_powder - powder_for_lysates - powder_for_extracts
+		
+		try:
+			return total_powder - powder_for_lysates - powder_for_extracts
+		except:
+			return 'Unknown'
 		
 def get_sample_by_anyid(sample_str):
 	match = re.fullmatch(SID_IID_REGEX, sample_str)
