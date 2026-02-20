@@ -680,7 +680,7 @@ class SampleSummaryView(LoginRequiredMixin, DetailView):
 		context['lysate_layouts'] = LysateBatchLayout.objects.filter(Q(powder_sample__sample=sample) | Q(lysate__sample=sample) | Q(lysate__powder_sample__sample=sample)).distinct().select_related('lysate').order_by('lysate__reich_lab_lysate_number')
 		
 		extract_layouts = ExtractionBatchLayout.objects.filter(Q(extract__sample=sample) | Q(extract__lysate__powder_sample__sample=sample) | Q(extract__lysate__sample=sample) | Q(lysate__sample=sample)).distinct().select_related('extract').order_by('lysate__sample__reich_lab_id', 'lysate__reich_lab_lysate_number', 'extract__reich_lab_extract_number')
-		external_extracts = Extract.objects.filter(sample=sample)
+		external_extracts = Extract.objects.filter(sample=sample, extractionbatchlayout=None)
 		external_extracts_fake_layout = [types.SimpleNamespace(extract=x) for x in external_extracts]
 		extract_layouts = list(extract_layouts) + external_extracts_fake_layout
 		extracts = [layout.extract for layout in extract_layouts]
