@@ -1755,6 +1755,24 @@ def sample_archaeology_sites(request):
 	
 	return render(request, 'samples/generic_listjs.html', {'generic_list' : sites, 'title': 'Sites', 'headers': headers, 'link_header': link_header, 'link': link, 'form': form})
 	
+class SiteListView(LoginRequiredMixin, ListView):
+	model = Location
+	template_name = 'samples/generic_listjs.html'
+	context_object_name = 'generic_list'
+	
+	def get_context_data(self, **kwargs):
+		context = super().get_context_data(**kwargs)
+		context['headers'] = ['id'] + SiteForm.Meta.fields
+		context['link_header'] = 'id'
+		context['link'] = 'sample_archaeology_site?site_pk'
+		context['title'] = 'Sites'
+		return context
+		
+	def get_queryset(self):
+		headers = ['id'] + SiteForm.Meta.fields
+		sites = Location.objects.all().order_by('site')
+		return [template_headered_obj(x, headers) for x in sites]
+	
 @login_required
 def sample_archaeology_site(request):
 	primary_key = request.GET['site_pk']
