@@ -183,7 +183,7 @@ def publication_sample_assign(batch_file, user):
 				sample = Sample.objects.get(external_id=row_obj.external_id)
 				sample_label = sample.external_id
 			publication = Publication.objects.get(abbreviation=row_obj.publication_abbreviation)
-			try:
+			try: # TODO consider genetic ID here
 				pairing = PublicationLabels.objects.get(sample=sample, publication=publication)
 			except PublicationLabels.DoesNotExist:
 				pairing = PublicationLabels()
