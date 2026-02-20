@@ -106,6 +106,7 @@ Expected powder remaining based on layout info (mg): {{ sample.powder_remaining 
 <tr>
 	<th>Lysate</th>
 	<th>Lysate Batch</th>
+	<th>Well Position</th>
 	<th>FluidX Barcode</th>
 	<th>Powder Used (mg) [layout]</th>
 	<th>Powder Used (mg)</th>
@@ -116,6 +117,7 @@ Expected powder remaining based on layout info (mg): {{ sample.powder_remaining 
 <tr>
 	<td>{{ lysate_layout.lysate.lysate_id }}</td>
 	<td><a href="{% url 'lysates_in_batch' %}?lysate_batch_name={{ lysate_layout.lysate.lysate_batch.batch_name }}">{{  lysate_layout.lysate_batch.batch_name }}</a></td>
+	<td>{{ lysate_layout }}</td>
 	<td>{{ lysate_layout.lysate.barcode }}</td>
 	<td>{{ lysate_layout.powder_used_mg | floatformat }}</td>
 	<td>{{ lysate_layout.lysate.powder_used_mg | floatformat }}</td>
@@ -131,6 +133,7 @@ Expected powder remaining based on layout info (mg): {{ sample.powder_remaining 
 <tr>
 	<th>Extract</th>
 	<th>Extract Batch</th>
+	<th>Well Position</th>
 	<th>Extract Protocol Volume</th>
 	<th>Lysate used (micro L) [layout]</th>
 	<th>Lysate used (micro L)</th>
@@ -141,6 +144,7 @@ Expected powder remaining based on layout info (mg): {{ sample.powder_remaining 
 <tr>
 	<td>{{ extract_layout.extract.extract_id }}</td>
 	<td><a href="{% url 'extracts_in_batch' %}?extract_batch_name={{ extract_layout.extract.extract_batch.batch_name }}">{{ extract_layout.extract.extract_batch.batch_name }}</a></td>
+	<td>{{ extract_layout }}</td>
 	<td>{{ extract_layout.extract_batch.protocol.final_extract_volume | floatformat }}</td>
 	<td>{{ extract_layout.lysate_volume_used | floatformat }}</td>
 	<td>{{ extract_layout.extract.lysis_volume_extracted | floatformat }}</td>
@@ -157,6 +161,7 @@ Expected powder remaining based on layout info (mg): {{ sample.powder_remaining 
 	<th>Library</th>
 	<th>Library Batch</th>
 	<th>Library Batch Date</th>
+	<th>Well Position</th>
 	<th>FluidX Barcode</th>
 	<th>Library Type</th>
 	<th>UDG treatment</th>
@@ -169,6 +174,7 @@ Expected powder remaining based on layout info (mg): {{ sample.powder_remaining 
 	<td>{{ library_layout.library.reich_lab_library_id }}</td>
 	<td><a href="{% url 'libraries_in_batch' %}?library_batch_name={{ library_layout.library_batch.name }}">{{ library_layout.library_batch.name }}</a></td>
 	<td>{{ library_layout.library_batch.prep_date |date:'Y-m-d' }}</td>
+	<td>{{ library_layout }}</td>
 	<td>{{ library_layout.library.fluidx_barcode }}</td>
 	<td>{{ library_layout.library.library_type }}</td>
 	<td>{{ library_layout.library.udg_treatment }}</td>
@@ -185,6 +191,7 @@ Expected powder remaining based on layout info (mg): {{ sample.powder_remaining 
 <tr>
 	<th>Indexed Library</th>
 	<th>Capture</th>
+	<th>Well Position</th>
 	<th>Experiment</th>
 	<th>Sequencing Runs</th>
 </tr>
@@ -192,6 +199,7 @@ Expected powder remaining based on layout info (mg): {{ sample.powder_remaining 
 <tr>
 	<td>{{ captured_library.library.reich_lab_library_id }}</td>
 	<td><a href="{% url 'captures_in_batch' %}?capture_batch_name={{ captured_library.capture_batch.name }}">{{ captured_library.capture_batch.name }}</a></td>
+	<td> {{ captured_library }}</td>
 	<td>{{ captured_library.capture_batch.protocol.name }}</td>
 	<td>
 		{% for sequencing_run in captured_library.sequencingrun_set.all %}
