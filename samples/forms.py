@@ -22,8 +22,8 @@ class LibraryIDForm(forms.Form):
 
 # This is basically a ModelForm with an additional user (Django login object) field for tracking who has modified objects in the save method
 class UserModelForm(ModelForm):
-	def __init__(self, *args, user, **kwargs):
-		self.user = user
+	def __init__(self, *args, **kwargs):
+		self.user = kwargs.pop('user')
 		super().__init__(*args, **kwargs)
 		# Use the native HTML date picker instead of a text input
 		for name, field in self.fields.items():
