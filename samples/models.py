@@ -329,6 +329,9 @@ class Location(Timestamped):
 	river_basin = models.CharField(max_length=50, blank=True)
 	mountain = models.CharField(max_length=50, blank=True)
 	
+	class Meta:
+		unique_together = ['site', 'country']
+	
 	def __str__(self):
 		return self.site
 	
