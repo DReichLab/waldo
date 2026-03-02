@@ -1,6 +1,6 @@
 from django.test import SimpleTestCase
 
-from .models import parse_sample_string, Barcode, Library, reverse_complement, fluidx_noread_filter
+from .models import parse_sample_string, Barcode, Library, reverse_complement, fluidx_noread_filter, P5_Index, P7_Index
 from .layout import *
 
 class BarcodesLayoutTest(SimpleTestCase):
@@ -179,6 +179,19 @@ class LibraryBarcodeCheckTest(SimpleTestCase):
 		self.assertTrue(l1.barcodes_are_distinct(l2))
 		self.assertTrue(l2.barcodes_are_distinct(l1))
 		self.assertFalse(l2.barcodes_are_distinct(l2))
+		
+	def test_library_barcode_vs_index(self):
+		barcode1 = Barcode(label='1', sequence='AAAAAAA')
+		barcode2 = Barcode(label='2', sequence='TTTTTTT')
+		p5 = P5_Index(label='3', sequence='AAAAAAA')
+		p7 = P7_Index(label='4', sequence='TTTTTTT')
+		
+		library_barcode = Library(p5_barcode=barcode1, p7_barcode=barcode2)
+		library_index = Library(p5_index=p5, p7_index=p7)
+		self.assertFalse(library_barcode.barcodes_are_distinct(library_barcode))
+		self.assertTrue(library_barcode.barcodes_are_distinct(library_index))
+		self.assertTrue(library_index.barcodes_are_distinct(library_barcode))
+		self.assertFalse(library_index.barcodes_are_distinct(library_index))
 
 class ReverseComplementTest(SimpleTestCase):
 	def test_bad_base(self):

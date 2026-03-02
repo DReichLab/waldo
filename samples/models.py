@@ -2589,6 +2589,9 @@ class Library(Timestamped):
 			return self.p5_index != other.p5_index or self.p7_index != other.p7_index
 		elif self.p5_barcode and self.p7_barcode and other.p5_barcode and other.p7_barcode:
 			return self.p5_barcode != other.p5_barcode or self.p7_barcode != other.p7_barcode
+		# indices on one, barcodes on other
+		elif (self.p5_index and self.p7_index and other.p5_barcode and other.p7_barcode) or (other.p5_index and other.p7_index and self.p5_barcode and self.p7_barcode):
+			return True
 		else:
 			raise ValueError(f'Expecting either 2 indices or 2 barcodes on both libraries {self.reich_lab_library_id} and {other.reich_lab_library_id}')
 			
