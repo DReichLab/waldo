@@ -1345,6 +1345,9 @@ class LysateBatch(Timestamped):
 			
 			layout_element = layout_elements.get(column=temp.column, row=temp.row)
 			layout_element.from_spreadsheet_row(headers, fields, user)
+			
+	def __str__(self):
+		return self.batch_name
 
 class Lysate(Timestamped):
 	lysate_id = models.CharField(max_length=50, unique=True, null=False, db_index=True)

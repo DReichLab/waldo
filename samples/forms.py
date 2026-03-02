@@ -273,6 +273,7 @@ class LysateBatchLayoutForm(PowderSampleSharedForm):
 	
 	class Meta(PowderSampleSharedForm.Meta):
 		model = LysateBatchLayout
+		fields = ['lysate_batch']
 		
 	def __init__(self, *args, **kwargs):
 		super().__init__(*args, **kwargs)
@@ -286,6 +287,9 @@ class LysateBatchLayoutForm(PowderSampleSharedForm):
 		# For a powder sample, this is input. For LysateBatchLayout elements, this is read from powder sample
 		self.fields['sample_prep_protocol'].initial = powder_sample.sample_prep_protocol
 		self.fields['sample_prep_protocol'].required = False
+		
+		self.fields['lysate_batch'].disabled = True
+		self.fields['lysate_batch'].required = False
 		
 	def save(self, commit=True):
 		powder_sample = self.instance.powder_sample
