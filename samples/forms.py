@@ -273,7 +273,7 @@ class LysateBatchLayoutForm(PowderSampleSharedForm):
 	
 	class Meta(PowderSampleSharedForm.Meta):
 		model = LysateBatchLayout
-		fields = ['lysate_batch']
+		fields = PowderSampleSharedForm.Meta.fields + ['lysate_batch']
 		
 	def __init__(self, *args, **kwargs):
 		super().__init__(*args, **kwargs)
