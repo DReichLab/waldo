@@ -10,7 +10,7 @@ class Command(BaseCommand):
 	def add_arguments(self, parser):
 		parser.add_argument("--capture_name", required=True, help='Source for indexed libraries to add to sequencing run')
 		parser.add_argument("--sequencing_run", required=True, help='Sequencing run destination')
-		parser.add_argument('--user', required=True, help='Wetlab name or username')
+		parser.add_argument('-u', '--user', required=True, help='Wetlab name or username')
 		parser.add_argument('--create', action='store_true', help='Create sequencing run object')
 		parser.add_argument('library_positions', help='File with two columns: library_id and position')
 		parser.add_argument('-i', '--ignore_positions', help='Load libraries from capture based on library id only. If library is not unique, command will fail.', action='store_true')
