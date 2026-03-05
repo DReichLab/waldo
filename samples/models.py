@@ -2950,9 +2950,9 @@ class CaptureOrShotgunPlate(Timestamped):
 	# single-stranded libraries already have indices assigned
 	def requires_p5_index_start(self):
 		for layout_element in self.layout_elements():
-			if layout_element.control_type == None and get_value(layout_element, 'library', 'library_batch', 'protocol', 'library_type') == 'ds':
+			if layout_element.control_type == None and get_value(layout_element, 'library', 'library_batch', 'protocol', 'library_type') == 'ds' and (layout_element.p5_index is None or layout_element.p7_index is None):
 				return True
-		return False # single stranded or empty
+		return False # single stranded or empty or double-stranded indices are assigned
 	
 # library -> indices added
 class CaptureLayout(TimestampedWellPosition):
