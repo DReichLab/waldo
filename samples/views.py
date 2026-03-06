@@ -1778,6 +1778,22 @@ class SiteCreate(LoginRequiredMixin, CreateView):
 	form_class = SiteForm
 	template_name = 'samples/generic_form.html'
 	
+	def get_form_kwargs(self):
+		kwargs = super().get_form_kwargs()
+		kwargs['user'] = self.request.user
+		return kwargs
+
+class SiteEdit(LoginRequiredMixin, UpdateView):
+	model = Location
+	form_class = SiteForm
+	template_name = 'samples/generic_form.html'
+	pk_url_kwarg = 'site_pk'
+	
+	def get_form_kwargs(self):
+		kwargs = super().get_form_kwargs()
+		kwargs['user'] = self.request.user
+		return kwargs
+	
 @login_required
 def sample_archaeology_site(request):
 	primary_key = request.GET['site_pk']

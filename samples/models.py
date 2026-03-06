@@ -350,6 +350,11 @@ class Location(Timestamped):
 		if len(levels) > 0:
 			s += f' ({", ".join(levels)})'
 		return s
+		
+	def get_absolute_url(self):
+		from django.urls import reverse
+		
+		return reverse("sample_archaeology_site_edit", kwargs={"site_pk": self.pk})
 	
 # for periods and cultures
 # return date BP (1950) and date interval in CE
