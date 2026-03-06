@@ -284,12 +284,15 @@ political_entity_h = 'Political Entity'
 latitude_h = 'Lat.'
 longitude_h = 'Long.'
 restrictions_h = 'Restrictions'
-assessment_h = 'ASSESSMENT'
 data_mt_bam = 'Data mtDNA bam'
 data_mt_fasta = 'Data mtDNA fasta'
+pulldown_id_h = 'Data pulldown sample ID'
 data_autosomal_bam_h = 'Data autosomal bam'
-family_h = 'Family relations'
 data_hetfa_ranfa_readgroups_h = 'Data autosomal readgroups or hetfa or ranfa'
+family_h = 'Family relations'
+libraries_h = 'Libraries'
+assessment_h = 'ASSESSMENT'
+assessment_detail_h = 'Assessment detail'
 	
 def genetic_analysis_anno_headers():
 	headers = [
@@ -318,10 +321,13 @@ def genetic_analysis_anno_headers():
 		persistent_data_h,
 		data_mt_bam,
 		data_mt_fasta,
+		pulldown_id_h,
 		data_autosomal_bam_h,
 		data_hetfa_ranfa_readgroups_h,
 		family_h,
-		assessment_h
+		libraries_h,
+		assessment_h,
+		assessment_detail_h
 	]
 	return headers
 
@@ -377,12 +383,15 @@ def genetic_analysis_anno(genetic_analysis):
 	
 	fields[data_mt_bam] = get_single_file(genetic_analysis, 'MT bam')
 	fields[data_mt_fasta] = get_single_file(genetic_analysis, 'MT fasta')
+	fields[pulldown_id_h] = get_value(genetic_analysis, 'pulldown_id')
 	fields[data_autosomal_bam_h] = get_single_file(genetic_analysis, 'autosomal bam')
 	fields[data_hetfa_ranfa_readgroups_h] = hetfa_ranfa_readgroups(genetic_analysis)
 	
 	fields[family_h] = family_representation(genetic_analysis)
+	fields[libraries_h] = get_value(genetic_analysis, 'data_instance', 'libraries')
 	
 	fields[assessment_h] = get_value(genetic_analysis, 'assessment', 'category')
+	fields[assessment_detail_h] = get_value(genetic_analysis, 'assessment_notes')
 		
 	# publications = PublicationLabels.objects.filter(Q(sample=sample) | Q(genetic_id_entry__data_instance__primary_sample=sample) ).distinct().order_by('publication__year')
 	
