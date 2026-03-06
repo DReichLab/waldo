@@ -1738,22 +1738,6 @@ def sample_archaeology_update(request):
 		spreadsheet_form = SpreadsheetForm()
 		message = ''
 	return render(request, 'samples/spreadsheet_upload.html', { 'title': f'Sample Archaeology Update', 'form': spreadsheet_form, 'message': message} )
-
-@login_required
-def sample_archaeology_sites(request):
-	if request.method == 'POST':
-		form = SiteForm(request.POST, user=request.user)
-		if form.is_valid():
-			form.save()
-	elif request.method == 'GET':
-		form = SiteForm(user=request.user)
-	
-	headers = ['id'] + SiteForm.Meta.fields
-	sites = [template_headered_obj(x, headers) for x in Location.objects.all().order_by('site')]
-	link_header = 'id'
-	link = 'sample_archaeology_site?site_pk'
-	
-	return render(request, 'samples/generic_listjs.html', {'generic_list' : sites, 'title': 'Sites', 'headers': headers, 'link_header': link_header, 'link': link, 'form': form})
 	
 class SiteListView(LoginRequiredMixin, ListView):
 	model = Location
