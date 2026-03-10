@@ -985,13 +985,13 @@ def extract_batch_to_library_batch(request):
 	extract_batch_name = request.GET['extract_batch_name']
 	extract_batch = ExtractionBatch.objects.get(batch_name=extract_batch_name)
 	if request.method == 'POST':
-		form = ExtractBatchToLibraryBatchForm(request.POST, user=request.user)
+		form = ExtractBatchToLibraryBatchForm(request.POST)
 		if form.is_valid():
 			library_batch_name = form.cleaned_data['library_batch_name']
 			extract_batch.create_library_batch(library_batch_name, request.user)
 			return redirect(f'{reverse("library_batch_assign_extract")}?library_batch_name={library_batch_name}')
 	elif request.method == 'GET':
-		form = ExtractBatchToLibraryBatchForm(user=request.user)
+		form = ExtractBatchToLibraryBatchForm()
 		# Set name for first extraction batch. Duplicates will prompt for new name and need to be set manually. 
 		# TODO this defaults to double-stranded but should also handle single-stranded
 		form.initial['library_batch_name'] = f'{extract_batch_name.rsplit("_")[0]}_DS'
@@ -1251,7 +1251,7 @@ def library_batch_to_capture_batch(request):
 	library_batch_name = request.GET['library_batch_name']
 	library_batch = LibraryBatch.objects.get(name=library_batch_name)
 	if request.method == 'POST':
-		form = LibraryBatchToCaptureBatchForm(request.POST, user=request.user)
+		form = LibraryBatchToCaptureBatchForm(request.POST)
 		if form.is_valid():
 			capture_batch_name = form.cleaned_data['capture_batch_name']
 			# include rotated batches following the naming pattern
@@ -1267,7 +1267,7 @@ def library_batch_to_capture_batch(request):
 			library_batch.create_capture(capture_batch_name, other_batches, request.user)
 			return redirect(f'{reverse("capture_batch_assign_library")}?capture_batch_name={capture_batch_name}')
 	elif request.method == 'GET':
-		form = LibraryBatchToCaptureBatchForm(user=request.user)
+		form = LibraryBatchToCaptureBatchForm()
 		# For now, manual only
 		form.initial['capture_batch_name'] = f'{library_batch_name.rsplit("_")[0]}'
 		
@@ -1491,13 +1491,13 @@ def capture_batch_to_sequencing_run(request):
 	capture_batch_name = request.GET['capture_batch_name']
 	capture_batch = CaptureOrShotgunPlate.objects.get(name=capture_batch_name)
 	if request.method == 'POST':
-		form = CaptureBatchToSequencingRunForm(request.POST, user=request.user)
+		form = CaptureBatchToSequencingRunForm(request.POST)
 		if form.is_valid():
 			sequencing_run_name = form.cleaned_data['sequencing_run_name']
 			capture_batch.create_sequencing_run(sequencing_run_name, request.user)
 			return redirect(f'{reverse("sequencing_runs")}?sequencing_run_name={sequencing_run_name}')
 	elif request.method == 'GET':
-		form = CaptureBatchToSequencingRunForm(request.POST, user=request.user)
+		form = CaptureBatchToSequencingRunForm()
 		# For now, manual only
 		form.initial['sequencing_run_name'] = f'{capture_batch_name.rsplit("_")[0]}'
 		
