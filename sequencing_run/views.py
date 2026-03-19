@@ -43,23 +43,6 @@ def update_sequencing_run_list(request):
 	
 	return HttpResponse(result)
 
-# populate dropdown for sequencing run name
-# TODO This is now obsolete. Nothing should be pulled from MySQL. 
-def update_sequencing_run_ids():
-	return
-	host = settings.COMMAND_HOST
-	query = "SELECT sequenced_library_key, sequencing_id FROM sequenced_library GROUP BY sequencing_id ORDER BY sequenced_library_key DESC LIMIT 10;"
-	command = "mysql devadna -N -e '{}'".format(query)
-	ssh_result = ssh_command(host, command)
-	result = ssh_result.stdout.readlines()
-	for line in result:
-		try:
-			numerical_id, name = line.strip().split('\t')
-			if name != None and len(name) > 0:
-				s, created = SequencingRunID.objects.get_or_create(name=name.strip(), order=int(numerical_id))
-		except:
-			pass
-
 def analysis_form(request):
 	# always retreive the list of active screening runs
 	run_list = SequencingAnalysisRun.objects.all().order_by('pk').reverse()[:64]
@@ -128,7 +111,6 @@ def analysis_form(request):
 	else:
 		if request.GET.__contains__('refresh'): # NextSeq updates are disabled now unless requested
 			update_sequencing_run_list(request) # argument is not used
-		update_sequencing_run_ids()
 		if request.GET.__contains__('status'): # Only check job statuses if requested. This is slow, especially when ssh performance is poor
 			slurm_jobs = query_job_status()
 		form = AnalysisForm()
