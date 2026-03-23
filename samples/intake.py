@@ -182,9 +182,13 @@ def publication_sample_assign(batch_file, user):
 			else:
 				sample = Sample.objects.get(external_id=row_obj.external_id)
 				sample_label = sample.external_id
+			genetic_analysis = GeneticAnalysis.objects.get(genetic_id=row_obj.genetic_id) if len(row_obj.genetic_id) > 0 else None
 			publication = Publication.objects.get(abbreviation=row_obj.publication_abbreviation)
-			try: # TODO consider genetic ID here
-				pairing = PublicationLabels.objects.get(sample=sample, publication=publication)
+			try:
+				candidates = PublicationLabels.objects.filter(sample=sample, publication=publication)
+				if genetic_analysis:
+					candidates = candidates.filter(genetic_id_entry=genetic_analysis)
+				pairing = candidates.get()
 			except PublicationLabels.DoesNotExist:
 				pairing = PublicationLabels()
 				pairing.sample = sample
@@ -197,7 +201,7 @@ def publication_sample_assign(batch_file, user):
 				pairing.digital_accession_number = row_obj.digital_accession_number
 			if len(row_obj.genetic_id) > 0:
 				pairing.genetic_id = row_obj.genetic_id
-				pairing.genetic_id_entry = GeneticAnalysis.objects.get(genetic_id=row_obj.genetic_id)
+				pairing.genetic_id_entry = genetic_analysis
 				pairing.published_data = pairing.genetic_id_entry.data_instance
 			pairing.save(save_user=user)
 			messages += [f'{sample_label} was published in {publication.title}']
