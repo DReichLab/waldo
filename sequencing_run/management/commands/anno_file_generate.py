@@ -14,7 +14,8 @@ class Command(BaseCommand):
 	
 	def add_arguments(self, parser):
 		parser.add_argument('-f', '--filter', type=int, default=10, help='Filter on assessments')
-		parser.add_argument('--ids', nargs='+', help='Specific genetic IDs to display')
+		parser.add_argument('--ids', nargs='*', help='Specific genetic IDs to display')
+		parser.add_argument('--file', help='Specific genetic IDs to display, in a file, one genetic ID per line')
 		
 	def handle(self, *args, **options):
 		filter_threshold = options['filter']
@@ -41,8 +42,16 @@ class Command(BaseCommand):
 				)
 			)
 			
-			if options['ids']:
-				entries = entries.filter(genetic_id__in=options['ids'])
+			# filter by the union of IDs from command line and file inputs
+			if options['ids'] or options['file']:
+				filter_list = []
+				if options['ids']:
+					filter_list = options['ids']
+				if options['file']:
+					with open(options['file']) as f:
+						filter_list += [x.strip() for x in f]
+				
+				entries = entries.filter(genetic_id__in=filter_list)
 			
 			headers = genetic_analysis_anno_headers()
 			self.stdout.write('\t'.join(headers))
