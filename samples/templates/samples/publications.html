@@ -54,6 +54,7 @@ table{
 		<th><button class="sort" data-sort="url">url</button></th>
 		<th><button class="sort" data-sort="publication_type">Publication Type</button></th>
 		<th><button class="sort" data-sort="notes">Notes</button></th>
+		<th><button class="sort" data-sort="is_draft">Is Draft</button></th>
 	</tr>
 	</thead>
 	<tbody class="list">
@@ -76,6 +77,7 @@ table{
 		<td class="url">{{entry.url}}</td>
 		<td class="publication_type">{{entry.publication_type.category}}</td>
 		<td class="notes">{{entry.notes}}</td>
+		<td class="is_draft">{{entry.is_draft}}</td>
 	</tr>
 	{% endfor %}
 	</tbody>
@@ -85,9 +87,9 @@ table{
 
 <script>
 	var list_options = {
-		valueNames: ['abbreviation', 'title', 'first_author', 'year', 'journal', 'pages', 'author_list', 'url', 'publication_type', 'notes',
+		valueNames: ['abbreviation', 'title', 'first_author', 'year', 'journal', 'pages', 'author_list', 'url', 'publication_type', 'notes', 'is_draft',
 		],
-		searchColumns: ['abbreviation', 'title', 'first_author', 'year', 'journal', 'pages', 'author_list', 'url', 'publication_type', 'notes'],
+		searchColumns: ['abbreviation', 'title', 'first_author', 'year', 'journal', 'pages', 'author_list', 'url', 'publication_type', 'notes', 'is_draft'],
 		searchDelay: 500
 	};
 	var publication_list = new List('publications_rows', list_options);

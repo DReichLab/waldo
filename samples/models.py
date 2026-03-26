@@ -225,6 +225,7 @@ class Publication(Timestamped):
 	url = models.CharField(max_length=50, blank=True)
 	publication_type = models.ForeignKey(PublicationType, on_delete=models.PROTECT, null=True)
 	notes = models.TextField(blank=True)
+	is_draft = models.BooleanField(default=False, help_text='Drafts do not mark genetic analysis entries as published. This should be false for any published paper. ')
 
 class WetLabStaff(Timestamped):
 	first_name = models.CharField(max_length=30, db_index=True)
