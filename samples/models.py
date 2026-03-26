@@ -490,7 +490,7 @@ class SpecialRestriction(models.Model):
 
 class Sample(Timestamped):
 	reich_lab_id = models.PositiveIntegerField(db_index=True, null=True, help_text=' assigned when a sample is selected from the queue by the wetlab')
-	external_id = models.CharField(max_length=30, null=True, blank=True, unique=True, help_text='identifier assigned externally')
+	external_id = models.CharField(max_length=30, null=True, blank=True, unique=True, db_index=True, help_text='identifier assigned externally')
 	control = models.CharField(max_length=2, blank=True, help_text='Non-empty value indicates this is a control')
 	queue_id = models.PositiveIntegerField(db_index=True, unique=True, null=True)
 	
@@ -506,7 +506,7 @@ class Sample(Timestamped):
 	cultures = models.ManyToManyField(Culture)
 	publications = models.ManyToManyField(Publication, through='PublicationLabels', related_name='published_id_and_group_label')
 
-	individual_id = models.CharField(max_length=15, blank=True)
+	individual_id = models.CharField(max_length=15, blank=True, db_index=True)
 	primary_sample = models.ForeignKey('Sample', null=True, on_delete=models.PROTECT, help_text='Primary sample entry for data. Use for duplicates.')
 	
 	skeletal_element = models.CharField(max_length=50, blank=True, help_text='Type of bone sample submitted for aDNA analysis')
