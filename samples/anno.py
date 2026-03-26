@@ -1,6 +1,6 @@
 import re
 import sys
-from django.db.models import Min, Q
+from django.db.models import Min, Q, Prefetch
 
 from samples.models import Library, Sample, Results, Collaborator, get_value, RadiocarbonDatedSample, Publication,  PublicationLabels, DataFileAssignment
 from sequencing_run.models import AnalysisFiles, MTAnalysis, ShotgunAnalysis, NuclearAnalysis, GeneticAnalysis, FamilyRelationship
@@ -397,9 +397,27 @@ def genetic_analysis_anno(genetic_analysis):
 	
 	display_fields = { key : clean_string(str(value)) for key, value in fields.items() }
 	return display_fields
-	
+
+def genetic_analysis_for_anno_queryset():
+	assignments_prefetch = Prefetch(
+		'data_instance__datafileassignment_set',
+		queryset=DataFileAssignment.objects.select_related('data_file__file_type'),
+	)
+	return GeneticAnalysis.objects.select_related(
+		'data_instance__primary_sample__archaeological_assemblage__site__country',
+		'data_instance__primary_sample__collaborator',
+		'data_instance__primary_sample__skeletal_element_category',
+		'data_instance__primary_sample__special_restriction',
+		'assessment',
+	).prefetch_related(
+		assignments_prefetch,
+		'data_instance__primary_sample__periods',
+		'data_instance__primary_sample__cultures',
+		'data_instance__primary_sample__secondary_collaborators',
+	)
+
 def genetic_id_anno(genetic_id):
-	genetic_analysis = GeneticAnalysis.objects.get(genetic_id=genetic_id)
+	genetic_analysis = genetic_analysis_for_anno_queryset().get(genetic_id=genetic_id)
 	return genetic_analysis_anno(genetic_analysis)
 
 # this library id may contain _d damage-restriction indicator
