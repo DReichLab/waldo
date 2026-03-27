@@ -1,6 +1,6 @@
 import re
 import sys
-from django.db.models import Min, Q, Prefetch
+from django.db.models import Exists, Min, OuterRef, Q, Prefetch
 
 from samples.models import Library, Sample, Results, Collaborator, get_value, RadiocarbonDatedSample, Publication,  PublicationLabels, DataFileAssignment
 from sequencing_run.models import AnalysisFiles, MTAnalysis, ShotgunAnalysis, NuclearAnalysis, GeneticAnalysis, FamilyRelationship
@@ -135,7 +135,8 @@ def first_publication(genetic_analysis):
 		Q(id=get_value(genetic_analysis, 'data_instance', 'primary_sample', 'id', default=None) )
 		| Q(id=get_value(genetic_analysis, 'data_instance', 'primary_sample', 'primary_sample', 'id', default=None) ) ).distinct()
 		
-	publication_labels = PublicationLabels.objects.filter(
+	publication_labels = PublicationLabels.objects.filter(publication__is_draft=False)
+	publication_labels = publication_labels.filter(
 		Q(sample__in=samples)
 		| Q(published_data__primary_sample__in=samples)
 		| Q(genetic_id_entry__data_instance__primary_sample__in=samples)).distinct()
@@ -185,9 +186,30 @@ def hetfa_ranfa_readgroups(genetic_analysis):
 	else:
 		return ':'.join(read_groups)
 		
-def family_representation(genetic_analysis):
+def family_representation(genetic_analysis, require_is_published=False):
 	primary_sample = genetic_analysis.data_instance.primary_sample
-	relations = FamilyRelationship.objects.filter(Q(person1__primary_sample=primary_sample) | Q(person2__primary_sample=primary_sample) ).filter(degree__gt=0).order_by('degree').select_related('relationship', 'person1__primary_sample', 'person2__primary_sample')
+	relations = FamilyRelationship.objects.filter(Q(person1__primary_sample=primary_sample) | Q(person2__primary_sample=primary_sample) ).filter(degree__gt=0)
+	if require_is_published:
+		# Both persons must have a publication label tied to a non-draft publication
+		# TODO adjust for individual
+		p1_non_draft = PublicationLabels.objects.filter(publication__is_draft=False).filter(
+			Q(sample_id=OuterRef('person1__primary_sample_id'))
+			| Q(published_data__primary_sample_id=OuterRef('person1__primary_sample_id'))
+			| Q(genetic_id_entry__data_instance__primary_sample_id=OuterRef('person1__primary_sample_id'))
+		)
+		p2_non_draft = PublicationLabels.objects.filter(publication__is_draft=False).filter(
+			Q(sample_id=OuterRef('person2__primary_sample_id'))
+			| Q(published_data__primary_sample_id=OuterRef('person2__primary_sample_id'))
+			| Q(genetic_id_entry__data_instance__primary_sample_id=OuterRef('person2__primary_sample_id'))
+		)
+		relations = relations.filter(Exists(p1_non_draft), Exists(p2_non_draft))
+		relations = relations.filter(
+			person1__primary_sample__special_restrictions=False,
+			person1__primary_sample__special_restriction__isnull=True,
+			person2__primary_sample__special_restrictions=False,
+			person2__primary_sample__special_restriction__isnull=True
+		)
+	relations = relations.order_by('degree').select_related('relationship', 'person1__primary_sample', 'person2__primary_sample')
 	relation_strings = []
 	for relation in relations:
 		relation_strings.append(str(relation))
@@ -290,6 +312,7 @@ pulldown_id_h = 'Data pulldown sample ID'
 data_autosomal_bam_h = 'Data autosomal bam'
 data_hetfa_ranfa_readgroups_h = 'Data autosomal readgroups or hetfa or ranfa'
 family_h = 'Family relations'
+family_public_h = 'Public Family relations'
 libraries_h = 'Libraries'
 assessment_h = 'ASSESSMENT'
 assessment_detail_h = 'Assessment detail'
@@ -325,6 +348,7 @@ def genetic_analysis_anno_headers():
 		data_autosomal_bam_h,
 		data_hetfa_ranfa_readgroups_h,
 		family_h,
+		family_public_h,
 		libraries_h,
 		assessment_h,
 		assessment_detail_h
@@ -388,6 +412,8 @@ def genetic_analysis_anno(genetic_analysis):
 	fields[data_hetfa_ranfa_readgroups_h] = hetfa_ranfa_readgroups(genetic_analysis)
 	
 	fields[family_h] = family_representation(genetic_analysis)
+	fields[family_public_h] = family_representation(genetic_analysis, require_is_published=True)
+	
 	fields[libraries_h] = get_value(genetic_analysis, 'data_instance', 'libraries')
 	
 	fields[assessment_h] = get_value(genetic_analysis, 'assessment', 'category')
