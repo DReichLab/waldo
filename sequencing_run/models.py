@@ -208,7 +208,7 @@ class NuclearAnalysis(Timestamped):
 	angsd_snps = models.IntegerField(null=True)
 	angsd_mean = models.FloatField(null=True)
 	angsd_z = models.FloatField(null=True)
-	assessment = models.ForeignKey(AssessmentCategory, null=True, on_delete=models.SET_NULL)
+	assessment = models.ForeignKey(AssessmentCategory, null=True, on_delete=models.PROTECT)
 	assessment_notes = models.TextField(blank=True)
 	version_release = models.CharField(max_length=20)
 	results_note = models.TextField(blank=True)
@@ -373,7 +373,7 @@ class GeneticAnalysis(Timestamped):
 	
 	nuclear_analysis = models.ForeignKey(NuclearAnalysis2, null=True, on_delete=models.CASCADE)
 	mt_analysis = models.ForeignKey(MTAnalysis2, null=True, on_delete=models.CASCADE)
-	assessment = models.ForeignKey(AssessmentCategory, null=True, on_delete=models.SET_NULL)
+	assessment = models.ForeignKey(AssessmentCategory, null=True, on_delete=models.PROTECT)
 	assessment_notes = models.TextField(blank=True)
 	first_release = models.CharField(max_length=20, blank=True, help_text='First release where this analysis appears')
 	genotype_hash = models.CharField(null=True, blank=False, max_length=8)
