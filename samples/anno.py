@@ -374,7 +374,7 @@ def genetic_analysis_anno(genetic_analysis):
 	fields[skeletal_element_h] = skeletal_element(sample)
 	
 	#publication
-	publication_labels = PublicationLabels.objects.filter(genetic_id_entry=genetic_analysis, publication__year__isnull=False).order_by('id').select_related('publication')
+	publication_labels = PublicationLabels.objects.filter(genetic_id_entry=genetic_analysis, publication__is_draft=False).order_by('id').select_related('publication')
 	if publication_labels.count() > 0:
 		is_published = 1
 		publication_label = publication_labels[0]
