@@ -374,14 +374,14 @@ def genetic_analysis_anno(genetic_analysis):
 	fields[skeletal_element_h] = skeletal_element(sample)
 	
 	#publication
-	publication_labels = PublicationLabels.objects.filter(genetic_id_entry=genetic_analysis, publication__is_draft=False).order_by('id').select_related('publication')
-	if publication_labels.count() > 0:
+	publication_labels = list(PublicationLabels.objects.filter(genetic_id_entry=genetic_analysis, publication__is_draft=False).order_by('id').select_related('publication'))
+	if len(publication_labels) > 0:
 		is_published = 1
 		publication_label = publication_labels[0]
 	else:
 		publication_label = None
 		is_published = 0
-	if publication_labels.count() > 1:
+	if len(publication_labels) > 1:
 		print(f'Multiple publication labels for the same genetic id {genetic_analysis.genetic_id}\t{" ".join([str(p.id) for p in publication_labels])}', file=sys.stderr)
 
 	fields[is_published_h] = str(is_published)
