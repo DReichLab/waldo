@@ -135,13 +135,12 @@ def first_publication(genetic_analysis):
 		Q(id=get_value(genetic_analysis, 'data_instance', 'primary_sample', 'id', default=None) )
 		| Q(id=get_value(genetic_analysis, 'data_instance', 'primary_sample', 'primary_sample', 'id', default=None) ) ).distinct()
 		
-	publication_labels = PublicationLabels.objects.filter(publication__is_draft=False)
-	publication_labels = publication_labels.filter(
+	publication_labels = PublicationLabels.objects.filter(
 		Q(sample__in=samples)
 		| Q(published_data__primary_sample__in=samples)
 		| Q(genetic_id_entry__data_instance__primary_sample__in=samples)).distinct()
 	publication_ids = publication_labels.values_list('publication', flat=True)
-	publications = Publication.objects.filter(id__in=publication_ids).order_by('year').distinct()
+	publications = Publication.objects.filter(id__in=publication_ids).order_by('year', 'id').distinct()
 	return publications.first()
 	
 # return (file path, list of read groups)
@@ -374,13 +373,15 @@ def genetic_analysis_anno(genetic_analysis):
 	fields[skeletal_element_h] = skeletal_element(sample)
 	
 	#publication
-	publication_labels = list(PublicationLabels.objects.filter(genetic_id_entry=genetic_analysis, publication__is_draft=False).order_by('id').select_related('publication'))
+	publication_labels = list(PublicationLabels.objects.filter(genetic_id_entry=genetic_analysis).order_by('publication__year', 'publication_id', 'id').select_related('publication'))
+	publication_label = None
+	is_published = 0
 	if len(publication_labels) > 0:
-		is_published = 1
-		publication_label = publication_labels[0]
-	else:
-		publication_label = None
-		is_published = 0
+		for publication_label in publication_labels:
+			if not publication_label.publication.is_draft:
+				is_published = 1
+				break
+		publication_label = publication_labels[-1]
 	if len(publication_labels) > 1:
 		print(f'Multiple publication labels for the same genetic id {genetic_analysis.genetic_id}\t{" ".join([str(p.id) for p in publication_labels])}', file=sys.stderr)
 
