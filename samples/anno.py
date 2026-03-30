@@ -388,7 +388,7 @@ def genetic_analysis_anno(genetic_analysis):
 	fields[is_published_h] = str(is_published)
 	fields[pub_abbr_h] = get_value(publication_label, 'publication', 'abbreviation', default=UNPUBLISHED)
 	fields[doi_h] = get_value(publication_label, 'publication', 'url')
-	fields[permanent_repo_h] = genetic_analysis.permanent_repository
+	fields[permanent_repo_h] = get_value(publication_label, 'digital_accession_number')
 	fields[first_publication_h] = get_value(first_publication(genetic_analysis), 'abbreviation', default=UNPUBLISHED)
 	
 	collaborators = [get_value(sample, 'collaborator')] + list(sample.secondary_collaborators.all().order_by('last_name'))
