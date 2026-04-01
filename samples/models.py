@@ -2325,7 +2325,8 @@ class LibraryBatch(Timestamped):
 	# Library batches created from extract batches reuse the controls.
 	# This sets controls for batches starting from this point.
 	# The wetlab calls these Mobs.
-	def set_controls(self, user):
+	def set_controls(self, user, rotate=False):
+		print(f'set controls rotate {rotate}')
 		# extract controls are assigned explicitly, not populated from control set
 		control_types = EXTRACT_AND_LIBRARY_CONTROLS
 		controls = ControlLayout.objects.filter(control_set=self.control_set, control_type__control_type__in=control_types, active=True).order_by('column', 'row')
@@ -2341,6 +2342,8 @@ class LibraryBatch(Timestamped):
 			if control_type.control_type == EXTRACT_NEGATIVE:
 				control_type = ControlType.objects.get(control_type=LIBRARY_NEGATIVE)
 			layout_element = LibraryBatchLayout(library_batch=self, control_type=control_type, row=control.row, column=control.column)
+			if rotate:
+				layout_element.rotate()
 
 			layout_element.ul_extract_used = 0
 			layout_element.save(save_user=user)

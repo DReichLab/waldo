@@ -34,7 +34,7 @@ class Command(BaseCommand):
 		
 		with transaction.atomic():
 			if options['controls']:
-				library_batch.set_controls(user)
+				library_batch.set_controls(user, options['rotate'])
 			with options['extract_layouts'] as extract_layouts:
 				if options['skip']:
 					extract_layouts.readline()
