@@ -2400,10 +2400,11 @@ class LibraryBatch(Timestamped):
 			to_move.save(save_user=user)
 		#print(f'{to_move} {destination}')
 		# 2. Replace library positive with PCR negative (G12)
-		pcr_negative_position = ControlLayout.objects.get(control_set=self.control_set, control_type__control_type=PCR_NEGATIVE)
-		pcr_negative = CaptureLayout(capture_batch=capture_plate,
-							   control_type=pcr_negative_position.control_type, row=pcr_negative_position.row, column=pcr_negative_position.column)
-		pcr_negative.save(save_user=user)
+		if self.protocol.library_type == 'ds':
+			pcr_negative_position = ControlLayout.objects.get(control_set=self.control_set, control_type__control_type=PCR_NEGATIVE)
+			pcr_negative = CaptureLayout(capture_batch=capture_plate,
+								control_type=pcr_negative_position.control_type, row=pcr_negative_position.row, column=pcr_negative_position.column)
+			pcr_negative.save(save_user=user)
 		# 3. capture positive in H12
 		capture_positive_position = ControlLayout.objects.get(control_set=self.control_set, control_type__control_type=CAPTURE_POSITIVE)
 		# TODO shotgun does not get a capture positive. Instead it gets a second PCR negative
