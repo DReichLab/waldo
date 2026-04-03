@@ -17,4 +17,5 @@ class Command(BaseCommand):
 			user = User.objects.get(username=options['user'])
 			for filename in options['new_genetic_analysis']:
 				with open(filename) as f:
-					genetic_analysis_setup(f, user)
+					message = genetic_analysis_setup(f, user)
+					self.stdout.write(message)
