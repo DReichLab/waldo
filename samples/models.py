@@ -9,7 +9,7 @@ from django.core.exceptions import ValidationError
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.utils.translation import gettext_lazy as _
 
-from django.db.models import Max, Min, Count, Q, Sum
+from django.db.models import Max, Min, Count, Q, Sum, Exists, OuterRef
 from django.db.models.signals import pre_delete
 from django.dispatch import receiver
 
@@ -3483,34 +3483,37 @@ FILE_TYPE_MT_BAM = 'MT bam'
 # If no read groups are given for a bam, this will not match the bam with read groups, only the bam without read groups. 
 # if exact is True, the number of data file assignments must match the number requested. This should be set equality rather than set subset
 def data_instance_get(sample, nuclear_bam_path, nuclear_read_groups, mt_bam_path, mt_read_groups, libraries=None, exact=False):
-	instances = DataInstance.objects.filter(primary_sample=sample).annotate(num_assignments=Count('datafileassignment'))
+	instances = DataInstance.objects.filter(primary_sample=sample)
 	if libraries is not None:
 		instances = instances.filter(libraries=libraries)
-	assignment_count = 0
+	assignment_specs = []
 	if nuclear_bam_path and len(nuclear_bam_path) > 0:
 		if nuclear_read_groups is None or len(nuclear_read_groups) == 0:
 			nuclear_read_groups = ['']
 		for nuclear_read_group in nuclear_read_groups:
-			assignment_count += 1
-			instances = instances.filter(
-				datafileassignment__data_file__path = nuclear_bam_path,
-				datafileassignment__data_file__file_type__name = FILE_TYPE_AUTOSOMAL_BAM,
-				datafileassignment__read_group = nuclear_read_group
-			)
+			assignment_specs.append((nuclear_bam_path, FILE_TYPE_AUTOSOMAL_BAM, nuclear_read_group))
 	if mt_bam_path and len(mt_bam_path) > 0:
 		if mt_read_groups is None or len(mt_read_groups) == 0:
 			mt_read_groups = ['']
 		for mt_read_group in mt_read_groups:
-			assignment_count += 1
-			instances = instances.filter(
-				datafileassignment__data_file__path = mt_bam_path,
-				datafileassignment__data_file__file_type__name = FILE_TYPE_MT_BAM,
-				datafileassignment__read_group = mt_read_group
+			assignment_specs.append((mt_bam_path, FILE_TYPE_MT_BAM, mt_read_group))
+	assignment_count = len(assignment_specs)
+	for path, file_type_name, read_group in assignment_specs:
+		instances = instances.filter(
+			Exists(
+				DataFileAssignment.objects.filter(
+					collection_id=OuterRef('pk'),
+					data_file__path=path,
+					data_file__file_type__name=file_type_name,
+					read_group=read_group,
+				)
 			)
-	# set inclusion the other way by counting
+		)
 	if exact:
-		instances = instances.filter(num_assignments=assignment_count)
-	return instances.distinct().get()
+		instances = instances.annotate(
+			num_assignments=Count('datafileassignment', distinct=True)
+		).filter(num_assignments=assignment_count)
+	return instances.get()
 	
 def data_file_assignments_create(data_instance, bam_path, file_type_str, read_groups, save_user):
 	with transaction.atomic():
