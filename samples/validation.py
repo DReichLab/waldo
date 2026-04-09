@@ -14,3 +14,9 @@ def validate_no_underscore(string):
 	m = REGEX_UNDERSCORE.search(string)
 	if m is not None:
 		raise ValidationError(_('Cannot contain underscore')) 
+
+REGEX_ALPHANUMERIC_PLUS = re.compile(r'^[a-zA-Z0-9_\-.]*$')
+def validate_alphanumeric_plus(string):
+	m = REGEX_ALPHANUMERIC_PLUS.match(string)
+	if m is None:
+		raise ValidationError(_('Contains non-alphanumeric characters and not "-", "_", ".".'))
