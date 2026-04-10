@@ -376,8 +376,8 @@ class GeneticAnalysis(Timestamped):
 	assessment = models.ForeignKey(AssessmentCategory, null=True, blank=True, on_delete=models.PROTECT)
 	assessment_notes = models.TextField(blank=True)
 	first_release = models.CharField(max_length=20, blank=True, help_text='First release where this analysis appears')
-	genotype_hash = models.CharField(null=True, blank=True, max_length=8, default='')
-	missingness_hash = models.CharField(null=True, blank=True, max_length=8, default='')
+	genotype_hash = models.CharField(blank=True, max_length=8, default='')
+	missingness_hash = models.CharField(blank=True, max_length=8, default='')
 	
 	permanent_repository = models.TextField(blank=True)
 	notes = models.TextField(blank=True)
