@@ -371,13 +371,13 @@ class GeneticAnalysis(Timestamped):
 	genetic_id = models.TextField(blank=False, unique=True, db_index=True)
 	pulldown_id = models.TextField(blank=True, help_text='ID in pulldown, which may differ from genetic ID')
 	
-	nuclear_analysis = models.ForeignKey(NuclearAnalysis2, null=True, on_delete=models.CASCADE)
-	mt_analysis = models.ForeignKey(MTAnalysis2, null=True, on_delete=models.CASCADE)
-	assessment = models.ForeignKey(AssessmentCategory, null=True, on_delete=models.PROTECT)
+	nuclear_analysis = models.ForeignKey(NuclearAnalysis2, null=True, blank=True, on_delete=models.CASCADE)
+	mt_analysis = models.ForeignKey(MTAnalysis2, null=True, blank=True, on_delete=models.CASCADE)
+	assessment = models.ForeignKey(AssessmentCategory, null=True, blank=True, on_delete=models.PROTECT)
 	assessment_notes = models.TextField(blank=True)
 	first_release = models.CharField(max_length=20, blank=True, help_text='First release where this analysis appears')
-	genotype_hash = models.CharField(null=True, blank=False, max_length=8)
-	missingness_hash = models.CharField(null=True, blank=False, max_length=8)
+	genotype_hash = models.CharField(null=True, blank=True, max_length=8, default='')
+	missingness_hash = models.CharField(null=True, blank=True, max_length=8, default='')
 	
 	permanent_repository = models.TextField(blank=True)
 	notes = models.TextField(blank=True)
