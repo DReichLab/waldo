@@ -2,6 +2,7 @@ from django.db import models
 
 from samples.models import Timestamped, Results, AssessmentCategory, DataInstance, DataFile
 import samples.models
+from samples.validation import validate_alphanumeric_plus
 
 # Create your models here.
 
@@ -368,7 +369,7 @@ class MTHaplogroupCall(Timestamped):
 # This is the master entry
 class GeneticAnalysis(Timestamped):
 	data_instance = models.ForeignKey(DataInstance, on_delete=models.PROTECT)
-	genetic_id = models.TextField(blank=False, unique=True, db_index=True)
+	genetic_id = models.TextField(blank=False, unique=True, db_index=True, validators=[validate_alphanumeric_plus])
 	pulldown_id = models.TextField(blank=True, help_text='ID in pulldown, which may differ from genetic ID')
 	
 	nuclear_analysis = models.ForeignKey(NuclearAnalysis2, null=True, blank=True, on_delete=models.CASCADE)
@@ -381,9 +382,9 @@ class GeneticAnalysis(Timestamped):
 	
 	permanent_repository = models.TextField(blank=True)
 	notes = models.TextField(blank=True)
-	outlier = models.BooleanField(null=True)
+	outlier = models.BooleanField(null=True, blank=True)
 	outlier_label = models.TextField(blank=True)
-	use_instead = models.ForeignKey('self', null=True, on_delete=models.PROTECT, help_text='This other analysis is an improvement and should be used instead.')
+	use_instead = models.ForeignKey('self', null=True, blank=True, on_delete=models.PROTECT, help_text='This other analysis is an improvement and should be used instead.')
 	
 	def get_group_label(self):
 		group_label = self.data_instance.primary_sample.get_group_label()

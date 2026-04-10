@@ -244,6 +244,7 @@ def genetic_analysis_setup(batch_file, user, allow_updates=False):
 			genetic_analysis.data_instance = data_instance
 			genetic_analysis.pulldown_id = row_obj.pulldown_id
 			genetic_analysis.first_release = row_obj.first_release
+			genetic_analysis.full_clean()
 			genetic_analysis.save(save_user=user)
 			messages += [f'Genetic analysis {genetic_id} {"created" if genetic_analysis_created else "updated"}. Data instance {data_instance.id} {"created" if data_instance_created else "updated"}.']
 	return '\n'.join(messages)
