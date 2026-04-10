@@ -413,5 +413,5 @@ class FamilyRelationship(Timestamped):
 	
 	def __str__(self):
 		relationship_type = f'{self.degree}d{f" {self.relationship.relationship}" if self.relationship else ""}:'
-		persons = f' {self.person1.primary_sample.get_individual_id()}-{self.person2.primary_sample.get_individual_id()}' if self.degree > 0 else f' {str(self.person1.primary_sample)}-{str(self.person2.primary_sample)}'
+		persons = f' {self.person1.primary_sample.get_individual_id()}:{self.person2.primary_sample.get_individual_id()}' if self.degree > 0 else f' {str(self.person1.primary_sample)}:{str(self.person2.primary_sample)}'
 		return relationship_type + persons
