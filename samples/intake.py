@@ -22,12 +22,13 @@ def boolean_from_str(s):
 		return False
 	return bool(s)
 
-sample_headers = ['sample_id', 'external_id', 'site_name', 'burial_code', 'burial_subcode', 'excavation_year', 'excavation_grid', 'skeletal_code', 'skeletal_element', 'skeletal_element_category', 'sample_date', 'average_bp_date', 'date_stdev', 'date_fix_flag', 'morphological_sex', 'morphological_age', 'morphological_age_range', 'periods', 'cultures', 'group_label_use_country', 'group_label_use_level_1', 'group_label_use_level_2', 'group_label_use_site', 'group_label_use_period', 'group_label_use_culture', 'special_restriction']
+sample_headers = ['sample_id', 'external_id', 'is_update', 'site_name', 'burial_code', 'burial_subcode', 'excavation_year', 'excavation_grid', 'skeletal_code', 'skeletal_element', 'skeletal_element_category', 'sample_date', 'average_bp_date', 'date_stdev', 'date_fix_flag', 'morphological_sex', 'morphological_age', 'morphological_age_range', 'periods', 'cultures', 'group_label_use_country', 'group_label_use_level_1', 'group_label_use_level_2', 'group_label_use_site', 'group_label_use_period', 'group_label_use_culture', 'special_restriction']
 def sample_site_update(sample_file, user):
 	messages = []
 	with transaction.atomic():
 		for sample_row in spreadsheet_pass(sample_file):
 			row = sample_row.spreadsheet_row_to_obj()
+			row.is_update = row.is_update.lower() in ['t', 'true', 'y', 'yes', '1']
 			# Reich lab IDs will already exist
 			if row.sample_id is not None and len(row.sample_id) > 0:
 				sample = Sample.objects.get(reich_lab_id=reich_sample_number(row.sample_id))
@@ -37,10 +38,17 @@ def sample_site_update(sample_file, user):
 					sample.external_id = None
 				sample_created = False
 			else: # external IDs can be added
-				sample, sample_created = Sample.objects.get_or_create(external_id=row.external_id)
-				if sample_created:
+				try:
+					sample = Sample.objects.get(external_id=row.external_id)
+					sample_created = False
+				except Sample.DoesNotExist:
+					sample = Sample(external_id=row.external_id)
 					messages.append(f'created sample external id: {row.external_id}')
+					sample_created = True
+					sample.save(save_user=user)
 				sample.master_id = row.external_id
+			if (sample_created and row.is_update) or (not sample_created and not row.is_update):
+				raise ValueError(f'{str(sample)} created ({sample_created}) but is_update {row.is_update}. The field is_update needs to be true if the sample exists, and false if the sample does not exist.')
 			
 			if len(row.site_name) == 0:
 				raise ValueError(f'Sample {row.sample_id} {row.external_id} needs a site name')
@@ -121,6 +129,7 @@ def sample_site_values(sample):
 	else: # external
 		values['sample_id'] = ''
 		values['external_id'] = str(sample)
+	values['is_update'] = 'y'
 	values['site_name'] = get_value(sample, 'archaeological_assemblage', 'site', 'site')
 	values['burial_code'] = get_value(sample, 'archaeological_assemblage', 'burial_code')
 	values['skeletal_element_category'] = get_value(sample, 'skeletal_element_category', 'category')
