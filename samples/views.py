@@ -19,11 +19,11 @@ import csv
 import json
 import re
 import types
-from datetime import datetime
+from datetime import datetime, timedelta
 from collections import OrderedDict
 
 from samples.pipeline import udg_and_strandedness
-from samples.models import Results, Library, Sample, PowderBatch, WetLabStaff, PowderSample, ControlType, ControlSet, ControlLayout, ExtractionProtocol, LysateBatch, SamplePrepQueue, PowderPrepQueue, PLATE_ROWS, LysateBatchLayout, ExtractionBatch, ExtractionBatchLayout, Lysate, LibraryBatch, LibraryBatchLayout, Extract, CaptureOrShotgunPlate, CaptureLayout, Storage, is_active_wetlab, Location, get_sample_by_anyid
+from samples.models import Results, Library, Sample, PowderBatch, WetLabStaff, PowderSample, ControlType, ControlSet, ControlLayout, ExtractionProtocol, LysateBatch, SamplePrepQueue, PowderPrepQueue, PLATE_ROWS, LysateBatchLayout, ExtractionBatch, ExtractionBatchLayout, Lysate, LibraryBatch, LibraryBatchLayout, Extract, CaptureOrShotgunPlate, CaptureLayout, Storage, is_active_wetlab, Location, get_sample_by_anyid, SequencingRun
 from samples.intake import sample_site_update, sample_site_values, sample_headers, publication_batch_update, publication_headers, publication_sample_assign, publication_sample_assign_headers, lost_lysate_headers, lost_lysate_batch_update, genetic_analysis_headers, genetic_analysis_setup, genetic_analysis_assessment_headers, genetic_analysis_assessment_intake_update
 from .anno import genetic_id_anno, genetic_analysis_anno_headers
 from .forms import *
@@ -109,10 +109,73 @@ def mt_query(request):
 		form = LibraryIDForm()
 		return render(request, 'samples/library_mt.html', {'form': form})
 	
+def _landing_recent_days(request):
+	raw = request.GET.get('days')
+	if raw is None or raw == '':
+		return 30
+	try:
+		n = int(raw)
+	except (TypeError, ValueError):
+		return 30
+	return max(1, min(365, n))
+
+
+def _landing_modifier_labels(*querysets):
+	usernames = set()
+	for qs in querysets:
+		for name in qs.values_list('modified_by', flat=True):
+			if name:
+				usernames.add(name)
+	labels = {u: u for u in usernames}
+	if usernames:
+		for ws in WetLabStaff.objects.filter(login_user__username__in=usernames).select_related('login_user'):
+			if ws.login_user_id:
+				labels[ws.login_user.username] = ws.initials()
+	return labels
+
+
 @login_required
+@user_passes_test(is_active_wetlab, login_url='/samples/denied', redirect_field_name=None)
 def landing(request):
-	# TODO display recently changed batches
-	return render(request, 'samples/landing.html', {} )
+	recent_days = _landing_recent_days(request)
+	now = timezone.now()
+	cutoff_dt = now - timedelta(days=recent_days)
+	cutoff_date = now.date() - timedelta(days=recent_days)
+
+	powder_batches_recent = PowderBatch.objects.filter(
+		modification_timestamp__gte=cutoff_dt
+	).order_by('-modification_timestamp')
+	lysate_batches_recent = LysateBatch.objects.filter(
+		modification_timestamp__gte=cutoff_dt
+	).order_by('-modification_timestamp')
+	library_batches_recent = LibraryBatch.objects.filter(
+		modification_timestamp__gte=cutoff_dt
+	).order_by('-modification_timestamp')
+	capture_batches_recent = CaptureOrShotgunPlate.objects.filter(
+		modification_timestamp__gte=cutoff_dt
+	).order_by('-modification_timestamp')
+	sequencing_runs_recent = SequencingRun.objects.filter(
+		date_submitted_for_sequencing__isnull=False,
+		date_submitted_for_sequencing__gte=cutoff_date,
+	).order_by('-date_submitted_for_sequencing', '-id')
+
+	modifier_labels = _landing_modifier_labels(
+		powder_batches_recent,
+		lysate_batches_recent,
+		library_batches_recent,
+		capture_batches_recent,
+		sequencing_runs_recent,
+	)
+
+	return render(request, 'samples/landing.html', {
+		'recent_days': recent_days,
+		'powder_batches_recent': powder_batches_recent,
+		'lysate_batches_recent': lysate_batches_recent,
+		'library_batches_recent': library_batches_recent,
+		'capture_batches_recent': capture_batches_recent,
+		'sequencing_runs_recent': sequencing_runs_recent,
+		'modifier_labels': modifier_labels,
+	})
 
 @login_required
 @user_passes_test(is_active_wetlab, login_url='/samples/denied', redirect_field_name=None)

@@ -1,7 +1,163 @@
 {% extends "samples/reich_lab_base.html" %}
+{% load sample_tags %}
 
 {% block title %}Reich Lab Ancient DNA{% endblock %}
 
 {% block content %}
-<p>This is the landing page placeholder.</p>
+<style>
+th {
+	background: #eee;
+}
+table {
+	width: 100%;
+}
+</style>
+<h1>Recent activity</h1>
+<p>
+	Showing batches modified in the last <strong>{{ recent_days }}</strong> day{{ recent_days|pluralize }}
+	and sequencing runs submitted for sequencing in that window.
+	Change window:
+	<a href="{% url 'landing' %}?days=7">7</a> ·
+	<a href="{% url 'landing' %}?days=14">14</a> ·
+	<a href="{% url 'landing' %}?days=30">30</a> ·
+	<a href="{% url 'landing' %}?days=90">90</a> days
+</p>
+<p>
+	Full lists:
+	<a href="{% url 'powder_batches' %}">Powder batches</a> ·
+	<a href="{% url 'lysate_batch' %}">Lysate batches</a> ·
+	<a href="{% url 'library_batches' %}">Library batches</a> ·
+	<a href="{% url 'capture_batches' %}">Capture batches</a> ·
+	<a href="{% url 'sequencing_runs' %}">Sequencing runs</a>
+</p>
+
+<h2>Powder batches</h2>
+{% if powder_batches_recent %}
+<table>
+	<thead>
+	<tr><th>Name</th><th>Status</th><th>Last modified</th><th>Modified by</th></tr>
+	</thead>
+	<tbody>
+	{% for b in powder_batches_recent %}
+	<tr>
+		<td>
+			{% if b.status == b.OPEN %}
+			<a href="{% url 'powder_batch_assign_samples' %}?name={{ b.name|urlencode }}">{{ b.name }}</a>
+			{% else %}
+			<a href="{% url 'powder_samples' %}?powder_batch={{ b.name|urlencode }}">{{ b.name }}</a>
+			{% endif %}
+		</td>
+		<td>{{ b.get_status }}</td>
+		<td>{{ b.modification_timestamp|date:'Y-m-d H:i' }}</td>
+		<td>{{ b.modified_by|modifier_display:modifier_labels }}</td>
+	</tr>
+	{% endfor %}
+	</tbody>
+</table>
+{% else %}
+<p>None in this period.</p>
+{% endif %}
+
+<h2>Lysate batches</h2>
+{% if lysate_batches_recent %}
+<table>
+	<thead>
+	<tr><th>Name</th><th>Status</th><th>Last modified</th><th>Modified by</th></tr>
+	</thead>
+	<tbody>
+	{% for b in lysate_batches_recent %}
+	<tr>
+		<td>
+			{% if b.status == b.OPEN %}
+			<a href="{% url 'lysate_batch_assign_powder' %}?lysate_batch_name={{ b.batch_name|urlencode }}">{{ b.batch_name }}</a>
+			{% else %}
+			<a href="{% url 'lysates_in_batch' %}?lysate_batch_name={{ b.batch_name|urlencode }}">{{ b.batch_name }}</a>
+			{% endif %}
+		</td>
+		<td>{{ b.get_status }}</td>
+		<td>{{ b.modification_timestamp|date:'Y-m-d H:i' }}</td>
+		<td>{{ b.modified_by|modifier_display:modifier_labels }}</td>
+	</tr>
+	{% endfor %}
+	</tbody>
+</table>
+{% else %}
+<p>None in this period.</p>
+{% endif %}
+
+<h2>Library batches</h2>
+{% if library_batches_recent %}
+<table>
+	<thead>
+	<tr><th>Name</th><th>Status</th><th>Last modified</th><th>Modified by</th></tr>
+	</thead>
+	<tbody>
+	{% for b in library_batches_recent %}
+	<tr>
+		<td>
+			{% if b.status == b.OPEN %}
+			<a href="{% url 'library_batch_assign_extract' %}?library_batch_name={{ b.name|urlencode }}">{{ b.name }}</a>
+			{% else %}
+			<a href="{% url 'libraries_in_batch' %}?library_batch_name={{ b.name|urlencode }}">{{ b.name }}</a>
+			{% endif %}
+		</td>
+		<td>{{ b.get_status }}</td>
+		<td>{{ b.modification_timestamp|date:'Y-m-d H:i' }}</td>
+		<td>{{ b.modified_by|modifier_display:modifier_labels }}</td>
+	</tr>
+	{% endfor %}
+	</tbody>
+</table>
+{% else %}
+<p>None in this period.</p>
+{% endif %}
+
+<h2>Capture / shotgun batches</h2>
+{% if capture_batches_recent %}
+<table>
+	<thead>
+	<tr><th>Name</th><th>Status</th><th>Last modified</th><th>Modified by</th></tr>
+	</thead>
+	<tbody>
+	{% for b in capture_batches_recent %}
+	<tr>
+		<td>
+			{% if b.status == b.OPEN %}
+			<a href="{% url 'capture_batch_assign_library' %}?capture_batch_name={{ b.name|urlencode }}">{{ b.name }}</a>
+			{% else %}
+			<a href="{% url 'captures_in_batch' %}?capture_batch_name={{ b.name|urlencode }}">{{ b.name }}</a>
+			{% endif %}
+		</td>
+		<td>{{ b.get_status }}</td>
+		<td>{{ b.modification_timestamp|date:'Y-m-d H:i' }}</td>
+		<td>{{ b.modified_by|modifier_display:modifier_labels }}</td>
+	</tr>
+	{% endfor %}
+	</tbody>
+</table>
+{% else %}
+<p>None in this period.</p>
+{% endif %}
+
+<h2>Sequencing runs (submitted)</h2>
+{% if sequencing_runs_recent %}
+<table>
+	<thead>
+	<tr><th>Name</th><th>Date submitted</th><th>Modified by</th></tr>
+	</thead>
+	<tbody>
+	{% for r in sequencing_runs_recent %}
+	<tr>
+		<td>
+			<a href="{% url 'sequencing_run_assign_captures' %}?sequencing_run_name={{ r.name|urlencode }}">{{ r.name }}</a>
+		</td>
+		<td>{{ r.date_submitted_for_sequencing|date:'Y-m-d' }}</td>
+		<td>{{ r.modified_by|modifier_display:modifier_labels }}</td>
+	</tr>
+	{% endfor %}
+	</tbody>
+</table>
+{% else %}
+<p>None in this period.</p>
+{% endif %}
 {% endblock %}
