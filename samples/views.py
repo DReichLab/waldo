@@ -142,17 +142,26 @@ def landing(request):
 	cutoff_dt = now - timedelta(days=recent_days)
 	cutoff_date = now.date() - timedelta(days=recent_days)
 
+	recent_mod = Q(modification_timestamp__gte=cutoff_dt)
+	powder_still_active = Q(status__in=[
+		PowderBatch.OPEN, PowderBatch.IN_PROGRESS, PowderBatch.READY_FOR_PLATE,
+	]) | Q(status__isnull=True)
 	powder_batches_recent = PowderBatch.objects.filter(
-		modification_timestamp__gte=cutoff_dt
+		recent_mod | powder_still_active
 	).order_by('-modification_timestamp')
+	lysate_still_active = Q(status__in=[LysateBatch.OPEN, LysateBatch.IN_PROGRESS])
 	lysate_batches_recent = LysateBatch.objects.filter(
-		modification_timestamp__gte=cutoff_dt
+		recent_mod | lysate_still_active
 	).order_by('-modification_timestamp')
+	library_still_active = Q(status__in=[LibraryBatch.OPEN, LibraryBatch.IN_PROGRESS])
 	library_batches_recent = LibraryBatch.objects.filter(
-		modification_timestamp__gte=cutoff_dt
+		recent_mod | library_still_active
 	).order_by('-modification_timestamp')
+	capture_still_active = Q(status__in=[
+		CaptureOrShotgunPlate.OPEN, CaptureOrShotgunPlate.IN_PROGRESS,
+	])
 	capture_batches_recent = CaptureOrShotgunPlate.objects.filter(
-		modification_timestamp__gte=cutoff_dt
+		recent_mod | capture_still_active
 	).order_by('-modification_timestamp')
 	sequencing_runs_recent = SequencingRun.objects.filter(
 		date_submitted_for_sequencing__isnull=False,

@@ -14,7 +14,8 @@ table {
 </style>
 <h1>Recent activity</h1>
 <p>
-	Showing batches modified in the last <strong>{{ recent_days }}</strong> day{{ recent_days|pluralize }}
+	Showing batches modified in the last <strong>{{ recent_days }}</strong> day{{ recent_days|pluralize }},
+	plus any batch that is still open or in progress (not closed or stopped),
 	and sequencing runs submitted for sequencing in that window.
 	Change window:
 	<a href="{% url 'landing' %}?days=7">7</a> ·
