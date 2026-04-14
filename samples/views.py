@@ -135,8 +135,9 @@ def _landing_modifier_labels(*querysets):
 
 
 @login_required
-@user_passes_test(is_active_wetlab, login_url='/samples/denied', redirect_field_name=None)
 def landing(request):
+	if not is_active_wetlab(request.user):
+		return render(request, 'samples/landing_blank.html', {})
 	recent_days = _landing_recent_days(request)
 	now = timezone.now()
 	cutoff_dt = now - timedelta(days=recent_days)
