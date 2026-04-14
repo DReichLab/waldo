@@ -58,6 +58,8 @@ table {
 {% else %}
 <p>None in this period.</p>
 {% endif %}
+<p>Total powders ready to plate: <strong>{{ powders_ready_to_plate_count }}</strong>
+	(wells on powder batches marked ready for plate or closed, not yet assigned to a lysate batch).</p>
 
 <h2>Lysate batches</h2>
 {% if lysate_batches_recent %}

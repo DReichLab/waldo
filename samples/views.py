@@ -176,6 +176,12 @@ def landing(request):
 		sequencing_runs_recent,
 	)
 
+	powders_ready_to_plate_count = LysateBatchLayout.objects.filter(
+		lysate_batch__isnull=True,
+		is_lost=False,
+		powder_batch__status__in=[PowderBatch.READY_FOR_PLATE, PowderBatch.CLOSED],
+	).count()
+
 	return render(request, 'samples/landing.html', {
 		'recent_days': recent_days,
 		'powder_batches_recent': powder_batches_recent,
@@ -184,6 +190,7 @@ def landing(request):
 		'capture_batches_recent': capture_batches_recent,
 		'sequencing_runs_recent': sequencing_runs_recent,
 		'modifier_labels': modifier_labels,
+		'powders_ready_to_plate_count': powders_ready_to_plate_count,
 	})
 
 @login_required
