@@ -164,9 +164,8 @@ def landing(request):
 		recent_mod | capture_still_active
 	).order_by('-modification_timestamp')
 	sequencing_runs_recent = SequencingRun.objects.filter(
-		date_submitted_for_sequencing__isnull=False,
-		date_submitted_for_sequencing__gte=cutoff_date,
-	).order_by('-date_submitted_for_sequencing', '-id')
+		recent_mod
+	).order_by('-modification_timestamp')
 
 	modifier_labels = _landing_modifier_labels(
 		powder_batches_recent,

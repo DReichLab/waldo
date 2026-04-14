@@ -142,11 +142,11 @@ table {
 <p>None in this period.</p>
 {% endif %}
 
-<h2>Sequencing runs (submitted)</h2>
+<h2>Sequencing runs</h2>
 {% if sequencing_runs_recent %}
 <table>
 	<thead>
-	<tr><th>Name</th><th>Date submitted</th><th>Modified by</th></tr>
+	<tr><th>Name</th><th>Date pooled</th><th>Date submitted</th><th>Last modified</th><th>Modified by</th></tr>
 	</thead>
 	<tbody>
 	{% for r in sequencing_runs_recent %}
@@ -154,7 +154,9 @@ table {
 		<td>
 			<a href="{% url 'sequencing_run_assign_captures' %}?sequencing_run_name={{ r.name|urlencode }}">{{ r.name }}</a>
 		</td>
+		<td>{{ r.date_pooled|date:'Y-m-d' }}</td>
 		<td>{{ r.date_submitted_for_sequencing|date:'Y-m-d' }}</td>
+		<td>{{ r.modification_timestamp|date:'Y-m-d H:i' }}</td>
 		<td>{{ r.modified_by|modifier_display:modifier_labels }}</td>
 	</tr>
 	{% endfor %}
