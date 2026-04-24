@@ -65,6 +65,7 @@ urlpatterns = [
 	
 	path('libraries_spreadsheet', views.libraries_spreadsheet, name='libraries_spreadsheet'),
 	path('libraries_spreadsheet_upload', views.libraries_spreadsheet_upload, name='libraries_spreadsheet_upload'),
+	path('library_batch_mob_upload', views.library_batch_mob_upload, name='library_batch_mob_upload'),
 	
 	path('capture_protocols', views.capture_protocols, name='capture_protocols'),
 	path('capture_protocol', views.capture_protocol, name='capture_protocol'),

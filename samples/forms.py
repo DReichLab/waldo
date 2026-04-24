@@ -768,7 +768,16 @@ class SequencingRunForm(UserModelForm):
 
 class SpreadsheetForm(forms.Form):
 	spreadsheet = forms.FileField(help_text='Retain headers from downloaded spreadsheet')
-	
+
+
+class MobLayoutUploadForm(forms.Form):
+	spreadsheet = forms.FileField(help_text='Tab-separated file: header row must include Position and Extract columns')
+	library_ids = forms.BooleanField(required=False, help_text='Allow existing library ids to stand in for their extracts')
+	controls = forms.BooleanField(required=False, help_text='Add controls from control layout')
+	rotate_controls = forms.BooleanField(required=False, help_text='Rotate controls from layout as they are added')
+	rotate = forms.BooleanField(required=False, help_text='Rotate each new well position as it is read from the file')
+	external_extraction_lab = forms.CharField(required=False, initial='Pinhasi Lab', help_text='Extraction lab for external samples (numeric sample id in Extract column)')
+
 class BatchUploadForm(forms.Form):
 	spreadsheet = forms.FileField(help_text='Include header line')
 	

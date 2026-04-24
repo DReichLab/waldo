@@ -2,6 +2,7 @@ from django.core.paginator import Paginator
 from django.shortcuts import redirect, render, reverse
 
 from django.http import HttpResponse, HttpResponseBadRequest
+from django.core.exceptions import ValidationError
 from django.utils.http import urlencode
 
 from django.contrib.auth.decorators import login_required, user_passes_test
@@ -1191,7 +1192,7 @@ def library_batch_assign_extract(request):
 	# count wells
 	occupied_well_count, num_non_control_assignments = occupied_wells(LibraryBatchLayout.objects.filter(library_batch=library_batch))
 	
-	return render(request, 'samples/library_batch_assign_extract.html', { 'library_batch_name': library_batch_name, 'assigned_extracts': already_selected_extract_layout_elements, 'assigned_extracts_count': assigned_extracts_count, 'control_count': len(existing_controls), 'num_assignments': num_non_control_assignments, 'occupied_wells': occupied_well_count, 'form': library_batch_form  } )
+	return render(request, 'samples/library_batch_assign_extract.html', { 'library_batch_name': library_batch_name, 'library_batch': library_batch, 'assigned_extracts': already_selected_extract_layout_elements, 'assigned_extracts_count': assigned_extracts_count, 'control_count': len(existing_controls), 'num_assignments': num_non_control_assignments, 'occupied_wells': occupied_well_count, 'form': library_batch_form  } )
 	
 @login_required
 @user_passes_test(is_active_wetlab, login_url='/samples/denied', redirect_field_name=None)
@@ -1323,7 +1324,68 @@ def libraries_spreadsheet_upload(request):
 		spreadsheet_form = SpreadsheetForm()
 		message = ''
 	return render(request, 'samples/spreadsheet_upload.html', { 'title': f'Libraries for {library_batch_name}', 'form': spreadsheet_form, 'message': message} )
-	
+
+
+MOB_LAYOUT_UPLOAD_HELP = (
+	'Upload a tab-separated spreadsheet whose first row includes the columns Position and Extract. '
+	'Position is the well (e.g. A1). Extract may be a Reich extract id (S…), a control_extract id, '
+	'the library negative label, Contl.Positive for library positive control, or a numeric sample primary key '
+	'for an external sample (use External extraction lab below). '
+	'Do not use tab or newline characters inside cells.'
+)
+
+
+@login_required
+@user_passes_test(is_active_wetlab, login_url='/samples/denied', redirect_field_name=None)
+def library_batch_mob_upload(request):
+	library_batch_name = request.GET['library_batch_name']
+	library_batch = LibraryBatch.objects.get(name=library_batch_name)
+	if library_batch.status != LibraryBatch.OPEN:
+		return redirect(f'{reverse("library_batch_assign_extract")}?library_batch_name={library_batch_name}')
+
+	if request.method == 'POST':
+		form = MobLayoutUploadForm(request.POST, request.FILES)
+		if form.is_valid():
+			try:
+				spreadsheet = request.FILES['spreadsheet']
+				lab = (form.cleaned_data.get('external_extraction_lab') or '').strip() or 'Pinhasi Lab'
+				library_batch.load_mob_layout(
+					spreadsheet,
+					request.user,
+					library_ids=form.cleaned_data['library_ids'],
+					controls=form.cleaned_data['controls'],
+					rotate_controls=form.cleaned_data['rotate_controls'],
+					rotate=form.cleaned_data['rotate'],
+					external_extraction_lab=lab,
+				)
+				message = UPDATED
+				form = MobLayoutUploadForm()
+			except ValidationError as e:
+				if getattr(e, 'error_dict', None):
+					parts = []
+					for k, v in e.error_dict.items():
+						parts.append(f'{k}: {", ".join(str(x) for x in v)}')
+					message = '; '.join(parts)
+				else:
+					message = '; '.join(getattr(e, 'messages', []) or [str(e)])
+			except (ValueError, Library.DoesNotExist, Extract.DoesNotExist, Sample.DoesNotExist) as e:
+				message = str(e)
+		else:
+			message = ''
+	else:
+		message = MOB_LAYOUT_UPLOAD_HELP
+		form = MobLayoutUploadForm()
+
+	return render(
+		request,
+		'samples/spreadsheet_upload.html',
+		{
+			'title': f'Mob layout for {library_batch_name}',
+			'form': form,
+			'message': message,
+		},
+	)
+
 @login_required
 @user_passes_test(is_active_wetlab, login_url='/samples/denied', redirect_field_name=None)
 def library_batch_to_capture_batch(request):

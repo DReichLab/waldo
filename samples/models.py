@@ -2437,6 +2437,58 @@ class LibraryBatch(Timestamped):
 		library_batch_layout_element.save(save_user=user)
 		return library_batch_layout_element
 
+	@transaction.atomic
+	def load_mob_layout(self, spreadsheet_file, user, *, library_ids=False, controls=False, rotate_controls=False, rotate=False, external_extraction_lab='Pinhasi Lab'):
+		"""Assign extracts and controls from a tab-separated spreadsheet with headers Position and Extract (mob layout)."""
+		if self.status != self.OPEN:
+			raise ValidationError(_('Mob layout can only be loaded for an open library batch (current status: %(status)s).'), params={'status': self.get_status()})
+		extract_negative_control_type = ControlType.objects.get(control_type=EXTRACT_NEGATIVE)
+		library_negative_control_type = ControlType.objects.get(control_type=LIBRARY_NEGATIVE)
+		library_positive_control_type = ControlType.objects.get(control_type=LIBRARY_POSITIVE)
+
+		if controls:
+			self.set_controls(user, rotate_controls)
+
+		headers, data_row_fields = spreadsheet_headers_and_data_row_fields(spreadsheet_file)
+		if 'Position' not in headers or 'Extract' not in headers:
+			raise ValidationError(_('Spreadsheet must include Position and Extract columns in the header row.'))
+
+		for line in data_row_fields:
+			well_position = get_spreadsheet_value(headers, line, 'Position').strip()
+			id_to_parse = get_spreadsheet_value(headers, line, 'Extract').strip()
+			if not well_position and not id_to_parse:
+				continue
+			position = TimestampedWellPosition()
+			position.set_position(well_position)
+			if rotate:
+				position.rotate()
+			if id_to_parse.startswith('S'):
+				try:
+					extract = Extract.objects.get(extract_id=id_to_parse)
+				except Extract.DoesNotExist as e:
+					if library_ids:
+						library = Library.objects.get(reich_lab_library_id=id_to_parse)
+						extract = library.extract
+					else:
+						raise e
+				self.assign_extract(extract, position.row, position.column, user=user)
+			elif id_to_parse.startswith('control_extract'):
+				extract = Extract.objects.get(extract_id=id_to_parse)
+				self.assign_extract(extract, position.row, position.column, extract_negative_control_type, user=user)
+			elif id_to_parse == LIBRARY_NEGATIVE:
+				self.assign_extract(None, position.row, position.column, library_negative_control_type, user=user)
+			elif id_to_parse == 'Contl.Positive':
+				LibraryBatchLayout.objects.create(library_batch=self, extract=None, control_type=library_positive_control_type, row=position.row, column=position.column)
+			elif len(id_to_parse) > 0:
+				raw_sample_id = id_to_parse
+				sample = Sample.objects.get(id=raw_sample_id)
+				extract = sample.originating_extract(external_extraction_lab)
+				self.assign_extract(extract, position.row, position.column, user=user)
+
+		self.rotated = rotate_controls or rotate
+		self.save(save_user=user)
+		self.clean()
+
 	def single_stranded_from_file(self, spreadsheet_file, user, *, ul_extract_used=None):
 		if ul_extract_used is None:
 			ul_extract_used = self.protocol.volume_extract_used_standard
