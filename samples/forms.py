@@ -581,8 +581,6 @@ class LibraryBatchForm(UserModelForm):
 		super().__init__(*args, **kwargs)
 		for option in ['prep_date', 'prep_robot']:
 			self.fields[option].required = False
-		for option in ['rotated']:
-			self.fields[option].disabled = True
 		# ensure current values are allowed form values
 		self.fields['p7_offset'].required = False
 		if self.instance:
