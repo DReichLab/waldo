@@ -16,6 +16,7 @@ class Command(BaseCommand):
 		parser.add_argument('--skip', help='Skip header line', action='store_true')
 		parser.add_argument('--library_ids', help='Allow existing library ids to stand in for their extracts', action='store_true')
 		parser.add_argument('--controls', help='Add controls from control layout. Controls in explicit layout are always added and do not require this option.', action='store_true')
+		parser.add_argument('--rotate_controls', action='store_true', help='Rotate controls from layout (non-explicit) as they are added to the plate')
 		parser.add_argument('--user', nargs='+', help='Wetlab staff name')
 		parser.add_argument('--rotate', action='store_true', help='Rotate new elements as they are added to the plate')
 		
@@ -33,7 +34,7 @@ class Command(BaseCommand):
 		
 		with transaction.atomic():
 			if options['controls']:
-				library_batch.set_controls(user, options['rotate'])
+				library_batch.set_controls(user, options['rotate_controls'])
 			with options['extract_layouts'] as extract_layouts:
 				if options['skip']:
 					extract_layouts.readline()
@@ -64,16 +65,7 @@ class Command(BaseCommand):
 						extract = Extract.objects.get(extract_id=id_to_parse)
 						library_batch.assign_extract(extract, position.row, position.column, extract_negative_control_type, user=user)
 					elif id_to_parse == LIBRARY_NEGATIVE:
-						control_character = CONTROL_CHARACTERS[library_negative_control_count]
-						library_negative_control_count += 1
-						control_sample = Sample(control=control_character)
-						if control_sample_number is not None:
-							control_sample.reich_lab_id = control_sample_number
-							control_sample.save()
-						else:
-							control_sample_number = control_sample.assign_reich_lab_sample_number()
-							
-						extract = control_sample.originating_extract(REICH_LAB)
+						extract = None
 						library_batch.assign_extract(extract, position.row, position.column, library_negative_control_type, user=user)
 					elif id_to_parse == 'Contl.Positive':
 						LibraryBatchLayout.objects.create(library_batch=library_batch, extract=None, control_type=ControlType.objects.get(control_type=LIBRARY_POSITIVE), row=position.row, column=position.column)
@@ -82,3 +74,6 @@ class Command(BaseCommand):
 						sample = Sample.objects.get(id=raw_sample_id)
 						extract = sample.originating_extract('Pinhasi Lab') # TODO this should be an argument
 						library_batch.assign_extract(extract, position.row, position.column, user=user)
+			library_batch.rotated = options['rotate_controls'] or options['rotate']
+			library_batch.save(save_user=user)
+			library_batch.clean()

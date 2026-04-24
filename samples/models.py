@@ -1034,6 +1034,10 @@ def control_sample_number_from_layout_element(control_layout_element):
 	elif isinstance(control_layout_element, ExtractionBatchLayout):
 		if control_layout_element.lysate and control_layout_element.lysate.powder_sample and control_layout_element.lysate.powder_sample.sample:
 			reich_lab_sample_number = control_layout_element.lysate.powder_sample.sample.reich_lab_id
+	elif isinstance(control_layout_element, LibraryBatchLayout):
+		sample = get_value(control_layout_element, 'extract', 'get_sample')
+		if sample:
+			reich_lab_sample_number = sample.reich_lab_id
 	else:
 		raise ValueError('Unhandled class')
 	return reich_lab_sample_number
@@ -2761,6 +2765,11 @@ class LibraryBatchLayout(TimestampedWellPosition):
 		library.fluidx_barcode = fluidx_noread_filter(arg_array[headers.index('fluidx_barcode')].strip())
 		library.notes = arg_array[headers.index('notes')]
 		library.save(save_user=user)
+		
+	def destroy_control(self, user):
+		if self.control_type is not None:
+			if self.extract is not None:
+				raise NotImplementedError('Not expecting to destroy_control for LibraryBatch layouts')
 		
 @receiver(pre_delete, sender=LibraryBatchLayout, dispatch_uid='librarybatchlayout_delete_signal')
 def delete_dependent_library(sender, instance, using, **kwargs):
