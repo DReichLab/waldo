@@ -5,7 +5,7 @@ from django.db import transaction
 import argparse, sys
 import re
 
-from samples.models import Sample, LibraryBatch, Extract, Library, TimestampedWellPosition, CONTROL_CHARACTERS, ControlType, EXTRACT_NEGATIVE, LIBRARY_NEGATIVE, LIBRARY_POSITIVE, REICH_LAB, LibraryBatchLayout, WetLabStaff
+from samples.models import Sample, LibraryBatch, Extract, Library, TimestampedWellPosition, CONTROL_CHARACTERS, ControlType, EXTRACT_NEGATIVE, LIBRARY_NEGATIVE, LIBRARY_POSITIVE, REICH_LAB, LibraryBatchLayout, WetLabStaff, get_wetlab_staff
 
 class Command(BaseCommand):
 	help = "Assign extracts to a library batch from a file input with well positions for extracts, library negatives, library positive, and external samples arriving as extracts."
@@ -16,7 +16,7 @@ class Command(BaseCommand):
 		parser.add_argument('--skip', help='Skip header line', action='store_true')
 		parser.add_argument('--library_ids', help='Allow existing library ids to stand in for their extracts', action='store_true')
 		parser.add_argument('--controls', help='Add controls from control layout. Controls in explicit layout are always added and do not require this option.', action='store_true')
-		parser.add_argument('--user', help='Wetlab user first name')
+		parser.add_argument('--user', nargs='+', help='Wetlab staff name')
 		parser.add_argument('--rotate', action='store_true', help='Rotate new elements as they are added to the plate')
 		
 	def handle(self, *args, **options):
@@ -28,8 +28,7 @@ class Command(BaseCommand):
 
 		user = None
 		if options['user']:
-			name = options['user']
-			wetlab_user = WetLabStaff.objects.get(first_name=name)
+			wetlab_user = get_wetlab_staff(options['user'])
 			user = wetlab_user.login_user
 		
 		with transaction.atomic():
