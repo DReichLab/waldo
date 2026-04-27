@@ -1352,7 +1352,6 @@ def library_batch_mob_upload(request):
 				library_batch.load_mob_layout(
 					spreadsheet,
 					request.user,
-					library_ids=form.cleaned_data['library_ids'],
 					controls=form.cleaned_data['controls'],
 					rotate_controls=form.cleaned_data['rotate_controls'],
 					rotate=form.cleaned_data['rotate'],
