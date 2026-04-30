@@ -2366,7 +2366,7 @@ class LibraryBatch(Timestamped):
 			layout_element = self.layout_elements().get(column=temp.column, row=temp.row)
 			layout_element.from_spreadsheet_row(headers, fields, user)
 		
-	
+	@transaction.atomic
 	def create_capture(self, capture_name, other_library_batches, user):
 		# fail if a library batch is not ready
 		for library_batch in other_library_batches:
@@ -2410,10 +2410,10 @@ class LibraryBatch(Timestamped):
 								control_type=pcr_negative_position.control_type, row=pcr_negative_position.row, column=pcr_negative_position.column)
 			pcr_negative.save(save_user=user)
 		# 3. capture positive in H12
-		capture_positive_position = ControlLayout.objects.get(control_set=self.control_set, control_type__control_type=CAPTURE_POSITIVE)
 		# TODO shotgun does not get a capture positive. Instead it gets a second PCR negative
 		# capture positive depends upon library type
 		if self.protocol.library_type == 'ds':
+			capture_positive_position = ControlLayout.objects.get(control_set=self.control_set, control_type__control_type=CAPTURE_POSITIVE)
 			capture_positive_library = Library.objects.get(reich_lab_library_id=CAPTURE_POSITIVE_LIBRARY_NAME_DS)
 			capture_positive = CaptureLayout(capture_batch=capture_plate,
 								   control_type=capture_positive_position.control_type, row=capture_positive_position.row, column=capture_positive_position.column,
