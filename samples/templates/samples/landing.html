@@ -27,6 +27,7 @@ table {
 	Full lists:
 	<a href="{% url 'powder_batches' %}">Powder batches</a> ·
 	<a href="{% url 'lysate_batch' %}">Lysate batches</a> ·
+	<a href="{% url 'extract_batch' %}">Extract batches</a> ·
 	<a href="{% url 'library_batches' %}">Library batches</a> ·
 	<a href="{% url 'capture_batches' %}">Capture batches</a> ·
 	<a href="{% url 'sequencing_runs' %}">Sequencing runs</a>
@@ -75,6 +76,33 @@ table {
 			<a href="{% url 'lysate_batch_assign_powder' %}?lysate_batch_name={{ b.batch_name|urlencode }}">{{ b.batch_name }}</a>
 			{% else %}
 			<a href="{% url 'lysates_in_batch' %}?lysate_batch_name={{ b.batch_name|urlencode }}">{{ b.batch_name }}</a>
+			{% endif %}
+		</td>
+		<td>{{ b.get_status }}</td>
+		<td>{{ b.modification_timestamp|date:'Y-m-d H:i' }}</td>
+		<td>{{ b.modified_by|modifier_display:modifier_labels }}</td>
+	</tr>
+	{% endfor %}
+	</tbody>
+</table>
+{% else %}
+<p>None in this period.</p>
+{% endif %}
+
+<h2>Extract batches</h2>
+{% if extraction_batches_recent %}
+<table>
+	<thead>
+	<tr><th>Name</th><th>Status</th><th>Last modified</th><th>Modified by</th></tr>
+	</thead>
+	<tbody>
+	{% for b in extraction_batches_recent %}
+	<tr>
+		<td>
+			{% if b.status == b.OPEN %}
+			<a href="{% url 'extract_batch_assign_lysate' %}?extract_batch_name={{ b.batch_name|urlencode }}">{{ b.batch_name }}</a>
+			{% else %}
+			<a href="{% url 'extracts_in_batch' %}?extract_batch_name={{ b.batch_name|urlencode }}">{{ b.batch_name }}</a>
 			{% endif %}
 		</td>
 		<td>{{ b.get_status }}</td>

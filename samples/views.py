@@ -155,6 +155,10 @@ def landing(request):
 	lysate_batches_recent = LysateBatch.objects.filter(
 		recent_mod | lysate_still_active
 	).order_by('-modification_timestamp')
+	extraction_still_active = Q(status__in=[ExtractionBatch.OPEN, ExtractionBatch.IN_PROGRESS])
+	extraction_batches_recent = ExtractionBatch.objects.filter(
+		recent_mod | extraction_still_active
+	).order_by('-modification_timestamp')
 	library_still_active = Q(status__in=[LibraryBatch.OPEN, LibraryBatch.IN_PROGRESS])
 	library_batches_recent = LibraryBatch.objects.filter(
 		recent_mod | library_still_active
@@ -172,6 +176,7 @@ def landing(request):
 	modifier_labels = _landing_modifier_labels(
 		powder_batches_recent,
 		lysate_batches_recent,
+		extraction_batches_recent,
 		library_batches_recent,
 		capture_batches_recent,
 		sequencing_runs_recent,
@@ -187,6 +192,7 @@ def landing(request):
 		'recent_days': recent_days,
 		'powder_batches_recent': powder_batches_recent,
 		'lysate_batches_recent': lysate_batches_recent,
+		'extraction_batches_recent': extraction_batches_recent,
 		'library_batches_recent': library_batches_recent,
 		'capture_batches_recent': capture_batches_recent,
 		'sequencing_runs_recent': sequencing_runs_recent,
