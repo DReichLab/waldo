@@ -12,7 +12,7 @@ class Command(BaseCommand):
 		
 	def output_sample(self, sample):
 		remaining = sample.powder_remaining()
-		if isinstance(remaining, float):
+		if isinstance(remaining, float) or isinstance(remaining, int):
 			remaining_str = f'{remaining:.1f}'
 		else:
 			remaining_str = remaining
