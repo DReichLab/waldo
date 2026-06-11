@@ -702,16 +702,16 @@ class Sample(Timestamped):
 	# Extracts do not store powder values directly. Any extracts without a layout cannot account for powder. 
 	def powder_remaining(self):
 		powder_samples = PowderSample.objects.filter(sample=self)
-		total_powder = powder_samples.aggregate(Max('total_powder_produced_mg'))['total_powder_produced_mg__max']
+		total_powder = powder_samples.aggregate(Max('total_powder_produced_mg'))['total_powder_produced_mg__max'] if powder_samples.exists() else 0
 
 		lysates_from_layout = LysateBatchLayout.objects.filter(powder_sample__sample=self, powder_used_mg__isnull=False)
-		powder_lysate_layout = lysates_from_layout.aggregate(Sum('powder_used_mg', default=0.0))['powder_used_mg__sum']
+		powder_lysate_layout = lysates_from_layout.aggregate(Sum('powder_used_mg'))['powder_used_mg__sum'] if lysates_from_layout.exists() else 0
 		# lysates that do not have layout elements yet
 		lysates_without_layout = Lysate.objects.filter(powder_sample__sample=self, lysatebatchlayout__isnull=True, powder_used_mg__isnull=False)
-		powder_lysate = lysates_without_layout.aggregate(Sum('powder_used_mg', default=0.0))['powder_used_mg__sum']
+		powder_lysate = lysates_without_layout.aggregate(Sum('powder_used_mg'))['powder_used_mg__sum'] if lysates_without_layout.exists() else 0
 		
 		extracts_from_layout = ExtractionBatchLayout.objects.filter(powder_sample__sample=self, powder_used_mg__isnull=False)
-		powder_extract_layout = extracts_from_layout.aggregate(Sum('powder_used_mg', default=0.0))['powder_used_mg__sum']
+		powder_extract_layout = extracts_from_layout.aggregate(Sum('powder_used_mg'))['powder_used_mg__sum'] if extracts_from_layout.exists() else 0
 		
 		try:
 			return total_powder - (powder_lysate_layout + powder_lysate + powder_extract_layout)
