@@ -315,6 +315,7 @@ family_public_h = 'Public Family relations'
 libraries_h = 'Libraries'
 assessment_h = 'ASSESSMENT'
 assessment_detail_h = 'Assessment detail'
+first_release_h = 'First release'
 	
 def genetic_analysis_anno_headers():
 	headers = [
@@ -350,7 +351,8 @@ def genetic_analysis_anno_headers():
 		family_public_h,
 		libraries_h,
 		assessment_h,
-		assessment_detail_h
+		assessment_detail_h,
+		first_release_h,
 	]
 	return headers
 
@@ -419,6 +421,7 @@ def genetic_analysis_anno(genetic_analysis):
 	
 	fields[assessment_h] = get_value(genetic_analysis, 'assessment', 'category')
 	fields[assessment_detail_h] = get_value(genetic_analysis, 'assessment_notes')
+	fields[first_release_h] = get_value(genetic_analysis, 'first_release')
 		
 	# publications = PublicationLabels.objects.filter(Q(sample=sample) | Q(genetic_id_entry__data_instance__primary_sample=sample) ).distinct().order_by('publication__year')
 	
