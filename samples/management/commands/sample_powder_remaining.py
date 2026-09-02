@@ -11,12 +11,13 @@ class Command(BaseCommand):
 		parser.add_argument("-a", '--all', action='store_true', help='Output for all Reich Lab samples')
 		
 	def output_sample(self, sample):
+		produced = str(sample.powder_produced())
 		remaining = sample.powder_remaining()
 		if isinstance(remaining, float) or isinstance(remaining, int):
 			remaining_str = f'{remaining:.1f}'
 		else:
 			remaining_str = remaining
-		self.stdout.write('\t'.join([str(sample), remaining_str]))
+		self.stdout.write('\t'.join([str(sample), produced, remaining_str]))
 		
 	def handle(self, *args, **options):
 		if options['all']:

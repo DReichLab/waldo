@@ -700,9 +700,13 @@ class Sample(Timestamped):
 	# When a sample is redrilled, it gets a new sample number
 	# This prioritizes lysate layout powder accounting values when they exist over lysate values. The lysate value is the fallback. 
 	# Extracts do not store powder values directly. Any extracts without a layout cannot account for powder. 
-	def powder_remaining(self):
+	def powder_produced(self):
 		powder_samples = PowderSample.objects.filter(sample=self)
 		total_powder = powder_samples.aggregate(Max('total_powder_produced_mg'))['total_powder_produced_mg__max'] if powder_samples.exists() else 0
+		return total_powder
+	
+	def powder_remaining(self):
+		total_powder = self.powder_produced()
 
 		lysates_from_layout = LysateBatchLayout.objects.filter(powder_sample__sample=self, powder_used_mg__isnull=False)
 		powder_lysate_layout = lysates_from_layout.aggregate(Sum('powder_used_mg'))['powder_used_mg__sum'] if lysates_from_layout.exists() else 0
