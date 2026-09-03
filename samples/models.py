@@ -1385,22 +1385,19 @@ class Lysate(Timestamped):
 		if self.powder_sample and self.powder_sample.sample != self.sample:
 			raise ValidationError(_('lysate sample is inconsistent with powder sample'))
 	
-	# Compute how much lysate is left based on original lysate amount generated minus:
-	# 1. lysate used to make extracts
-	# 2. lost lysate
+	# Compute how much lysate is left based on original lysate amount generated minus lysate used
+	# This prioritizes ExtractionBatchLayout lysate_volume_used values when they exist over extract values. The extract value is the fallback.
 	def remaining(self):
-		lysate_used = 0
-		# Rebecca kept track of lysate used in extracts
-		# potential improvement is to move all of these computations into ExtractionBatchLayout objects
-		extracts = Extract.objects.filter(lysate=self)
-		for extract in extracts:
-			lysate_used += extract.lysis_volume_extracted
-		# Lost lysate is in ExtractionBatchLayout
-		lost_lysates = ExtractionBatchLayout.objects.filter(lysate=self, extract_batch=None)
-		for lost in lost_lysates:
-			lysate_used += lost.lysate_volume_used
-		lysate_remaining = self.total_volume_produced - lysate_used
-		return lysate_remaining
+		extracts_from_layout = ExtractionBatchLayout.objects.filter(lysate=self, lysate_volume_used__isnull=False)
+		lysate_used_layout = extracts_from_layout.aggregate(Sum('lysate_volume_used'))['lysate_volume_used__sum'] if extracts_from_layout.exists() else 0
+		# extracts that do not have layout elements yet
+		extracts_without_layout = Extract.objects.filter(lysate=self, extractionbatchlayout__isnull=True, lysis_volume_extracted__isnull=False)
+		lysate_used_extract = extracts_without_layout.aggregate(Sum('lysis_volume_extracted'))['lysis_volume_extracted__sum'] if extracts_without_layout.exists() else 0
+
+		try:
+			return self.total_volume_produced - (lysate_used_layout + lysate_used_extract)
+		except:
+			return 'Unknown'
 		
 	# return the highest extract number for this lysate
 	# This is not equivalent to how many extracts there are because there are extracts with the number 0. These appear to be failures that were renumbered after failure. 
